@@ -1,0 +1,15 @@
+#!/bin/sh
+i=1
+a="sed"
+echo="`which echo`"
+while [ $i -lt 256 ]; do
+	if [ $i -lt 32 -o $i -ge 127 ]; then
+		oct="`printf %03o $i`"
+		# dash's internal echo doesn't know -e
+		char="`"$echo" -e \\\\$oct`"
+		a="$a -e 's/$char/\\\\\\\\$oct/g'"
+	fi
+	i=`expr $i + 1`
+done
+# bash and dash differ here: bash creates double backslashes, dash single
+echo "$a"|sed 's/\\\\\\\\/\\\\/g'
