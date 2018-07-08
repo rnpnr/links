@@ -18,40 +18,35 @@ unsigned char dummyarray[T__N_TEXTS];
 
 #include "language.inc"
 
-static unsigned char **translation_array[N_LANGUAGES][N_CODEPAGES];
+static unsigned char **translation_array[N_CODEPAGES];
 
-int current_language;
 static int current_lang_charset;
 
 void init_trans(void)
 {
-	int i, j;
-	for (i = 0; i < N_LANGUAGES; i++)
-		for (j = 0; j < N_CODEPAGES; j++)
-			translation_array[i][j] = NULL;
-	set_language(-1);
+	int j;
+	for (j = 0; j < N_CODEPAGES; j++)
+		translation_array[j] = NULL;
+	set_language();
 }
 
 void shutdown_trans(void)
 {
-	int i, j, k;
-	for (i = 0; i < N_LANGUAGES; i++)
-		for (j = 0; j < N_CODEPAGES; j++) if (translation_array[i][j]) {
-			for (k = 0; k < T__N_TEXTS; k++) {
-				unsigned char *txt = translation_array[i][j][k];
-				if (txt &&
-				    txt != cast_uchar translations[i].t[k].name &&
-				    txt != cast_uchar translation_english[k].name)
-					mem_free(txt);
-			}
-			mem_free(translation_array[i][j]);
+	int j, k;
+	for (j = 0; j < N_CODEPAGES; j++) if (translation_array[j]) {
+		for (k = 0; k < T__N_TEXTS; k++) {
+			unsigned char *txt = translation_array[j][k];
+			if (txt &&
+			    txt != cast_uchar translation_english[k].name)
+				mem_free(txt);
 		}
+		mem_free(translation_array[j]);
+	}
 }
 
 int get_language_from_lang(unsigned char *lang)
 {
 	unsigned char *p;
-	int i;
 	lang = stracpy(lang);
 	lang[strcspn(cast_const_char lang, ".@")] = 0;
 	if (!casestrcmp(lang, cast_uchar "nn_NO"))
@@ -63,57 +58,22 @@ int get_language_from_lang(unsigned char *lang)
 			*p = '-';
 	}
 search_again:
-	for (i = 0; i < n_languages(); i++) {
-		p = cast_uchar translations[i].t[T__ACCEPT_LANGUAGE].name;
-		if (!p)
-			continue;
-		p = stracpy(p);
-		p[strcspn(cast_const_char p, ",;")] = 0;
-		if (!casestrcmp(lang, p)) {
-			mem_free(p);
-			mem_free(lang);
-			return i;
-		}
+	p = cast_uchar translations[0].t[T__ACCEPT_LANGUAGE].name;
+	p = stracpy(p);
+	p[strcspn(cast_const_char p, ",;")] = 0;
+	if (!casestrcmp(lang, p)) {
 		mem_free(p);
+		mem_free(lang);
+		return 0;
 	}
+	mem_free(p);
+
 	if ((p = cast_uchar strchr(cast_const_char lang, '-'))) {
 		*p = 0;
 		goto search_again;
 	}
 	mem_free(lang);
 	return -1;
-}
-
-int get_default_language(void)
-{
-	static int default_language = -1;
-	unsigned char *lang;
-
-	if (default_language >= 0)
-		return default_language;
-
-	default_language = os_default_language();
-	if (default_language >= 0)
-		return default_language;
-
-	lang = cast_uchar getenv("LANG");
-	if (lang) {
-		default_language = get_language_from_lang(lang);
-		if (default_language >= 0)
-			return default_language;
-	}
-
-	default_language = get_language_from_lang(cast_uchar "en");
-	if (default_language < 0)
-		internal("default language 'english' not found");
-	return default_language;
-}
-
-int get_current_language(void)
-{
-	if (current_language >= 0)
-		return current_language;
-	return get_default_language();
 }
 
 int get_default_charset(void)
@@ -141,10 +101,7 @@ int get_default_charset(void)
 		if (strlen(cast_const_char lang) > 5 && !casestrcmp(cast_uchar (strchr(cast_const_char lang, 0) - 5), cast_uchar "@euro")) {
 			p = cast_uchar "ISO-8859-15";
 		} else {
-			int def_lang = get_language_from_lang(lang);
-			if (def_lang < 0)
-				def_lang = get_default_language();
-			p = cast_uchar translations[def_lang].t[T__DEFAULT_CHAR_SET].name;
+			p = cast_uchar translations[0].t[T__DEFAULT_CHAR_SET].name;
 			if (!p)
 				p = cast_uchar "";
 		}
@@ -180,16 +137,15 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 	unsigned char **current_tra;
 	unsigned char *trn;
 	int charset;
-	int language_idx = get_current_language();
 	if (!term) charset = 0;
 	else if (term->spec) charset = term_charset(term);
 	else charset = utf8_table;
 	if (is_direct_text(text)) return text;
-	if ((current_tra = translation_array[language_idx][charset])) {
+	if ((current_tra = translation_array[charset])) {
 		unsigned char *tt;
 		if ((trn = current_tra[text - dummyarray])) return trn;
 		tr:
-		if (!(tt = cast_uchar translations[language_idx].t[text - dummyarray].name)) {
+		if (!(tt = cast_uchar translations[0].t[text - dummyarray].name)) {
 			trn = cast_uchar translation_english[text - dummyarray].name;
 		} else {
 			struct document_options l_opt;
@@ -205,11 +161,11 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 		current_tra[text - dummyarray] = trn;
 	} else {
 		if (current_lang_charset && charset != current_lang_charset) {
-			current_tra = translation_array[language_idx][charset] = mem_alloc(sizeof (unsigned char *) * T__N_TEXTS);
+			current_tra = translation_array[charset] = mem_alloc(sizeof (unsigned char *) * T__N_TEXTS);
 			memset(current_tra, 0, sizeof (unsigned char *) * T__N_TEXTS);
 			goto tr;
 		}
-		if (!(trn = cast_uchar translations[language_idx].t[text - dummyarray].name)) {
+		if (!(trn = cast_uchar translations[0].t[text - dummyarray].name)) {
 			trn = cast_uchar translation_english[text - dummyarray].name;
 		}
 	}
@@ -222,31 +178,18 @@ unsigned char *get_english_translation(unsigned char *text)
 	return cast_uchar translation_english[text - dummyarray].name;
 }
 
-int n_languages(void)
-{
-	return N_LANGUAGES;
-}
-
-unsigned char *language_name(int l)
-{
-	if (l == -1) return cast_uchar "default";
-	return cast_uchar translations[l].t[T__LANGUAGE].name;
-}
-
-void set_language(int l)
+void set_language(void)
 {
 	int i;
 	unsigned char *cp;
-	current_language = l;
-	l = get_current_language();
-	for (i = 0; i < T__N_TEXTS; i++) if (translations[l].t[i].code != i) {
-		internal("Bad table for language %s. Run script synclang.", translations[l].t[T__LANGUAGE].name);
+	for (i = 0; i < T__N_TEXTS; i++) if (translations[0].t[i].code != i) {
+		internal("Bad table for language %s. Run script synclang.", translations[0].t[T__LANGUAGE].name);
 		return;
 	}
-	cp = cast_uchar translations[l].t[T__CHAR_SET].name;
+	cp = cast_uchar translations[0].t[T__CHAR_SET].name;
 	i = get_cp_index(cp);
 	if (i == -1) {
-		internal("Unknown charset for language %s.", translations[l].t[T__LANGUAGE].name);
+		internal("Unknown charset for language %s.", translations[0].t[T__LANGUAGE].name);
 		i = 0;
 	}
 	current_lang_charset = i;

@@ -3271,39 +3271,6 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static void menu_set_language(struct terminal *term, void *pcp, void *ptr)
-{
-	set_language((int)(my_intptr_t)pcp);
-	cls_redraw_all_terminals();
-}
-
-static void menu_language_list(struct terminal *term, void *xxx, void *ses_)
-{
-#ifdef OS_NO_SYSTEM_LANGUAGE
-	const int def = 0;
-#else
-	const int def = 1;
-#endif
-	int i, sel;
-	struct menu_item *mi;
-	mi = new_menu(1);
-	for (i = -def; i < n_languages(); i++) {
-		unsigned char *n, *r;
-		if (i == -1) {
-			n = TEXT_(T_DEFAULT_LANG);
-			r = language_name(get_default_language());
-		} else {
-			n = language_name(i);
-			r = cast_uchar "";
-		}
-		add_to_menu(&mi, n, r, cast_uchar "", menu_set_language, (void *)(my_intptr_t)i, 0, i + def);
-	}
-	sel = current_language + def;
-	if (sel < 0)
-		sel = get_default_language();
-	do_menu_selected(term, mi, NULL, sel, NULL, NULL);
-}
-
 static unsigned char * const resize_texts[] = { TEXT_(T_COLUMNS), TEXT_(T_ROWS) };
 
 static unsigned char x_str[4];
@@ -3651,10 +3618,6 @@ static void menu_write_config(struct terminal *term, void *xxx, void *yyy)
 	write_config(term);
 }
 
-static_const struct menu_item setup_menu_1[] = {
-	{ TEXT_(T_LANGUAGE), cast_uchar ">", TEXT_(T_HK_LANGUAGE), menu_language_list, NULL, 1, 1 },
-};
-
 static_const struct menu_item setup_menu_2[] = {
 	{ TEXT_(T_CHARACTER_SET), cast_uchar ">", TEXT_(T_HK_CHARACTER_SET), charset_list, (void *)1, 1, 1 },
 	{ TEXT_(T_TERMINAL_OPTIONS), cast_uchar "", TEXT_(T_HK_TERMINAL_OPTIONS), terminal_options, NULL, 0, 1 },
@@ -3700,7 +3663,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 	struct session *ses = (struct session *)ses_;
 	struct menu_item *setup_menu, *e;
 	int size =
-		sizeof(setup_menu_1) +
 		sizeof(setup_menu_2) +
 #ifdef G
 		sizeof(setup_menu_3) +
@@ -3712,8 +3674,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 		sizeof(setup_menu_8);
 	setup_menu = mem_alloc(size);
 	e = setup_menu;
-	memcpy(e, setup_menu_1, sizeof(setup_menu_1));
-	e += sizeof(setup_menu_1) / sizeof(struct menu_item);
 	if (!F) {
 		memcpy(e, setup_menu_2, sizeof(setup_menu_2));
 		e += sizeof(setup_menu_2) / sizeof(struct menu_item);

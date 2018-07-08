@@ -1026,27 +1026,6 @@ static void cp_wr(struct option *o, unsigned char **s, int *l)
 	add_to_str(s, l, n);
 }
 
-static unsigned char *lang_rd(struct option *o, unsigned char *c)
-{
-	int i;
-	unsigned char *tok = get_token(&c);
-	if (!tok) return cast_uchar "Missing argument";
-	for (i = -1; i < n_languages(); i++)
-		if (!(casestrcmp(language_name(i), tok))) {
-			set_language(i);
-			mem_free(tok);
-			return NULL;
-		}
-	mem_free(tok);
-	return cast_uchar "Unknown language";
-}
-
-static void lang_wr(struct option *o, unsigned char **s, int *l)
-{
-	add_nm(o, s, l);
-	add_quoted_to_str(s, l, language_name(current_language));
-}
-
 static int getnum(unsigned char *s, int *n, int r1, int r2)
 {
 	unsigned char *e;
@@ -2210,7 +2189,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, NULL, 10, 512, &screen_width, "dump_width", "width" },
 	{1, gen_cmd, cp_rd, NULL, 1, 0, &dump_codepage, "dump_codepage", "codepage" },
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, download_dir, "download_dir", "download-dir"},
-	{1, gen_cmd, lang_rd, lang_wr, 0, 0, &current_language, "language", "language"},
 	{1, gen_cmd, num_rd, num_wr, 1, 99, &max_connections, "max_connections", "max-connections"},
 	{1, gen_cmd, num_rd, num_wr, 1, 99, &max_connections_to_host, "max_connections_to_host", "max-connections-to-host"},
 	{1, gen_cmd, num_rd, num_wr, 0, 16, &max_tries, "retries", "retries"},

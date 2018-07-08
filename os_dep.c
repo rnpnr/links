@@ -3203,15 +3203,14 @@ int get_country_language(int c)
 		{ 422, cast_uchar "Slovak" },
 		{ 593, cast_uchar "Spanish" },
 	};
-	int idx, i;
+	int idx;
 #define C_EQUAL(a, b)	countries[a].code == (b)
 #define C_ABOVE(a, b)	countries[a].code > (b)
 	BIN_SEARCH(array_elements(countries), C_EQUAL, C_ABOVE, c, idx);
 	if (idx == -1)
 		return -1;
-	for (i = 0; i < n_languages(); i++)
-		if (!casestrcmp(language_name(i), countries[idx].language))
-			return i;
+	if (!casestrcmp(language_name(0), countries[idx].language))
+		return 0;
 	return -1;
 }
 
