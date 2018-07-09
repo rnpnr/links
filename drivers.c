@@ -16,27 +16,6 @@ struct graphics_driver *drv = NULL;
 #ifdef GRDRV_X
 extern struct graphics_driver x_driver;
 #endif
-#ifdef GRDRV_SVGALIB
-extern struct graphics_driver svga_driver;
-#endif
-#ifdef GRDRV_FB
-extern struct graphics_driver fb_driver;
-#endif
-#ifdef GRDRV_DIRECTFB
-extern struct graphics_driver directfb_driver;
-#endif
-#ifdef GRDRV_PMSHELL
-extern struct graphics_driver pmshell_driver;
-#endif
-#ifdef GRDRV_ATHEOS
-extern struct graphics_driver atheos_driver;
-#endif
-#ifdef GRDRV_GRX
-extern struct graphics_driver grx_driver;
-#endif
-#ifdef GRDRV_SDL
-extern struct graphics_driver sdl_driver;
-#endif
 
 /*
  * On SPAD you must test first svgalib and then X (because X test is slow).
@@ -45,37 +24,8 @@ extern struct graphics_driver sdl_driver;
  */
 
 static struct graphics_driver *graphics_drivers[] = {
-#ifdef GRDRV_PMSHELL
-	&pmshell_driver,
-#endif
-#ifdef GRDRV_ATHEOS
-	&atheos_driver,
-#endif
-#ifndef SPAD
 #ifdef GRDRV_X
 	&x_driver,
-#endif
-#endif
-#ifdef GRDRV_FB
-	/* use FB before DirectFB because DirectFB has bugs */
-	&fb_driver,
-#endif
-#ifdef GRDRV_DIRECTFB
-	&directfb_driver,
-#endif
-#ifdef GRDRV_SVGALIB
-	&svga_driver,
-#endif
-#ifdef SPAD
-#ifdef GRDRV_X
-	&x_driver,
-#endif
-#endif
-#ifdef GRDRV_GRX
-	&grx_driver,
-#endif
-#ifdef GRDRV_SDL
-	&sdl_driver,
 #endif
 	NULL
 };
@@ -140,18 +90,6 @@ unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsign
 	unsigned char *s = init_str();
 	int l = 0;
 	struct graphics_driver **gd;
-#if defined(GRDRV_PMSHELL) && defined(GRDRV_X)
-	if (is_xterm()) {
-		static unsigned char swapped = 0;
-		if (!swapped) {
-			for (gd = graphics_drivers; *gd; gd++) {
-				if (*gd == &pmshell_driver) *gd = &x_driver;
-				else if (*gd == &x_driver) *gd = &pmshell_driver;
-			}
-			swapped = 1;
-		}
-	}
-#endif
 	for (gd = graphics_drivers; *gd; gd++) {
 		if (!driver || !*driver || !casestrcmp((*gd)->name, driver)) {
 			unsigned char *r;
@@ -223,123 +161,5 @@ void generic_set_clip_area(struct graphics_device *dev, struct rect *r)
 		dev->clip.x1 = dev->clip.x2 = dev->clip.y1 = dev->clip.y2 = 0;
 	}
 }
-
-#ifdef GRDRV_VIRTUAL_DEVICES
-
-struct graphics_device **virtual_devices;
-int n_virtual_devices = 0;
-struct graphics_device *current_virtual_device;
-
-static struct timer *virtual_device_timer;
-
-int init_virtual_devices(struct graphics_driver *drv, int n)
-{
-	if (n_virtual_devices) {
-		internal("init_virtual_devices: already initialized");
-		return -1;
-	}
-	if ((unsigned)n > MAXINT / sizeof(struct graphics_device *)) overalloc();
-	virtual_devices = mem_calloc(n * sizeof(struct graphics_device *));
-	n_virtual_devices = n;
-	virtual_device_timer = NULL;
-	current_virtual_device = NULL;
-	return 0;
-}
-
-struct graphics_device *init_virtual_device(void)
-{
-	int i;
-	for (i = 0; i < n_virtual_devices; i++) if (!virtual_devices[i]) {
-		struct graphics_device *dev;
-		dev = mem_calloc(sizeof(struct graphics_device));
-		dev->size.x2 = drv->x;
-		dev->size.y2 = drv->y;
-		current_virtual_device = virtual_devices[i] = dev;
-		drv->set_clip_area(dev, &dev->size);
-		return dev;
-	}
-	return NULL;
-}
-
-static void virtual_device_timer_fn(void *p)
-{
-	virtual_device_timer = NULL;
-	if (current_virtual_device && current_virtual_device->redraw_handler) {
-		drv->set_clip_area(current_virtual_device, &current_virtual_device->size);
-		current_virtual_device->redraw_handler(current_virtual_device, &current_virtual_device->size);
-	}
-}
-
-void switch_virtual_device(int i)
-{
-	if (i == VD_NEXT) {
-		int j;
-		int t = 0;
-		for (j = 0; j < n_virtual_devices * 2; j++)
-			if (virtual_devices[j % n_virtual_devices] == current_virtual_device) t = 1;
-			else if (virtual_devices[j % n_virtual_devices] && t) {
-				current_virtual_device = virtual_devices[j % n_virtual_devices];
-				goto ok_switch;
-			}
-		return;
-	}
-	if (i < 0 || i >= n_virtual_devices || !virtual_devices[i]) return;
-	current_virtual_device = virtual_devices[i];
-	ok_switch:
-	if (virtual_device_timer == NULL)
-		virtual_device_timer = install_timer(0, virtual_device_timer_fn, NULL);
-}
-
-void shutdown_virtual_device(struct graphics_device *dev)
-{
-	int i;
-	for (i = 0; i < n_virtual_devices; i++) if (virtual_devices[i] == dev) {
-		virtual_devices[i] = NULL;
-		mem_free(dev);
-		if (current_virtual_device != dev) return;
-		for (; i < n_virtual_devices; i++) if (virtual_devices[i]) {
-			switch_virtual_device(i);
-			return;
-		}
-		for (i = 0; i < n_virtual_devices; i++) if (virtual_devices[i]) {
-			switch_virtual_device(i);
-			return;
-		}
-		current_virtual_device = NULL;
-		return;
-	}
-	mem_free(dev);
-	/*internal("shutdown_virtual_device: device not initialized");*/
-}
-
-void resize_virtual_devices(int x, int y)
-{
-	int i;
-	drv->x = x;
-	drv->y = y;
-	for (i = 0; i < n_virtual_devices; i++) {
-		struct graphics_device *dev = virtual_devices[i];
-		if (dev) {
-			dev->size.x2 = x;
-			dev->size.y2 = y;
-			dev->resize_handler(dev);
-		}
-	}
-}
-
-void shutdown_virtual_devices(void)
-{
-	int i;
-	if (!n_virtual_devices) {
-		internal("shutdown_virtual_devices: already shut down");
-		return;
-	}
-	for (i = 0; i < n_virtual_devices; i++) if (virtual_devices[i]) internal("shutdown_virtual_devices: virtual device %d is still active", i);
-	mem_free(virtual_devices);
-	n_virtual_devices = 0;
-	if (virtual_device_timer != NULL) kill_timer(virtual_device_timer), virtual_device_timer = NULL;
-}
-
-#endif
 
 #endif

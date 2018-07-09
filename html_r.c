@@ -13,10 +13,6 @@ struct f_data *init_formatted(struct document_options *opt)
 	scr->data = DUMMY;
 	scr->nlinks = 0;
 	scr->links = DUMMY;
-#ifdef JS
-	scr->nlink_events = 0;
-	scr->link_events = DUMMY;
-#endif
 	init_list(scr->forms);
 	init_list(scr->tags);
 	init_list(scr->nodes);
@@ -60,9 +56,6 @@ void free_frameset_desc(struct frameset_desc *fd)
 		if (fd->f[i].name) mem_free(fd->f[i].name);
 		if (fd->f[i].url) mem_free(fd->f[i].url);
 	}
-#ifdef JS
-	if (fd->onload_code)mem_free(fd->onload_code);
-#endif
 	mem_free(fd);
 }
 
@@ -73,9 +66,6 @@ struct frameset_desc *copy_frameset_desc(struct frameset_desc *fd)
 	if ((unsigned)fd->n > MAXINT / sizeof(struct frame_desc)) overalloc();
 	neww = mem_alloc(sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
 	memcpy(neww, fd, sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
-#ifdef JS
-	if (neww->onload_code) neww->onload_code = stracpy(neww->onload_code);
-#endif
 	for (i = 0; i < neww->n; i++) {
 		if (neww->f[i].subframe) neww->f[i].subframe = copy_frameset_desc(neww->f[i].subframe);
 		if (neww->f[i].name) neww->f[i].name = stracpy(neww->f[i].name);
@@ -137,12 +127,6 @@ static void clear_formatted(struct f_data *scr)
 		free_js_event_spec(l->js_event);
 	}
 	mem_free(scr->links);
-#ifdef JS
-	for (n = 0; n < scr->nlink_events; n++) {
-		free_js_event_spec(scr->link_events[n]);
-	}
-	mem_free(scr->link_events);
-#endif
 	if (!F) for (y = 0; y < scr->y; y++) mem_free(scr->data[y].d);
 	mem_free(scr->data);
 	if (scr->lines1) mem_free(scr->lines1);
@@ -162,10 +146,6 @@ static void clear_formatted(struct f_data *scr)
 	if (scr->search_lengths) mem_free(scr->search_lengths);
 #endif
 	if (scr->refresh) mem_free(scr->refresh);
-#ifdef JS
-	if (scr->script_href_base) mem_free(scr->script_href_base);
-	free_js_event_spec(scr->js_event);
-#endif
 }
 
 void destroy_formatted(struct f_data *scr)
@@ -623,7 +603,6 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	if (c[0] != ' ' || (c[1] && c[1] != ' ')) {
 		last_tag_for_newline = &p->data->tags;
 	}
-#ifdef ENABLE_UTF8
 	if (d_opt->cp == utf8_table && !(format_.attr & AT_GRAPHICS)) {
 		int pl;
 		unsigned char *cc;
@@ -680,7 +659,6 @@ static void put_chars(void *p_, unsigned char *c, int l)
 			return;
 		}
 	} else
-#endif
 	{
 		ll = l;
 	}
@@ -697,11 +675,9 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		mem_free(uni_c);
 		return;
 	}
-#ifdef ENABLE_UTF8
 	if (d_opt->cp == utf8_table && !(format_.attr & AT_GRAPHICS)) {
 		set_hline_uni(p, p->cx, p->cy, ll, uni_c, ((fg&0x08)<<3)|(bg<<3)|(fg&0x07));
 	} else
-#endif
 	{
 		set_hline(p, p->cx, p->cy, l, c, ((fg&0x08)<<3)|(bg<<3)|(fg&0x07));
 	}
@@ -926,26 +902,10 @@ void create_frame(struct frame_param *fp)
 
 void process_script(struct f_data *f, unsigned char *t)
 {
-#ifdef JS
-	if (t && !f->script_href_base) f->script_href_base = stracpy(format_.href_base);
-	if (!d_opt->js_enable) return;
-	if (t) {
-		unsigned char *u;
-		u = join_urls(f->script_href_base, t);
-		if (u) {
-			request_additional_file(f, u);
-			mem_free(u);
-		}
-	}
-	f->are_there_scripts = 1;
-#endif
 }
 
 void set_base(struct f_data *f, unsigned char *t)
 {
-#ifdef JS
-	if (!f->script_href_base) f->script_href_base = stracpy(format_.href_base);
-#endif
 }
 
 void html_process_refresh(struct f_data *f, unsigned char *url, int time)
@@ -1232,13 +1192,7 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	eofff = end;
 	head = init_str(), hdl = 0;
 	if (ce->head) add_to_str(&head, &hdl, ce->head);
-	scan_http_equiv(start, end, &head, &hdl, &t, d_opt->plain ? NULL : &bg, d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor, &implicit_pre_wrap,
-#ifdef JS
-		&screen->js_event
-#else
-		NULL
-#endif
-		);
+	scan_http_equiv(start, end, &head, &hdl, &t, d_opt->plain ? NULL : &bg, d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor, &implicit_pre_wrap, NULL );
 	if (d_opt->break_long_lines) implicit_pre_wrap = 1;
 	if (d_opt->plain) *t = 0;
 	if (screen->opt.plain == 2) {

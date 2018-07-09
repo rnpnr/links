@@ -553,27 +553,13 @@ void free_term_specs(void)
 	free_list(struct term_spec, term_specs);
 }
 
-#if defined(OS2) || defined(DOS)
-static struct term_spec dumb_term = { init_list_1st(NULL) "", 2, 1, 1, 0, 1, 0, -1, 0, 0, 0, 0, init_list_last(NULL) };
-#else
 static struct term_spec dumb_term = { init_list_1st(NULL) "", 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, init_list_last(NULL) };
-#endif
 static struct term_spec cygwin_term = { init_list_1st(NULL) "", 2, 1, 1, 0, 1, 0, -1, 0, 0, 0, 0, init_list_last(NULL) };
 
 static struct term_spec *default_term_spec(unsigned char *term)
 {
 	if (!casestrcmp(term, cast_uchar "cygwin"))
 		return &cygwin_term;
-#ifdef DOS
-	{
-		static int is_bw = -1;
-		if (is_bw == -1) {
-			is_bw = dos_is_bw();
-			if (is_bw)
-				dumb_term.col = 0;
-		}
-	}
-#endif
 	return &dumb_term;
 }
 
@@ -639,7 +625,6 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 
 static int process_utf_8(struct terminal *term, struct links_event *ev)
 {
-#if defined(G) || defined(ENABLE_UTF8)
 	if (ev->ev == EV_KBD) {
 		if ((!F && term_charset(term) == utf8_table)
 #ifdef G
@@ -666,7 +651,6 @@ static int process_utf_8(struct terminal *term, struct links_event *ev)
 direct:
 		term->utf8_buffer[0] = 0;
 	}
-#endif
 	return 1;
 }
 
@@ -937,28 +921,7 @@ static unsigned char frame_restrict[48] = {
 	179,  0,  0,  0,  0,  0,  0,  0,
 };
 
-#if defined(ENABLE_UTF8) && defined(WIN)
-static inline char_t utf8_hack(char_t c)
-{
-	/*
-	 * These characters produce beeps on Cygwin.
-	 */
-	switch (c) {
-		case 0xb7:
-		case 0x2022:
-		case 0x2024:
-		case 0x2026:
-		case 0x2219:
-		case 0x22c5:
-		case 0x30fb:
-			return '.';
-		default:
-			return c;
-	}
-}
-#else
 #define utf8_hack(x)	(x)
-#endif
 
 #define SETPOS(x, y)							\
 {									\
@@ -1072,9 +1035,6 @@ static void redraw_screen(struct terminal *term)
 			/*if ((term->screen[p].at & 0x38) == (term->last_screen[p].at & 0x38) && (term->screen[p].ch == 0 || term->screen[p].ch == 1 || term->screen[p].ch == ' ') && (term->last_screen[p].ch == 0 || term->last_screen[p].ch == 1 || term->last_screen[p].ch == ' ') && (x != term->cx || y != term->cy)) continue;*/
 			/*fprintf(stderr, "%d.%d : %d-%d -> %d-%d\n", x, y, term->last_screen[p].ch, term->last_screen[p].at, term->screen[p].ch, term->screen[p].at);*/
 			memcpy(&term->last_screen[p], &term->screen[p], sizeof(chr));
-#ifdef OPENVMS
-			if (n_chars >= term->x - 6) cy = -1;
-#endif
 			if (cx == x && cy == y) goto pc;/*PRINT_CHAR(p)*/
 			else if (cy == y && x - cx < 10 && x - cx > 0) {
 				for (i = x - cx; i >= 0; i--) {
@@ -1108,30 +1068,7 @@ static void redraw_screen(struct terminal *term)
 		add_to_str(&a, &l, cast_uchar "H");
 	}
 	if (l && term->master) want_draw();
-#ifdef OPENVMS
-	{
-/*
- * OpenVMS/VAX has some bug in the terminal driver and corrupts long strings.
- * Also, we need to avoid breaking escape sequences.
- */
-#define PRINT_BATCH	2000
-		int i, q;
-		for (i = 0; i < l; i += q) {
-			int qq;
-			q = PRINT_BATCH;
-			if (q > l - i) q = l - i;
-			for (qq = q - 1; qq > 0; qq--) {
-				if (a[i + qq] == 27) {
-					q = qq;
-					break;
-				}
-			}
-			hard_write(term->fdout, a + i, q);
-		}
-	}
-#else
 	hard_write(term->fdout, a, l);
-#endif
 	if (l && term->master) done_draw();
 	mem_free(a);
 	term->dirty = 0;
@@ -1461,13 +1398,9 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 #endif
 				) {
 				term->blocked = blockh;
-#ifdef DOS
-				unblock_terminal(term);
-#else
 				set_handlers(blockh, unblock_terminal, NULL, term);
 				if (!F) set_handlers(term->fdin, NULL, NULL, term);
 				/*block_itrm(term->fdin);*/
-#endif
 			} else {
 				set_handlers(blockh, close_handle, NULL, (void *)(my_intptr_t)blockh);
 			}

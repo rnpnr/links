@@ -98,36 +98,7 @@ static void free_hook(void *ptr file_line_arg)
 
 #endif
 
-#if defined(HAVE_SSL_CERTIFICATES) && (defined(DOS) || defined(OS2) || defined(WIN) || defined(OPENVMS))
-static int ssl_set_private_paths(SSL_CTX *ctx)
-{
-	unsigned char *path, *c;
-	int r;
-#ifdef OPENVMS
-	path = stracpy(g_argv[0]);
-#else
-	path = stracpy(path_to_exe);
-#endif
-	for (c = path + strlen(cast_const_char path); c > path; c--) {
-		if (dir_sep(c[-1])
-#ifdef OPENVMS
-		    || c[-1] == ']' || c[-1] == ':'
-#endif
-		    )
-			break;
-	}
-	c[0] = 0;
-	add_to_strn(&path, cast_uchar stringify(LINKS_CRT_FILE));
-	r = SSL_CTX_load_verify_locations(ctx, cast_const_char path, NULL);
-	mem_free(path);
-	clear_ssl_errors(__LINE__);
-	if (r != 1)
-		return -1;
-	return 0;
-}
-#else
 #define ssl_set_private_paths(c)		(-1)
-#endif
 
 #ifdef HAVE_BUILTIN_SSL_CERTIFICATES
 static void ssl_load_private_certificates(SSL_CTX *ctx)

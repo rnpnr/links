@@ -22,25 +22,12 @@ static void get_system_name(void)
 		memset(&name, 0, sizeof name);
 		EINTRLOOP(rs, uname(&name));
 		if (!rs) {
-#ifdef OPENVMS
-			unsigned char * volatile p;
-#endif
 			unsigned char *str = init_str();
 			int l = 0;
 			add_to_str(&str, &l, cast_uchar name.sysname);
 			add_to_str(&str, &l, cast_uchar " ");
-#ifdef OPENVMS
-			add_to_str(&str, &l, cast_uchar name.version);
-#else
 			add_to_str(&str, &l, cast_uchar name.release);
-#endif
 			add_to_str(&str, &l, cast_uchar " ");
-#ifdef OPENVMS
-			p = cast_uchar name.nodename + sizeof(name.nodename);
-			if ((unsigned char *)(&name + 1) - p >= 16 && memchr(cast_const_char p, 0, 16))
-				add_to_str(&str, &l, cast_uchar p);
-			else
-#endif
 			add_to_str(&str, &l, cast_uchar name.machine);
 			safe_strncpy(system_name, str, MAX_STR_LEN);
 			mem_free(str);
@@ -436,10 +423,6 @@ static unsigned char *p_arse_options(int argc, unsigned char *argv[], struct opt
 					goto found;
 				}
 			uu:
-#ifdef GRDRV_DIRECTFB
-			if (!strncmp(cast_const_char argv[-1], "--dfb:", 6))
-				goto found;
-#endif
 			fprintf(stderr, "Unknown option %s\n", argv[-1]);
 			return NULL;
 		} else if (!u) u = argv[-1];
@@ -633,22 +616,12 @@ try_new_count:
 		err = errno;
 		goto unlink_err;
 	}
-#if defined(OPENVMS)
-	/* delete all versions of the file */
-	count = 0;
-	do {
-		EINTRLOOP(rs, unlink(cast_const_char name));
-	} while (!rs && ++count < 65536);
-#elif !defined(RENAME_OVER_EXISTING_FILES)
-	EINTRLOOP(rs, unlink(cast_const_char name));
-#endif
 	EINTRLOOP(rs, rename(cast_const_char tmp_name, cast_const_char name));
 	if (rs) {
 		err = errno;
 		goto unlink_err;
 	}
 	mem_free(tmp_name);
-#if !defined(OS2) && !defined(OPENVMS)
 	if (do_sync) {
 		unsigned char *e, *le;
 		tmp_name = stracpy(name);
@@ -656,14 +629,6 @@ try_new_count:
 		for (e = tmp_name; *e; e++) if (dir_sep(*e)) le = e;
 		while (le > tmp_name && dir_sep(le[-1])) le--;
 		if (le == tmp_name && dir_sep(*le)) le++;
-#ifdef DOS_FS
-		if (le - tmp_name <= 2 && upcase(tmp_name[0]) >= 'A' && upcase(tmp_name[0]) <= 'Z' && tmp_name[1] == ':') {
-			if (dir_sep(tmp_name[2]))
-				le = tmp_name + 3;
-			else
-				le = tmp_name + 2;
-		}
-#endif
 		*le = 0;
 
 		h = c_open(*tmp_name ? tmp_name : cast_uchar ".", O_RDONLY | O_NOCTTY);
@@ -673,7 +638,6 @@ try_new_count:
 		}
 		mem_free(tmp_name);
 	}
-#endif
 
 	return 0;
 
@@ -685,18 +649,6 @@ try_new_count:
 	mem_free(tmp_name);
 	return get_error_from_errno(err);
 }
-
-#ifdef OPENVMS
-static void translate_vms_to_unix(unsigned char **str)
-{
-	unsigned char *n;
-	if (!*str || strchr(cast_const_char *str, '/')) return;
-	n = cast_uchar decc$translate_vms(cast_const_char *str);
-	if (!n || (my_intptr_t)n == -1) return;
-	mem_free(*str);
-	*str = stracpy(n);
-}
-#endif
 
 static unsigned char *get_home(int *n)
 {
@@ -756,11 +708,6 @@ skip_path_conv:;
 		home = NULL;
 	}
 #endif
-#ifdef OPENVMS
-	if (!home) home = stracpy(cast_uchar "/SYS$LOGIN");
-	translate_vms_to_unix(&home);
-	translate_vms_to_unix(&config_dir);
-#endif
 	if (!home) {
 		int i;
 		home = stracpy(path_to_exe);
@@ -793,22 +740,12 @@ skip_path_conv:;
 		}
 	} else {
 		add_dot_links:
-#ifdef OPENVMS
-		add_to_strn(&home_links, cast_uchar "links");
-#else
 		add_to_strn(&home_links, cast_uchar ".links");
-#endif
 	}
 	EINTRLOOP(rs, stat(cast_const_char home_links, &st));
 	if (rs) {
 		EINTRLOOP(rs, mkdir(cast_const_char home_links, 0700));
 		if (!rs) goto home_creat;
-#ifdef OPENVMS
-		if (errno == EEXIST) {
-			memset(&st, 0, sizeof st);
-			goto home_ok;
-		}
-#endif
 		if (config_dir) goto failed;
 		goto first_failed;
 	}
@@ -821,21 +758,11 @@ skip_path_conv:;
 	first_failed:
 	mem_free(home_links);
 	home_links = stracpy(home);
-#ifdef DOS
-	add_to_strn(&home_links, cast_uchar "links.cfg");
-#else
 	add_to_strn(&home_links, cast_uchar "links");
-#endif
 	EINTRLOOP(rs, stat(cast_const_char home_links, &st));
 	if (rs) {
 		EINTRLOOP(rs, mkdir(cast_const_char home_links, 0700));
 		if (!rs) goto home_creat;
-#ifdef OPENVMS
-		if (errno == EEXIST) {
-			memset(&st, 0, sizeof st);
-			goto home_ok;
-		}
-#endif
 		goto failed;
 	}
 	if (S_ISDIR(st.st_mode)) goto home_ok;
@@ -1011,9 +938,6 @@ static unsigned char *cp_rd(struct option *o, unsigned char *c)
 	int i;
 	if (!tok) return cast_uchar "Missing argument";
 	if ((i = get_cp_index(tok)) == -1) e = cast_uchar "Unknown codepage";
-#ifndef ENABLE_UTF8
-	else if (o->min == 1 && i == utf8_table) e = cast_uchar "UTF-8 can't be here";
-#endif
 	else *(int *)o->ptr = i;
 	mem_free(tok);
 	return e;
@@ -1204,11 +1128,6 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 	} else {
 		if ((i = get_cp_index(w)) == -1) goto err_f;
 	}
-#ifndef ENABLE_UTF8
-	if (i == utf8_table) {
-		i = 0;
-	}
-#endif
 	ts->character_set = i;
 	mem_free(w);
 	l = get_token_num(&c);
@@ -1265,11 +1184,6 @@ static unsigned char *term2_rd(struct option *o, unsigned char *c)
 	} else {
 		if ((i = get_cp_index(w)) == -1) goto err_f;
 	}
-#ifndef ENABLE_UTF8
-	if (i == utf8_table) {
-		i = 0;
-	}
-#endif
 	ts->character_set = i;
 	mem_free(w);
 	return NULL;
@@ -1714,11 +1628,7 @@ fprintf(stdout, "%s%s%s%s%s%s\n",
 "  2 - reject invalid certificate\n"
 "\n"
 " -ssl.builtin-certificates <0>/<1>\n"
-#if defined(DOS) || defined(OPENVMS)
-"    (default 1)\n"
-#else
 "    (default 0)\n"
-#endif
 "  Use built-in certificates instead of system certificates.\n"
 "\n"
 " -ssl.client-cert-key <filename>\n"
@@ -1882,33 +1792,6 @@ fprintf(stdout, "%s%s%s%s%s%s\n",
 "    (valid for svgalib and framebuffer).\n"
 "    Overwriting may or may not be faster, depending on hardware.\n"
 "\n"
-#ifdef JS
-" -enable-javascript <0>/<1>\n"
-"  Enable javascript.\n"
-"\n"
-" -js.verbose-errors <0>/<1>\n"
-"  Display javascript errors.\n"
-"\n"
-" -js.verbose-warnings <0>/<1>\n"
-"  Display javascript warnings.\n"
-"\n"
-" -js.enable-all-conversions <0>/<1>\n"
-"  Enable conversions between all types in javascript.\n"
-"\n"
-" -js.enable-global-resolution <0>/<1>\n"
-"  Resolve global names.\n"
-"\n"
-" -js.manual-confirmation <0>/<1>\n"
-"  Ask user to confirm potentially dangerous operations.\n"
-"    (opening windows, going to url etc.) Default 1.\n"
-"\n"
-" -js.recursion-depth <integer>\n"
-"  Depth of javascript call stack.\n"
-"\n"
-" -js.memory-limit <memory amount>\n"
-"  Amount of kilobytes the javascript may allocate.\n"
-"\n"
-#endif
 " -html-assume-codepage <codepage>\n"
 "  If server didn't specify document character set, assume this.\n"
 "\n"
@@ -2067,14 +1950,8 @@ int screen_width = 80;
 int dump_codepage = -1;
 int force_html = 0;
 
-#ifdef DOS
-/* DOS networking is slow with too many connections */
-int max_connections = 3;
-int max_connections_to_host = 2;
-#else
 int max_connections = 10;
 int max_connections_to_host = 8;
-#endif
 int max_tries = 3;
 int receive_timeout = 120;
 int unrestartable_receive_timeout = 600;
@@ -2093,11 +1970,7 @@ int aggressive_cache = 1;
 struct ipv6_options ipv6_options = { ADDR_PREFERENCE_DEFAULT };
 struct proxies proxies = { "", "", "", "", "", "", 0 };
 struct ssl_options ssl_options = { SSL_WARN_ON_INVALID_CERTIFICATE,
-#if defined(DOS) || defined(OPENVMS)
-	1,
-#else
 	0,
-#endif
 	"", "", "" };
 struct http_options http_options = { 0, 1, 1, 0, 0, 0, 0, { 0, 0, REFERER_REAL_SAME_SERVER, "", "", "" } };
 struct ftp_options ftp_options = { "somebody@host.domain", 0, 0, 0, 1 };

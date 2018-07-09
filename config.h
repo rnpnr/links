@@ -1,6 +1,3 @@
-/* Define if you have the strftime function.  */
-#define HAVE_STRFTIME 1
-
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #define HAVE_SYS_WAIT_H 1
 
@@ -9,9 +6,6 @@
 
 /* Define as the return type of signal handlers (int or void).  */
 #define RETSIGTYPE void
-
-/* Define if you have the ANSI C header files.  */
-#define STDC_HEADERS 1
 
 /* Define if you can safely include both <sys/time.h> and <time.h>.  */
 #define TIME_WITH_SYS_TIME 1
@@ -411,9 +405,6 @@
 /* Define if you have the <locale.h> header file.  */
 #define HAVE_LOCALE_H 1
 
-/* Define if you have the <math.h> header file.  */
-#define HAVE_MATH_H 1
-
 /* Define if you have the <netinet/in_systm.h> header file.  */
 #define HAVE_NETINET_IN_SYSTM_H 1
 
@@ -610,12 +601,6 @@
 #define HAVE_POWF 1
 
 /* */
-#undef JS
-
-/* */
-#define ENABLE_UTF8 1
-
-/* */
 #define HAVE_XSETLOCALE 1
 
 /* */
@@ -629,13 +614,6 @@
 
 /* */
 #define HAVE_ZLIB 1
-
-/* Tiff by Brain */
-#undef HAVE_TIFF
-
-/* SVG */
-/* #undef HAVE_SVG */
-#undef HAVE_SVG
 
 /* Gpm_Event has wdx and wdy */
 /* #undef HAVE_WDX_WDY */
@@ -652,23 +630,16 @@
 
 #undef __CYGWIN__
 #undef HAVE_ATHEOS_THREADS_H
-#undef INTERIX
 #undef OS2
 #undef OS2_ADVANCED_HEAP
 #undef OPENVMS
 #undef BEOS
-#undef JS
 #undef SPAD
 #undef DOS
 #undef DOS_FS
 #undef DOS_FS_8_3
-#undef GRDRV_FB
-#undef GRDRV_SDL
-#undef GRDRV_DIRECTFB
 #undef GRDRV_SVGALIB
 #undef GRDRV_ATHEOS
-#undef GRDRV_SVGALIB
-#undef GRDRV_PMSHELL
 #undef __DJGPP
 #undef VMS_DEBUGLEVEL
 #undef __VAX
@@ -686,7 +657,5 @@
 #undef GRDRV_VIRTUAL_DEVICES
 #undef USE_GPM
 #undef HAVE_BUILTIN_SSL_CERTIFICATES
-#undef USE_WIN32_HEAP
 #undef LEAK_DEBUG
 #undef OOPS
-#undef RISCOS

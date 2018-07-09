@@ -112,10 +112,6 @@ int get_default_charset(void)
 		i = 0;
 
 	ret_i:
-#ifndef ENABLE_UTF8
-	if (!F && i == utf8_table)
-		i = 0;
-#endif
 	default_charset = i;
 	return i;
 }

@@ -50,10 +50,7 @@ unsigned long connect_info(int type)
 			foreach(struct connection, ce, lce, queue) i += ce->state == S_TRANS;
 			return i;
 		case CI_KEEP:
-#ifndef DOS
-			/* this is very slow on DOS */
 			check_keepalive_connections();
-#endif
 			return list_size(&keepalive_connections);
 		default:
 			internal("connect_info: bad request");

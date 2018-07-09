@@ -45,19 +45,6 @@ static void destroy_decoder (struct cached_image *cimg)
 		case IM_GIF:
 			gif_destroy_decoder(cimg);
 			break;
-		case IM_XBM:
-			/* do nothing */
-			break;
-#ifdef HAVE_TIFF
-		case IM_TIFF:
-			tiff_destroy_decoder(cimg);
-			break;
-#endif
-#ifdef HAVE_SVG
-		case IM_SVG:
-			svg_destroy_decoder(cimg);
-			break;
-#endif
 		}
 		mem_free(cimg->decoder);
 	}
@@ -286,14 +273,6 @@ int header_dimensions_known(struct cached_image *cimg)
 		cimg->xww = cimg->width;
 		cimg->yww = cimg->height;
 	}
-
-#ifdef HAVE_SVG
-	if (cimg->image_type == IM_SVG) {
-		/* SVG images are scaled using the cairo library, not the Links scaler */
-		cimg->width = cimg->xww;
-		cimg->height = cimg->yww;
-	}
-#endif
 
 	if (cimg->width!=cimg->xww||cimg->height!=cimg->yww) cimg->strip_optimized=0;
 	cimg->gamma_stamp=gamma_stamp;
@@ -799,16 +778,6 @@ static void type(struct cached_image *cimg, unsigned char *content_type, unsigne
 	if (data[0] == 0xff && data[1] == 0xd8)
 		goto have_jpeg;
 #endif
-#ifdef HAVE_TIFF
-	if (data[0] == 'I' && data[1] == 'I')
-		goto have_tiff;
-	if (data[0] == 'M' && data[1] == 'M')
-		goto have_tiff;
-#endif
-#ifdef HAVE_SVG
-	if (data[0] == '<' && data[1] == '?')
-		goto have_svg;
-#endif
 	if (data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G')
 		goto have_png;
 	if (data[0] == 'G' && data[1] == 'I' && data[2] == 'F')
@@ -834,26 +803,7 @@ static void type(struct cached_image *cimg, unsigned char *content_type, unsigne
 		have_gif:
 		cimg->image_type=IM_GIF;
 		gif_start(cimg);
-	} else if (dtest(cast_uchar "image/x-xbitmap",content_type)){
-		cimg->image_type=IM_XBM;
-		xbm_start(cimg);
 	} else
-#ifdef HAVE_TIFF
-	if (dtest(cast_uchar "image/tiff",content_type) ||
-	    dtest(cast_uchar "image/tif",content_type)) {
-		have_tiff:
-		cimg->image_type=IM_TIFF;
-		tiff_start(cimg);
-	} else
-#endif /* #ifdef HAVE_TIFF */
-#ifdef HAVE_SVG
-	if (dtest(cast_uchar "image/svg+xml",content_type) ||
-	    dtest(cast_uchar "image/svg",content_type)) {
-		have_svg:
-		cimg->image_type=IM_SVG;
-		svg_start(cimg);
-	} else
-#endif /* #ifdef HAVE_SVG */
 	{
 		/* Error */
 		img_end(cimg);
@@ -934,22 +884,9 @@ static int img_process_download(struct g_object_image *goi, struct f_data_c *fda
 			jpeg_restart(cimg,data,length);
 			break;
 #endif /* #ifdef HAVE_JPEG */
-		case IM_XBM:
-			xbm_restart(cimg,data,length);
-			break;
 		case IM_GIF:
 			gif_restart(data,length);
 			break;
-#ifdef HAVE_TIFF
-		case IM_TIFF:
-			tiff_restart(cimg,data,length);
-			break;
-#endif /* #ifdef HAVE_TIFF */
-#ifdef HAVE_SVG
-		case IM_SVG:
-			svg_restart(cimg,data,length);
-			break;
-#endif /* #ifdef HAVE_SVG */
 #ifdef DEBUG
 		default:
 			fprintf(stderr,"cimg->image_type=%d\n",cimg->state);
@@ -969,14 +906,6 @@ img_process_download.\n");
 		 */
 		if (!chopped){
 			if (!((cimg->state^8)&9)) {
-#ifdef HAVE_TIFF
-				if (cimg->image_type==IM_TIFF)
-					tiff_finish(cimg);
-#endif
-#ifdef HAVE_SVG
-				if (cimg->image_type==IM_SVG)
-					svg_finish(cimg);
-#endif
 			}
 			cimg->eof_hit=1;
 			if (goi->af->rq->ce)
@@ -1315,30 +1244,6 @@ next_chunk:
 	return image;
 }
 
-#ifdef JS
-
-void change_image (struct g_object_image *goi, unsigned char *url, unsigned char *src, struct f_data *fdata)
-{
-	/*struct cached_image *cimg;*/
-
-	global_goi = goi;
-	mem_free(goi->src);
-	goi->src = stracpy(url);
-	if (goi->orig_src) mem_free(goi->orig_src);
-	goi->orig_src = stracpy(src);
-	if (!(goi->goti.go.xw && goi->goti.go.yw)) return;
-	goi->cimg->refcount--;
-	goi->af = request_additional_file(fdata,url);
-	goi->af->need_reparse = -1;
-
-	find_or_make_cached_image(goi, url, fdata->opt.image_scale);
-	/* Automatically sets up global_cimg */
-
-	refresh_image(fdata->fd, &goi->goti.go, 0);
-}
-
-#endif
-
 #endif
 
 int known_image_type(unsigned char *type)
@@ -1355,14 +1260,6 @@ int known_image_type(unsigned char *type)
 	if (!casestrcmp(type, cast_uchar "image/pjpe")) return 1;
 	if (!casestrcmp(type, cast_uchar "image/pjpeg")) return 1;
 	if (!casestrcmp(type, cast_uchar "image/pjpg")) return 1;
-#endif
-#ifdef HAVE_TIFF
-	if (!casestrcmp(type, cast_uchar "image/tiff")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/tif")) return 1;
-#endif
-#ifdef HAVE_SVG
-	if (!casestrcmp(type, cast_uchar "image/svg+xml")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/svg")) return 1;
 #endif
 #endif
 	return 0;

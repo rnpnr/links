@@ -13,14 +13,6 @@ int support_ipv6;
 #define EXTERNAL_LOOKUP
 #endif
 
-#if defined(WIN) || defined(INTERIX)
-#define EXTRA_IPV6_LOOKUP
-#endif
-
-#ifdef OPENVMS_64BIT
-#define addrinfo        __addrinfo64
-#endif
-
 struct dnsentry {
 	list_entry_1st
 	uttime absolute_time;

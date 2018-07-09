@@ -137,13 +137,11 @@ static void send_init_sequence(int h, int flags)
 {
 	want_draw();
 	hard_write(h, init_seq, (int)strlen(cast_const_char init_seq));
-#ifndef DOS
 	if (flags & USE_TWIN_MOUSE) {
 		hard_write(h, init_seq_tw_mouse, (int)strlen(cast_const_char init_seq_tw_mouse));
 	} else {
 		hard_write(h, init_seq_x_mouse, (int)strlen(cast_const_char init_seq_x_mouse));
 	}
-#endif
 	done_draw();
 }
 
@@ -151,13 +149,11 @@ static void send_term_sequence(int h, int flags)
 {
 	want_draw();
 	hard_write(h, term_seq, (int)strlen(cast_const_char term_seq));
-#ifndef DOS
 	if (flags & USE_TWIN_MOUSE) {
 		hard_write(h, term_seq_tw_mouse, (int)strlen(cast_const_char term_seq_tw_mouse));
 	} else {
 		hard_write(h, term_seq_x_mouse, (int)strlen(cast_const_char term_seq_x_mouse));
 	}
-#endif
 	done_draw();
 }
 
@@ -297,9 +293,6 @@ static int setraw(int ctl, int save)
 	t.c_lflag |= TOSTOP;
 #endif
 	t.c_oflag |= OPOST;
-#ifdef DOS
-	t.c_lflag &= ~(ISIG | ECHO);
-#endif
 	if (ttcsetattr(ctl, TCSANOW, &t)) {
 		/*fprintf(stderr, "setattr result %s\n", strerror(errno));*/
 		return -1;
@@ -480,15 +473,9 @@ static void free_trm(struct itrm *itrm)
 
 void fatal_tty_exit(void)
 {
-#ifdef DOS
-	dos_mouse_terminate();
-#endif
 	if (ditrm) setcooked(ditrm->ctl_in);
 #ifdef G
 	if (drv && drv->emergency_shutdown) drv->emergency_shutdown();
-#endif
-#ifdef DOS
-	dos_restore_screen();
 #endif
 }
 
@@ -955,12 +942,8 @@ static int xterm_button = -1;
 
 static int is_interix(void)
 {
-#ifdef INTERIX
-	return 1;
-#else
 	unsigned char *term = cast_uchar getenv("TERM");
 	return term && !strncmp(cast_const_char term, "interix", 7);
-#endif
 }
 
 static int is_uwin(void)

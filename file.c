@@ -188,16 +188,12 @@ static void stat_date(unsigned char **p, int *l, struct stat *stp)
 	if ((ulonglong)current_time > (ulonglong)when + 6L * 30L * 24L * 60L * 60L ||
 	    (ulonglong)current_time < (ulonglong)when - 60L * 60L) fmt = fmt1;
 	else fmt = fmt2;
-#ifdef HAVE_STRFTIME
 again:
 	wr = (int)strftime(cast_char str, 13, cast_const_char fmt, when_local);
 	if (wr && strstr(cast_const_char str, " e ") && ((e = cast_uchar strchr(cast_const_char fmt, 'e')))) {
 		*e = 'd';
 		goto again;
 	}
-#else
-	wr = 0;
-#endif
 	set_empty:
 	while (wr < 12) str[wr++] = ' ';
 	str[12] = 0;
@@ -209,9 +205,6 @@ static unsigned char *get_filename(unsigned char *url)
 {
 	unsigned char *p, *m;
 	int ml;
-#ifdef DOS_FS
-	if (url[7] == '/' && strchr(cast_const_char(url + 8), ':')) url++;
-#endif
 	for (p = url + 7; *p && *p != POST_CHAR; p++)
 		;
 	m = init_str(), ml = 0;
@@ -329,10 +322,6 @@ void file_func(struct connection *c)
 			if (!strcmp(cast_const_char de->d_name, ".")) continue;
 			if (!strcmp(cast_const_char de->d_name, "..")) {
 				unsigned char *n = name;
-#if defined(DOS_FS) || defined(SPAD)
-				unsigned char *nn = cast_uchar strchr(cast_const_char n, ':');
-				if (nn) n = nn + 1;
-#endif
 				if (strspn(cast_const_char n, dir_sep('\\') ? "/\\" : "/") == strlen(cast_const_char n))
 					continue;
 			}
@@ -438,11 +427,7 @@ void file_func(struct connection *c)
 			abort_connection(c); return;
 		}
 		if ((r = hard_read(h, file, (int)stt.st_size))
-#ifdef OPENVMS
-			< 0
-#else
 			!= stt.st_size
-#endif
 			) {
 			mem_free(file);
 			EINTRLOOP(rs, close(h));

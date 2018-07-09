@@ -24,9 +24,6 @@ static unsigned char * const version_texts[] = {
 #ifdef OS2
 	TEXT_(T_XTERM_FOR_OS2),
 #endif
-#ifdef JS
-	TEXT_(T_JAVASCRIPT),
-#endif
 	TEXT_(T_GRAPHICS_MODE),
 #ifdef G
 	TEXT_(T_IMAGE_LIBRARIES),
@@ -135,11 +132,7 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef ENABLE_UTF8
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
-#else
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#endif
 	add_to_str(&s, &l, cast_uchar "\n");
 
 #if defined(__linux__) || defined(__LINUX__) || defined(__SPAD__) || defined(USE_GPM)
@@ -162,12 +155,6 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 #endif
 
-#ifdef JS
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
-	add_to_str(&s, &l, cast_uchar "\n");
-#endif
-
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 #ifdef G
 	i = l;
@@ -184,14 +171,6 @@ static void menu_version(void *term_)
 #ifdef HAVE_JPEG
 	add_to_str(&s, &l, cast_uchar ", ");
 	add_jpeg_version(&s, &l);
-#endif
-#ifdef HAVE_TIFF
-	add_to_str(&s, &l, cast_uchar ", ");
-	add_tiff_version(&s, &l);
-#endif
-#ifdef HAVE_SVG
-	add_to_str(&s, &l, cast_uchar ", ");
-	add_svg_version(&s, &l);
 #endif
 	add_to_str(&s, &l, cast_uchar "\n");
 #endif
@@ -564,13 +543,6 @@ static int memory_info(struct terminal *term, struct refresh *r2)
 		add_to_str(&a, &l, cast_uchar ".");
 	}
 #endif
-#ifdef JS
-	add_to_str(&a, &l, cast_uchar "\n");
-	add_unsigned_long_num_to_str(&a, &l, js_zaflaknuto_pameti);
-	add_to_str(&a, &l, cast_uchar " ");
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_JS_MEMORY_ALLOCATED), term));
-	add_to_str(&a, &l, cast_uchar ".");
-#endif
 
 	if (r2 && !strcmp(cast_const_char a, cast_const_char *(unsigned char **)((struct dialog_data *)r2->win->data)->dlg->udata)) {
 		mem_free(a);
@@ -678,9 +650,6 @@ static void downloads_menu(struct terminal *term, void *ddd, void *ses_)
 		f = !d->prog ? d->orig_file : d->url;
 		for (ff = f; *ff; ff++)
 			if ((dir_sep(ff[0])
-#if defined(DOS_FS) || defined(SPAD)
-			  || (!d->prog && ff[0] == ':')
-#endif
 			  ) && ff[1])
 				f = ff + 1;
 		if (!d->prog)
@@ -828,13 +797,7 @@ static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct 
 
 static void charset_list(struct terminal *term, void *xxx, void *ses_)
 {
-	charset_sel_list(term, term->spec->character_set, set_display_codepage, NULL,
-#ifdef ENABLE_UTF8
-		1
-#else
-		0
-#endif
-		, 1);
+	charset_sel_list(term, term->spec->character_set, set_display_codepage, NULL, 1, 1);
 }
 
 static void terminal_options_ok(void *p)
@@ -1024,123 +987,6 @@ static void screen_margins(struct terminal *term, void *xxx, void *ses_)
 	d->items[6].type = D_END;
 	do_dialog(term, d, getml(d, NULL));
 }
-
-#ifdef JS
-
-static unsigned char * const jsopt_labels[] = { TEXT_(T_KILL_ALL_SCRIPTS), TEXT_(T_ENABLE_JAVASCRIPT), TEXT_(T_VERBOSE_JS_ERRORS), TEXT_(T_VERBOSE_JS_WARNINGS), TEXT_(T_ENABLE_ALL_CONVERSIONS), TEXT_(T_ENABLE_GLOBAL_NAME_RESOLUTION), TEXT_(T_MANUAL_JS_CONTROL), TEXT_(T_JS_RECURSION_DEPTH), TEXT_(T_JS_MEMORY_LIMIT_KB), NULL };
-
-static int kill_script_opt;
-static unsigned char js_fun_depth_str[7];
-static unsigned char js_memory_limit_str[7];
-
-
-static inline void kill_js_recursively(struct f_data_c *fd)
-{
-	struct f_data_c *f;
-	struct list_head *lf;
-
-	if (fd->js) js_downcall_game_over(fd->js->ctx);
-	foreach(struct f_data_c, f, lf, fd->subframes) kill_js_recursively(f);
-}
-
-
-static inline void quiet_kill_js_recursively(struct f_data_c *fd)
-{
-	struct f_data_c *f;
-	struct list_head *lf;
-
-	if (fd->js) js_downcall_game_over(fd->js->ctx);
-	foreach(struct f_data_c, f, lf, fd->subframes) quiet_kill_js_recursively(f);
-}
-
-
-static void refresh_javascript(void *ses_)
-{
-	struct session *ses = (struct session *)ses_;
-	if (ses->screen->f_data)jsint_scan_script_tags(ses->screen);
-	if (kill_script_opt)
-		kill_js_recursively(ses->screen);
-	if (!js_enable) /* vypnuli jsme skribt */
-	{
-		if (ses->default_status)mem_free(ses->default_status),ses->default_status=NULL;
-		quiet_kill_js_recursively(ses->screen);
-	}
-
-	js_fun_depth=strtol(cast_const_char js_fun_depth_str,0,10);
-	js_memory_limit=strtol(cast_const_char js_memory_limit_str,0,10);
-
-	/* reparse document (muze se zmenit hodne veci) */
-	html_interpret_recursive(ses->screen);
-	draw_formatted(ses);
-}
-
-
-static void javascript_options(struct terminal *term, void *xxx, void *ses_)
-{
-	struct session *ses = (struct session *)ses_;
-	struct dialog *d;
-	kill_script_opt=0;
-	snprintf(cast_char js_fun_depth_str,7,"%d",js_fun_depth);
-	snprintf(cast_char js_memory_limit_str,7,"%d",js_memory_limit);
-	d = mem_calloc(sizeof(struct dialog) + 11 * sizeof(struct dialog_item));
-	d->title = TEXT_(T_JAVASCRIPT_OPTIONS);
-	d->fn = group_fn;
-	d->refresh = refresh_javascript;
-	d->refresh_data=ses;
-	d->udata = (void *)jsopt_labels;
-	d->items[0].type = D_CHECKBOX;
-	d->items[0].gid = 0;
-	d->items[0].dlen = sizeof(int);
-	d->items[0].data = (void *)&kill_script_opt;
-	d->items[1].type = D_CHECKBOX;
-	d->items[1].gid = 0;
-	d->items[1].dlen = sizeof(int);
-	d->items[1].data = (void *)&js_enable;
-	d->items[2].type = D_CHECKBOX;
-	d->items[2].gid = 0;
-	d->items[2].dlen = sizeof(int);
-	d->items[2].data = (void *)&js_verbose_errors;
-	d->items[3].type = D_CHECKBOX;
-	d->items[3].gid = 0;
-	d->items[3].dlen = sizeof(int);
-	d->items[3].data = (void *)&js_verbose_warnings;
-	d->items[4].type = D_CHECKBOX;
-	d->items[4].gid = 0;
-	d->items[4].dlen = sizeof(int);
-	d->items[4].data = (void *)&js_all_conversions;
-	d->items[5].type = D_CHECKBOX;
-	d->items[5].gid = 0;
-	d->items[5].dlen = sizeof(int);
-	d->items[5].data = (void *)&js_global_resolve;
-	d->items[6].type = D_CHECKBOX;
-	d->items[6].gid = 0;
-	d->items[6].dlen = sizeof(int);
-	d->items[6].data = (void *)&js_manual_confirmation;
-	d->items[7].type = D_FIELD;
-	d->items[7].dlen = 7;
-	d->items[7].data = js_fun_depth_str;
-	d->items[7].fn = check_number;
-	d->items[7].gid = 1;
-	d->items[7].gnum = 999999;
-	d->items[8].type = D_FIELD;
-	d->items[8].dlen = 7;
-	d->items[8].data = js_memory_limit_str;
-	d->items[8].fn = check_number;
-	d->items[8].gid = 1024;
-	d->items[8].gnum = 30*1024;
-	d->items[9].type = D_BUTTON;
-	d->items[9].gid = B_ENTER;
-	d->items[9].fn = ok_dialog;
-	d->items[9].text = TEXT_(T_OK);
-	d->items[10].type = D_BUTTON;
-	d->items[10].gid = B_ESC;
-	d->items[10].fn = cancel_dialog;
-	d->items[10].text = TEXT_(T_CANCEL);
-	d->items[11].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-}
-
-#endif
 
 #ifndef G
 
@@ -1615,13 +1461,8 @@ static void proxy_fn(struct dialog_data *dlg)
 
 void reset_settings_for_tor(void)
 {
-#ifdef DOS
-	max_connections = 3;
-	max_connections_to_host = 2;
-#else
 	max_connections = 10;
 	max_connections_to_host = 8;
-#endif
 	max_tries = 3;
 	receive_timeout = 120;
 	unrestartable_receive_timeout = 600;
@@ -2341,39 +2182,6 @@ static void dlg_ftp_options(struct terminal *term, void *xxx, void *yyy)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-#ifndef DISABLE_SMB
-
-static unsigned char * const smb_labels[] = { TEXT_(T_ALLOW_HYPERLINKS_TO_SMB), NULL };
-
-static void dlg_smb_options(struct terminal *term, void *xxx, void *yyy)
-{
-	int a;
-	struct dialog *d;
-	d = mem_calloc(sizeof(struct dialog) + 3 * sizeof(struct dialog_item));
-	d->title = TEXT_(T_SMB_OPTIONS);
-	d->fn = checkbox_list_fn;
-	d->udata = (void *)smb_labels;
-	a=0;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void*)&smb_options.allow_hyperlinks_to_smb;
-	a++;
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ENTER;
-	d->items[a].fn = ok_dialog;
-	d->items[a].text = TEXT_(T_OK);
-	a++;
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ESC;
-	d->items[a].fn = cancel_dialog;
-	d->items[a].text = TEXT_(T_CANCEL);
-	a++;
-	d->items[a].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-}
-
-#endif
 
 static unsigned char * const prg_msg[] = {
 	TEXT_(T_MAILTO_PROG),
@@ -2723,11 +2531,7 @@ static int dlg_assume_cp(struct dialog_data *dlg, struct dialog_item_data *di)
 static int dlg_kb_cp(struct dialog_data *dlg, struct dialog_item_data *di)
 {
 	charset_sel_list(dlg->win->term, *(int *)di->cdata, set_val, (void *)di->cdata,
-#ifdef DOS
-		0
-#else
 		1
-#endif
 		, 1);
 	return 0;
 }
@@ -3580,9 +3384,6 @@ static_const struct menu_item net_options_menu[] = {
 #endif
 	{ TEXT_(T_HTTP_OPTIONS), cast_uchar "", TEXT_(T_HK_HTTP_OPTIONS), dlg_http_options, NULL, 0, 0 },
 	{ TEXT_(T_FTP_OPTIONS), cast_uchar "", TEXT_(T_HK_FTP_OPTIONS), dlg_ftp_options, NULL, 0, 0 },
-#ifndef DISABLE_SMB
-	{ TEXT_(T_SMB_OPTIONS), cast_uchar "", TEXT_(T_HK_SMB_OPTIONS), dlg_smb_options, NULL, 0, 0 },
-#endif
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
@@ -3596,9 +3397,6 @@ static_const struct menu_item net_options_ipv6_menu[] = {
 #endif
 	{ TEXT_(T_HTTP_OPTIONS), cast_uchar "", TEXT_(T_HK_HTTP_OPTIONS), dlg_http_options, NULL, 0, 0 },
 	{ TEXT_(T_FTP_OPTIONS), cast_uchar "", TEXT_(T_HK_FTP_OPTIONS), dlg_ftp_options, NULL, 0, 0 },
-#ifndef DISABLE_SMB
-	{ TEXT_(T_SMB_OPTIONS), cast_uchar "", TEXT_(T_HK_SMB_OPTIONS), dlg_smb_options, NULL, 0, 0 },
-#endif
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 #endif
@@ -3642,9 +3440,6 @@ static_const struct menu_item setup_menu_6[] = {
 };
 
 static_const struct menu_item setup_menu_7[] = {
-#ifdef JS
-	{ TEXT_(T_JAVASCRIPT_OPTIONS), cast_uchar "", TEXT_(T_HK_JAVASCRIPT_OPTIONS), javascript_options, NULL, 0, 1 },
-#endif
 	{ TEXT_(T_CACHE), cast_uchar "", TEXT_(T_HK_CACHE), cache_opt, NULL, 0, 1 },
 	{ TEXT_(T_MAIL_AND_TELNEL), cast_uchar "", TEXT_(T_HK_MAIL_AND_TELNEL), net_programs, NULL, 0, 1 },
 	{ TEXT_(T_ASSOCIATIONS), cast_uchar "", TEXT_(T_HK_ASSOCIATIONS), menu_assoc_manager, NULL, 0, 1 },
@@ -3987,8 +3782,4 @@ void free_history_lists(void)
 	free_history(goto_url_history);
 	free_history(file_history);
 	free_history(search_history);
-#ifdef JS
-	free_history(js_get_string_history);   /* is in jsint.c */
-#endif
 }
-

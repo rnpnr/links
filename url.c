@@ -22,18 +22,11 @@ static_const struct {
 		{"http", 80, http_func, NULL,		0, 1, 1, 1, 0},
 		{"proxy", 3128, proxy_func, NULL,	0, 1, 1, 1, 0},
 		{"ftp", 21, ftp_func, NULL,		0, 1, 1, 0, 0},
-		{"finger", 79, finger_func, NULL,	0, 1, 1, 0, 0},
-#ifndef DISABLE_SMB
-		{"smb", 139, smb_func, NULL,		0, 1, 1, 0, 1},
-#endif
 		{"mailto", 0, NULL, mailto_func,	0, 0, 0, 0, 0},
 		{"telnet", 0, NULL, telnet_func,	0, 0, 0, 0, 1},
 		{"tn3270", 0, NULL, tn3270_func,	0, 0, 0, 0, 1},
 		{"mms", 0, NULL, mms_func,		1, 0, 1, 0, 1},
 		{"magnet", 0, NULL, magnet_func,	1, 0, 0, 0, 1},
-#ifdef JS
-		{"javascript", 0, NULL, javascript_func,1, 0, 0, 0, 0},
-#endif
 		{NULL, 0, NULL, NULL,			0, 0, 0, 0, 0}
 };
 
@@ -388,7 +381,6 @@ match:
 
 static unsigned char *rewrite_url_mediawiki_svg(unsigned char *n)
 {
-#ifndef HAVE_SVG
 	const unsigned char u1[] = "/media/math/render/svg/";
 	const unsigned char u2[] = "/media/math/render/png/";
 	unsigned char *d, *s;
@@ -399,7 +391,6 @@ static unsigned char *rewrite_url_mediawiki_svg(unsigned char *n)
 	if (!s)
 		return n;
 	memcpy(s, u2, strlen(cast_const_char u2));
-#endif
 	return n;
 }
 
@@ -422,12 +413,6 @@ static void insert_wd(unsigned char **up, unsigned char *cwd)
 	if (!u || !cwd || !*cwd) return;
 	if (casecmp(u, cast_uchar "file://", 7)) return;
 	if (dir_sep(u[7])) return;
-#ifdef DOS_FS
-	if (upcase(u[7]) >= 'A' && upcase(u[7]) <= 'Z' && u[8] == ':' && dir_sep(u[9])) return;
-#endif
-#ifdef SPAD
-	if (_is_absolute(cast_const_char(u + 7)) != _ABS_NO) return;
-#endif
 	url = init_str();
 	url_l = 0;
 	add_bytes_to_str(&url, &url_l, u, 7);
@@ -623,9 +608,6 @@ unsigned char *translate_url(unsigned char *url, unsigned char *cwd)
 		}
 		goto return_nu;
 	}
-#ifdef DOS_FS
-	if (ch == url + 1) goto set_prefix;
-#endif
 	nu = memacpy(url, ch - url + 1);
 	add_to_strn(&nu, cast_uchar "//");
 	add_to_strn(&nu, ch + 1);

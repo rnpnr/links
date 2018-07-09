@@ -45,137 +45,6 @@ void destroy_vs(struct view_state *vs)
 	mem_free(vs);
 }
 
-#ifdef JS
-void create_js_event_spec(struct js_event_spec **j)
-{
-	if (*j) return;
-	*j = mem_calloc(sizeof(struct js_event_spec));
-}
-
-void free_js_event_spec(struct js_event_spec *j)
-{
-	if (!j) return;
-	if (j->move_code) mem_free(j->move_code);
-	if (j->over_code) mem_free(j->over_code);
-	if (j->out_code) mem_free(j->out_code);
-	if (j->down_code) mem_free(j->down_code);
-	if (j->up_code) mem_free(j->up_code);
-	if (j->click_code) mem_free(j->click_code);
-	if (j->dbl_code) mem_free(j->dbl_code);
-	if (j->blur_code) mem_free(j->blur_code);
-	if (j->focus_code) mem_free(j->focus_code);
-	if (j->change_code) mem_free(j->change_code);
-	if (j->keypress_code) mem_free(j->keypress_code);
-	if (j->keyup_code) mem_free(j->keyup_code);
-	if (j->keydown_code) mem_free(j->keydown_code);
-	mem_free(j);
-}
-
-int compare_js_event_spec(struct js_event_spec *j1, struct js_event_spec *j2)
-{
-	if (!j1 && !j2) return 0;
-	if (!j1 || !j2) return 1;
-	return
-		xstrcmp(j1->move_code, j2->move_code) ||
-		xstrcmp(j1->over_code, j2->over_code) ||
-		xstrcmp(j1->out_code, j2->out_code) ||
-		xstrcmp(j1->down_code, j2->down_code) ||
-		xstrcmp(j1->up_code, j2->up_code) ||
-		xstrcmp(j1->click_code, j2->click_code) ||
-		xstrcmp(j1->dbl_code, j2->dbl_code) ||
-		xstrcmp(j1->blur_code, j2->blur_code) ||
-		xstrcmp(j1->focus_code, j2->focus_code) ||
-		xstrcmp(j1->change_code, j2->change_code) ||
-		xstrcmp(j1->keypress_code, j2->keypress_code) ||
-		xstrcmp(j1->keydown_code, j2->keydown_code) ||
-		xstrcmp(j1->keyup_code, j2->keyup_code);
-}
-
-void copy_js_event_spec(struct js_event_spec **target, struct js_event_spec *source)
-{
-	struct js_event_spec *t;
-	*target = NULL;
-	if (!source) return;
-	create_js_event_spec(target);
-	t = *target;
-	t->move_code = stracpy(source->move_code);
-	t->over_code = stracpy(source->over_code);
-	t->out_code = stracpy(source->out_code);
-	t->down_code = stracpy(source->down_code);
-	t->up_code = stracpy(source->up_code);
-	t->click_code = stracpy(source->click_code);
-	t->dbl_code = stracpy(source->dbl_code);
-	t->blur_code = stracpy(source->blur_code);
-	t->focus_code = stracpy(source->focus_code);
-	t->change_code = stracpy(source->change_code);
-	t->keypress_code = stracpy(source->keypress_code);
-	t->keyup_code = stracpy(source->keyup_code);
-	t->keydown_code = stracpy(source->keydown_code);
-}
-
-static inline int copy_string(unsigned char **dest, unsigned char *src)
-{
-	if (!src) return 0;
-	if (*dest) {
-		if (!strcmp(cast_const_char src, cast_const_char *dest)) return 0;
-		mem_free(*dest);
-	}
-	*dest = stracpy(src);
-	return 1;
-}
-
-int join_js_event_spec(struct js_event_spec **target, struct js_event_spec *source)
-{
-	if (!source) return 0;
-	create_js_event_spec(target);
-	return
-	copy_string(&(*target)->move_code, source->move_code) |
-	copy_string(&(*target)->over_code, source->over_code) |
-	copy_string(&(*target)->out_code, source->out_code) |
-	copy_string(&(*target)->down_code, source->down_code) |
-	copy_string(&(*target)->up_code, source->up_code) |
-	copy_string(&(*target)->click_code, source->click_code) |
-	copy_string(&(*target)->dbl_code, source->dbl_code) |
-	copy_string(&(*target)->blur_code, source->blur_code) |
-	copy_string(&(*target)->focus_code, source->focus_code) |
-	copy_string(&(*target)->change_code, source->change_code) |
-	copy_string(&(*target)->keypress_code, source->keypress_code) |
-	copy_string(&(*target)->keyup_code, source->keyup_code) |
-	copy_string(&(*target)->keydown_code, source->keydown_code);
-}
-
-static void add_event_desc(unsigned char **str, int *l, unsigned char *fn, unsigned char *desc)
-{
-	if (!fn) return;
-	if (*l) add_to_str(str, l, cast_uchar ", ");
-	add_to_str(str, l, desc);
-	add_to_str(str, l, cast_uchar ":");
-	add_to_str(str, l, fn);
-}
-
-unsigned char *print_js_event_spec(struct js_event_spec *j)
-{
-	unsigned char *str = init_str();
-	int l = 0;
-	if (!j) return str;
-	add_event_desc(&str, &l, j->click_code, cast_uchar "onclick");
-	add_event_desc(&str, &l, j->dbl_code, cast_uchar "ondblclick");
-	add_event_desc(&str, &l, j->down_code, cast_uchar "onmousedown");
-	add_event_desc(&str, &l, j->up_code, cast_uchar "onmouseup");
-	add_event_desc(&str, &l, j->over_code, cast_uchar "onmouseover");
-	add_event_desc(&str, &l, j->out_code, cast_uchar "onmouseout");
-	add_event_desc(&str, &l, j->move_code, cast_uchar "onmousemove");
-	add_event_desc(&str, &l, j->focus_code, cast_uchar "onfocus");
-	add_event_desc(&str, &l, j->blur_code, cast_uchar "onblur");
-	add_event_desc(&str, &l, j->change_code, cast_uchar "onchange");
-	add_event_desc(&str, &l, j->keypress_code, cast_uchar "onkeypress");
-	add_event_desc(&str, &l, j->keyup_code, cast_uchar "onkeyup");
-	add_event_desc(&str, &l, j->keydown_code, cast_uchar "onkeydown");
-	return str;
-}
-
-#else
-
 void free_js_event_spec(struct js_event_spec *j)
 {
 }
@@ -198,8 +67,6 @@ unsigned char *print_js_event_spec(struct js_event_spec *j)
 {
 	return stracpy(cast_uchar "");
 }
-
-#endif
 
 void check_vs(struct f_data_c *f)
 {
@@ -601,11 +468,7 @@ static int get_range(struct f_data *f, int y, int yw, int l, int *s1, int *s2)
 
 static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int *min, int *max)
 {
-#ifdef ENABLE_UTF8
 	int utf8 = f->opt.cp == utf8_table;
-#else
-	const int utf8 = 0;
-#endif
 	int found = 0;
 	int l;
 	int s1, s2;
@@ -652,11 +515,7 @@ static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int 
 
 static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 {
-#ifdef ENABLE_UTF8
 	int utf8 = term_charset(scr->ses->term) == utf8_table;
-#else
-	const int utf8 = 0;
-#endif
 	struct f_data *f = scr->f_data;
 	int xp = scr->xp;
 	int yp = scr->yp;
@@ -972,11 +831,9 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 				if (!*s) {
 					chr = '_';
 				} else {
-#ifdef ENABLE_UTF8
 					if (term_charset(t) == utf8_table) {
 						GET_UTF_8(s, chr);
 					} else
-#endif
 					chr = *s++;
 				}
 				x = l->pos[i].x + xp - vx;
@@ -1263,13 +1120,11 @@ int dump_to_file(struct f_data *fd, int h)
 			if (c == 1) c = ' ';
 			if (fd->data[y].d[x].at & ATTR_FRAME && c >= 176 && c < 224) c = frame_dumb[c - 176];
 		}
-#ifdef ENABLE_UTF8
 		if (fd->opt.cp == utf8_table && c >= 0x80) {
 			unsigned char *enc = encode_utf_8(c);
 			strcpy(cast_char(buf + bptr), cast_const_char enc);
 			bptr += (int)strlen(cast_const_char enc);
 		} else
-#endif
 		{
 			buf[bptr++] = (unsigned char)c;
 		}
@@ -2176,13 +2031,6 @@ unsigned char *get_form_url(struct session *ses, struct f_data_c *f, struct form
 		return NULL;
 	}
 	if (onsubmit)*onsubmit=0;
-#ifdef JS
-	if (form->onsubmit)
-	{
-		jsint_execute_code(f,form->onsubmit,strlen(cast_const_char form->onsubmit),-1,form->form_num,form->form_num, NULL);
-		if (onsubmit)*onsubmit=1;
-	}
-#endif
 	if (!form->action) return NULL;
 	get_succesful_controls(f, form, &submit);
 	cp_from = term_charset(ses->term);
@@ -2320,18 +2168,11 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 	unsigned char *u;
 	link = get_current_link(f);
 	if (!link) return 1;
-#ifdef JS
-	if (link->js_event&&link->js_event->click_code)
-		jsint_execute_code(f,link->js_event->click_code,strlen(cast_const_char link->js_event->click_code),-1,(link->type==L_BUTTON&&link->form&&link->form->type==FC_SUBMIT)?link->form->form_num:-1,-1, NULL);
-#endif
 	if (link->type == L_LINK || link->type == L_BUTTON) {
 		int has_onsubmit;
 		if (link->type==L_BUTTON&&link->form->type==FC_BUTTON)return 1;
 		submit:
 		if ((u = get_link_url(ses, f, link, &has_onsubmit))) {
-#ifdef JS
-			struct js_event_spec *s=link->js_event;
-#endif
 			if (strlen(cast_const_char u) >= 4 && !casecmp(u, cast_uchar "MAP@", 4)) {
 				goto_imgmap(ses, f, u + 4, stracpy(u + 4), stracpy(link->target));
 			} else if (ses->ds.target_in_new_window && link->target && *link->target && !find_frame(ses, link->target, f) && can_open_in_new(ses->term)) {	/* open in new window */
@@ -2347,11 +2188,7 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 				link->target,
 				f,
 				(link->type==L_BUTTON&&link->form&&link->form->type==FC_SUBMIT)?link->form->form_num:-1,
-#ifdef JS
-				(s&&(/*s->keyup_code||s->keydown_code||s->keypress_code||s->change_code||s->blur_code||s->focus_code||s->move_code||s->over_code||s->out_code||*/s->down_code||s->up_code||s->click_code||s->dbl_code))||has_onsubmit
-#else
 				0
-#endif
 				,0,0
 				);
 			}
@@ -2392,12 +2229,6 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 		m = clone_select_menu(link->form->menu);
 		if (!m) return 1;
 		/* execute onfocus code of the select object */
-#ifdef JS
-		if (link->js_event&&link->js_event->focus_code)
-		{
-			jsint_execute_code(f,link->js_event->focus_code,strlen(cast_const_char link->js_event->focus_code),-1,-1,-1, NULL);
-		}
-#endif
 		add_empty_window(ses->term, free_select_menu, m);
 		do_select_submenu(ses->term, m, ses);
 		return 1;
@@ -2405,19 +2236,6 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 	if (link->type == L_FIELD || link->type == L_AREA) {
 		/* pri enteru v textovem policku se bude posilat vzdycky       -- Brain */
 		if (!has_form_submit(f->f_data, link->form) && (!a || !F)) goto submit;
-#ifdef JS
-		/* process onfocus handler */
-		if (
-#ifdef G
-		    !ses->locked_link&&
-#endif
-		    f->vs&&f->f_data&&f->vs->current_link>=0&&f->vs->current_link<f->f_data->nlinks)
-		{
-			struct link *lnk=&(f->f_data->links[f->vs->current_link]);
-			if (lnk->js_event&&lnk->js_event->focus_code)
-				jsint_execute_code(f,lnk->js_event->focus_code,strlen(cast_const_char lnk->js_event->focus_code),-1,-1,-1, NULL);
-		}
-#endif
 #ifdef G
 		if (F && a) {
 			ses->locked_link = 1;
@@ -2464,9 +2282,6 @@ void selected_item(struct terminal *term, void *pitem, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	int item = (int)(my_intptr_t)pitem;
-#ifdef JS
-	int old_item=item;
-#endif
 	struct f_data_c *f = current_frame(ses);
 	struct link *l;
 	struct form_state *fs;
@@ -2477,9 +2292,6 @@ void selected_item(struct terminal *term, void *pitem, void *ses_)
 	form = l->form;
 	fs = find_form_state(f, form);
 	if (item >= 0 && item < form->nvalues) {
-#ifdef JS
-		old_item = fs->state;
-#endif
 		fs->state = item;
 		if (fs->value) mem_free(fs->value);
 		fs->value = stracpy(form->values[item]);
@@ -2491,16 +2303,6 @@ void selected_item(struct terminal *term, void *pitem, void *ses_)
 		f->xl = -1;
 		f->yl = -1;
 	}
-#endif
-	/* execute onchange handler */
-#ifdef JS
-	if (old_item!=item&&l->js_event&&l->js_event->change_code)
-		jsint_execute_code(f,l->js_event->change_code,strlen(cast_const_char l->js_event->change_code),-1,-1,-1, NULL);
-#endif
-	/* execute onblur handler */
-#ifdef JS
-	if (l->js_event&&l->js_event->blur_code)
-		jsint_execute_code(f,l->js_event->blur_code,strlen(cast_const_char l->js_event->blur_code),-1,-1,-1, NULL);
 #endif
 	draw_to_window(ses->win, draw_doc, f);
 	change_screen_status(ses);
@@ -2591,22 +2393,6 @@ static void set_br_pos(struct f_data_c *fd, struct link *l)
 	set_form_position(fd, l, &ev);
 }
 
-#ifdef JS
-/* executes onkey-press/up/down handler */
-static void field_op_changed(struct f_data_c *f, struct link *lnk)
-{
-	/*
-	if (lnk->js_event&&lnk->js_event->keydown_code)
-		jsint_execute_code(f,lnk->js_event->keydown_code,strlen(cast_const_char lnk->js_event->keydown_code),-1,-1,-1, NULL);
-	if (lnk->js_event&&lnk->js_event->keypress_code)
-		jsint_execute_code(f,lnk->js_event->keypress_code,strlen(cast_const_char lnk->js_event->keypress_code),-1,-1,-1, NULL);
-	if (lnk->js_event&&lnk->js_event->keyup_code)
-		jsint_execute_code(f,lnk->js_event->keyup_code,strlen(cast_const_char lnk->js_event->keyup_code),-1,-1,-1, NULL);
-	*/
-}
-#endif
-
-
 int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev, int rep)
 {
 	struct form_control *form = l->form;
@@ -2643,10 +2429,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				memmove(v + fs->state + ll, v + fs->state, strlen(cast_const_char(v + fs->state)) + 1);
 				memcpy(&v[fs->state], nw, ll);
 				fs->state += ll;
-#ifdef JS
-				fs->changed = 1;
-				field_op_changed(f, l);
-#endif
 			}
 			goto done;
 		} else if (!(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT)) && ev->x == KBD_ENTER && form->type == FC_TEXTAREA && (!ses->term->spec->braille || f->vs->brl_in_field)) {
@@ -2656,10 +2438,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				fs->value = v;
 				memmove(v + fs->state + 1, v + fs->state, strlen(cast_const_char(v + fs->state)) + 1);
 				v[fs->state++] = '\n';
-#ifdef JS
-				fs->changed = 1;
-				field_op_changed(f, l);
-#endif
 			}
 			goto done;
 		}
@@ -2756,10 +2534,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			set_clipboard_text(ses->term, fs->value);
 			if (!form->ro) fs->value[0] = 0;
 			fs->state = 0;
-#ifdef JS
-			fs->changed = 1;
-			field_op_changed(f, l);
-#endif
 		} else if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL)) {
 			unsigned char *clipboard;
 			set_br_pos(f, l);
@@ -2778,10 +2552,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				fs->state += (int)strlen(cast_const_char clipboard);
 			}
 			mem_free(clipboard);
-#ifdef JS
-			fs->changed = 1;
-			field_op_changed(f, l);
-#endif
 		} else if (ev->x == KBD_ENTER) {
 			x = 0;
 		} else if (ev->x == KBD_BS) {
@@ -2795,10 +2565,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				}
 				memmove(fs->value + fs->state - ll, fs->value + fs->state, strlen(cast_const_char(fs->value + fs->state)) + 1);
 				fs->state -= ll;
-#ifdef JS
-				fs->changed = 1;
-				field_op_changed(f, l);
-#endif
 			}
 		} else if (ev->x == KBD_DEL || (upcase(ev->x) == 'D' && ev->y & KBD_CTRL)) {
 			int ll = 1;
@@ -2812,10 +2578,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			}
 			if (!form->ro && (size_t)fs->state < strlen(cast_const_char fs->value)) {
 				memmove(fs->value + fs->state, fs->value + fs->state + ll, strlen(cast_const_char(fs->value + fs->state + ll)) + 1);
-#ifdef JS
-				fs->changed = 1;
-				field_op_changed(f, l);
-#endif
 			}
 		} else if (upcase(ev->x) == 'U' && ev->y & KBD_CTRL) {
 			unsigned char *a;
@@ -2827,10 +2589,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				memmove(fs->value, fs->value + fs->state, strlen(cast_const_char(fs->value + fs->state)) + 1);
 			}
 			fs->state = 0;
-#ifdef JS
-			fs->changed = 1;
-			field_op_changed(f, l);
-#endif
 		} else if (upcase(ev->x) == 'K' && ev->y & KBD_CTRL) {
 			set_br_pos(f, l);
 			if (!form->ro) {
@@ -2854,10 +2612,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 					fs->value[fs->state] = 0;
 				}
 			}
-#ifdef JS
-			fs->changed = 1;
-			field_op_changed(f, l);
-#endif
 		} else {
 			b:
 			f->vs->brl_in_field = 0;
@@ -3249,109 +3003,15 @@ static int is_active_frame(struct session *ses, struct f_data_c *f)
 	return 0;
 }
 
-#ifdef JS
-static int event_catchable(struct links_event *ev)
-{
-	if (ev->ev != EV_KBD) return 0;
-	if (ev->x == KBD_TAB || ev->x == KBD_ESC || ev->x == KBD_CTRL_C || ev->x == KBD_CLOSE) return 0;
-	return 1;
-}
-
-static int call_keyboard_event(struct f_data_c *fd, unsigned char *code, struct links_event *ev)
-{
-	int keycode;
-	unsigned char *shiftkey, *ctrlkey, *altkey;
-	unsigned char *nc;
-	int nl;
-	shiftkey = ev->y & KBD_SHIFT ? "true" : "false";
-	ctrlkey = ev->y & KBD_CTRL ? "true" : "false";
-	altkey = ev->y & KBD_ALT ? "true" : "false";
-	if (ev->x >= 0) {
-		if (ev->x < 0x80 || term_charset(fd->ses->term) == utf8_table) keycode = ev->x;
-		else keycode = cp2u(ev->x, term_charset(fd->ses->term));
-	}
-	else if (ev->x == KBD_ENTER) keycode = 13;
-	else if (ev->x == KBD_BS) keycode = 8;
-	else if (ev->x == KBD_TAB) keycode = 9;
-	else if (ev->x == KBD_ESC) keycode = 27;
-	else if (ev->x == KBD_INS) keycode = 45;
-	else if (ev->x == KBD_DEL) keycode = 46;
-	else if (ev->x == KBD_PAGE_UP) keycode = 33;
-	else if (ev->x == KBD_PAGE_DOWN) keycode = 34;
-	else if (ev->x == KBD_END) keycode = 35;
-	else if (ev->x == KBD_HOME) keycode = 36;
-	else if (ev->x == KBD_LEFT) keycode = 37;
-	else if (ev->x == KBD_UP) keycode = 38;
-	else if (ev->x == KBD_RIGHT) keycode = 39;
-	else if (ev->x == KBD_DOWN) keycode = 40;
-	else if (ev->x == KBD_F1) keycode = 112;
-	else if (ev->x == KBD_F2) keycode = 113;
-	else if (ev->x == KBD_F3) keycode = 114;
-	else if (ev->x == KBD_F4) keycode = 115;
-	else if (ev->x == KBD_F5) keycode = 116;
-	else if (ev->x == KBD_F6) keycode = 117;
-	else if (ev->x == KBD_F7) keycode = 118;
-	else if (ev->x == KBD_F8) keycode = 119;
-	else if (ev->x == KBD_F9) keycode = 120;
-	else if (ev->x == KBD_F10) keycode = 121;
-	else if (ev->x == KBD_F11) keycode = 122;
-	else if (ev->x == KBD_F12) keycode = 123;
-	else return -1;
-	nc = init_str();
-	nl = 0;
-	add_to_str(&nc, &nl, cast_uchar "event = new Object(); event.keyCode = ");
-	add_num_to_str(&nc, &nl, keycode);
-	add_to_str(&nc, &nl, cast_uchar "; event.shiftKey = ");
-	add_to_str(&nc, &nl, shiftkey);
-	add_to_str(&nc, &nl, cast_uchar "; event.ctrlKey = ");
-	add_to_str(&nc, &nl, ctrlkey);
-	add_to_str(&nc, &nl, cast_uchar "; event.altKey = ");
-	add_to_str(&nc, &nl, altkey);
-	add_to_str(&nc, &nl, cast_uchar "; ");
-	add_to_str(&nc, &nl, code);
-	jsint_execute_code(fd, nc, nl, -1, -1, -1, ev);
-	mem_free(nc);
-	return 0;
-}
-#endif
-
 static int send_to_frame(struct session *ses, struct links_event *ev)
 {
 	int r;
 	struct f_data_c *fd;
-#ifdef JS
-	int previous_link;
-#endif
 	fd = current_frame(ses);
 	if (!fd) {
 		/*internal("document not formatted");*/
 		return 0;
 	}
-
-#ifdef JS
-	previous_link=fd->vs ? fd->vs->current_link : -1;
-	if (!event_catchable(ev) || !fd->f_data || !fd->vs) goto dont_catch;
-	if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
-		struct link *l = &fd->f_data->links[fd->vs->current_link];
-		if (ev->b < EVH_LINK_KEYDOWN_PROCESSED && l->js_event && l->js_event->keydown_code) {
-			ev->b = EVH_LINK_KEYDOWN_PROCESSED;
-			if (!(call_keyboard_event(fd, l->js_event->keydown_code, ev))) return 1;
-		}
-		if (ev->b < EVH_LINK_KEYPRESS_PROCESSED && l->js_event && l->js_event->keypress_code) {
-			ev->b = EVH_LINK_KEYPRESS_PROCESSED;
-			if (!(call_keyboard_event(fd, l->js_event->keypress_code, ev))) return 1;
-		}
-	}
-	if (ev->b < EVH_DOCUMENT_KEYDOWN_PROCESSED && fd->f_data->js_event && fd->f_data->js_event->keydown_code) {
-		ev->b = EVH_DOCUMENT_KEYDOWN_PROCESSED;
-		if (!(call_keyboard_event(fd, fd->f_data->js_event->keydown_code, ev))) return 1;
-	}
-	if (ev->b < EVH_DOCUMENT_KEYPRESS_PROCESSED && fd->f_data->js_event && fd->f_data->js_event->keypress_code) {
-		ev->b = EVH_DOCUMENT_KEYPRESS_PROCESSED;
-		if (!(call_keyboard_event(fd, fd->f_data->js_event->keypress_code, ev))) return 1;
-	}
-	dont_catch:
-#endif
 
 	if (!F) r = frame_ev(ses, fd, ev);
 #ifdef G
@@ -3365,35 +3025,6 @@ static int send_to_frame(struct session *ses, struct links_event *ev)
 	}
 	if (r == 3) draw_fd_nrd(fd);
 	if (!F && fd->vs) {
-#ifdef JS
-		if (previous_link!=fd->vs->current_link&&fd->f_data&&previous_link>=0&&previous_link<fd->f_data->nlinks) /* link has changed */
-		{
-			struct link *l=&(fd->f_data->links[previous_link]);
-
-			/* process onchange code, if previous link was a textarea or a textfield and has changed */
-			if (l->type==L_FIELD||l->type==L_AREA) {
-				struct form_state *fs = find_form_state(fd,l->form);
-				if (fs->changed && l->js_event && l->js_event->change_code)
-					fs->changed=0, jsint_execute_code(fd, l->js_event->change_code, strlen(cast_const_char l->js_event->change_code), -1, -1, -1, NULL);
-			}
-
-			/* process blur and mouse-out handlers */
-			if (l->js_event&&l->js_event->blur_code)
-				jsint_execute_code(fd,l->js_event->blur_code,strlen(cast_const_char l->js_event->blur_code),-1,-1,-1, NULL);
-			if (l->js_event&&l->js_event->out_code)
-				jsint_execute_code(fd,l->js_event->out_code,strlen(cast_const_char l->js_event->out_code),-1,-1,-1, NULL);
-		}
-		if (previous_link!=fd->vs->current_link&&fd->f_data&&fd->vs->current_link>=0&&fd->vs->current_link<fd->f_data->nlinks)
-		{
-			struct link *l=&(fd->f_data->links[fd->vs->current_link]);
-
-			/* process focus and mouse-over handlers */
-			if (l->js_event&&l->js_event->focus_code)
-				jsint_execute_code(fd,l->js_event->focus_code,strlen(cast_const_char l->js_event->focus_code),-1,-1,-1, NULL);
-			if (l->js_event&&l->js_event->over_code)
-				jsint_execute_code(fd,l->js_event->over_code,strlen(cast_const_char l->js_event->over_code),-1,-1,-1, NULL);
-		}
-#endif
 	}
 	return r;
 }
@@ -3625,23 +3256,6 @@ void send_event(struct session *ses, struct links_event *ev)
 		if (ses->locked_link) {
 			if ((ev->b & BM_ACT) != B_MOVE) {
 				ses->locked_link = 0;
-#ifdef JS
-				/* process onblur handler of current link */
-				if (ses->screen&&ses->screen->vs&&ses->screen->f_data&&ses->screen->vs->current_link>=0&&ses->screen->vs->current_link<ses->screen->f_data->nlinks)
-				{
-					struct link *lnk=&(ses->screen->f_data->links[ses->screen->vs->current_link]);
-					/* select se dela jinde */
-					if (lnk->type!=L_SELECT&&lnk->js_event&&lnk->js_event->blur_code)
-						jsint_execute_code(current_frame(ses),lnk->js_event->blur_code,strlen(cast_const_char lnk->js_event->blur_code),-1,-1,-1, NULL);
-
-					/* execute onchange handler of text field/area */
-					if ((lnk->type==L_AREA||lnk->type==L_FIELD)) {
-						struct form_state *fs = find_form_state(ses->screen,lnk->form);
-						if (fs->changed && lnk->js_event && lnk->js_event->change_code)
-							fs->changed = 0, jsint_execute_code(current_frame(ses), lnk->js_event->change_code, strlen(cast_const_char lnk->js_event->change_code), -1, -1, -1, NULL);
-					}
-				}
-#endif
 				clr_xl(ses->screen);
 				draw_formatted(ses);
 			} else return;

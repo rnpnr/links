@@ -855,20 +855,6 @@ void g_text_mouse(struct f_data_c *fd, struct g_object *a_, int x, int y, int b)
 	int e;
 	g_set_current_link(fd, a, x, y, (b == (B_UP | B_LEFT)));
 
-#ifdef JS
-	if (fd->vs && fd->f_data && fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
-		/* fd->vs->current links is a valid link */
-
-		struct link *l = &fd->f_data->links[fd->vs->current_link];
-
-		if (l->js_event && l->js_event->up_code && (b & BM_ACT) == B_UP)
-			jsint_execute_code(fd, l->js_event->up_code, strlen(cast_const_char l->js_event->up_code), -1, -1, -1, NULL);
-
-		if (l->js_event && l->js_event->down_code && (b & BM_ACT) == B_DOWN)
-			jsint_execute_code(fd, l->js_event->down_code, strlen(cast_const_char l->js_event->down_code), -1, -1, -1, NULL);
-	}
-#endif
-
 	if (b == (B_UP | B_LEFT)) {
 		int ix = ismap_x, iy = ismap_y, il = ismap_link;
 		ismap_x = x;
@@ -1200,22 +1186,6 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				fd->f_data->start_highlight_x = -1;
 				fd->f_data->start_highlight_y = -1;
 			}
-
-#ifdef JS
-			/* process onmouseover/onmouseout handlers */
-			if (previous_link!=fd->vs->current_link)
-			{
-				struct link* lnk=NULL;
-
-			if (previous_link>=0&&previous_link<fd->f_data->nlinks)lnk=&(fd->f_data->links[previous_link]);
-				if (lnk&&lnk->js_event&&lnk->js_event->out_code)
-					jsint_execute_code(fd,lnk->js_event->out_code,strlen(cast_const_char lnk->js_event->out_code),-1,-1,-1, NULL);
-				lnk=NULL;
-				if (fd->vs->current_link>=0&&fd->vs->current_link<fd->f_data->nlinks)lnk=&(fd->f_data->links[fd->vs->current_link]);
-				if (lnk&&lnk->js_event&&lnk->js_event->over_code)
-					jsint_execute_code(fd,lnk->js_event->over_code,strlen(cast_const_char lnk->js_event->over_code),-1,-1,-1, NULL);
-			}
-#endif
 
 			if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_RIGHT && fd->vs->current_link == -1) goto scrll;
 			break;

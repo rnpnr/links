@@ -600,41 +600,6 @@ void html_stack_dup(void)
 }
 
 
-#ifdef JS
-static void get_js_event(unsigned char *a, unsigned char *name, unsigned char **where)
-{
-	unsigned char *v;
-	if ((v = get_attr_val(a, name))) {
-		if (*where) mem_free(*where);
-		*where = v;
-	}
-}
-
-static int get_js_events_x(struct js_event_spec **spec, unsigned char *a)
-{
-	if (!has_attr(a, cast_uchar "onkeyup") && !has_attr(a, cast_uchar "onkeydown") && !has_attr(a,cast_uchar "onkeypress") && !has_attr(a,cast_uchar "onchange") && !has_attr(a, cast_uchar "onfocus") && !has_attr(a,cast_uchar "onblur") && !has_attr(a, cast_uchar "onclick") && !has_attr(a, cast_uchar "ondblclick") && !has_attr(a, cast_uchar "onmousedown") && !has_attr(a, cast_uchar "onmousemove") && !has_attr(a, cast_uchar "onmouseout") && !has_attr(a, cast_uchar "onmouseover") && !has_attr(a, cast_uchar "onmouseup")) return 0;
-	create_js_event_spec(spec);
-	get_js_event(a, cast_uchar "onclick", &(*spec)->click_code);
-	get_js_event(a, cast_uchar "ondblclick", &(*spec)->dbl_code);
-	get_js_event(a, cast_uchar "onmousedown", &(*spec)->down_code);
-	get_js_event(a, cast_uchar "onmouseup", &(*spec)->up_code);
-	get_js_event(a, cast_uchar "onmouseover", &(*spec)->over_code);
-	get_js_event(a, cast_uchar "onmouseout", &(*spec)->out_code);
-	get_js_event(a, cast_uchar "onmousemove", &(*spec)->move_code);
-	get_js_event(a, cast_uchar "onfocus", &(*spec)->focus_code);
-	get_js_event(a, cast_uchar "onblur", &(*spec)->blur_code);
-	get_js_event(a, cast_uchar "onchange", &(*spec)->change_code);
-	get_js_event(a, cast_uchar "onkeypress", &(*spec)->keypress_code);
-	get_js_event(a, cast_uchar "onkeyup", &(*spec)->keyup_code);
-	get_js_event(a, cast_uchar "onkeydown", &(*spec)->keydown_code);
-	return 1;
-}
-
-static int get_js_events(unsigned char *a)
-{
-	return get_js_events_x(&format_.js_event, a);
-}
-#else
 static int get_js_events_x(struct js_event_spec **spec, unsigned char *a)
 {
 	return 0;
@@ -643,7 +608,6 @@ static int get_js_events(unsigned char *a)
 {
 	return 0;
 }
-#endif
 
 void *ff;
 void (*put_chars_f)(void *, unsigned char *, int);
@@ -2585,9 +2549,6 @@ static void html_frameset(unsigned char *a)
 	fp.parent = html_top.frameset;
 	if (fp.x && fp.y) {
 		html_top.frameset = special_f(ff, SP_FRAMESET, &fp);
-#ifdef JS
-		if (html_top.frameset)html_top.frameset->onload_code=get_attr_val(a,cast_uchar "onload");
-#endif
 	}
 	mem_free(fp.xw);
 	mem_free(fp.yw);

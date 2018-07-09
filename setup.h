@@ -187,11 +187,7 @@
 
 #define MAX_INPUT_URL_LEN		4096
 
-#ifdef DOS
-#define SPD_DISP_TIME			1000
-#else
 #define SPD_DISP_TIME			200
-#endif
 #define CURRENT_SPD_SEC			(10000 / SPD_DISP_TIME)
 #define CURRENT_SPD_AFTER		(20000 / SPD_DISP_TIME)
 

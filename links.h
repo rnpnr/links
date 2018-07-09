@@ -143,9 +143,6 @@
 #ifdef HAVE_UWIN_H
 #include <uwin.h>
 #endif
-#ifdef HAVE_INTERIX_INTERIX_H
-#include <interix/interix.h>
-#endif
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
@@ -215,9 +212,6 @@
 #if !defined(NO_SSL_CERTIFICATES) && defined(HAVE_OPENSSL_X509V3_H) && defined(HAVE_ASN1_STRING_TO_UTF8)
 #define HAVE_SSL_CERTIFICATES
 #endif
-#if defined(OPENVMS) && defined(__VAX)
-#define OPENSSL_NO_SHA512
-#endif
 
 #include <openssl/ssl.h>
 #include <openssl/rand.h>
@@ -264,7 +258,7 @@
 #include <sgtty.h>
 #endif
 
-#if defined(HAVE_POLL_H) && defined(HAVE_POLL) && !defined(INTERIX) && !defined(__HOS_AIX__)
+#if defined(HAVE_POLL_H) && defined(HAVE_POLL) && !defined(__HOS_AIX__)
 #define USE_POLL
 #include <poll.h>
 #endif
@@ -300,14 +294,6 @@
 #define ulonglong double
 #endif
 
-#if defined(__INTERIX) && defined(HAVE_STRTOQ)
-extern quad_t
-#if defined(__cdecl) || defined(_MSC_VER)
-__cdecl
-#endif
-strtoq(const char *, char **, int);
-#endif
-
 #define stringify_internal(arg)	#arg
 #define stringify(arg)		stringify_internal(arg)
 
@@ -329,21 +315,12 @@ strtoq(const char *, char **, int);
 #define cast_char	(char *)
 #define cast_uchar	(unsigned char *)
 
-#ifdef OPENVMS
-#define RET_OK		1	/* SS$_NORMAL */
-#define RET_ERROR	3586	/* SS$_LINEABRT */
-#define RET_SIGNAL	2096	/* SS$_CANCEL */
-#define RET_SYNTAX	20	/* SS$_BADPARAM */
-#define RET_FATAL	44	/* SS$_ABORT */
-#define RET_INTERNAL	44	/* SS$_ABORT */
-#else
 #define RET_OK		0
 #define RET_ERROR	1
 #define RET_SIGNAL	2
 #define RET_SYNTAX	3
 #define RET_FATAL	4
 #define RET_INTERNAL	127
-#endif
 
 #ifndef HAVE_SNPRINTF
 int my_snprintf(char *, int n, char *format, ...) PRINTF_FORMAT(3, 4);
@@ -557,21 +534,11 @@ extern int F;
 
 /* error.c */
 
-#if defined(DOS)
-#define ANSI_BELL		"\007"
-#define ANSI_SET_BOLD		""
-#define ANSI_CLEAR_BOLD		""
-#else
 #define ANSI_BELL		"\007"
 #define ANSI_SET_BOLD		"\033[1m"
 #define ANSI_CLEAR_BOLD		"\033[0m"
-#endif
 
-#ifdef LEAK_DEBUG
-extern unsigned alloc_overhead;
-#else
 #define alloc_overhead	0
-#endif
 
 void *do_not_optimize_here(void *p);
 void init_heap(void);
@@ -849,9 +816,6 @@ long strtolx(unsigned char *c, unsigned char **end);
 my_strtoll_t my_strtoll(unsigned char *string, unsigned char **end);
 
 void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size);
-#ifdef JS
-void skip_nonprintable(unsigned char *txt);
-#endif
 /* case insensitive compare of 2 strings */
 /* comparison ends after len (or less) characters */
 /* return value: 1=strings differ, 0=strings are same */
@@ -956,9 +920,6 @@ void restore_gpm_signals(void);
 void *handle_mouse(int, void (*)(void *, unsigned char *, int), void *);
 void unhandle_mouse(void *);
 void add_gpm_version(unsigned char **s, int *l);
-#ifdef OPENVMS
-extern int vms_thread_high_priority;
-#endif
 int start_thread(void (*)(void *, int), void *, int, int);
 unsigned char *get_clipboard_text(struct terminal *);
 void set_clipboard_text(struct terminal *, unsigned char *);
@@ -996,9 +957,6 @@ int can_open_os_shell(int);
 unsigned char *links_xterm(void);
 struct open_in_new *get_open_in_new(int);
 void set_highpri(void);
-#if defined(OPENVMS) && defined(GRDRV_X)
-int vms_x11_fd(int ef);
-#endif
 
 void os_free_clipboard(void);
 
@@ -1595,10 +1553,6 @@ void data_func(struct connection *);
 
 void file_func(struct connection *);
 
-/* finger.c */
-
-void finger_func(struct connection *);
-
 /* ftp.c */
 
 #if defined(IP_TOS) && defined(IPTOS_THROUGHPUT)
@@ -1606,10 +1560,6 @@ void finger_func(struct connection *);
 #endif
 
 void ftp_func(struct connection *);
-
-/* smb.c */
-
-void smb_func(struct connection *);
 
 /* mailto.c */
 
@@ -1700,19 +1650,6 @@ extern unsigned char init_seq_tw_mouse[];
 extern unsigned char term_seq[];
 extern unsigned char term_seq_x_mouse[];
 extern unsigned char term_seq_tw_mouse[];
-
-#if defined(GRDRV_SVGALIB) || defined(GRDRV_FB) || defined(GRDRV_GRX)
-#define GRDRV_VIRTUAL_DEVICES
-#endif
-
-#ifdef GRDRV_VIRTUAL_DEVICES
-extern int kbd_set_raw;
-struct itrm *handle_svgalib_keyboard(void (*)(struct itrm *, unsigned char *, int));
-void svgalib_free_trm(struct itrm *);
-void svgalib_block_itrm(struct itrm *);
-int svgalib_unblock_itrm(struct itrm *);
-#endif
-
 
 struct rgb {
 	unsigned char r, g, b; /* This is 3*8 bits with sRGB gamma (in sRGB space)
@@ -1931,16 +1868,6 @@ extern struct graphics_device *current_virtual_device;
 
 void generic_set_clip_area(struct graphics_device *dev, struct rect *r);
 
-#ifdef GRDRV_VIRTUAL_DEVICES
-int init_virtual_devices(struct graphics_driver *, int);
-struct graphics_device *init_virtual_device(void);
-#define VD_NEXT		-1
-void switch_virtual_device(int);
-void shutdown_virtual_device(struct graphics_device *dev);
-void resize_virtual_devices(int x, int y);
-void shutdown_virtual_devices(void);
-#endif
-
 /* dip.c */
 
 /* Digital Image Processing utilities
@@ -2134,26 +2061,14 @@ void free_dither(void);
 
 extern unsigned char frame_dumb[];
 
-#ifndef ENABLE_UTF8
-typedef unsigned char char_t;
-#else
 typedef unsigned char_t;
-#endif
 
 typedef struct {
-	char_t ch
-#ifdef ENABLE_UTF8
-		:24
-#endif
-		;
+	char_t ch :24;
 	unsigned char at;
 } chr;
 
-#ifdef ENABLE_UTF8
 #define chr_has_padding		(sizeof(chr) != 4)
-#else
-#define chr_has_padding		(sizeof(chr) != 2)
-#endif
 
 struct links_event {
 	int ev;
@@ -2245,10 +2160,8 @@ struct terminal {
 	int last_mouse_y;
 	int last_mouse_b;
 #endif
-#if defined(G) || defined(ENABLE_UTF8)
 	unsigned char utf8_buffer[7];
 	int utf8_paste_mode;
-#endif
 	list_entry_last
 };
 
@@ -2376,9 +2289,6 @@ extern int current_language;
 
 void init_trans(void);
 void shutdown_trans(void);
-#if defined(OS2) || defined(DOS)
-int get_country_language(int c);
-#endif
 int get_language_from_lang(unsigned char *);
 int get_default_charset(void);
 int get_commandline_charset(void);
@@ -2389,24 +2299,8 @@ void set_language(void);
 #define TEXT_(x) (dummyarray + x) /* TEXT causes name clash on windows */
 
 /* dos.c */
-
-#ifdef DOS
-void dos_poll_break(void);
-void dos_mouse_terminate(void);
-void dos_save_screen(void);
-void dos_restore_screen(void);
-int dos_is_bw(void);
-#else
-#define dos_poll_break()	do { } while (0)
-#endif
-
-/* grx.c */
-
-#ifdef GRDRV_GRX
-extern int grx_mouse_initialized;
-void grx_mouse_poll(void);
-int grx_mouse_event(void);
-#endif
+/* Used in error.c */
+#define dos_poll_break()        do { } while (0)
 
 /* af_unix.c */
 
@@ -2586,9 +2480,6 @@ struct form_state {
 	int state; /* index of selected item of a select item */
 	int vpos;
 	int vypos;
-#ifdef JS
-	int changed;	/* flag if form element has changed --- for onchange handler */
-#endif
 };
 
 struct js_event_spec;
@@ -2770,9 +2661,6 @@ struct frameset_desc {
 	int n;			/* = x * y */
 	int x, y;		/* velikost */
 	int xp, yp;		/* pozice pri pridavani */
-#ifdef JS
-	unsigned char *onload_code;
-#endif
 	struct frame_desc f[1];
 };
 
@@ -2892,14 +2780,6 @@ struct g_object_tag {
 #ifdef HAVE_JPEG
 #define IM_JPG 3
 #endif /* #ifdef HAVE_JPEG */
-
-#ifdef HAVE_TIFF
-#define IM_TIFF 4
-#endif /* #ifdef HAVE_TIFF */
-
-#ifdef HAVE_SVG
-#define IM_SVG 5
-#endif /* #ifdef HAVE_SVG */
 
 #define MEANING_DIMS	  0
 #define MEANING_AUTOSCALE 1
@@ -3032,23 +2912,7 @@ void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm);
 struct additional_file *request_additional_file(struct f_data *f, unsigned char *url);
 
 struct js_event_spec {
-#ifdef JS
-	unsigned char *move_code;
-	unsigned char *over_code;
-	unsigned char *out_code;
-	unsigned char *down_code;
-	unsigned char *up_code;
-	unsigned char *click_code;
-	unsigned char *dbl_code;
-	unsigned char *blur_code;
-	unsigned char *focus_code;
-	unsigned char *change_code;
-	unsigned char *keypress_code;
-	unsigned char *keyup_code;
-	unsigned char *keydown_code;
-#else
 	char dummy;
-#endif
 };
 
 /*
@@ -3103,10 +2967,6 @@ struct f_data {
 	struct line *data;
 	struct link *links;
 	int nlinks;
-#ifdef JS
-	struct js_event_spec **link_events;
-	int nlink_events;
-#endif
 	struct link **lines1;
 	struct link **lines2;
 	struct list_head nodes;		/* struct node */
@@ -3120,19 +2980,11 @@ struct f_data {
 	struct list_head forms;		/* struct form_control */
 	struct list_head tags;		/* struct tag */
 
-#ifdef JS
-	int are_there_scripts;
-	unsigned char *script_href_base;
-#endif
 
 	unsigned char *refresh;
 	int refresh_seconds;
 
 	int uncacheable;	/* cannot be cached - either created from source modified by document.write or modified by javascript */
-
-#ifdef JS
-	struct js_event_spec *js_event;
-#endif
 
 	/* graphics only */
 #ifdef G
@@ -3220,17 +3072,10 @@ struct f_data_c {
 
 	int marginwidth, marginheight;
 
-#ifdef JS
-	struct js_state *js;
-#endif
-
 	struct timer *image_timer;
 
 	struct timer *refresh_timer;
 
-#ifdef JS
-	unsigned char *onload_frameset_code;
-#endif
 	unsigned char scrolling;
 	unsigned char last_captured;
 
@@ -3324,14 +3169,6 @@ struct session {
 	unsigned char *imgmap_href_base;
 	unsigned char *imgmap_target_base;
 
-#ifdef JS
-	unsigned char *defered_url;
-	unsigned char *defered_target;
-	struct f_data_c *defered_target_base;
-	int defered_data;	/* for submit: form number, jinak -1 */
-	tcount defered_seq;
-#endif
-
 	int brl_cursor_mode;
 
 #ifdef G
@@ -3410,194 +3247,7 @@ unsigned char *get_current_title(struct f_data_c *, unsigned char *, size_t);
 /*unsigned char *get_current_link_url(struct session *, unsigned char *, size_t);*/
 unsigned char *get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form, int *onsubmit);
 
-/* js.c */
-
-#ifdef JS
-struct javascript_context *js_create_context(void *, long);
-void js_destroy_context(struct javascript_context *);
-void js_execute_code(struct javascript_context *, unsigned char *, int, void (*)(void *));
-#endif
-
 /* jsint.c */
-
-#ifdef JS
-
-#define JS_OBJ_MASK 255
-#define JS_OBJ_MASK_SIZE 8
-
-#define JS_OBJ_T_UNKNOWN 0
-#define JS_OBJ_T_DOCUMENT 1
-#define JS_OBJ_T_FRAME 2	/* document a frame se tvari pro mne stejne  --Brain */
-#define JS_OBJ_T_LINK 3
-#define JS_OBJ_T_FORM 4
-#define JS_OBJ_T_ANCHOR 5
-#define JS_OBJ_T_IMAGE 6
-/* form elements */
-#define JS_OBJ_T_TEXT 7
-#define JS_OBJ_T_PASSWORD 8
-#define JS_OBJ_T_TEXTAREA 9
-#define JS_OBJ_T_CHECKBOX 10
-#define JS_OBJ_T_RADIO 11
-#define JS_OBJ_T_SELECT 12
-#define JS_OBJ_T_SUBMIT 13
-#define JS_OBJ_T_RESET 14
-#define JS_OBJ_T_HIDDEN 15
-#define JS_OBJ_T_BUTTON 16
-
-extern long js_zaflaknuto_pameti;
-
-extern struct history js_get_string_history;
-extern int js_manual_confirmation;
-
-struct js_state {
-	struct javascript_context *ctx;	/* kontext beziciho javascriptu??? */
-	struct list_head queue;		/* struct js_request - list of javascripts to run */
-	struct js_request *active;	/* request is running */
-	unsigned char *src;		/* zdrojak beziciho javascriptu??? */	/* mikulas: ne. to je zdrojak stranky */
-	int srclen;
-	int wrote;
-	int newdata;
-};
-
-
-/* funkce js_get_select_options vraci pole s temito polozkami */
-struct js_select_item{
-	/* index je poradi v poli, ktere vratim, takze se tu nemusi skladovat */
-	int default_selected;
-	int selected;
-	unsigned char *text;	/* text, ktery se zobrazuje */
-	unsigned char *value;	/* value, ktera se posila */
-};
-
-struct fax_me_tender_string{
-	void *ident;   /* struct f_data_c*, but JS doesn't know it ;-) */
-	unsigned char *string;
-};
-
-struct fax_me_tender_int_string{
-	void *ident;   /* struct f_data_c*, but JS doesn't know it ;-) */
-	int num;
-	unsigned char *string;
-};
-
-struct fax_me_tender_string_2_longy{
-	void *ident;   /* struct f_data_c*, but JS doesn't know it ;-) */
-	unsigned char *string;
-	long doc_id,obj_id;
-};
-
-struct fax_me_tender_2_stringy{
-	void *ident;   /* struct f_data_c*, but JS doesn't know it ;-) */
-	unsigned char *string1;
-	unsigned char *string2;
-};
-
-struct fax_me_tender_nothing{
-	void *ident;   /* struct f_data_c*, but JS doesn't know it ;-) */
-};
-
-extern tcount jsint_execute_seq;
-
-void javascript_func(struct session *ses, unsigned char *code);
-void jsint_run_queue(struct f_data_c *);
-long *jsint_resolve(void *context, long obj_id, char *takhle_tomu_u_nas_nadavame,int *n_items);
-int jsint_object_type(long);
-void jsint_set_cookies(struct f_data_c *fd, int final_flush);
-struct f_data_c *jsint_find_document(long doc_id);
-
-void js_upcall_document_write(void *p, unsigned char *str, int len);
-void js_upcall_alert(void *struct_fax_me_tender_string);
-unsigned char *js_upcall_get_title(void *data);
-void js_upcall_set_title(void *data, unsigned char *title);
-unsigned char *js_upcall_get_location(void *data);
-unsigned char *js_upcall_get_useragent(void *data);
-void js_upcall_confirm(void *struct_fax_me_tender_string);
-void js_upcall_get_string(void *data);
-unsigned char *js_upcall_get_referrer(void *data);
-unsigned char *js_upcall_get_appname(void);
-unsigned char *js_upcall_get_appcodename(void);
-unsigned char *js_upcall_get_appversion(void);
-long js_upcall_get_document_id(void *data);
-long js_upcall_get_window_id(void *data);
-void js_upcall_close_window(void *struct_fax_me_tender_nothing);
-unsigned char *js_upcall_document_last_modified(void *data, long document_id);
-unsigned char *js_upcall_get_window_name(void *data);
-void js_upcall_clear_window(void *);
-long *js_upcall_get_links(void *data, long document_id, int *len);
-unsigned char *js_upcall_get_link_target(void *data, long document_id, long link_id);
-long *js_upcall_get_forms(void *data, long document_id, int *len);
-unsigned char *js_upcall_get_form_action(void *data, long document_id, long form_id);
-unsigned char *js_upcall_get_form_target(void *data, long document_id, long form_id);
-unsigned char *js_upcall_get_form_method(void *data, long document_id, long form_id);
-unsigned char *js_upcall_get_form_encoding(void *data, long document_id, long form_id);
-unsigned char *js_upcall_get_location_protocol(void *data);
-unsigned char *js_upcall_get_location_port(void *data);
-unsigned char *js_upcall_get_location_hostname(void *data);
-unsigned char *js_upcall_get_location_host(void *data);
-unsigned char *js_upcall_get_location_pathname(void *data);
-unsigned char *js_upcall_get_location_search(void *data);
-unsigned char *js_upcall_get_location_hash(void *data);
-long *js_upcall_get_form_elements(void *data, long document_id, long form_id, int *len);
-long *js_upcall_get_anchors(void *hej_Hombre, long document_id, int *len);
-int js_upcall_get_checkbox_radio_checked(void *smirak, long document_id, long radio_tv_id);
-void js_upcall_set_checkbox_radio_checked(void *smirak, long document_id, long radio_tv_id, int value);
-int js_upcall_get_checkbox_radio_default_checked(void *smirak, long document_id, long radio_tv_id);
-void js_upcall_set_checkbox_radio_default_checked(void *smirak, long document_id, long radio_tv_id, int value);
-unsigned char *js_upcall_get_form_element_name(void *smirak, long document_id, long ksunt_id);
-void js_upcall_set_form_element_name(void *smirak, long document_id, long ksunt_id, unsigned char *name);
-unsigned char *js_upcall_get_form_element_default_value(void *smirak, long document_id, long ksunt_id);
-void js_upcall_set_form_element_default_value(void *smirak, long document_id, long ksunt_id, unsigned char *name);
-void js_upcall_set_form_element_event_handler(void *bidak, long document_id, long ksunt_id, long typ, unsigned char *name);
-unsigned char *js_upcall_get_form_element_value(void *smirak, long document_id, long ksunt_id);
-void js_upcall_set_form_element_value(void *smirak, long document_id, long ksunt_id, unsigned char *name);
-void js_upcall_click(void *smirak, long document_id, long elem_id);
-void js_upcall_focus(void *smirak, long document_id, long elem_id);
-void js_upcall_blur(void *smirak, long document_id, long elem_id);
-void js_upcall_submit(void *bidak, long document_id, long form_id);
-void js_upcall_reset(void *bidak, long document_id, long form_id);
-int js_upcall_get_radio_length(void *smirak, long document_id, long radio_id); /* radio.length */
-int js_upcall_get_select_length(void *smirak, long document_id, long select_id); /* select.length */
-int js_upcall_get_select_index(void *smirak, long document_id, long select_id); /* select.selectedIndex */
-struct js_select_item* js_upcall_get_select_options(void *smirak, long document_id, long select_id, int *n);
-void js_upcall_goto_url(void* struct_fax_me_tender_string);
-int js_upcall_get_history_length(void *context);
-void js_upcall_goto_history(void* data);
-void js_upcall_set_default_status(void *context, unsigned char *tak_se_ukaz_Kolbene);
-unsigned char *js_upcall_get_default_status(void *context);
-void js_upcall_set_status(void *context, unsigned char *tak_se_ukaz_Kolbene);
-unsigned char *js_upcall_get_status(void *context);
-unsigned char *js_upcall_get_cookies(void *context);
-long *js_upcall_get_images(void *smirak, long document_id, int *len);
-long * js_upcall_get_all(void *context, long document_id, int *len);
-int js_upcall_get_image_width(void *smirak, long document_id, long image_id);
-int js_upcall_get_image_height(void *smirak, long document_id, long image_id);
-int js_upcall_get_image_border(void *smirak, long document_id, long image_id);
-int js_upcall_get_image_vspace(void *smirak, long document_id, long image_id);
-int js_upcall_get_image_hspace(void *smirak, long document_id, long image_id);
-unsigned char *js_upcall_get_image_name(void *smirak, long document_id, long image_id);
-unsigned char *js_upcall_get_image_alt(void *smirak, long document_id, long image_id);
-void js_upcall_set_image_name(void *smirak, long document_id, long image_id, unsigned char *name);
-void js_upcall_set_image_alt(void *smirak, long document_id, long image_id, unsigned char *alt);
-unsigned char *js_upcall_get_image_src(void *smirak, long document_id, long image_id);
-void js_upcall_set_image_src(void *chuligane);
-int js_upcall_image_complete(void *smirak, long document_id, long image_id);
-long js_upcall_get_parent(void *smirak, long frame_id);
-long js_upcall_get_frame_top(void *smirak, long frame_id);
-long * js_upcall_get_subframes(void *smirak, long frame_id, int *count);
-void js_upcall_set_form_action(void *context, long document_id, long form_id, unsigned char *action);
-
-
-void js_downcall_vezmi_true(void *context);
-void js_downcall_vezmi_false(void *context);
-void js_downcall_vezmi_null(void *context);
-void js_downcall_game_over(void *context);
-void js_downcall_quiet_game_over(void *context);
-void js_downcall_vezmi_int(void *context, int i);
-void js_downcall_vezmi_float(void*context,double f);
-/*void js_downcall_vezmi_float(void *context, float f);*/
-void js_downcall_vezmi_string(void *context, unsigned char *string);
-
-#endif
 
 void jsint_execute_code(struct f_data_c *, unsigned char *, int, int, int, int, struct links_event *);
 void jsint_destroy(struct f_data_c *);
@@ -3948,11 +3598,9 @@ static inline int utf8chrlen(unsigned char c)
 static inline unsigned GET_TERM_CHAR(struct terminal *term, unsigned char **str)
 {
 	unsigned ch;
-#if defined(G) || defined(ENABLE_UTF8)
 	if (term_charset(term) == utf8_table)
 		GET_UTF_8(*str, ch);
 	else
-#endif
 		ch = *(*str)++;
 	return ch;
 }
@@ -4060,37 +3708,9 @@ void add_png_version(unsigned char **s, int *l);
 
 #endif /* #ifdef G */
 
-/* tiff.c */
-
-#if defined(G) && defined(HAVE_TIFF)
-
-void tiff_start(struct cached_image *cimg);
-void tiff_restart(struct cached_image *cimg, unsigned char *data, int length);
-void tiff_finish(struct cached_image *cimg);
-void tiff_destroy_decoder(struct cached_image *cimg);
-
-void add_tiff_version(unsigned char **s, int *l);
-
-#endif /* #if defined(G) && defined(HAVE_TIFF) */
-
 /* svg.c */
 
-#if defined(G) && defined(HAVE_SVG)
-
-void spawn_font_thread(void);
-
-void svg_start(struct cached_image *cimg);
-void svg_restart(struct cached_image *cimg, unsigned char *data, int length);
-void svg_finish(struct cached_image *cimg);
-void svg_destroy_decoder(struct cached_image *cimg);
-
-void add_svg_version(unsigned char **s, int *l);
-
-#else
-
 #define spawn_font_thread()	do { } while (0)
-
-#endif
 
 /* img.c */
 
@@ -4467,10 +4087,8 @@ struct part {
 	int spl;
 	int link_num;
 	struct list_head uf;
-#ifdef ENABLE_UTF8
 	unsigned char utf8_part[7];
 	unsigned char utf8_part_len;
-#endif
 };
 
 #ifdef G
@@ -4722,14 +4340,6 @@ extern struct smb_options smb_options;
 extern unsigned char download_dir[];
 
 #define SCRUB_HEADERS	(proxies.only_proxies || http_options.header.fake_firefox)
-
-#ifdef JS
-extern int js_enable;
-extern int js_verbose_errors;
-extern int js_verbose_warnings;
-extern int js_all_conversions;
-extern int js_global_resolve;
-#endif
 
 extern double display_red_gamma,display_green_gamma,display_blue_gamma;
 extern double user_gamma;

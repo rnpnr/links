@@ -159,10 +159,6 @@ static int vpipe_create(int *fd)
 	pipe_flags[fd[0]] = 0;
 	pipe_desc[fd[1]] = desc;
 	pipe_flags[fd[1]] = VIRTUAL_PIPE_FLAG_WRITE;
-#ifdef DOS
-	pipe_flags[fd[0]] |= VIRTUAL_PIPE_FLAG_NONBLOCK;
-	pipe_flags[fd[1]] |= VIRTUAL_PIPE_FLAG_NONBLOCK;
-#endif
 	pipe_unlock();
 	return 0;
 err2:

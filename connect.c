@@ -731,9 +731,6 @@ static void connected(void *c_)
 	    && err != EISCONN
 #endif
 	    ) {
-#ifdef DOS
-		if (err == EALREADY) err = ETIMEDOUT;
-#endif
 		retry_connect(c, get_error_from_errno(err), 0);
 		return;
 	}
@@ -942,12 +939,6 @@ static void write_select(void *c_)
 	{
 		EINTRLOOP(wr, (int)write(wb->sock, wb->data + wb->pos, wb->len - wb->pos));
 		if (wr <= 0) {
-#if defined(ATHEOS) || defined(DOS)
-	/* Workaround for a bug in Syllable */
-			if (wr && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-				return;
-			}
-#endif
 			setcstate(c, wr ? get_error_from_errno(errno) : S_CANT_WRITE);
 			retry_connection(c);
 			return;

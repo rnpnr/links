@@ -556,18 +556,6 @@ static void do_image(struct g_part *p, struct image_description *im)
 					link->target = stracpy(ld->target);
 					link->img_alt = stracpy(ld->label);
 					link->where_img = stracpy(im->url);
-#ifdef JS
-					if (ld->onclick || ld->ondblclick || ld->onmousedown || ld->onmouseup || ld->onmouseover || ld->onmouseout || ld->onmousemove) {
-						create_js_event_spec(&link->js_event);
-						link->js_event->click_code = stracpy(ld->onclick);
-						link->js_event->dbl_code = stracpy(ld->ondblclick);
-						link->js_event->down_code = stracpy(ld->onmousedown);
-						link->js_event->up_code = stracpy(ld->onmouseup);
-						link->js_event->over_code = stracpy(ld->onmouseover);
-						link->js_event->out_code = stracpy(ld->onmouseout);
-						link->js_event->move_code = stracpy(ld->onmousemove);
-					}
-#endif
 					a->link_num = (int)(link - p->data->links);
 				}
 				if (last_link) mem_free(last_link), last_link = NULL;

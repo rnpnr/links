@@ -230,19 +230,11 @@ static void x_do_flush(void *ignore)
 
 static inline void X_FLUSH(void)
 {
-#ifdef INTERIX
-	/*
-	 * Interix has some bug, it locks up in _XWaitForWritable.
-	 * As a workaround, do synchronous flushes.
-	 */
-	x_do_flush(NULL);
-#else
 	if (!flush_in_progress)
 	{
 		register_bottom_half(x_do_flush, NULL);
 		flush_in_progress=1;
 	}
-#endif
 }
 
 static int (*old_error_handler)(Display *, XErrorEvent *) = NULL;
@@ -661,10 +653,6 @@ static void x_process_events(void *data)
 	int last_was_mouse;
 	int replay_event = 0;
 
-#ifdef OPENVMS
-	clear_events(x_fd, 0);
-#endif
-
 	process_events_in_progress = 0;
 
 #ifdef SC_DEBUG
@@ -1077,7 +1065,7 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 	}
 #endif
 	x_input_encoding=-1;
-#if defined(HAVE_NL_LANGINFO) && defined(HAVE_LANGINFO_H) && defined(CODESET) && !defined(WIN) && !defined(INTERIX)
+#if defined(HAVE_NL_LANGINFO) && defined(HAVE_LANGINFO_H) && defined(CODESET) && !defined(WIN)
 	{
 		unsigned char *cp;
 		cp = cast_uchar nl_langinfo(CODESET);
@@ -1099,7 +1087,7 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 */
 	if (!display) display = cast_uchar getenv("DISPLAY");
-#if !defined(__linux__) && !defined(OPENVMS)
+#if !defined(__linux__)
 	/* on Linux, do not assume XWINDOW present if $DISPLAY is not set
 	   --- rather open links on svgalib or framebuffer console */
 	if (!display) display = cast_uchar ":0.0";	/* needed for MacOS X */
@@ -1415,9 +1403,6 @@ visual_found:;
 		) x_driver.flags|=GD_NEED_CODEPAGE;
 
 	x_fd=XConnectionNumber(x_display);
-#ifdef OPENVMS
-	x_fd=vms_x11_fd(x_fd);
-#endif
 	set_handlers(x_fd, x_process_events, NULL, NULL);
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();

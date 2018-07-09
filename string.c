@@ -179,61 +179,6 @@ void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size)
 	strncpy(cast_char dst, cast_const_char src, dst_size - 1);
 }
 
-#ifdef JS
-/* deletes all nonprintable characters from string */
-void skip_nonprintable(unsigned char *txt)
-{
-	unsigned char *txt1=txt;
-
-	if (!txt||!*txt)return;
-	for (;*txt;txt++)
-		switch(*txt)
-		{
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			case 6:
-			case 7:
-			case 8:
-			case 11:
-			case 12:
-			case 13:
-			case 14:
-			case 15:
-			case 16:
-			case 17:
-			case 18:
-			case 19:
-			case 20:
-			case 21:
-			case 22:
-			case 23:
-			case 24:
-			case 25:
-			case 26:
-			case 27:
-			case 28:
-			case 29:
-			case 30:
-			case 31:
-			break;
-
-			case 9:
-			*txt1=' ';
-			txt1++;
-			break;
-
-			default:
-			*txt1=*txt;
-			txt1++;
-			break;
-		}
-	*txt1=0;
-}
-#endif
-
 /* don't use strcasecmp because it depends on locale */
 int casestrcmp(const unsigned char *s1, const unsigned char *s2)
 {

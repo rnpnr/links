@@ -380,11 +380,7 @@ static int close_download_file(struct download *down)
 {
 	int rs;
 	if (down->handle != -1) {
-#ifndef OPENVMS
-	/* a bug in OpenVMS ... the process hangs if quota is exceeded
-	   and ftruncate + close is executed */
 		EINTRLOOP(rs, ftruncate(down->handle, down->last_pos - down->file_shift));
-#endif
 		EINTRLOOP(rs, close(down->handle));
 		down->handle = -1;
 		if (rs) return -1;
@@ -447,13 +443,7 @@ int test_abort_downloads_to_file(unsigned char *file, unsigned char *cwd, int ab
 	struct list_head *ldown;
 	foreach(struct download, down, ldown, downloads) {
 		if (strcmp(cast_const_char down->cwd, cast_const_char cwd)) {
-#if defined(DOS_FS)
-			if (file[0] && file[1] == ':' && dir_sep(file[2])) goto abs;
-#elif defined(SPAD)
-			if (_is_absolute(cast_const_char file) == _ABS_TOTAL) goto abs;
-#else
 			if (file[0] == '/') goto abs;
-#endif
 			continue;
 		}
 		abs:
@@ -858,7 +848,6 @@ static int download_prealloc(struct download *down, off_t est_length)
 {
 	if (est_length <= 0)
 		return 0;
-#ifndef OPENVMS
 #ifdef HAVE_OPEN_PREALLOC
 	if (!down->last_pos && !strcmp(cast_const_char down->file, cast_const_char down->orig_file)) {
 		struct stat st;
@@ -871,7 +860,6 @@ static int download_prealloc(struct download *down, off_t est_length)
 		if ((down->handle = create_download_file(get_download_ses(down), down->cwd, down->file, !down->prog ? CDF_EXCL : CDF_RESTRICT_PERMISSION | CDF_EXCL, est_length)) < 0)
 			return -1;
 	}
-#endif
 #endif
 	return 0;
 }
@@ -1042,20 +1030,6 @@ int create_download_file(struct session *ses, unsigned char *cwd, unsigned char 
 	wd = get_cwd();
 	set_cwd(cwd);
 	file = translate_download_file(fi);
-#ifdef WIN
-	{
-		unsigned char *ext = cast_uchar strrchr(cast_const_char file, '.');
-		if (ext && (
-		    !casestrcmp(ext, cast_uchar ".exe") ||
-		    !casestrcmp(ext, cast_uchar ".com") ||
-		    !casestrcmp(ext, cast_uchar ".bat"))) {
-			if (perm == 0666)
-				perm |= 0111;
-			else
-				perm |= 0100;
-		}
-	}
-#endif
 #ifdef HAVE_OPEN_PREALLOC
 	if (siz && !(mode & CDF_NOTRUNC)) {
 		h = open_prealloc(file, O_CREAT | O_NOCTTY | O_WRONLY | O_TRUNC | (mode & CDF_EXCL ? O_EXCL : 0), perm, siz);
@@ -1175,30 +1149,16 @@ static unsigned char *get_temp_name(unsigned char *url, unsigned char *head)
 	unsigned char *name, *fn, *fnx;
 	unsigned char *nm;
 	unsigned char *directory = NULL;
-#ifdef WIN
-	directory = cast_uchar getenv("TMP");
-	if (!directory) directory = cast_uchar getenv("TEMP");
-#endif
 	nm = cast_uchar tempnam(cast_const_char directory, "links");
 	if (!nm) return NULL;
-#ifdef DOS_FS_8_3
-	if (strlen(cast_const_char nm) > 4 && !casestrcmp(nm + strlen(cast_const_char nm) - 4, cast_uchar ".tmp")) nm[strlen(cast_const_char nm) - 4] = 0;
-#endif
 	name = init_str();
 	nl = 0;
 	add_to_str(&name, &nl, nm);
 	free(nm);
 	fn = get_filename_from_url(url, head, 1);
-#ifndef DOS_FS_8_3
 	fnx = cast_uchar strchr(cast_const_char fn, '.');
-#else
-	fnx = cast_uchar strrchr(cast_const_char fn, '.');
-#endif
 	if (fnx) {
 		unsigned char *s;
-#ifdef DOS_FS_8_3
-		if (strlen(cast_const_char fnx) > 4) fnx[4] = 0;
-#endif
 		s = stracpy(fnx);
 		check_shell_security(&s);
 		add_to_str(&name, &nl, s);
@@ -1573,10 +1533,6 @@ static void create_new_frames(struct f_data_c *fd, struct frameset_desc *fs, str
 	int x, y;
 	int xp, yp;
 
-#ifdef JS
-	if (fd->onload_frameset_code) mem_free(fd->onload_frameset_code);
-	fd->onload_frameset_code = stracpy(fs->onload_code);
-#endif
 	if (list_size(&fd->loc->subframes) != (unsigned long)fs->n) {
 		while (!list_empty(fd->loc->subframes))
 			destroy_location(list_struct(fd->loc->subframes.next, struct location));
@@ -1645,11 +1601,6 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 	struct list_head *lsf;
 	int cch;
 	struct document_options o;
-#ifdef JS
-	struct js_event_spec *doc_js;
-	struct js_event_spec **link_js;
-	int nlink_js;
-#endif
 	if (!fd->loc) goto d;
 	if (fd->f_data) {
 		oxw = fd->f_data->opt.xw;
@@ -1667,11 +1618,7 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 	if (fd->parent && fd->parent->f_data && !o.hard_assume) {
 		o.assume_cp = fd->parent->f_data->cp;
 	}
-#ifdef JS
-	o.js_enable = js_enable;
-#else
 	o.js_enable=0;
-#endif
 #ifdef G
 	o.bfu_aspect=bfu_aspect;
 #else
@@ -1713,36 +1660,9 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 		o.braille = 0;
 	}
 	if (!(o.framename = fd->loc->name)) o.framename = NULL;
-#ifdef JS
-	doc_js = NULL;
-	link_js = DUMMY;
-	nlink_js = 0;
-	if (fd->f_data) {
-		copy_js_event_spec(&doc_js, fd->f_data->js_event);
-		if (fd->f_data->nlinks > fd->f_data->nlink_events) nlink_js = fd->f_data->nlinks; else nlink_js = fd->f_data->nlink_events;
-		if ((unsigned)nlink_js > MAXINT / sizeof(struct js_event_spec *)) overalloc();
-		link_js = mem_alloc(nlink_js * sizeof(struct js_event_spec *));
-		for (i = 0; i < fd->f_data->nlinks; i++) copy_js_event_spec(&link_js[i], fd->f_data->links[i].js_event);
-		for (; i < fd->f_data->nlink_events; i++) copy_js_event_spec(&link_js[i], fd->f_data->link_events[i]);
-	}
-#endif
 	if (!(fd->f_data = cached_format_html(fd, fd->rq, fd->rq->url, &o, &cch, report_status))) {
-#ifdef JS
-		for (i = 0; i < nlink_js; i++) free_js_event_spec(link_js[i]);
-		mem_free(link_js);
-		free_js_event_spec(doc_js);
-#endif
 		goto d;
 	}
-#ifdef JS
-	if (join_js_event_spec(&fd->f_data->js_event, doc_js)) fd->f_data->uncacheable = 1;
-	for (i = 0; i < fd->f_data->nlink_events; i++) free_js_event_spec(fd->f_data->link_events[i]);
-	mem_free(fd->f_data->link_events);
-	fd->f_data->link_events = link_js;
-	fd->f_data->nlink_events = nlink_js;
-	for (i = 0; i < fd->f_data->nlinks && i < nlink_js; i++) if (join_js_event_spec(&fd->f_data->links[i].js_event, link_js[i])) fd->f_data->uncacheable = 1;
-	free_js_event_spec(doc_js);
-#endif
 
 	/* erase frames if changed */
 	i = (int)list_size(&fd->subframes);
@@ -1903,14 +1823,8 @@ void reinit_f_data_c(struct f_data_c *fd)
 		if (fd->ses->wtd_target_base == fd1) fd->ses->wtd_target_base = NULL;
 		reinit_f_data_c(fd1);
 		if (fd->ses->wtd_target_base == fd1) fd->ses->wtd_target_base = fd;
-#ifdef JS
-		if (fd->ses->defered_target_base == fd1) fd->ses->defered_target_base = fd;
-#endif
 	}
 	free_list(struct f_data_c, fd->subframes);
-#ifdef JS
-	if (fd->onload_frameset_code)mem_free(fd->onload_frameset_code),fd->onload_frameset_code=NULL;
-#endif
 	fd->loc = NULL;
 	if (fd->f_data && fd->f_data->rq) fd->f_data->rq->upcall = NULL;
 	if (fd->f_data && fd->f_data->af) foreach(struct additional_file, af, laf, fd->f_data->af->af) if (af->rq) {
@@ -2001,22 +1915,6 @@ static void refresh_timer(void *fd_)
 	}
 }
 
-#ifdef JS
-static int frame_and_all_subframes_loaded(struct f_data_c *fd)
-{
-	struct f_data_c *f;
-	struct list_head *lf;
-	int loaded = fd->done || fd->rq == NULL;
-
-	if (loaded)		/* this frame is loaded */
-		foreach(struct f_data_c, f, lf, fd->subframes) {
-			loaded = frame_and_all_subframes_loaded(f);
-			if (!loaded) break;
-		}
-	return loaded;
-}
-#endif
-
 void fd_loaded(struct object_request *rq, void *fd_)
 {
 	struct f_data_c *fd = (struct f_data_c *)fd_;
@@ -2041,21 +1939,12 @@ void fd_loaded(struct object_request *rq, void *fd_)
 		/* it may happen that html_interpret requests load of additional file */
 		if (!f_is_finished(fd->f_data)) goto more_data;
 fn:
-#ifdef JS
-		if (fd->f_data->are_there_scripts) {
-			jsint_scan_script_tags(fd);
-			if (!f_is_finished(fd->f_data)) goto more_data;
-		}
-#endif
 		fd->done = 1;
 		fd->parsed_done = 0;
 		if (fd->f_data->refresh) {
 			if (fd->refresh_timer != NULL) kill_timer(fd->refresh_timer);
 			fd->refresh_timer = install_timer(fd->f_data->refresh_seconds * 1000, refresh_timer, fd);
 		}
-#ifdef JS
-		jsint_run_queue(fd);
-#endif
 	} else if (get_time() - fd->last_update >= fd->next_update_interval || (rq == fd->rq && rq->state < 0)) {
 		uttime t;
 		if (!fd->parsed_done) {
@@ -2082,22 +1971,6 @@ more_data:
 	}
 priint:
 	/* process onload handler of a frameset */
-#ifdef JS
-	{
-		int all_loaded;
-
-		/* go to parent and test if all subframes are loaded, if yes, call onload handler */
-
-		if (!fd->parent) goto hell;	/* this frame has no parent, skip */
-		if (!fd->parent->onload_frameset_code)goto hell;	/* no onload handler, skip all this */
-		all_loaded=frame_and_all_subframes_loaded(fd->parent);
-		if (!all_loaded) goto hell;
-		/* parent has all subframes loaded */
-		jsint_execute_code(fd->parent,fd->parent->onload_frameset_code,strlen(cast_const_char fd->parent->onload_frameset_code),-1,-1,-1, NULL);
-		mem_free(fd->parent->onload_frameset_code), fd->parent->onload_frameset_code=NULL;
-	hell:;
-	}
-#endif
 	if (rq && (rq->state == O_FAILED || rq->state == O_INCOMPLETE) && (fd->rq == rq || fd->ses->rq == rq) && !rq->dont_print_error) print_error_dialog(fd->ses, &rq->stat, rq->url);
 #ifdef LINKS_TESTMODE_DOCUMENT_AUTO_EXIT
 	if (f_is_finished(fd->f_data))
@@ -2643,21 +2516,7 @@ static void ses_finished_1st_state(struct object_request *rq, void *ses_)
 
 void ses_destroy_defered_jump(struct session *ses)
 {
-#ifdef JS
-	if (ses->defered_url) mem_free(ses->defered_url), ses->defered_url = NULL;
-	if (ses->defered_target) mem_free(ses->defered_target), ses->defered_target = NULL;
-	ses->defered_target_base = NULL;
-#endif
 }
-
-#ifdef JS
-/* test if there're any running scripts */
-static inline int any_running_scripts(struct f_data_c *fd)
-{
-	if (!fd->js) return 0;
-	return (fd->js->active) || (!list_empty(fd->js->queue));
-}
-#endif
 
 /* if from_goto_dialog is 1, set prev_url to NULL */
 void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned char *url, unsigned char *target, struct f_data_c *df, int data, int defer, int from_goto_dialog, int refresh)
@@ -2667,9 +2526,6 @@ void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned 
 	void (*fn)(struct session *, unsigned char *);
 	int reloadlevel, allow_flags;
 	if (!state2) state2 = ses_go_to_2nd_state;
-#ifdef JS
-	if (ses->defered_url && defer && any_running_scripts(ses->screen)) return;
-#endif
 	ses_destroy_defered_jump(ses);
 	if ((fn = get_external_protocol_function(url))) {
 		if (proxies.only_proxies && url_bypasses_socks(url)) {
@@ -2685,16 +2541,6 @@ void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned 
 		print_error_dialog(ses, &stat, url);
 		return;
 	}
-#ifdef JS
-	if (defer && any_running_scripts(ses->screen)) {
-		ses->defered_url = u;
-		ses->defered_target = stracpy(target);
-		ses->defered_target_base = df;
-		ses->defered_data = data;
-		ses->defered_seq = jsint_execute_seq++;
-		return;
-	}
-#endif
 	pos = extract_position(u);
 	if (ses->wtd == state2 && !strcmp(cast_const_char ses->rq->orig_url, cast_const_char u) && !xstrcmp(ses->wtd_target, target) && ses->wtd_target_base == df) {
 		mem_free(u);

@@ -68,18 +68,14 @@ static inline int is_utf_8(struct terminal *term)
 #ifdef G
 	if (F) return 1;
 #endif
-#ifdef ENABLE_UTF8
 	if (term_charset(term) == utf8_table) return 1;
-#endif
 	return 0;
 }
 
 static inline int ttxtlen(struct terminal *term, unsigned char *s)
 {
-#ifdef ENABLE_UTF8
 	if (term_charset(term) == utf8_table)
 		return strlen_utf8(s);
-#endif
 	return (int)strlen(cast_const_char s);
 }
 

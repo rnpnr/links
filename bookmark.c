@@ -631,11 +631,7 @@ void init_bookmarks(void)
 		unsigned char *e;
 		safe_strncpy(bookmarks_file, links_home ? links_home : (unsigned char*)"", MAX_STR_LEN);
 		e = cast_uchar strchr(cast_const_char bookmarks_file, 0);
-#ifdef DOS_FS_8_3
-		safe_strncpy(e, cast_uchar "bookmark.htm", MAX_STR_LEN - (e - bookmarks_file));
-#else
 		safe_strncpy(e, cast_uchar "bookmarks.html", MAX_STR_LEN - (e - bookmarks_file));
-#endif
 	}
 
 	bookmark_ld.codepage = utf8_table;

@@ -1189,9 +1189,6 @@ no_extended:
 	x = y;
 
 	for (y = x; *y; y++) if (dir_sep(*y)
-#if defined(DOS_FS) || defined(SPAD)
-		|| *y == ':'
-#endif
 		) *y = '-';
 	return x;
 }

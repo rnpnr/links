@@ -54,7 +54,6 @@ struct timer {
 static struct list_head timers = { &timers, &timers };
 
 
-#ifndef OPENVMS
 void portable_sleep(unsigned msec)
 {
 	struct timeval tv;
@@ -65,7 +64,6 @@ void portable_sleep(unsigned msec)
 	EINTRLOOP(rs, select(0, NULL, NULL, NULL, &tv));
 	unblock_signals();
 }
-#endif
 
 static int can_do_io(int fd, int wr, int sec)
 {
@@ -124,7 +122,6 @@ int can_read(int fd)
 
 int close_stderr(void)
 {
-#ifndef DOS
 	int n, h, rs;
 	fflush(stderr);
 	n = c_open(cast_uchar "/dev/null", O_WRONLY | O_NOCTTY);
@@ -144,20 +141,17 @@ fail3:
 fail2:
 	EINTRLOOP(rs, close(n));
 fail1:
-#endif
 	return -1;
 }
 
 void restore_stderr(int h)
 {
-#ifndef DOS
 	int rs;
 	fflush(stderr);
 	if (h == -1)
 		return;
 	EINTRLOOP(rs, dup2(h, 2));
 	EINTRLOOP(rs, close(h));
-#endif
 }
 
 

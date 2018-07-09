@@ -123,10 +123,6 @@ extern int errno;
 #define SIG_ERR		((int (*)())-1)
 #endif
 
-#if defined(OPENVMS) || defined(DOS)
-#define NO_SIGNAL_HANDLERS
-#endif
-
 #if !defined(HAVE_STRTOIMAX) && defined(strtoimax) && defined(HAVE___STRTOLL)
 #define HAVE_STRTOIMAX	1
 #endif
@@ -169,43 +165,6 @@ int bounced_write(int fd, const void *buf, size_t size);
 #endif
 #endif
 
-#ifdef OPENVMS
-#if defined(__INITIAL_POINTER_SIZE)
-#if __INITIAL_POINTER_SIZE == 64
-#define OPENVMS_64BIT
-#endif
-#endif
-#ifndef HAVE_GETCWD
-#define HAVE_GETCWD	1
-#endif
-#define getcwd(x, y)	getcwd(x, y, 0)
-#define sleep(x)	portable_sleep((x) * 1000)	/* sleep is buggy */
-#define OS_SETRAW
-int vms_read(int fd, void *buf, size_t size);
-int vms_write(int fd, const void *buf, size_t size);
-#define read vms_read
-#define write vms_write
-int vms_close(int fd);
-int vms_select(int n, fd_set *rs, fd_set *ws, fd_set *es, struct timeval *t);
-#define close vms_close
-#define select vms_select
-#endif
-
-#ifdef DOS
-#define DOS_EXTRA_KEYBOARD
-#ifdef DOS_EXTRA_KEYBOARD
-#define OS_SETRAW
-#endif
-int dos_read(int fd, void *buf, size_t size);
-int dos_write(int fd, const void *buf, size_t size);
-int dos_close(int fd);
-int dos_select(int n, fd_set *rs, fd_set *ws, fd_set *es, struct timeval *t, int from_main_loop);
-#define read dos_read
-#define write dos_write
-#define close dos_close
-#define select(a, b, c, d, e) dos_select(a, b, c, d, e, 0)
-#endif
-
 #if defined(O_SIZE) && defined(__EMX__)
 #define HAVE_OPEN_PREALLOC
 #elif (defined(HAVE_FALLOCATE) || defined(HAVE_POSIX_FALLOCATE)) && !defined(OPENVMS)
@@ -224,20 +183,8 @@ int dos_select(int n, fd_set *rs, fd_set *ws, fd_set *es, struct timeval *t, int
 #define SIGNAL_HANDLER
 #endif
 
-#if defined(HAVE_UTIME) && defined(HAVE_UTIMES) && defined(INTERIX)
-#undef HAVE_UTIMES
-#endif
-
-#if defined(HAVE_HERROR) && defined(__GNUC__) && defined(__hpux)
-#undef HAVE_HERROR
-#endif
-
 #ifndef HAVE_SOCKLEN_T
-#ifdef OPENVMS
-#define socklen_t unsigned
-#else
 #define socklen_t int
-#endif
 #endif
 
 #ifndef PF_INET
@@ -247,21 +194,8 @@ int dos_select(int n, fd_set *rs, fd_set *ws, fd_set *es, struct timeval *t, int
 #define PF_UNIX AF_UNIX
 #endif
 
-#if defined(__hpux)
-#include "hpux.h"
-#define accept hp_accept
-#define getpeername hp_getpeername
-#define getsockname hp_getsockname
-#define getsockopt hp_getsockopt
-#endif
-
-#if defined(OPENVMS_64BIT)
-#define my_intptr_t long long
-#define my_uintptr_t unsigned long long
-#else
 #define my_intptr_t long
 #define my_uintptr_t unsigned long
-#endif
 
 #if defined(__GNUC__)
 #if __GNUC__ >= 2
@@ -355,15 +289,4 @@ typedef const char *const_char_ptr;
 #define THREAD_SAFE_LOOKUP
 #endif
 
-#if defined(DOS)
-#define loop_select(a, b, c, d, e) dos_select(a, b, c, d, e, 1)
-#elif defined(GRDRV_SVGALIB)
-#define loop_select vga_select
-int vga_select(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *t);
-#elif defined(GRDRV_ATHEOS)
-#define loop_select ath_select
-int ath_select(int n, fd_set *r, fd_set *w, fd_set *e, struct timeval *t);
-#else
 #define loop_select select
-#endif
-

@@ -12,9 +12,7 @@
 
 #include "bits.h"
 
-#ifdef HAVE_MATH_H
 #include <math.h>
-#endif
 
 /* The input of dithering function is 3 times 16-bit value. The value is
  * proportional to light that will go out of the monitor. Only in this space it

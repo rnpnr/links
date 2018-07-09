@@ -17,7 +17,6 @@ SRC = \
 	drivers.c\
 	error.c\
 	file.c\
-	finger.c\
 	fn_impl.c\
 	ftp.c\
 	html.c\
@@ -58,8 +57,7 @@ XSRC = \
 	jpeg.c\
 	png.c\
 	view_gr.c\
-	x.c\
-	xbm.c
+	x.c
 XOBJ = $(XSRC:.c=.o)
 
 all: linksg

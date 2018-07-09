@@ -12,9 +12,7 @@
 
 #include "links.h"
 
-#ifdef HAVE_MATH_H
 #include <math.h>
-#endif /* HAVE_MATH_H */
 
 /* #define this if you want to report missing letters to stderr.
  * Leave it commented up for normal operation and releases! */
