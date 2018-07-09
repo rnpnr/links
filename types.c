@@ -793,10 +793,6 @@ void create_initial_extensions(void)
 
 
 struct list_head mailto_prog = { &mailto_prog, &mailto_prog };
-struct list_head telnet_prog = { &telnet_prog, &telnet_prog };
-struct list_head tn3270_prog = { &tn3270_prog, &tn3270_prog };
-struct list_head mms_prog = { &mms_prog, &mms_prog };
-struct list_head magnet_prog = { &magnet_prog, &magnet_prog };
 
 
 static int is_in_list(unsigned char *list, unsigned char *str, int l)
@@ -1303,10 +1299,6 @@ void free_types(void)
 		mem_free(e);
 	}
 	free_prog_list(&mailto_prog);
-	free_prog_list(&telnet_prog);
-	free_prog_list(&tn3270_prog);
-	free_prog_list(&mms_prog);
-	free_prog_list(&magnet_prog);
 
 	free_history(ext_search_history);
 	free_history(assoc_search_history);

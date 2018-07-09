@@ -21,12 +21,7 @@ static_const struct {
 		{"https", 443, https_func, NULL,	0, 1, 1, 1, 0},
 		{"http", 80, http_func, NULL,		0, 1, 1, 1, 0},
 		{"proxy", 3128, proxy_func, NULL,	0, 1, 1, 1, 0},
-		{"ftp", 21, ftp_func, NULL,		0, 1, 1, 0, 0},
 		{"mailto", 0, NULL, mailto_func,	0, 0, 0, 0, 0},
-		{"telnet", 0, NULL, telnet_func,	0, 0, 0, 0, 1},
-		{"tn3270", 0, NULL, tn3270_func,	0, 0, 0, 0, 1},
-		{"mms", 0, NULL, mms_func,		1, 0, 1, 0, 1},
-		{"magnet", 0, NULL, magnet_func,	1, 0, 0, 0, 1},
 		{NULL, 0, NULL, NULL,			0, 0, 0, 0, 0}
 };
 

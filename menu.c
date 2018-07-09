@@ -505,66 +505,6 @@ static void resource_info_menu(struct terminal *term, void *d, void *ses_)
 	resource_info(term, NULL);
 }
 
-#ifdef LEAK_DEBUG
-
-static int memory_info(struct terminal *term, struct refresh *r2)
-{
-	unsigned char *a;
-	int l;
-	struct refresh *r;
-
-	r = mem_alloc(sizeof(struct refresh));
-	r->term = term;
-	r->win = NULL;
-	r->fn = memory_info;
-	r->timer = NULL;
-	l = 0;
-	a = init_str();
-
-	add_unsigned_long_num_to_str(&a, &l, mem_amount);
-	add_to_str(&a, &l, cast_uchar " ");
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_MEMORY_ALLOCATED), term));
-	add_to_str(&a, &l, cast_uchar ", ");
-	add_unsigned_long_num_to_str(&a, &l, mem_blocks);
-	add_to_str(&a, &l, cast_uchar " ");
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_BLOCKS_ALLOCATED), term));
-	add_to_str(&a, &l, cast_uchar ".");
-
-#ifdef MEMORY_REQUESTED
-	if (mem_requested && blocks_requested) {
-		add_to_str(&a, &l, cast_uchar "\n");
-		add_unsigned_long_num_to_str(&a, &l, mem_requested);
-		add_to_str(&a, &l, cast_uchar " ");
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_MEMORY_REQUESTED), term));
-		add_to_str(&a, &l, cast_uchar ", ");
-		add_unsigned_long_num_to_str(&a, &l, blocks_requested);
-		add_to_str(&a, &l, cast_uchar " ");
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_BLOCKS_REQUESTED), term));
-		add_to_str(&a, &l, cast_uchar ".");
-	}
-#endif
-
-	if (r2 && !strcmp(cast_const_char a, cast_const_char *(unsigned char **)((struct dialog_data *)r2->win->data)->dlg->udata)) {
-		mem_free(a);
-		mem_free(r);
-		r2->timer = install_timer(RESOURCE_INFO_REFRESH, refresh, r2);
-		return 1;
-	}
-
-	msg_box(term, getml(a, NULL), TEXT_(T_MEMORY_INFO), AL_CENTER, a, MSG_BOX_END, (void *)r, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
-	r->win = list_struct(term->windows.next, struct window);
-	((struct dialog_data *)r->win->data)->dlg->abort = refresh_abort;
-	r->timer = install_timer(RESOURCE_INFO_REFRESH, refresh, r);
-	return 0;
-}
-
-static void memory_info_menu(struct terminal *term, void *d, void *ses_)
-{
-	memory_info(term, NULL);
-}
-
-#endif
-
 static void flush_caches(struct terminal *term, void *d, void *e)
 {
 	abort_background_connections();
@@ -2185,10 +2125,6 @@ static void dlg_ftp_options(struct terminal *term, void *xxx, void *yyy)
 
 static unsigned char * const prg_msg[] = {
 	TEXT_(T_MAILTO_PROG),
-	TEXT_(T_TELNET_PROG),
-	TEXT_(T_TN3270_PROG),
-	TEXT_(T_MMS_PROG),
-	TEXT_(T_MAGNET_PROG),
 	TEXT_(T_SHELL_PROG),
 	cast_uchar ""
 };
@@ -2201,14 +2137,6 @@ static void netprog_fn(struct dialog_data *dlg)
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
 	int a;
 	a=0;
-	max_text_width(term, prg_msg[a], &max, AL_LEFT);
-	min_text_width(term, prg_msg[a++], &min, AL_LEFT);
-	max_text_width(term, prg_msg[a], &max, AL_LEFT);
-	min_text_width(term, prg_msg[a++], &min, AL_LEFT);
-	max_text_width(term, prg_msg[a], &max, AL_LEFT);
-	min_text_width(term, prg_msg[a++], &min, AL_LEFT);
-	max_text_width(term, prg_msg[a], &max, AL_LEFT);
-	min_text_width(term, prg_msg[a++], &min, AL_LEFT);
 	max_text_width(term, prg_msg[a], &max, AL_LEFT);
 	min_text_width(term, prg_msg[a++], &min, AL_LEFT);
 #ifdef G
@@ -2229,19 +2157,6 @@ static void netprog_fn(struct dialog_data *dlg)
 	if (term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 #ifdef G
 	if (have_extra_exec()) {
 		dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
@@ -2261,19 +2176,6 @@ static void netprog_fn(struct dialog_data *dlg)
 	a=0;
 	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-	if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 #ifdef G
 	if (have_extra_exec()) {
 		dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
@@ -2294,25 +2196,13 @@ static void net_programs(struct terminal *term, void *xxx, void *yyy)
 	if (have_extra_exec()) d->title = TEXT_(T_MAIL_TELNET_AND_SHELL_PROGRAMS);
 	else
 #endif
-		d->title = TEXT_(T_MAIL_AND_TELNET_PROGRAMS);
+	d->title = TEXT_(T_MAIL_AND_TELNET_PROGRAMS);
 
 	d->fn = netprog_fn;
 	a=0;
 	d->items[a].type = D_FIELD;
 	d->items[a].dlen = MAX_STR_LEN;
 	d->items[a++].data = get_prog(&mailto_prog);
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a++].data = get_prog(&telnet_prog);
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a++].data = get_prog(&tn3270_prog);
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a++].data = get_prog(&mms_prog);
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a++].data = get_prog(&magnet_prog);
 #ifdef G
 	if (have_extra_exec()) {
 		d->items[a].type = D_FIELD;
@@ -3180,9 +3070,6 @@ static_const struct menu_item file_menu22[] = {
 	{ TEXT_(T_KILL_ALL_CONNECTIONS), cast_uchar "", TEXT_(T_HK_KILL_ALL_CONNECTIONS), menu_kill_all_connections, NULL, 0, 1 },
 	{ TEXT_(T_FLUSH_ALL_CACHES), cast_uchar "", TEXT_(T_HK_FLUSH_ALL_CACHES), flush_caches, NULL, 0, 1 },
 	{ TEXT_(T_RESOURCE_INFO), cast_uchar "", TEXT_(T_HK_RESOURCE_INFO), resource_info_menu, NULL, 0, 1 },
-#ifdef LEAK_DEBUG
-	{ TEXT_(T_MEMORY_INFO), cast_uchar "", TEXT_(T_HK_MEMORY_INFO), memory_info_menu, NULL, 0, 1 },
-#endif
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 };
 

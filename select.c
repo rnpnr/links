@@ -219,10 +219,6 @@ void check_bottom_halves(void)
 	fprintf(stderr, "call: bh %p\n", fn);
 #endif
 	pr(fn(data)) {
-#ifdef OOPS
-		free_list(struct bottom_half, bottom_halves);
-		return;
-#endif
 	};
 #ifdef DEBUG_CALLS
 	fprintf(stderr, "bh done\n");
@@ -497,14 +493,8 @@ static void check_timers(void)
 {
 	uttime interval = get_time() - last_time;
 	struct timer *
-#ifdef OOPS
-		volatile
-#endif
 		t;		/* volatile because of setjmp */
 	struct list_head *
-#ifdef OOPS
-		volatile	/* volatile because of setjmp */
-#endif
 		lt;
 	foreach(struct timer, t, lt, timers) {
 		if (t->interval < interval)
@@ -836,9 +826,6 @@ static int check_signals(void)
 				fprintf(stderr, "call: signal %d -> %p\n", i, signal_handlers[i].fn);
 #endif
 				pr(signal_handlers[i].fn(signal_handlers[i].data)) {
-#ifdef OOPS
-					return 1;
-#endif
 }
 #ifdef DEBUG_CALLS
 				fprintf(stderr, "signal done\n");

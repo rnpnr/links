@@ -18,7 +18,6 @@ SRC = \
 	error.c\
 	file.c\
 	fn_impl.c\
-	ftp.c\
 	html.c\
 	html_gr.c\
 	html_r.c\

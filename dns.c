@@ -389,57 +389,12 @@ ret:
 	return;
 }
 
-#ifndef NO_ASYNC_LOOKUP
-static void lookup_fn(void *q_, int h)
-{
-	struct dnsquery *q = (struct dnsquery *)q_;
-	struct lookup_result host;
-	do_real_lookup(q->name, q->addr_preference, &host);
-	/*{
-		int i;
-		for (i = 0; i < sizeof(struct lookup_result); i++) {
-			if (i == 1) portable_sleep(1000);
-			hard_write(h, (unsigned char *)&host + i, 1);
-		}
-	}*/
-	hard_write(h, (unsigned char *)&host, sizeof(struct lookup_result));
-}
-
-static void end_real_lookup(void *q_)
-{
-	struct dnsquery *q = (struct dnsquery *)q_;
-	int r = 1;
-	int rs;
-	if (!q->addr || hard_read(q->h, (unsigned char *)q->addr, sizeof(struct lookup_result)) != sizeof(struct lookup_result) || !q->addr->n) goto end;
-	r = 0;
-
-	end:
-	set_handlers(q->h, NULL, NULL, NULL);
-	EINTRLOOP(rs, close(q->h));
-	end_dns_lookup(q, r);
-}
-#endif
-
 static int do_lookup(struct dnsquery *q, int force_async)
 {
 	/*debug("starting lookup for %s", q->name);*/
-#ifndef NO_ASYNC_LOOKUP
-	if (!async_lookup && !force_async) {
-#endif
-#ifndef NO_ASYNC_LOOKUP
-		sync_lookup:
-#endif
 		do_real_lookup(q->name, q->addr_preference, q->addr);
 		end_dns_lookup(q, !q->addr->n);
 		return 0;
-#ifndef NO_ASYNC_LOOKUP
-	} else {
-		q->h = start_thread(lookup_fn, q, (int)((unsigned char *)strchr(cast_const_char q->name, 0) + 1 - (unsigned char *)q), 1);
-		if (q->h == -1) goto sync_lookup;
-		set_handlers(q->h, end_real_lookup, NULL, q);
-		return 1;
-	}
-#endif
 }
 
 static int do_queued_lookup(struct dnsquery *q)
@@ -575,27 +530,6 @@ void kill_dns_request(void **qp)
 	q->fn = NULL;
 	q->addr = NULL;
 	*qp = NULL;
-}
-
-#ifndef NO_ASYNC_LOOKUP
-static void dns_prefetch_end(void *addr_, int status)
-{
-	struct lookup_result *addr = (struct lookup_result *)addr_;
-	free(addr);
-}
-#endif
-
-void dns_prefetch(unsigned char *name)
-{
-#ifndef NO_ASYNC_LOOKUP
-	struct lookup_result *addr;
-	if (!async_lookup)
-		return;
-	addr = (struct lookup_result *)malloc(sizeof(struct lookup_result));
-	if (!addr)
-		return;
-	find_host(name, addr, NULL, dns_prefetch_end, addr);
-#endif
 }
 
 #if MAX_ADDRESSES > 1

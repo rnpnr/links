@@ -329,10 +329,6 @@ static void get_compiler_name(void)
 
 	sprintf(cast_char compiler_name, "USL C");
 
-#elif defined(__VAXC)
-
-	sprintf(cast_char compiler_name, "VAX C");
-
 #elif defined(__VOSC__)
 
 	sprintf(cast_char compiler_name, "Stratus VOS C");
@@ -666,48 +662,7 @@ static unsigned char *get_home(int *n)
 	config_dir = stracpy(cast_uchar getenv("CONFIG_DIR"));
 
 	if (n) *n = 1;
-#ifdef WIN
-	if (!home) {
-		home = stracpy(cast_uchar getenv("APPDATA"));
-#ifdef HAVE_CYGWIN_CONV_PATH
-		/*
-		 * Newer Cygwin complains about windows-style path, so
-		 * we have to convert it.
-		 */
-		if (home) {
-			unsigned char *new_path;
-			ssize_t sz = cygwin_conv_path(CCP_WIN_A_TO_POSIX | CCP_ABSOLUTE, home, NULL, 0);
-			if (sz < 0 || sz >= MAXINT)
-				goto skip_path_conv;
-			new_path = mem_alloc(sz);
-			sz = cygwin_conv_path(CCP_WIN_A_TO_POSIX | CCP_ABSOLUTE, home, new_path, sz);
-			if (sz < 0) {
-				mem_free(new_path);
-				goto skip_path_conv;
-			}
-			mem_free(home);
-			home = new_path;
-skip_path_conv:;
-		}
-#endif
-		if (home) {
-			EINTRLOOP(rs, stat(cast_const_char home, &st));
-			if (rs || !S_ISDIR(st.st_mode)) {
-				mem_free(home);
-				home = NULL;
-			}
-		}
-	}
-#endif
 	if (!home) home = stracpy(cast_uchar getenv("HOME"));
-#ifdef WIN
-/* When we run in Cygwin without Cygwin environment, it reports home "/".
-   Unfortunatelly, it can't write anything to that directory */
-	if (home && !strcmp(cast_const_char home, "/")) {
-		mem_free(home);
-		home = NULL;
-	}
-#endif
 	if (!home) {
 		int i;
 		home = stracpy(path_to_exe);
@@ -2147,11 +2102,6 @@ static struct option links_options[] = {
 	{1, NULL, term2_rd, NULL, 0, 0, NULL, "terminal2", NULL},
 	{1, NULL, type_rd, type_wr, 0, 0, NULL, "association", NULL},
 	{1, NULL, ext_rd, ext_wr, 0, 0, NULL, "extension", NULL},
-	{1, NULL, prog_rd, prog_wr, 0, 0, &mailto_prog, "mailto", NULL},
-	{1, NULL, prog_rd, prog_wr, 0, 0, &telnet_prog, "telnet", NULL},
-	{1, NULL, prog_rd, prog_wr, 0, 0, &tn3270_prog, "tn3270", NULL},
-	{1, NULL, prog_rd, prog_wr, 0, 0, &mms_prog, "mms", NULL},
-	{1, NULL, prog_rd, prog_wr, 0, 0, &magnet_prog, "magnet", NULL},
 	{1, NULL, block_rd, block_wr, 0, 0, NULL, "imageblock", NULL},
 	{1, NULL, dp_rd, dp_wr, 0, 0, NULL, "video_driver", NULL},
 	{0, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL},

@@ -25,13 +25,4 @@
 #define _FILE_OFFSET_BITS	64
 #endif
 
-#if defined(vax) && !defined(__vax)
-#define __vax	vax
-#endif
-
-#ifdef __DJGPP
-unsigned long __ntohl(unsigned long);
-unsigned short __ntohs(unsigned short);
-#endif
-
 #endif

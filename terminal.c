@@ -364,9 +364,6 @@ void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *
 		for (i = 0; i < s->m; i++) if (is_rect_valid(r = &s->r[i])) {
 			drv->set_clip_area(term->dev, r);
 			pr(fn(term, data)) {
-#ifdef OOPS
-				return;
-#endif
 			}
 			a = 1;
 		}

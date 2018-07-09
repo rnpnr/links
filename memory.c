@@ -117,9 +117,6 @@ retry:
 	fatal_tty_exit();
 
 	fprintf(stderr, "\n");
-#ifdef LEAK_DEBUG
-	fprintf(stderr, "Allocated: %lu bytes, %lu blocks\n", (unsigned long)mem_amount, (unsigned long)mem_blocks);
-#endif
 	fprintf(stderr, "File cache: %lu bytes, %lu files, %lu locked, %lu loading\n", (unsigned long)cache_info(CI_BYTES), (unsigned long)cache_info(CI_FILES), (unsigned long)cache_info(CI_LOCKED), (unsigned long)cache_info(CI_LOADING));
 #ifdef HAVE_ANY_COMPRESSION
 	fprintf(stderr, "Decompressed cache: %lu bytes, %lu files, %lu locked\n", (unsigned long)decompress_info(CI_BYTES), (unsigned long)decompress_info(CI_FILES), (unsigned long)decompress_info(CI_LOCKED));

@@ -20,18 +20,6 @@
 #define DEBUGLEVEL			2
 */
 
-#if DEBUGLEVEL >= 1
-#define DEBUG
-#define LEAK_DEBUG
-#define LEAK_DEBUG_LIST
-#endif
-
-#if DEBUGLEVEL < 0
-#define OOPS
-#define LEAK_DEBUG
-#define NO_IE
-#endif
-
 #define LINKS_SOCK_NAME			"socket"
 #define LINKS_ANONYMOUS_SOCK_SUFFIX	"-a"
 #define LINKS_PORT			23755

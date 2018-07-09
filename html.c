@@ -2671,7 +2671,6 @@ static void html_link(unsigned char *a)
 		pre_url = join_urls(format_.href_base, url);
 		host = get_host_name(pre_url);
 		mem_free(pre_url);
-		if (!dmp) dns_prefetch(host);
 		mem_free(host);
 		goto skip;
 	}

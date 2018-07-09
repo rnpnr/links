@@ -621,33 +621,6 @@ static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 
 #define safe_add(x, y)	safe_add_function(x, y, (unsigned char *)__FILE__, __LINE__)
 
-#ifdef LEAK_DEBUG
-
-extern my_uintptr_t mem_amount;
-extern my_uintptr_t mem_blocks;
-
-#endif
-
-#ifdef LEAK_DEBUG
-
-void *debug_mem_alloc(unsigned char *, int, size_t, int);
-void *debug_mem_calloc(unsigned char *, int, size_t, int);
-void debug_mem_free(unsigned char *, int, void *);
-void *debug_mem_realloc(unsigned char *, int, void *, size_t, int);
-void set_mem_comment(void *, unsigned char *, int);
-unsigned char *get_mem_comment(void *);
-
-#define mem_alloc(x) debug_mem_alloc((unsigned char *)__FILE__, __LINE__, x, 0)
-#define mem_calloc(x) debug_mem_calloc((unsigned char *)__FILE__, __LINE__, x, 0)
-#define mem_free(x) debug_mem_free((unsigned char *)__FILE__, __LINE__, x)
-#define mem_realloc(x, y) debug_mem_realloc((unsigned char *)__FILE__, __LINE__, x, y, 0)
-
-#define mem_alloc_mayfail(x) debug_mem_alloc((unsigned char *)__FILE__, __LINE__, x, 1)
-#define mem_calloc_mayfail(x) debug_mem_calloc((unsigned char *)__FILE__, __LINE__, x, 1)
-#define mem_realloc_mayfail(x, y) debug_mem_realloc((unsigned char *)__FILE__, __LINE__, x, y, 1)
-
-#else
-
 void *mem_alloc_(size_t size, int mayfail);
 void *mem_calloc_(size_t size, int mayfail);
 void mem_free(void *p);
@@ -668,7 +641,6 @@ static inline void debug_mem_free(unsigned char *f, int l, void *p) { mem_free(p
 static inline void *debug_mem_realloc(unsigned char *f, int l, void *p, size_t s, int mayfail) { return mem_realloc_(p, s, mayfail); }
 static inline void set_mem_comment(void *p, unsigned char *c, int l) {}
 static inline unsigned char *get_mem_comment(void *p){return (unsigned char *)"";}
-#endif
 
 #if !(defined(LEAK_DEBUG) && defined(LEAK_DEBUG_LIST))
 
@@ -685,22 +657,9 @@ unsigned char *debug_stracpy(unsigned char *f, int l, const unsigned char *src);
 
 #endif
 
-#if !defined(HAVE_SIGSETJMP) || !defined(HAVE_SETJMP_H)
-#ifdef OOPS
-#undef OOPS
-#endif
-#endif
-
-#ifndef OOPS
 #define pr(code) if (1) {code;} else
 static inline void nopr(void) {}
 static inline void xpr(void) {}
-#else
-sigjmp_buf *new_stack_frame(void);
-void xpr(void);
-#define pr(code) if (!sigsetjmp(*new_stack_frame(), 1)) {do {code;} while (0); xpr();} else
-void nopr(void);
-#endif
 
 /* inline */
 
@@ -946,11 +905,6 @@ int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);
 unsigned char *os_fixup_external_program(unsigned char *);
 int exe(unsigned char *, int);
-#ifdef WIN
-int exe_on_background(unsigned char *, unsigned char *);
-int windows_charset(void);
-#define HAVE_EXE_ON_BACKGROUND
-#endif
 int resize_window(int, int);
 int can_resize_window(struct terminal *);
 int can_open_os_shell(int);
@@ -1101,7 +1055,6 @@ void do_real_lookup(unsigned char *, int, struct lookup_result *);
 int find_host(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
 int find_host_no_cache(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
 void kill_dns_request(void **);
-void dns_prefetch(unsigned char *);
 #if MAX_ADDRESSES > 1
 void dns_set_priority(unsigned char *, struct host_address *, int);
 #endif
@@ -1553,21 +1506,9 @@ void data_func(struct connection *);
 
 void file_func(struct connection *);
 
-/* ftp.c */
-
-#if defined(IP_TOS) && defined(IPTOS_THROUGHPUT)
-#define HAVE_IPTOS
-#endif
-
-void ftp_func(struct connection *);
-
 /* mailto.c */
 
-void magnet_func(struct session *, unsigned char *);
 void mailto_func(struct session *, unsigned char *);
-void telnet_func(struct session *, unsigned char *);
-void tn3270_func(struct session *, unsigned char *);
-void mms_func(struct session *, unsigned char *);
 
 /* kbd.c */
 

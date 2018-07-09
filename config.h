@@ -618,7 +618,6 @@
 /* Gpm_Event has wdx and wdy */
 /* #undef HAVE_WDX_WDY */
 
-#define DISABLE_SMB 1
 #define HAVE_GETHOSTBYNAME 1
 #define SUPPORT_IPV6 1
 
@@ -640,14 +639,11 @@
 #undef DOS_FS_8_3
 #undef GRDRV_SVGALIB
 #undef GRDRV_ATHEOS
-#undef __DJGPP
 #undef VMS_DEBUGLEVEL
-#undef __VAX
 #undef HAVE_BROTLI
 #undef HAVE_BZIP2
 #undef HAVE_LZMA
 #undef HAVE_LZIP
-#undef WIN
 #undef HAVE_CYGWIN_CONV_PATH
 #undef __ICC
 #undef HAVE_OPENMP
@@ -658,4 +654,3 @@
 #undef USE_GPM
 #undef HAVE_BUILTIN_SSL_CERTIFICATES
 #undef LEAK_DEBUG
-#undef OOPS

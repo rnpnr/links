@@ -11,16 +11,6 @@ int retval = RET_OK;
 static void unhandle_basic_signals(struct terminal *);
 static void poll_fg(void *);
 
-#ifdef WIN
-static void sig_terminate(void *t_)
-{
-	struct terminal *t = (struct terminal *)t_;
-	unhandle_basic_signals(t);
-	terminate_loop = 1;
-	retval = RET_SIGNAL;
-}
-#endif
-
 static void sig_intr(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
@@ -126,9 +116,6 @@ static void handle_basic_signals(struct terminal *term)
 	install_signal_handler(SIGHUP, sig_intr, term, 0);
 	if (!F) install_signal_handler(SIGINT, sig_ctrl_c, term, 0);
 	/*install_signal_handler(SIGTERM, sig_terminate, term, 0);*/
-#ifdef WIN
-	install_signal_handler(SIGQUIT, sig_terminate, term, 0);
-#endif
 #ifdef SIGTSTP
 	if (!F) install_signal_handler(SIGTSTP, sig_tstp, term, 0);
 #endif

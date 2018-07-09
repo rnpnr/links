@@ -58,8 +58,6 @@ static void *malloc_hook(size_t size file_line_arg)
 #if !defined(HAVE_OPENSSL_CLEANUP) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1)
 	if (!size) size = 1;
 	do p = malloc(size); while (!p && out_of_memory(0, NULL, 0));
-#elif defined(LEAK_DEBUG)
-	p = debug_mem_alloc(cast_uchar file, line, size, 1);
 #else
 	p = mem_alloc_mayfail(size);
 #endif
@@ -75,8 +73,6 @@ static void *realloc_hook(void *ptr, size_t size file_line_arg)
 #if !defined(HAVE_OPENSSL_CLEANUP) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1)
 	if (!size) size = 1;
 	do p = realloc(ptr, size); while (!p && out_of_memory(0, NULL, 0));
-#elif defined(LEAK_DEBUG)
-	p = debug_mem_realloc(cast_uchar file, line, ptr, size, 1);
 #else
 	p = mem_realloc_mayfail(ptr, size);
 #endif
@@ -89,8 +85,6 @@ static void free_hook(void *ptr file_line_arg)
 	if (!ptr) return;
 #if !defined(HAVE_OPENSSL_CLEANUP) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1)
 	free(ptr);
-#elif defined(LEAK_DEBUG)
-	debug_mem_free(cast_uchar file, line, ptr);
 #else
 	mem_free(ptr);
 #endif
