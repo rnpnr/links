@@ -388,9 +388,6 @@
 #define HAVE_SIGSETJMP 1
 
 /* */
-#define HAVE___BUILTIN_CLZ 1
-
-/* */
 #define DEBUGLEVEL 0
 
 /* */

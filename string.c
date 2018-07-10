@@ -73,19 +73,6 @@ void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 	x = old_length ^ new_length;
 	if (x >= old_length) {
 		/* Need to realloc */
-#ifdef HAVE___BUILTIN_CLZ
-#if !(defined(__tune_i386__) || defined(__tune_i486__) || defined(__tune_i586__) || defined(__tune_k6__) || defined(__tune_lakemont__) || (defined(__alpha__) && !defined(__alpha_cix__)) || (defined(__mips) && __mips < 32) || (defined(__ARM_ARCH) && __ARM_ARCH < 5) || (defined(__sparc__) && (!defined(__VIS__) || __VIS__ < 0x300)) || defined(__hppa) || defined(__sh__))
-		if (!(sizeof(unsigned) & (sizeof(unsigned) - 1))) {
-			new_length = 2U << ((sizeof(unsigned) * 8 - 1)
-#ifdef __ICC
-				-
-#else
-				^
-#endif
-				__builtin_clz(new_length));
-		} else
-#endif
-#endif
 		{
 			new_length |= new_length >> 1;
 			new_length |= new_length >> 2;
