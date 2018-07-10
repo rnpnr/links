@@ -576,9 +576,6 @@ unsigned char *translate_url(unsigned char *url, unsigned char *cwd)
 	}
 	ch = url + strcspn(cast_const_char url, ".:/@");
 	sl = 0;
-#ifdef SPAD
-	if (strchr(cast_const_char url, ':') && _is_local(cast_const_char url)) goto set_prefix;
-#endif
 	if (*ch != ':' || *(url + strcspn(cast_const_char url, "/@")) == '@') {
 		if (*url != '.' && *ch == '.') {
 			unsigned char *e, *f, *g;
@@ -694,43 +691,6 @@ void add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll, int encod
 
 void convert_file_charset(unsigned char **s, int *l, int start_l)
 {
-#ifdef __CYGWIN__
-	int win_charset = windows_charset();
-	unsigned char *cpy = stracpy(*s + start_l);
-	unsigned char *ptr, *end;
-	(*s)[*l = start_l] = 0;
-	end = cast_uchar strchr(cast_const_char cpy, 0);
-	for (ptr = cpy; ptr < end; ptr++) {
-		unsigned char chr = *ptr;
-		unsigned u;
-		unsigned char *p;
-		if (chr == 0x18) {
-			p = ptr + 1;
-			goto try_get_utf;
-		}
-		if (chr >= 128) {
-			if (win_charset != utf8_table) {
-				u = (unsigned)cp2u(chr, win_charset);
-				if (u != -1U)
-					goto put_u;
-			} else {
-				p = ptr;
-try_get_utf:
-				GET_UTF_8(p, u);
-				if (u) {
-					ptr = p - 1;
-put_u:
-					add_to_str(s, l, cast_uchar "&#");
-					add_num_to_str(s, l, (int)u);
-					add_chr_to_str(s, l, ';');
-					continue;
-				}
-			}
-		}
-		add_chr_to_str(s, l, chr);
-	}
-	mem_free(cpy);
-#endif
 }
 
 static_const unsigned char xn[] = "xn--";

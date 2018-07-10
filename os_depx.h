@@ -123,51 +123,18 @@ extern int errno;
 #define SIG_ERR		((int (*)())-1)
 #endif
 
-#if !defined(HAVE_STRTOIMAX) && defined(strtoimax) && defined(HAVE___STRTOLL)
-#define HAVE_STRTOIMAX	1
-#endif
-
 #ifndef SA_RESTART
 #define SA_RESTART	0
 #endif
 
-#ifdef OS2
-int bounced_read(int fd, void *buf, size_t size);
-int bounced_write(int fd, const void *buf, size_t size);
-#define read bounced_read
-#define write bounced_write
-#endif
-
 #ifdef __EMX__
-#ifndef HAVE_GETCWD
-#define HAVE_GETCWD	1
-#endif
 #define getcwd _getcwd2
 #define chdir _chdir2
 #endif
 
-#ifdef BEOS
-#define socket be_socket
-#define connect be_connect
-#define getpeername be_getpeername
-#define getsockname be_getsockname
-#define listen be_listen
-#define accept be_accept
-#define bind be_bind
-#define pipe be_pipe
-#define read be_read
-#define write be_write
-#define close be_close
-#define select be_select
-#define getsockopt be_getsockopt
-#ifndef SO_ERROR
-#define SO_ERROR	10001
-#endif
-#endif
-
 #if defined(O_SIZE) && defined(__EMX__)
 #define HAVE_OPEN_PREALLOC
-#elif (defined(HAVE_FALLOCATE) || defined(HAVE_POSIX_FALLOCATE)) && !defined(OPENVMS)
+#elif (defined(HAVE_FALLOCATE) || defined(HAVE_POSIX_FALLOCATE))
 #define HAVE_OPEN_PREALLOC
 #endif
 
@@ -226,7 +193,7 @@ int bounced_write(int fd, const void *buf, size_t size);
 #define ATTR_NOINLINE
 #endif
 
-#if defined(HAVE_GETADDRINFO) && defined(HAVE_FREEADDRINFO) && !defined(ATHEOS)
+#if defined(HAVE_GETADDRINFO) && defined(HAVE_FREEADDRINFO)
 #define USE_GETADDRINFO
 #endif
 
@@ -253,7 +220,7 @@ int bounced_write(int fd, const void *buf, size_t size);
 #endif
 #endif
 
-#if defined(__DECC_VER) && !defined(OPENVMS)
+#if defined(__DECC_VER)
 #define static_const	static
 #define decc_volatile	volatile
 #else
@@ -267,11 +234,7 @@ int bounced_write(int fd, const void *buf, size_t size);
 #define highc_volatile
 #endif
 
-#ifdef __ICC
-#define icc_volatile	volatile
-#else
 #define icc_volatile
-#endif
 
 #ifdef __SUNPRO_C
 #define sun_volatile	volatile
@@ -281,7 +244,7 @@ int bounced_write(int fd, const void *buf, size_t size);
 
 typedef const char *const_char_ptr;
 
-#if defined(BEOS) || (defined(HAVE_BEGINTHREAD) && defined(OS2)) || defined(HAVE_PTHREADS) || (defined(HAVE_ATHEOS_THREADS_H) && defined(HAVE_SPAWN_THREAD) && defined(HAVE_RESUME_THREAD))
+#if defined(HAVE_PTHREADS)
 #define EXEC_IN_THREADS
 #endif
 

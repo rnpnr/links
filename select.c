@@ -861,43 +861,6 @@ void set_sigcld(void)
 }
 #endif
 
-#ifdef HAVE_OPENMP
-
-static int num_threads = -1;
-
-int omp_start(void)
-{
-	int thr;
-	if (disable_openmp || num_threads == 1)
-		return 1;
-	block_signals(0, 0);
-	if (num_threads != -1)
-		return num_threads;
-	omp_set_dynamic(0);
-	thr = omp_get_max_threads();
-	if (thr > OPENMP_MAX_THREADS)
-		thr = OPENMP_MAX_THREADS;
-	omp_set_num_threads(thr);
-	if (thr > 1) {
-#pragma omp parallel shared(thr)
-#pragma omp single
-			thr = omp_get_num_threads();
-		omp_set_num_threads(thr);
-	}
-	num_threads = thr;
-	if (thr == 1)
-		unblock_signals();
-	return thr;
-}
-
-void omp_end(void)
-{
-	if (!disable_openmp || num_threads == 1)
-		unblock_signals();
-}
-
-#endif
-
 void reinit_child(void)
 {
 #if !defined(NO_SIGNAL_HANDLERS)

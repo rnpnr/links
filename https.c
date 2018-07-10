@@ -29,12 +29,7 @@
 #define LINKS_CRT_FILE		links.crt
 #endif
 
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-#include "certs.inc"
-#define N_SSL_CONTEXTS	2
-#else
 #define N_SSL_CONTEXTS	1
-#endif
 
 static int ssl_initialized = 0;
 static SSL_CTX *contexts[N_SSL_CONTEXTS];
@@ -94,107 +89,6 @@ static void free_hook(void *ptr file_line_arg)
 
 #define ssl_set_private_paths(c)		(-1)
 
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-static void ssl_load_private_certificates(SSL_CTX *ctx)
-{
-	int i;
-	int errs = 0;
-	int succeeded = 0;
-	int total_certificates = (int)array_elements(certificates);
-	X509_STORE *store = SSL_CTX_get_cert_store(ctx);
-	if (!store)
-		errs |= 1;
-	else for (i = 0; i < total_certificates; i++) {
-		BIO *bio;
-		X509 *cert;
-		unsigned char *data = cast_uchar certificates[i].data;
-		int len = certificates[i].len;
-		unsigned char *b64;
-		if (data[len])
-			internal("invalid builtin certificate %u", i);
-#if 1
-		b64 = base64_encode(data, len, cast_uchar "-----BEGIN CERTIFICATE-----\n", cast_uchar "-----END CERTIFICATE-----", 6);
-		bio = BIO_new_mem_buf(b64, (int)strlen(cast_const_char b64));
-#else
-		{
-			static_const unsigned char base64_chars[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-			int l, x;
-			int col = 0;
-			b64 = init_str();
-			l = 0;
-			add_to_str(&b64, &l, cast_uchar "-----BEGIN CERTIFICATE-----\n");
-			for (x = 0; x < len; x += 3) {
-				unsigned char out[4];
-				out[0] = base64_chars[data[x] >> 2];
-				out[1] = base64_chars[((data[x] << 4) & 63) | (data[x + 1] >> 4)];
-				if (x + 1 < len)
-					out[2] = base64_chars[((data[x + 1] << 2) & 63) | (data[x + 2] >> 6)];
-				else
-					out[2] = '=';
-				if (x + 2 < len)
-					out[3] = base64_chars[data[x + 2] & 63];
-				else
-					out[3] = '=';
-				add_bytes_to_str(&b64, &l, out, 4);
-				if (!((col += 4) & 63))
-					add_chr_to_str(&b64, &l, '\n');
-			}
-			if (b64[l - 1] != '\n')
-				add_chr_to_str(&b64, &l, '\n');
-			add_to_str(&b64, &l, cast_uchar "-----END CERTIFICATE-----");
-			bio = BIO_new_mem_buf(b64, l);
-		}
-#endif
-		/*fprintf(stderr, "%s\n", b64);*/
-		if (!bio) {
-			errs |= 2;
-			mem_free(b64);
-			continue;
-		}
-		cert = PEM_read_bio_X509(bio, NULL, 0, NULL);
-		if (cert) {
-			if (!X509_STORE_add_cert(store, cert)) {
-				errs |= 8;
-			} else {
-				succeeded++;
-			}
-			X509_free(cert);
-		} else {
-			errs |= 4;
-		}
-		mem_free(b64);
-		BIO_free(bio);
-		clear_ssl_errors(__LINE__);
-	}
-	if (errs) {
-		static_const char * const err_strings[4] = { "SSL_CTX_get_cert_store", "BIO_new_mem_buf", "PEM_read_bio_X509", "X509_STORE_add_cert" };
-		struct session *ses;
-		unsigned char *err_str = init_str();
-		int err_strl = 0;
-		unsigned char *numfail_str = init_str();
-		int numfail_strl = 0;
-		int e;
-		ses = get_download_ses(NULL);
-		for (e = 0; e < 4; e++) {
-			if (errs & (1 << e)) {
-				if (err_strl) add_to_str(&err_str, &err_strl, cast_uchar ", ");
-				add_to_str(&err_str, &err_strl, cast_uchar err_strings[e]);
-			}
-		}
-		add_num_to_str(&numfail_str, &numfail_strl, total_certificates - succeeded);
-		add_chr_to_str(&numfail_str, &numfail_strl, '/');
-		add_num_to_str(&numfail_str, &numfail_strl, total_certificates);
-		if (!ses) {
-			error("error initializing built-in certificates: %s, failed %s", err_str, numfail_str);
-			mem_free(err_str);
-			mem_free(numfail_str);
-		} else {
-			msg_box(ses->term, getml(err_str, numfail_str, NULL), TEXT_(T_SSL_ERROR), AL_CENTER, TEXT_(T_ERROR_INITIALIZING_BUILT_IN_CERTIFICATES), ": ", err_str, ", ", TEXT_(T_FAILED), " ", numfail_str, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
-		}
-	}
-}
-#endif
-
 int ssl_asked_for_password;
 
 static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata)
@@ -216,7 +110,7 @@ links_ssl *getSSL(void)
 		CRYPTO_set_mem_functions(malloc_hook, realloc_hook, free_hook);
 #endif
 
-#if defined(HAVE_RAND_EGD) && defined(HAVE_RAND_FILE_NAME) && defined(HAVE_RAND_LOAD_FILE) && defined(HAVE_RAND_WRITE_FILE)
+#if defined(HAVE_RAND_EGD)
 		{
 			unsigned char f_randfile[PATH_MAX];
 			const unsigned char *f = (const unsigned char *)RAND_file_name(cast_char f_randfile, sizeof(f_randfile));
@@ -228,7 +122,6 @@ links_ssl *getSSL(void)
 		}
 #endif
 
-#if defined(HAVE_RAND_ADD)
 		{
 			unsigned char *os_pool;
 			int os_pool_size;
@@ -236,7 +129,6 @@ links_ssl *getSSL(void)
 			if (os_pool_size) RAND_add(os_pool, os_pool_size, os_pool_size);
 			mem_free(os_pool);
 		}
-#endif
 
 #if defined(HAVE_OPENSSL_INIT_SSL)
 		OPENSSL_init_ssl(0, NULL);
@@ -249,10 +141,6 @@ links_ssl *getSSL(void)
 	}
 
 	idx = 0;
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-	if (ssl_options.built_in_certificates || proxies.only_proxies)
-		idx = 1;
-#endif
 	if (!contexts[idx]) {
 		SSL_CTX *ctx;
 		const SSL_METHOD *m;
@@ -283,9 +171,6 @@ links_ssl *getSSL(void)
 			if (ssl_set_private_paths(ctx))
 				SSL_CTX_set_default_verify_paths(ctx);
 		} else {
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-			ssl_load_private_certificates(ctx);
-#endif
 		}
 		SSL_CTX_set_default_passwd_cb(ctx, ssl_password_callback);
 	}

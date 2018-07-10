@@ -525,35 +525,6 @@ static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
 		if (*l != l1) add_to_str(hdr, l, cast_uchar ", ");
 		add_to_str(hdr, l, cast_uchar "gzip, deflate");
 #endif
-#if defined(HAVE_BROTLI)
-		if ((!SCRUB_HEADERS
-#ifdef HAVE_SSL
-		    || c->ssl
-#endif
-		    ) && !(info->bl_flags & BL_NO_BZIP2)) {
-			if (*l != l1) add_to_str(hdr, l, cast_uchar ", ");
-			add_to_str(hdr, l, cast_uchar "br");
-		}
-#endif
-#if defined(HAVE_BZIP2)
-		if (!SCRUB_HEADERS && !(info->bl_flags & BL_NO_BZIP2)) {
-			if (*l != l1) add_to_str(hdr, l, cast_uchar ", ");
-			add_to_str(hdr, l, cast_uchar "bzip2");
-		}
-#endif
-	/* LZMA on DOS often fails with out of memory, don't announce it */
-#if defined(HAVE_LZMA) && !defined(DOS)
-		if (!SCRUB_HEADERS && !(info->bl_flags & BL_NO_BZIP2)) {
-			if (*l != l1) add_to_str(hdr, l, cast_uchar ", ");
-			add_to_str(hdr, l, cast_uchar "lzma, lzma2");
-		}
-#endif
-#if defined(HAVE_LZIP)
-		if (!SCRUB_HEADERS && !(info->bl_flags & BL_NO_BZIP2)) {
-			if (*l != l1) add_to_str(hdr, l, cast_uchar ", ");
-			add_to_str(hdr, l, cast_uchar "lzip");
-		}
-#endif
 		if (*l != l1) add_to_str(hdr, l, cast_uchar "\r\n");
 		else *l = orig_l;
 	}

@@ -670,9 +670,6 @@ static void try_connect(struct connection *c)
 	}
 	if (rs) {
 		if (errno != EALREADY && errno != EINPROGRESS) {
-#ifdef BEOS
-			if (errno == EWOULDBLOCK) errno = ETIMEDOUT;
-#endif
 			retry_connect(c, get_error_from_errno(errno), 0);
 			return;
 		}

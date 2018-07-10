@@ -38,7 +38,7 @@
 
 #if defined(__GNUC__) && defined(__GNUC_MINOR__)
 #if ((__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))) && \
-  !(defined(__clang__) || defined(__llvm__) || defined(__ICC) || defined(__OPEN64__) || defined(__PATHSCALE__) || defined(__PGI) || defined(__PGIC__)) && \
+  !(defined(__clang__) || defined(__llvm__) || defined(__OPEN64__) || defined(__PATHSCALE__) || defined(__PGI) || defined(__PGIC__)) && \
   defined(__OPTIMIZE__) && !defined(__OPTIMIZE_SIZE__) && \
   !(defined(__arm__) && defined(__thumb__) && !defined(__thumb2__))	/* avoid gcc bug */
 #pragma GCC optimize ("-ftree-vectorize", "-ffast-math")
@@ -81,20 +81,8 @@
 #define X_S
 #define _XOPEN_SOURCE	5	/* The 5 is a kludge to get a strptime() prototype in NetBSD */
 #endif
-#ifdef TIME_WITH_SYS_TIME
-#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif
-#ifdef HAVE_TIME_H
 #include <time.h>
-#endif
-#else
-#if defined(TM_IN_SYS_TIME) && defined(HAVE_SYS_TIME_H)
-#include <sys/time.h>
-#elif defined(HAVE_TIME_H)
-#include <time.h>
-#endif
-#endif
 #ifdef X_S
 #undef _XOPEN_SOURCE
 #endif
@@ -112,10 +100,7 @@
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
-#if defined(HAVE_DIRENT_H) || defined(__CYGWIN__)
-#if defined(__CYGWIN__) && !defined(NAME_MAX)
-#define NAME_MAX	255
-#endif
+#if defined(HAVE_DIRENT_H)
 #include <dirent.h>
 #elif defined(HAVE_SYS_NDIR_H)
 #include <sys/ndir.h>
@@ -128,17 +113,12 @@
 #include <ndir.h>
 #endif
 #include <signal.h>
-#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
-#endif
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
-#endif
-#ifdef HAVE_SYS_CYGWIN_H
-#include <sys/cygwin.h>
 #endif
 #ifdef HAVE_UWIN_H
 #include <uwin.h>
@@ -148,12 +128,6 @@
 #endif
 #ifdef HAVE_PROCESS_H
 #include <process.h>
-#endif
-#ifdef HAVE_CYGWIN_PROCESS_H
-#include <cygwin/process.h>
-#endif
-#ifdef HAVE_CYGWIN_VERSION_H
-#include <cygwin/version.h>
 #endif
 #ifdef HAVE_UNIXLIB_H
 #include <unixlib.h>
@@ -193,9 +167,7 @@
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-#ifdef HAVE_UTIME_H
 #include <utime.h>
-#endif
 
 #if defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1) && defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_2)
 #undef HAVE_CRYPTO_SET_MEM_FUNCTIONS_1
@@ -263,7 +235,7 @@
 #include <poll.h>
 #endif
 
-#if (defined(HAVE_EVENT_H) || defined(HAVE_EV_EVENT_H)) && (defined(HAVE_LIBEVENT) || defined(HAVE_LIBEV)) && !defined(OPENVMS) && !defined(DOS)
+#if (defined(HAVE_EVENT_H) || defined(HAVE_EV_EVENT_H)) && (defined(HAVE_LIBEVENT) || defined(HAVE_LIBEV))
 #if defined(HAVE_EVENT_H)
 #include <event.h>
 #else
@@ -272,14 +244,9 @@
 #define USE_LIBEVENT
 #endif
 
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#define SMP_ALIGN		256
-#else
 #define omp_get_num_threads()	1
 #define omp_get_thread_num()	0
 #define SMP_ALIGN		1
-#endif
 #if (defined(__alpha__) || defined(__alpha)) && !defined(__alpha_bwx__)
 #define OPENMP_NONATOMIC	1
 #else
@@ -321,91 +288,6 @@
 #define RET_SYNTAX	3
 #define RET_FATAL	4
 #define RET_INTERNAL	127
-
-#ifndef HAVE_SNPRINTF
-int my_snprintf(char *, int n, char *format, ...) PRINTF_FORMAT(3, 4);
-#define snprintf my_snprintf
-#endif
-#ifndef HAVE_RAISE
-int raise(int);
-#endif
-#ifndef HAVE_GETTIMEOFDAY
-struct timeval {
-	long tv_sec;
-	long tv_usec;
-};
-struct timezone {
-	int tz_minuteswest;
-	int tz_dsttime;
-};
-int gettimeofday(struct timeval *tv, struct timezone *tz);
-#endif
-#ifndef HAVE_TEMPNAM
-char *tempnam(const char *dir, const char *pfx);
-#endif
-#ifndef HAVE_STRDUP
-char *strdup(const char *s);
-#endif
-#ifndef HAVE_STRTOL
-long strtol(const char *, char **, int);
-#endif
-#ifndef HAVE_STRTOUL
-unsigned long strtoul(const char *, char **, int);
-#endif
-#ifndef HAVE_STRTOD
-double strtod(const char *nptr, char **endptr);
-#endif
-#ifndef HAVE_STRLEN
-size_t strlen(const char *s);
-#endif
-#ifndef HAVE_STRCPY
-char *strcpy(char *dst, const char *src);
-#endif
-#ifndef HAVE_STRNCPY
-char *strncpy(char *dst, const char *src, size_t len);
-#endif
-#ifndef HAVE_STRCHR
-char *strchr(const char *s, int c);
-#endif
-#ifndef HAVE_STRRCHR
-char *strrchr(const char *s, int c);
-#endif
-#ifndef HAVE_STRCMP
-int strcmp(const char *s1, const char *s2);
-#endif
-#ifndef HAVE_STRNCMP
-int strncmp(const char *s1, const char *s2, size_t n);
-#endif
-#ifndef HAVE_STRCSPN
-size_t strcspn(const char *s, const char *reject);
-#endif
-#ifndef HAVE_STRSPN
-size_t strspn(const char *s, const char *accept);
-#endif
-#ifndef HAVE_STRSTR
-char *strstr(const char *haystack, const char *needle);
-#endif
-#ifndef HAVE_MEMCHR
-void *memchr(const void *s, int c, size_t length);
-#endif
-#ifndef HAVE_MEMCMP
-int memcmp(const void *, const void *, size_t);
-#endif
-#ifndef HAVE_MEMCPY
-void *memcpy(void *, const void *, size_t);
-#endif
-#ifndef HAVE_MEMMOVE
-void *memmove(void *, const void *, size_t);
-#endif
-#ifndef HAVE_MEMSET
-void *memset(void *, int, size_t);
-#endif
-#ifndef HAVE_MEMMEM
-void *memmem(const void *haystack, size_t hs, const void *needle, size_t ns);
-#endif
-#ifndef HAVE_STRERROR
-char *strerror(int);
-#endif
 
 #define EINTRLOOPX(ret_, call_, x_)			\
 do {							\
@@ -560,12 +442,7 @@ extern unsigned char *errfile;
 
 void fatal_tty_exit(void);
 
-#ifdef __ICC
-/* ICC OpenMP bug */
-#define overalloc_condition	0
-#else
 #define overalloc_condition	1
-#endif
 
 #define overalloc_at(f, l)						\
 do {									\
@@ -642,20 +519,8 @@ static inline void *debug_mem_realloc(unsigned char *f, int l, void *p, size_t s
 static inline void set_mem_comment(void *p, unsigned char *c, int l) {}
 static inline unsigned char *get_mem_comment(void *p){return (unsigned char *)"";}
 
-#if !(defined(LEAK_DEBUG) && defined(LEAK_DEBUG_LIST))
-
 unsigned char *memacpy(const unsigned char *src, size_t len);
 unsigned char *stracpy(const unsigned char *src);
-
-#else
-
-unsigned char *debug_memacpy(unsigned char *f, int l, const unsigned char *src, size_t len);
-#define memacpy(s, l) debug_memacpy((unsigned char *)__FILE__, __LINE__, s, l)
-
-unsigned char *debug_stracpy(unsigned char *f, int l, const unsigned char *src);
-#define stracpy(s) debug_stracpy((unsigned char *)__FILE__, __LINE__, s)
-
-#endif
 
 #define pr(code) if (1) {code;} else
 static inline void nopr(void) {}
@@ -767,11 +632,7 @@ void add_unsigned_long_num_to_str(unsigned char **s, int *l, my_uintptr_t n);
 void add_num_to_str(unsigned char **s, int *l, off_t n);
 void add_knum_to_str(unsigned char **s, int *l, off_t n);
 long strtolx(unsigned char *c, unsigned char **end);
-#if defined(HAVE_STRTOLL) || defined(HAVE_STRTOQ) || defined(HAVE_STRTOIMAX)
 #define my_strtoll_t	longlong
-#else
-#define my_strtoll_t	long
-#endif
 my_strtoll_t my_strtoll(unsigned char *string, unsigned char **end);
 
 void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size);
@@ -824,18 +685,7 @@ typedef unsigned long tcount;
 #define USE_GPM
 #endif
 
-#if defined(OS2) && defined(HAVE_UMALLOC_H) && defined(HAVE__UCREATE) && defined(HAVE__UOPEN) && defined(HAVE__UDEFAULT) && defined(HAVE_BEGINTHREAD)
-#define OS2_ADVANCED_HEAP
-#define MEMORY_REQUESTED
-extern unsigned long mem_requested;
-extern unsigned long blocks_requested;
-#endif
-
-#ifdef OS2_ADVANCED_HEAP
-void mem_freed_large(size_t size);
-#else
 #define mem_freed_large(x)	do { } while (0)
-#endif
 
 struct terminal;
 
@@ -1005,13 +855,8 @@ void interruptible_signal(int sig, int in);
 void block_signals(int except1, int except2);
 void unblock_signals(void);
 void set_sigcld(void);
-#ifdef HAVE_OPENMP
-int omp_start(void);
-void omp_end(void);
-#else
 #define omp_start()	1
 #define omp_end()	do { } while (0)
-#endif
 
 /* dns.c */
 
@@ -2243,12 +2088,6 @@ void set_language(void);
 /* Used in error.c */
 #define dos_poll_break()        do { } while (0)
 
-/* af_unix.c */
-
-extern int s_unix_fd;
-int bind_to_af_unix(unsigned char *name);
-void af_unix_close(void);
-
 /* main.c */
 
 extern int terminal_pipe[2];
@@ -2315,7 +2154,7 @@ void detach_object_connection(struct object_request *, off_t);
 
 /* compress.c */
 
-#if defined(HAVE_ZLIB) || defined(HAVE_BROTLI) || defined(HAVE_BZIP2) || defined(HAVE_LZMA) || defined(HAVE_LZIP)
+#if defined(HAVE_ZLIB)
 #define HAVE_ANY_COMPRESSION
 #endif
 
@@ -3187,13 +3026,6 @@ unsigned char *get_current_title(struct f_data_c *, unsigned char *, size_t);
 
 /*unsigned char *get_current_link_url(struct session *, unsigned char *, size_t);*/
 unsigned char *get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form, int *onsubmit);
-
-/* jsint.c */
-
-void jsint_execute_code(struct f_data_c *, unsigned char *, int, int, int, int, struct links_event *);
-void jsint_destroy(struct f_data_c *);
-void jsint_scan_script_tags(struct f_data_c *);
-int jsint_get_source(struct f_data_c *, unsigned char **, unsigned char **);
 
 /* bfu.c */
 

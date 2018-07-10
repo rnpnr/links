@@ -659,49 +659,9 @@ int ipv6_full_access(void)
 	return 0;
 }
 
-#ifdef FLOOD_MEMORY
-
-void flood_memory(void)
-{
-	struct list_head list;
-	size_t s = 32768 * 32;
-	struct dnsentry *de;
-	dns_cache_addr_preference = ipv6_options.addr_preference;
-#if defined(HAVE__HEAPMIN)
-	_heapmin();
-#endif
-	init_list(list);
-	while (!list_empty(dns_cache)) {
-		de = list_struct(dns_cache.prev, struct dnsentry);
-		del_from_list(de);
-		add_to_list(list, de);
-	}
-	while (1) {
-		while ((de = mem_alloc_mayfail(s))) {
-			de->absolute_time = get_absolute_time();
-			memset(&de->addr, 0, sizeof de->addr);
-			de->name[0] = 0;
-			add_to_list(list, de);
-		}
-		if (s == sizeof(struct dnsentry)) break;
-		s = s / 2;
-		if (s < sizeof(struct dnsentry)) s = sizeof(struct dnsentry);
-	}
-	while (!list_empty(list)) {
-		de = list_struct(list.prev, struct dnsentry);
-		del_from_list(de);
-		add_to_list(dns_cache, de);
-	}
-}
-
-#endif
-
 void init_dns(void)
 {
 	register_cache_upcall(shrink_dns_cache, 0, cast_uchar "dns");
-#ifdef FLOOD_MEMORY
-	flood_memory();
-#endif
 #ifdef SUPPORT_IPV6
 	{
 		int h, rs;

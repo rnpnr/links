@@ -331,7 +331,6 @@ static void fixup_g(void)
 
 static void init(void)
 {
-	int uh;
 	void *info;
 	int len;
 	unsigned char *u;
@@ -349,19 +348,6 @@ static void init(void)
 	fixup_g();
 	if (!dmp && !ggr) {
 		init_os_terminal();
-	}
-	if (!ggr && !no_connect && (uh = bind_to_af_unix(NULL)) != -1) {
-		close_socket(&terminal_pipe[0]);
-		close_socket(&terminal_pipe[1]);
-		info = create_session_info(base_session, u, default_target, &len);
-		initialize_all_subsystems_2();
-		handle_trm(get_input_handle(), get_output_handle(), uh, uh, get_ctl_handle(), info, len);
-		handle_basic_signals(NULL);	/* OK, this is race condition, but it must be so; GPM installs it's own buggy TSTP handler */
-		mem_free(info);
-#if defined(HAVE_MALLOC_TRIM)
-		malloc_trim(8192);
-#endif
-		return;
 	}
 	if ((dds.assume_cp = get_cp_index(cast_uchar "ISO-8859-1")) == -1) dds.assume_cp = 0;
 	load_config();
@@ -398,57 +384,7 @@ static void init(void)
 						add_to_strn(&n, cast_uchar "-");
 						add_to_strn(&n, nn);
 					}
-					uh = bind_to_af_unix(n);
 					mem_free(n);
-					if (uh != -1) {
-						unsigned char hold_conn;
-						unsigned char *w;
-						int lw;
-						shutdown_graphics();
-						if (os_receive_fg_cookie(uh)) {
-							retval = RET_ERROR;
-							goto ttt;
-						}
-						w = get_cwd();
-						if (!w) w = stracpy(cast_uchar "");
-						if (strlen(cast_const_char w) >= MAX_CWD_LEN)
-							w[MAX_CWD_LEN - 1] = 0;
-						lw = (int)strlen(cast_const_char w) + 1;
-						if (hard_write(uh, w, lw) != lw) {
-							mem_free(w);
-							retval = RET_ERROR;
-							goto ttt;
-						}
-						mem_free(w);
-						w = mem_calloc(MAX_CWD_LEN - lw);
-						if (hard_write(uh, w, MAX_CWD_LEN - lw) != MAX_CWD_LEN - lw) {
-							mem_free(w);
-							retval = RET_ERROR;
-							goto ttt;
-						}
-						mem_free(w);
-						hold_conn = *u != 0;
-						if (hard_write(uh, &hold_conn, 1) != 1) {
-							retval = RET_ERROR;
-							goto ttt;
-						}
-						info = create_session_info(base_session, u, default_target, &len);
-						if (hard_write(uh, (unsigned char *)&len, sizeof len) != sizeof len) {
-							mem_free(info);
-							retval = RET_ERROR;
-							goto ttt;
-						}
-						if (hard_write(uh, info, len) != len) {
-							mem_free(info);
-							retval = RET_ERROR;
-							goto ttt;
-						}
-						mem_free(info);
-						set_handlers(uh, gfx_connection_terminate, NULL, (void *)(my_intptr_t)uh);
-						initialize_all_subsystems_2();
-						heap_trim();
-						return;
-					}
 				}
 				spawn_font_thread();
 				init_dither(drv->depth);
@@ -555,7 +491,6 @@ static void terminate_all_subsystems(void)
 	shutdown_trans();
 	GF(free_dither());
 	GF(shutdown_graphics());
-	af_unix_close();
 	os_free_clipboard();
 	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer), fg_poll_timer = NULL;
 	terminate_select();

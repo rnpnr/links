@@ -135,7 +135,7 @@ uttime get_absolute_time(void)
 
 uttime get_time(void)
 {
-#if defined(HAVE_CLOCK_GETTIME) && defined(TIME_WITH_SYS_TIME) && (defined(CLOCK_MONOTONIC_RAW) || defined(CLOCK_MONOTONIC))
+#if defined(CLOCK_MONOTONIC_RAW) || defined(CLOCK_MONOTONIC)
 	struct timespec ts;
 	int rs;
 #if defined(CLOCK_MONOTONIC_RAW)
@@ -422,7 +422,6 @@ void close_fork_tty(void)
 	if (drv && drv->after_fork) drv->after_fork();
 #endif
 	if (terminal_pipe[1] != -1) EINTRLOOP(rs, close(terminal_pipe[1]));
-	if (s_unix_fd != -1) EINTRLOOP(rs, close(s_unix_fd));
 	foreach(struct terminal, t, lt, terminals) {
 		if (t->fdin > 0)
 			EINTRLOOP(rs, close(t->fdin));
@@ -539,7 +538,7 @@ int resize_window(int x, int y)
 
 /* Threads */
 
-#if (defined(HAVE_BEGINTHREAD) && defined(OS2)) || defined(BEOS) || defined(HAVE_PTHREADS) || defined(HAVE_ATHEOS_THREADS_H)
+#if defined(HAVE_PTHREADS)
 
 struct tdata {
 	void (*fn)(void *, int);
@@ -696,10 +695,8 @@ int start_thread(void (*fn)(void *, int), void *ptr, int l, int counted)
 
 #endif
 
-#if !defined(USING_OS2_MOUSE) && !defined(DOS)
 void want_draw(void) {}
 void done_draw(void) {}
-#endif
 
 int get_output_handle(void) { return 1; }
 
@@ -739,12 +736,8 @@ int get_input_handle(void)
 #endif /* defined(HAVE_BEGINTHREAD) && defined(HAVE__READ_KBD) */
 
 
-#if !defined(USING_OS2_MOUSE) && !defined(DOS)
-
 void *handle_mouse(int cons, void (*fn)(void *, unsigned char *, int), void *data) { return NULL; }
 void unhandle_mouse(void *data) { }
-
-#endif
 
 int get_system_env(void)
 {
@@ -895,7 +888,7 @@ void os_detach_console(void)
 	{
 		pid_t rp;
 	/* Intel and PathScale handle fork gracefully */
-#if !defined(__ICC) && !defined(__PATHSCALE__)
+#if !defined(__PATHSCALE__)
 		disable_openmp = 1;
 #endif
 		EINTRLOOP(rp, fork());

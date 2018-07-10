@@ -173,19 +173,9 @@ static void resize_terminal(void)
 
 static void os_cfmakeraw(struct termios *t)
 {
-#ifdef HAVE_CFMAKERAW
 	cfmakeraw(t);
 #ifdef VMIN
 	t->c_cc[VMIN] = 1;
-#endif
-#else
-	t->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-	t->c_oflag &= ~OPOST;
-	t->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-	t->c_cflag &= ~(CSIZE|PARENB);
-	t->c_cflag |= CS8;
-	t->c_cc[VMIN] = 1;
-	t->c_cc[VTIME] = 0;
 #endif
 #if defined(NO_CTRL_Z) && defined(VSUSP)
 	t->c_cc[VSUSP] = 0;
@@ -1296,59 +1286,3 @@ static void in_kbd(void *itrm_)
 	while (process_queue(itrm))
 		;
 }
-
-#ifdef GRDRV_VIRTUAL_DEVICES
-
-int kbd_set_raw;
-
-void svgalib_free_trm(struct itrm *itrm)
-{
-	/*debug("svgalib_free: %p", itrm);*/
-	if (!itrm) return;
-	if (kbd_set_raw) setcooked(itrm->ctl_in);
-	set_handlers(itrm->std_in, NULL, NULL, NULL);
-	unregister_bottom_half(itrm_error, itrm);
-	if (itrm->tm != NULL) kill_timer(itrm->tm);
-	mem_free(itrm);
-	if (itrm == ditrm) ditrm = NULL;
-}
-
-struct itrm *handle_svgalib_keyboard(void (*queue_event)(struct itrm *, unsigned char *, int))
-{
-	struct itrm *itrm;
-	itrm = mem_calloc(sizeof(struct itrm));
-	ditrm = itrm;
-	itrm->queue_event = queue_event;
-	itrm->free_trm = svgalib_free_trm;
-	itrm->std_in = 0;
-	itrm->ctl_in = 0;
-	itrm->tm = NULL;
-	if (kbd_set_raw) setraw(itrm->ctl_in, 1);
-	set_handlers(itrm->std_in, in_kbd, NULL, itrm);
-	/*debug("svgalib_handle: %p", itrm);*/
-	return itrm;
-}
-
-int svgalib_unblock_itrm(struct itrm *itrm)
-{
-	/*debug("svgalib_unblock: %p", itrm);*/
-	if (!itrm) return -1;
-	if (kbd_set_raw) if (setraw(itrm->ctl_in, 0)) return -1;
-	itrm->blocked = 0;
-	set_handlers(itrm->std_in, in_kbd, NULL, itrm);
-	unblock_stdin();
-	return 0;
-}
-
-void svgalib_block_itrm(struct itrm *itrm)
-{
-	/*debug("svgalib_block: %p", itrm);*/
-	if (!itrm) return;
-	itrm->blocked = 1;
-	block_stdin();
-	if (kbd_set_raw) setcooked(itrm->ctl_in);
-	set_handlers(itrm->std_in, NULL, NULL, itrm);
-}
-
-#endif
-

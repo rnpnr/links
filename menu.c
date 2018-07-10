@@ -18,11 +18,8 @@ static unsigned char * const version_texts[] = {
 	TEXT_(T_COMPRESSION_METHODS),
 	TEXT_(T_ENCRYPTION),
 	TEXT_(T_UTF8_TERMINAL),
-#if defined(__linux__) || defined(__LINUX__) || defined(__SPAD__) || defined(USE_GPM)
+#if defined(__linux__) || defined(__LINUX__)
 	TEXT_(T_GPM_MOUSE_DRIVER),
-#endif
-#ifdef OS2
-	TEXT_(T_XTERM_FOR_OS2),
 #endif
 	TEXT_(T_GRAPHICS_MODE),
 #ifdef G
@@ -135,23 +132,9 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
 	add_to_str(&s, &l, cast_uchar "\n");
 
-#if defined(__linux__) || defined(__LINUX__) || defined(__SPAD__) || defined(USE_GPM)
+#if defined(__linux__) || defined(__LINUX__)
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef USE_GPM
-	add_gpm_version(&s, &l);
-#else
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#endif
-	add_to_str(&s, &l, cast_uchar "\n");
-#endif
-
-#ifdef OS2
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef X2
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
-#else
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#endif
 	add_to_str(&s, &l, cast_uchar "\n");
 #endif
 
@@ -177,23 +160,7 @@ static void menu_version(void *term_)
 
 #ifdef G
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifndef HAVE_OPENMP
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#else
-	if (!F) {
-		add_to_str(&s, &l, get_text_translation(TEXT_(T_NOT_USED_IN_TEXT_MODE), term));
-	} else if (disable_openmp) {
-		add_to_str(&s, &l, get_text_translation(TEXT_(T_DISABLED), term));
-	} else {
-		int thr = omp_start();
-		omp_end();
-		add_num_to_str(&s, &l, thr);
-		add_to_str(&s, &l, cast_uchar " ");
-		if (thr == 1) add_to_str(&s, &l, get_text_translation(TEXT_(T_THREAD), term));
-		else if (thr >= 2 && thr <= 4) add_to_str(&s, &l, get_text_translation(TEXT_(T_THREADS), term));
-		else add_to_str(&s, &l, get_text_translation(TEXT_(T_THREADS5), term));
-	}
-#endif
 	add_to_str(&s, &l, cast_uchar "\n");
 #endif
 
@@ -603,77 +570,7 @@ static void downloads_menu(struct terminal *term, void *ddd, void *ses_)
 	else do_menu(term, mi, ses);
 }
 
-#ifndef GRDRV_VIRTUAL_DEVICES
-
 #define have_windows_menu	0
-
-#else
-
-#define have_windows_menu	(F && drv->init_device == init_virtual_device)
-
-static void window_switch(struct terminal *term, void *nump, void *ses)
-{
-	int n = (int)(my_intptr_t)nump;
-	switch_virtual_device(n);
-}
-
-static void windows_menu(struct terminal *term, void *xxx, void *ses_)
-{
-	struct session *ses = (struct session *)ses_;
-	struct menu_item *mi = new_menu(15);
-	int i;
-	int selected = 0;
-	int pos = 0;
-	int have_free_slot = 0;
-	int o;
-	for (i = 0; i < n_virtual_devices; i++) {
-		if (virtual_devices[i]) {
-			struct session *xs;
-			struct list_head *ls;
-			unsigned char *l = init_str(), *r = init_str(), *h = init_str();
-			int ll = 0, rr = 0, hh = 0;
-			add_num_to_str(&l, &ll, i + 1);
-			add_to_str(&l, &ll, cast_uchar ".");
-			foreach(struct session, xs, ls, sessions) if ((void *)xs->term == virtual_devices[i]->user_data) {
-				if (xs->screen && xs->screen->f_data && xs->screen->f_data->title) {
-					add_chr_to_str(&l, &ll, ' ');
-					if (xs->screen->f_data->title[0]) {
-						add_to_str(&l, &ll, xs->screen->f_data->title);
-					} else if (xs->screen->rq && xs->screen->rq->url) {
-						unsigned char *url = display_url(term, xs->screen->rq->url, 1);
-						add_to_str(&l, &ll, url);
-						mem_free(url);
-					}
-				}
-				break;
-			}
-			if (n_virtual_devices > 10) {
-				add_to_str(&r, &rr, cast_uchar "Alt-F");
-				add_num_to_str(&r, &rr, i + 1);
-			} else {
-				add_to_str(&r, &rr, cast_uchar "Alt-");
-				add_chr_to_str(&r, &rr, (i + 1) % 10 + '0');
-			}
-			if (i < 10) {
-				add_chr_to_str(&h, &hh, (i + 1) % 10 + '0');
-			}
-			if (current_virtual_device == virtual_devices[i])
-				selected = pos;
-			add_to_menu(&mi, l, r, h, window_switch, (void *)(my_intptr_t)i, 0, pos++);
-		} else {
-			have_free_slot = 1;
-		}
-	}
-	if ((o = can_open_in_new(term)) && have_free_slot) {
-		add_to_menu(&mi, cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, pos++);
-		mi[pos - 1].free_i = 1;
-		add_to_menu(&mi, TEXT_(T_NEW_WINDOW), cast_uchar "", TEXT_(T_HK_NEW_WINDOW), open_in_new_window, (void *)&send_open_new_xterm_ptr, o - 1, pos++);
-		mi[pos - 1].free_i = 1;
-	}
-	do_menu_selected(term, mi, ses, selected, NULL, NULL);
-}
-
-#endif
 
 static void menu_doc_info(struct terminal *term, void *ddd, void *ses_)
 {
@@ -1722,9 +1619,6 @@ static unsigned char * const ssl_labels[] = {
 	TEXT_(T_ACCEPT_INVALID_CERTIFICATES),
 	TEXT_(T_WARN_ON_INVALID_CERTIFICATES),
 	TEXT_(T_REJECT_INVALID_CERTIFICATES),
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-	TEXT_(T_USE_BUILT_IN_CERTIFICATES),
-#endif
 	TEXT_(T_CLIENT_CERTIFICATE_KEY_FILE),
 	TEXT_(T_CLIENT_CERTIFICATE_FILE),
 	TEXT_(T_CLIENT_CERTIFICATE_KEY_PASSWORD),
@@ -1782,9 +1676,6 @@ static void dlg_ssl_options(struct terminal *term, void *xxx, void *yyy)
 	struct dialog *d;
 	int a = 0;
 	const int items = 8
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-		+ 1
-#endif
 		;
 	d = mem_calloc(sizeof(struct dialog) + items * sizeof(struct dialog_item));
 	d->title = TEXT_(T_SSL_OPTIONS);
@@ -1809,13 +1700,6 @@ static void dlg_ssl_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].dlen = sizeof(int);
 	d->items[a].data = (void *)&ssl_options.certificates;
 	a++;
-#ifdef HAVE_BUILTIN_SSL_CERTIFICATES
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void *)&ssl_options.built_in_certificates;
-	a++;
-#endif
 	d->items[a].type = D_FIELD;
 	d->items[a].dlen = MAX_STR_LEN;
 	d->items[a].data = ssl_options.client_cert_key;
@@ -3407,26 +3291,6 @@ static_const struct menu_item main_menu[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-#ifdef G
-
-#ifdef GRDRV_VIRTUAL_DEVICES
-
-static_const struct menu_item main_menu_g_windows[] = {
-	{ TEXT_(T_FILE), cast_uchar "", TEXT_(T_HK_FILE), do_file_menu, NULL, 1, 1 },
-	{ TEXT_(T_VIEW), cast_uchar "", TEXT_(T_HK_VIEW), do_view_menu, NULL, 1, 1 },
-	{ TEXT_(T_LINK), cast_uchar "", TEXT_(T_HK_LINK), link_menu, NULL, 1, 1 },
-	{ TEXT_(T_DOWNLOADS), cast_uchar "", TEXT_(T_HK_DOWNLOADS), downloads_menu, NULL, 1, 1 },
-	{ TEXT_(T_WINDOWS), cast_uchar "", TEXT_(T_HK_WINDOWS), windows_menu, NULL, 1, 1 },
-	{ TEXT_(T_SETUP), cast_uchar "", TEXT_(T_HK_SETUP), do_setup_menu, NULL, 1, 1 },
-	{ TEXT_(T_HELP), cast_uchar "", TEXT_(T_HK_HELP), do_help_menu, NULL, 1, 1 },
-	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
-};
-
-#endif
-
-#endif
-
-
 /* lame technology rulez ! */
 
 void activate_bfu_technology(struct session *ses, int item)
@@ -3436,10 +3300,6 @@ void activate_bfu_technology(struct session *ses, int item)
 	struct menu_item * decc_volatile m = (struct menu_item *)main_menu;
 #ifdef G
 	struct menu_item * decc_volatile mg = m;
-#ifdef GRDRV_VIRTUAL_DEVICES
-	if (have_windows_menu)
-		mg = (struct menu_item *)main_menu_g_windows;
-#endif
 #endif
 	do_mainmenu(term, gf_val(m, mg), ses, item);
 }

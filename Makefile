@@ -1,7 +1,6 @@
 include config.mk
 
 SRC = \
-	af_unix.c\
 	auth.c\
 	bfu.c\
 	block.c\
@@ -17,7 +16,6 @@ SRC = \
 	drivers.c\
 	error.c\
 	file.c\
-	fn_impl.c\
 	html.c\
 	html_gr.c\
 	html_r.c\
@@ -25,7 +23,6 @@ SRC = \
 	http.c\
 	https.c\
 	img.c\
-	jsint.c\
 	kbd.c\
 	language.c\
 	listedit.c\

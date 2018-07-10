@@ -159,15 +159,7 @@ my_strtoll_t my_strtoll(unsigned char *string, unsigned char **end)
 {
 	my_strtoll_t f;
 	errno = 0;
-#if defined(HAVE_STRTOLL)
 	f = strtoll(cast_const_char string, (char **)(void *)end, 10);
-#elif defined(HAVE_STRTOQ)
-	f = strtoq(cast_const_char string, (char **)(void *)end, 10);
-#elif defined(HAVE_STRTOIMAX)
-	f = strtoimax(cast_const_char string, (char **)(void *)end, 10);
-#else
-	f = strtol(cast_const_char string, (char **)(void *)end, 10);
-#endif
 	if (f < 0 || errno) return -1;
 	return f;
 }

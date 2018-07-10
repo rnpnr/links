@@ -155,12 +155,6 @@ static void add_row_gray(unsigned *my_restrict row_buf, unsigned char *my_restri
 
 /* line_skip is in pixels. The column contains the whole pixels (R G B)
  * We assume unsigned short holds at least 16 bits. */
-#ifdef __ICC
-#if __ICC >= 1000 && defined(__i386__) && defined(USE_FP_SCALE)
-/* ICC for i386 misoptimizes this function when inlining it */
-ATTR_NOINLINE
-#endif
-#endif
 static void add_col_color(scale_t *my_restrict col_buf, unsigned short *my_restrict ptr,
 	int line_skip, int n, ulonglong weight)
 {
@@ -401,9 +395,6 @@ static inline longlong multiply_int(int a, int b)
 static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 	unsigned short **outa, int ox)
 {
-#ifdef HAVE_OPENMP
-	int use_omp;
-#endif
 	int n_threads;
 	int alloc_size;
 	scale_t *col_buf;
@@ -442,28 +433,17 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 	multiply_int(ix-1,ox-1);
 
 	n_threads = omp_start();
-#ifdef HAVE_OPENMP
-	use_omp = !OPENMP_NONATOMIC & (n_threads > 1) & (ox >= 24);
-	if (!use_omp)
-		n_threads = 1;
-#endif
 	if ((unsigned)y > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*col_buf)) overalloc();
 	alloc_size = (int)(y*3*sizeof(*col_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
 	col_buf = mem_alloc_mayfail(alloc_size * n_threads);
 	if (!col_buf) goto skip_omp;
-#ifdef HAVE_OPENMP
-#pragma omp parallel default(none) firstprivate(col_buf,alloc_size,in,out,ix,ox,y,skip,oskip) if (use_omp)
-#endif
 	{
 		scale_t *thread_col_buf;
 		int out_idx;
 		thread_col_buf = (scale_t *)((char *)col_buf + alloc_size * omp_get_thread_num());
 		bias_buf_color(thread_col_buf, y, (scale_t)(ox - 1) / 2);
-#ifdef HAVE_OPENMP
-#pragma omp for nowait
-#endif
 		for (out_idx = 0; out_idx <= ox - 1; out_idx++) {
 			ulonglong out_pos, in_pos, in_end;
 			int in_idx;
@@ -554,9 +534,6 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		unsigned short **outa, int ox)
 {
-#ifdef HAVE_OPENMP
-	int use_omp;
-#endif
 	int n_threads;
 	int alloc_size;
 	scale_t *col_buf;
@@ -588,28 +565,17 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 	}
 
 	n_threads = omp_start();
-#ifdef HAVE_OPENMP
-	use_omp = !OPENMP_NONATOMIC & (n_threads > 1) & (ox >= 24);
-	if (!use_omp)
-		n_threads = 1;
-#endif
 	if ((unsigned)y > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*col_buf)) overalloc();
 	alloc_size = (int)(y*3*sizeof(*col_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
 	col_buf = mem_alloc_mayfail(alloc_size * n_threads);
 	if (!col_buf) goto skip_omp;
-#ifdef HAVE_OPENMP
-#pragma omp parallel default(none) firstprivate(col_buf,alloc_size,in,out,ix,ox,y,skip,oskip) if (use_omp)
-#endif
 	{
 		scale_t *thread_col_buf;
 		int out_idx;
 		thread_col_buf = (scale_t *)((char *)col_buf + alloc_size * omp_get_thread_num());
 		bias_buf_color(thread_col_buf, y, (scale_t)ix / 2);
-#ifdef HAVE_OPENMP
-#pragma omp for nowait
-#endif
 		for (out_idx = 0; out_idx < ox; out_idx++) {
 			ulonglong out_pos, out_end, in_pos;
 			int in_idx;
@@ -702,9 +668,6 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	unsigned short **outa ,int oy)
 {
-#ifdef HAVE_OPENMP
-	int use_omp;
-#endif
 	int n_threads;
 	int alloc_size;
 	scale_t *row_buf;
@@ -739,28 +702,17 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	multiply_int(iy-1,oy-1);
 
 	n_threads = omp_start();
-#ifdef HAVE_OPENMP
-	use_omp = (!OPENMP_NONATOMIC | !(x & 3)) & (n_threads > 1) & (oy >= 24);
-	if (!use_omp)
-		n_threads = 1;
-#endif
 	if ((unsigned)x > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*row_buf)) overalloc();
 	alloc_size = (int)(x*3*sizeof(*row_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
 	row_buf = mem_alloc_mayfail(alloc_size * n_threads);
 	if (!row_buf) goto skip_omp;
-#ifdef HAVE_OPENMP
-#pragma omp parallel default(none) firstprivate(row_buf,alloc_size,in,out,x,iy,oy) if (use_omp)
-#endif
 	{
 		scale_t *thread_row_buf;
 		int out_idx;
 		thread_row_buf = (scale_t *)((char *)row_buf + alloc_size * omp_get_thread_num());
 		bias_buf_color(thread_row_buf,x,(scale_t)(oy-1) / 2);
-#ifdef HAVE_OPENMP
-#pragma omp for nowait
-#endif
 		for (out_idx = 0; out_idx <= oy - 1; out_idx++) {
 			ulonglong out_pos, in_pos, in_end;
 			int in_idx;
@@ -853,9 +805,6 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 static void scale_color_vertical(unsigned short *in, int x, int iy,
 	unsigned short **outa, int oy)
 {
-#ifdef HAVE_OPENMP
-	int use_omp;
-#endif
 	int n_threads;
 	int alloc_size;
 	scale_t *row_buf;
@@ -884,28 +833,17 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 		return;
 	}
 	n_threads = omp_start();
-#ifdef HAVE_OPENMP
-	use_omp = (!OPENMP_NONATOMIC | !(x & 3)) & (n_threads > 1) & (oy >= 24);
-	if (!use_omp)
-		n_threads = 1;
-#endif
 	if ((unsigned)x > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*row_buf)) overalloc();
 	alloc_size = (int)(x*3*sizeof(*row_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
 	row_buf = mem_alloc_mayfail(alloc_size * n_threads);
 	if (!row_buf) goto skip_omp;
-#ifdef HAVE_OPENMP
-#pragma omp parallel default(none) firstprivate(row_buf,alloc_size,in,out,x,iy,oy) if (use_omp)
-#endif
 	{
 		scale_t *thread_row_buf;
 		int out_idx;
 		thread_row_buf = (scale_t *)((char *)row_buf + alloc_size * omp_get_thread_num());
 		bias_buf_color(thread_row_buf,x,(scale_t)iy / 2);
-#ifdef HAVE_OPENMP
-#pragma omp for nowait
-#endif
 		for (out_idx = 0; out_idx < oy; out_idx++) {
 			ulonglong out_pos, out_end, in_pos;
 			int in_idx;

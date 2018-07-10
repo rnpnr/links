@@ -118,10 +118,6 @@ int get_error_from_errno(int errn)
 {
 	if (errn > 0 && (errn < -S__OK || errn > -S_MAX))
 		return -errn;
-#ifdef BEOS
-	if (-errn > 0 && (-errn < -S__OK || -errn > -S_MAX))
-		return errn;
-#endif
 	return S_UNKNOWN_ERROR;
 }
 
@@ -138,9 +134,6 @@ unsigned char *get_err_msg(int state)
 		unk:
 		return TEXT_(T_UNKNOWN_ERROR);
 	}
-#ifdef BEOS
-	if ((e = cast_uchar strerror(state)) && *e && !strstr(cast_const_char e, "No Error")) goto have_error;
-#endif
 	if ((e = cast_uchar strerror(-state)) && *e) goto have_error;
 	goto unk;
 have_error:
@@ -1281,7 +1274,7 @@ static struct f_data *format_html(struct f_data_c *fd, struct object_request *rq
 		if (fd->af) foreach(struct additional_file, af, laf, fd->af->af) if (af->need_reparse > 0) af->need_reparse = 0;
 
 		get_file(rq, &start, &end);
-		if (jsint_get_source(fd, &start, &end)) f->uncacheable = 1;
+		f->uncacheable = 1;
 		if (opt->plain == 2) {
 			start = init_str();
 			stl = 0;
@@ -1488,7 +1481,7 @@ struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq
 	}
 	if (opt->plain == 2) opt->margin = 0, opt->display_images = 1;
 	pr(
-	if (!jsint_get_source(fd, NULL, NULL) && ses) {
+	if (ses) {
 		if (fd->f_data && !strcmp(cast_const_char fd->f_data->rq->url, cast_const_char url) && !compare_opt(&fd->f_data->opt, opt) && is_format_cache_entry_uptodate(fd->f_data)) {
 			f = fd->f_data;
 			xpr();
@@ -1818,7 +1811,6 @@ void reinit_f_data_c(struct f_data_c *fd)
 		if (fd == current_frame(fd->ses))
 			fd->ses->locked_link = 0;
 #endif
-	jsint_destroy(fd);
 	foreach(struct f_data_c, fd1, lfd1, fd->subframes) {
 		if (fd->ses->wtd_target_base == fd1) fd->ses->wtd_target_base = NULL;
 		reinit_f_data_c(fd1);
@@ -2637,7 +2629,6 @@ void map_selected(struct terminal *term, void *ld_, void *ses_)
 	int x = 0;
 	if (ld->onclick) {
 		struct f_data_c *fd = current_frame(ses);
-		jsint_execute_code(fd, ld->onclick, (int)strlen(cast_const_char ld->onclick), -1, -1, -1, NULL);
 		x = 1;
 	}
 	if (ld->link) goto_url_f(ses, NULL, ld->link, ld->target, current_frame(ses), -1, x, 0, 0);
@@ -2697,7 +2688,6 @@ static void reload_frame(struct f_data_c *fd, int no_cache)
 	fd->done = 0;
 	fd->parsed_done = 0;
 	mem_free(u);
-	jsint_destroy(fd);
 }
 
 void reload(struct session *ses, int no_cache)
