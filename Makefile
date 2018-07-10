@@ -1,3 +1,5 @@
+# links - lynx-like alternative character mode WWW browser
+
 include config.mk
 
 SRC = \
@@ -66,3 +68,15 @@ linksg: $(OBJ) $(XOBJ)
 
 clean:
 	rm -f *.o links linksg
+
+install: all
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	cp -f links $(DESTDIR)$(PREFIX)/bin
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/links
+	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
+	cp -f links.1 $(DESTDIR)$(MANPREFIX)/man1
+	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/links.1
+
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/bin/links
+	rm -f $(DESTDIR)$(MANPREFIX)/man1/links.1
