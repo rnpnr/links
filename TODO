@@ -1,0 +1,26 @@
+- xembed support
+
+- pledge(2) for OpenBSD
+
+- finish removal of config.h so it can be used for actual configuration
+
+- cleanup empty functions
+
+- finish language cleanup
+
+- UTF-8 only?
+
+- sane/secure defaults:
+  - configure through config.h (for appropriate options)
+  - referer
+  - user agent
+  - cookies
+  - accept-lang/charset
+
+- rendering:
+  - fix html margins:
+    - no forced margin by default
+    - configurable through config.h
+  - better font support
+
+- links and links-g?
