@@ -63,10 +63,8 @@ static void log_ssl_error(unsigned char *url, int line, int ret1, int ret2)
 	unsigned char *u, *uu;
 	u = stracpy(url);
 	if ((uu = cast_uchar strchr(cast_const_char u, POST_CHAR))) *uu = 0;
-#if defined(HAVE_SSL_LOAD_ERROR_STRINGS) || defined(SSL_load_error_strings)
 	SSL_load_error_strings();
-#endif
-#if defined(HAVE_OPENSSL) && !defined(OPENSSL_NO_STDIO)
+#if !defined(OPENSSL_NO_STDIO)
 	ERR_print_errors_fp(stderr);
 #else
 	{
@@ -578,13 +576,11 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 {
 	struct conn_info *b = c->newconn;
 	if (!b->l.addr_index) b->first_error = err;
-#ifdef HAVE_SSL
 	if (c->ssl) {
 		freeSSL(c->ssl);
 		if (is_proxy_url(c->url)) c->ssl = NULL;
 		else c->ssl = DUMMY;
 	}
-#endif
 	if (ssl_downgrade) {
 		log_string(cast_uchar "\nSSL DOWNGRADE\n");
 		close_socket(b->sock);
@@ -685,7 +681,6 @@ static void try_connect(struct connection *c)
 	}
 }
 
-#ifdef HAVE_SSL
 void continue_connection(struct connection *c, int *sock, void (*func)(struct connection *))
 {
 	struct conn_info *b;
@@ -700,7 +695,6 @@ void continue_connection(struct connection *c, int *sock, void (*func)(struct co
 	log_string(cast_uchar "\nCONTINUE CONNECTION\n");
 	connected(c);
 }
-#endif
 
 static void connected(void *c_)
 {
@@ -911,7 +905,6 @@ static void write_select(void *c_)
 	for (wr = wb->pos; wr < wb->len; wr++) printf("%c", wb->data[wr]);
 	printf("-\n");*/
 
-#ifdef HAVE_SSL
 	if (c->ssl) {
 		set_handlers(wb->sock, NULL, write_select, c);
 		if ((wr = SSL_write(c->ssl->ssl, (void *)(wb->data + wb->pos), wb->len - wb->pos)) <= 0) {
@@ -931,9 +924,7 @@ static void write_select(void *c_)
 			return;
 		}
 		c->ssl->bytes_written += wr;
-	} else
-#endif
-	{
+	} else {
 		EINTRLOOP(wr, (int)write(wb->sock, wb->data + wb->pos, wb->len - wb->pos));
 		if (wr <= 0) {
 			setcstate(c, wr ? get_error_from_errno(errno) : S_CANT_WRITE);
@@ -989,7 +980,6 @@ read_more:
 	rb = mem_realloc(rb, sizeof(struct read_buffer) + rb->len + READ_SIZE);
 	c->buffer = rb;
 
-#ifdef HAVE_SSL
 	if (c->ssl) {
 		if ((rd = SSL_read(c->ssl->ssl, (void *)(rb->data + rb->len), READ_SIZE)) <= 0) {
 			int err;
@@ -1015,9 +1005,7 @@ read_more:
 			return;
 		}
 		c->ssl->bytes_read += rd;
-	} else
-#endif
-	{
+	} else {
 		EINTRLOOP(rd, (int)read(rb->sock, rb->data + rb->len, READ_SIZE));
 		if (rd <= 0) {
 			if (total_read) goto success;
@@ -1035,11 +1023,7 @@ read_more:
 	rb->len += rd;
 	total_read += rd;
 
-	if ((rd == READ_SIZE
-#ifdef HAVE_SSL
-	    || c->ssl
-#endif
-	    ) && total_read <= TOTAL_READ) {
+	if ((rd == READ_SIZE || c->ssl) && total_read <= TOTAL_READ) {
 		if (can_read(rb->sock))
 			goto read_more;
 	}

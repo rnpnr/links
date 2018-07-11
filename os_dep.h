@@ -37,20 +37,9 @@ static inline int dir_sep(unsigned char x) { return x == '/'; }
 #define DEFAULT_SHELL "/bin/sh"
 #define GETSHELL getenv("SHELL")
 #define SHARED_CONFIG_DIR "/etc/"
-#ifdef HAVE_SYS_UN_H
-#define USE_AF_UNIX
-#else
-#define DONT_USE_AF_UNIX
-#endif
 #define ASSOC_BLOCK
 #define ASSOC_CONS_XWIN
 
-#endif
-
-#ifdef FS_UNIX_USERS
-#if !defined(HAVE_GETPWUID) || !defined(HAVE_GETGRGID)
-#undef FS_UNIX_USERS
-#endif
 #endif
 
 #endif /* #ifndef OS_DEP_H */

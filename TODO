@@ -1,3 +1,7 @@
+- target OpenBSD and musl/linux remove workarounds for everything else
+
+- KNF see style(9) on OpenBSD
+
 - xembed support
 
 - pledge(2) for OpenBSD

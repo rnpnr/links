@@ -110,23 +110,7 @@ static struct lru font_cache;
 			 * for letters with an image under them )
 			 */
 
-#if defined(__i686__) || defined(__athlon__) || defined(__SSE2__) || defined(__x86_64__) || defined(__alpha) || defined(__hppa)
-/*
- * On modern processors it is faster to do this in floating point.
- * Do it only if we are sure that the coprocessor is present.
- */
 typedef double scale_t;
-#define USE_FP_SCALE
-#elif defined(HAVE_LONG_LONG)
-typedef unsigned long long scale_t;
-#else
-/*
- * This may overflow, but systems without long long are very old
- * and we will rather accept overflow on big images (65536 pixels)
- * than slowing down the process unacceptably with possibly emulated FPU.
- */
-typedef unsigned long scale_t;
-#endif
 
 /* Each input byte represents 1 byte (gray). The question whether 0 is
  * black or 255 is black doesn't matter.
@@ -159,18 +143,6 @@ static void add_col_color(scale_t *my_restrict col_buf, unsigned short *my_restr
 	int line_skip, int n, ulonglong weight)
 {
 	if (!weight) return;
-#ifndef USE_FP_SCALE
-	if (weight < 0x10000) {
-		unsigned short weight_16 = (unsigned short)weight;
-		for (;n;n--){
-			col_buf[0]+=(scale_t)((unsigned)weight_16*(unsigned)ptr[0]);
-			col_buf[1]+=(scale_t)((unsigned)weight_16*(unsigned)ptr[1]);
-			col_buf[2]+=(scale_t)((unsigned)weight_16*(unsigned)ptr[2]);
-			ptr+=line_skip;
-			col_buf+=3;
-		}
-	} else
-#endif
 	{
 		scale_t w = (scale_t)(longlong)weight;
 		for (;n;n--){
@@ -189,18 +161,6 @@ static void add_row_color(scale_t *my_restrict row_buf, unsigned short *my_restr
 	int n, ulonglong weight)
 {
 	if (!weight) return;
-#ifndef USE_FP_SCALE
-	if (weight < 0x10000) {
-		unsigned short weight_16 = (unsigned short)weight;
-		for (;n;n--){
-			row_buf[0]+=(scale_t)((unsigned)weight_16*(unsigned)ptr[0]);
-			row_buf[1]+=(scale_t)((unsigned)weight_16*(unsigned)ptr[1]);
-			row_buf[2]+=(scale_t)((unsigned)weight_16*(unsigned)ptr[2]);
-			ptr+=3;
-			row_buf+=3;
-		}
-	} else
-#endif
 	{
 		scale_t w = (scale_t)(longlong)weight;
 		for (;n;n--){
@@ -256,11 +216,7 @@ static void bias_buf_color(scale_t *my_restrict col_buf, int n, scale_t half)
 	/* System activated */
 }
 
-#ifdef USE_FP_SCALE
 #define	op(x)	((x) * inv_weight)
-#else
-#define op(x)	(sizeof(unsigned long) < sizeof(scale_t) && (x) == (unsigned long)(x) ? (unsigned long)(x) / weight : (x) / weight)
-#endif
 
 /* line skip is in pixels. Pixel is 3*unsigned short */
 /* We assume unsigned holds at least 32 bits */
@@ -269,9 +225,7 @@ static void emit_and_bias_col_color(scale_t *my_restrict col_buf,
 	unsigned short *my_restrict out, int line_skip, int n, unsigned weight)
 {
 	scale_t half=(scale_t)weight / 2;
-#ifdef USE_FP_SCALE
 	scale_t inv_weight = (scale_t)1 / weight;
-#endif
 	for (;n;n--){
 		out[0]=(unsigned short)op(col_buf[0]);
 		col_buf[0]=half;
@@ -296,9 +250,7 @@ static void emit_and_bias_row_color(scale_t *my_restrict row_buf,
 	unsigned short *my_restrict out, int n, unsigned weight)
 {
 	scale_t half=(scale_t)weight / 2;
-#ifdef USE_FP_SCALE
 	scale_t inv_weight = (scale_t)1 / weight;
-#endif
 	for (;n;n--){
 		out[0]=(unsigned short)op(row_buf[0]);
 		row_buf[0]=half;
@@ -371,20 +323,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 
 static inline longlong multiply_int(int a, int b)
 {
-#ifndef HAVE_LONG_LONG
-	volatile
-#endif
 	longlong result = (ulonglong)a * (ulonglong)b;
-#if !defined(__TINYC__) && !defined(HAVE_LONG_LONG)
-	if (result / a != (longlong)b) {
-		/*fprintf(stderr, "%lld, %lld, %d, %d\n", result / a, result, a, b);*/
-		overflow();
-	}
-#endif
-#ifndef HAVE_LONG_LONG
-	if (result == result + 1 || result == result - 1)
-		overflow();
-#endif
 	return result;
 }
 
@@ -1630,22 +1569,14 @@ const unsigned char *png_data, int png_length)
 		}
 		if (color_type==PNG_COLOR_TYPE_PALETTE){
 			png_set_expand(png_ptr);
-#ifdef HAVE_PNG_SET_RGB_TO_GRAY
 			png_set_rgb_to_gray(png_ptr, 1, -1, -1);
-#else
-			goto end;
-#endif
 		}
 		if (color_type & PNG_COLOR_MASK_ALPHA){
 			png_set_strip_alpha(png_ptr);
 		}
 		if (color_type==PNG_COLOR_TYPE_RGB ||
 			color_type==PNG_COLOR_TYPE_RGB_ALPHA){
-#ifdef HAVE_PNG_SET_RGB_TO_GRAY
 			png_set_rgb_to_gray(png_ptr, 1, -1, -1);
-#else
-			goto end;
-#endif
 		}
 	}
 	/* If the depth is different from 8 bits/gray, make the libpng expand
@@ -1666,13 +1597,6 @@ const unsigned char *png_data, int png_length)
 	png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 	mem_free(ptrs);
 	return;
-#ifndef HAVE_PNG_SET_RGB_TO_GRAY
-	end:
-	if (*x && (unsigned)*x * (unsigned)*y / (unsigned)*x != (unsigned)*y) overalloc();
-	if ((unsigned)*x * (unsigned)*y > MAXINT) overalloc();
-	*dest=mem_calloc(*x*(*y));
-	return;
-#endif
 }
 
 /* Like load_char, but we dictate the y.

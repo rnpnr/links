@@ -167,10 +167,6 @@ static void resize_terminal(void)
 	queue_event(ditrm, (unsigned char *)&ev, sizeof(struct links_event));
 }
 
-#if defined(OS_SETRAW)
-
-#elif defined(HAVE_TERMIOS_H)
-
 static void os_cfmakeraw(struct termios *t)
 {
 	cfmakeraw(t);
@@ -295,45 +291,6 @@ static void setcooked(int ctl)
 	if (ctl < 0) return;
 	ttcsetattr(ctl, TCSANOW, &saved_termios);
 }
-
-#elif defined(HAVE_SGTTY_H)
-
-static struct sgttyb saved_sgtty;
-
-static int setraw(int ctl, int save)
-{
-	struct sgttyb sgtty;
-	if (ctl < 0) return 0;
-	if (gtty(ctl, &sgtty)) {
-		return -1;
-	}
-	if (save) memcpy(&saved_sgtty, &sgtty, sizeof(struct sgttyb));
-	sgtty.sg_flags |= CBREAK;
-	sgtty.sg_flags &= ~ECHO;
-	if (stty(ctl, &sgtty)) {
-		return -1;
-	}
-	return 0;
-}
-
-static void setcooked(int ctl)
-{
-	if (ctl < 0) return;
-	stty(ctl, &saved_sgtty);
-}
-
-#else
-
-static int setraw(int ctl, int save)
-{
-	return 0;
-}
-
-static void setcooked(int ctl)
-{
-}
-
-#endif
 
 void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, void *init_string, int init_len)
 {

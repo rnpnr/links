@@ -9,10 +9,6 @@
 int support_ipv6;
 #endif
 
-#if !defined(USE_GETADDRINFO) && (defined(HAVE_GETHOSTBYNAME_BUG) || !defined(HAVE_GETHOSTBYNAME))
-#define EXTERNAL_LOOKUP
-#endif
-
 struct dnsentry {
 	list_entry_1st
 	uttime absolute_time;
@@ -96,14 +92,11 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	unsigned char dummy_a[16];
 	unsigned dummy_s;
 	int r;
-#ifdef HAVE_INET_PTON
 	struct in6_addr i6a;
-#endif
 	struct addrinfo hints, *res;
 	if (!address) address = dummy_a;
 	if (!scope_id) scope_id = &dummy_s;
 
-#ifdef HAVE_INET_PTON
 	if (inet_pton(AF_INET6, cast_const_char name, &i6a) == 1) {
 		memcpy(address, &i6a, 16);
 		*scope_id = 0;
@@ -111,7 +104,6 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	}
 	if (!strchr(cast_const_char name, '%'))
 		return -1;
-#endif
 
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET6;
@@ -121,71 +113,6 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	r = extract_ipv6_address(res, address, scope_id);
 	freeaddrinfo(res);
 	return r;
-}
-
-#endif
-
-#ifdef EXTERNAL_LOOKUP
-
-static int do_external_lookup(unsigned char *name, unsigned char *host)
-{
-	unsigned char buffer[1024];
-	unsigned char sink[16];
-	int rd;
-	int pi[2];
-	pid_t f;
-	unsigned char *n;
-	int rs;
-	if (c_pipe(pi) == -1)
-		return -1;
-	EINTRLOOP(f, fork());
-	if (f == -1) {
-		EINTRLOOP(rs, close(pi[0]));
-		EINTRLOOP(rs, close(pi[1]));
-		return -1;
-	}
-	if (!f) {
-#ifdef HAVE_SETSID
-		/* without setsid it gets stuck when on background */
-		EINTRLOOP(rs, setsid());
-#endif
-		EINTRLOOP(rs, close(pi[0]));
-		EINTRLOOP(rs, dup2(pi[1], 1));
-		if (rs == -1) _exit(1);
-		EINTRLOOP(rs, dup2(pi[1], 2));
-		if (rs == -1) _exit(1);
-		EINTRLOOP(rs, close(pi[1]));
-		EINTRLOOP(rs, execlp("host", "host", cast_const_char name, (char *)NULL));
-		EINTRLOOP(rs, execl("/usr/sbin/host", "host", cast_const_char name, (char *)NULL));
-		_exit(1);
-	}
-	EINTRLOOP(rs, close(pi[1]));
-	rd = hard_read(pi[0], buffer, sizeof buffer - 1);
-	if (rd >= 0) buffer[rd] = 0;
-	if (rd > 0) {
-		while (hard_read(pi[0], sink, sizeof sink) > 0);
-	}
-	EINTRLOOP(rs, close(pi[0]));
-	/* Don't wait for the process, we already have sigchld handler that
-	 * does cleanup.
-	 * waitpid(f, NULL, 0); */
-	if (rd < 0) return -1;
-	/*fprintf(stderr, "query: '%s', result: %s\n", name, buffer);*/
-	while ((n = strstr(buffer, name))) {
-		memset(n, '-', strlen(cast_const_char name));
-	}
-	for (n = buffer; n < buffer + rd; n++) {
-		if (*n >= '0' && *n <= '9') {
-			if (get_addr_byte(&n, host + 0, '.')) goto skip_addr;
-			if (get_addr_byte(&n, host + 1, '.')) goto skip_addr;
-			if (get_addr_byte(&n, host + 2, '.')) goto skip_addr;
-			if (get_addr_byte(&n, host + 3, 255)) goto skip_addr;
-			return 0;
-skip_addr:
-			if (n >= buffer + rd) break;
-		}
-	}
-	return -1;
 }
 
 #endif
@@ -375,13 +302,6 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 #endif
 			goto ret;
 		}
-	}
-#endif
-
-#ifdef EXTERNAL_LOOKUP
-	if (!do_external_lookup(name, address)) {
-		add_address(host, AF_INET, address, 0, preference);
-		goto ret;
 	}
 #endif
 
@@ -599,7 +519,6 @@ unsigned char *print_address(struct host_address *a)
 #else
 	static unsigned char buffer[INET_ADDRSTRLEN + SCOPE_ID_LEN];
 #endif
-#ifdef HAVE_INET_NTOP
 	union {
 		struct in_addr in;
 #ifdef SUPPORT_IPV6
@@ -610,24 +529,6 @@ unsigned char *print_address(struct host_address *a)
 	memcpy(&u, a->addr, 16);
 	if (!inet_ntop(a->af, &u, cast_char buffer, sizeof buffer - SCOPE_ID_LEN))
 		return NULL;
-#else
-	if (a->af == AF_INET)
-		snprintf(cast_char buffer, sizeof buffer, "%d.%d.%d.%d", a->addr[0], a->addr[1], a->addr[2], a->addr[3]);
-#ifdef SUPPORT_IPV6
-	else if (a->af == AF_INET6)
-		snprintf(cast_char buffer, sizeof buffer, "%x:%x:%x:%x:%x:%x:%x:%x",
-			(a->addr[0] << 8) | a->addr[1],
-			(a->addr[2] << 8) | a->addr[3],
-			(a->addr[4] << 8) | a->addr[5],
-			(a->addr[6] << 8) | a->addr[7],
-			(a->addr[8] << 8) | a->addr[9],
-			(a->addr[10] << 8) | a->addr[11],
-			(a->addr[12] << 8) | a->addr[13],
-			(a->addr[14] << 8) | a->addr[15]);
-#endif
-	else
-		return NULL;
-#endif
 	if (a->scope_id) {
 		unsigned char *end = cast_uchar strchr(cast_const_char buffer, 0);
 		snprintf(cast_char end, buffer + sizeof(buffer) - end, "%%%u", a->scope_id);

@@ -21,57 +21,29 @@ static inline void pixel_set(unsigned char *dest, int n,void * pattern)
 
 		case 2:
 		{
-#ifdef t2c
-			t2c v=*(t2c *)do_not_optimize_here(pattern);
+			unsigned short v=*(unsigned short *)do_not_optimize_here(pattern);
 			/* ICC has an optimization bug here */
 			icc_volatile int a;
 
 			if ((v & 255) == ((v >> 8) & 255)) {
 				memset(dest, v, n);
 			} else {
-#ifdef t8c
-				t8c vvvv=((t8c)v << 48) | ((t8c)v << 32) | ((t8c)v << 16) | v;
-#elif defined(t4c)
-				t4c vv=((t4c)v << 16) | v;
-#endif
+				unsigned long vvvv=((unsigned long)v << 48) | ((unsigned long)v << 32) | ((unsigned long)v << 16) | v;
 				a = n >> 1;
 				while (a) {
-#ifdef t8c
 					if (!((unsigned long)dest & 7) && a >= 4) {
 						do {
-							*((t8c *)dest) = vvvv;
+							*((unsigned long *)dest) = vvvv;
 							dest += 8;
 							a -= 4;
 						} while (a >= 4);
-					} else
-#elif defined(t4c)
-					if (!((unsigned long)dest & 3) && a >= 2) {
-						do {
-							*((t4c *)dest) = vv;
-							dest += 4;
-							a -= 2;
-						} while (a >= 2);
-					} else
-#endif
-					{
-						*((t2c *)dest) = v;
+					} else {
+						*((unsigned short *)dest) = v;
 						dest += 2;
 						a--;
 					}
 				}
 			}
-#else
-			unsigned char a,b;
-			int i;
-
-			a=*(unsigned char*)pattern;
-			b=((unsigned char*)pattern)[1];
-			if (a == b) memset(dest, a, n);
-			else for (i=0;i<=n-2;i+=2){
-				dest[i]=a;
-				dest[i+1]=b;
-			}
-#endif
 		}
 		break;
 
@@ -97,48 +69,27 @@ static inline void pixel_set(unsigned char *dest, int n,void * pattern)
 		    ((unsigned char *)pattern)[1] == ((unsigned char *)pattern)[drv->depth & ~255 ? 3 : 0]) {
 			memset(dest, ((unsigned char *)pattern)[1], n);
 		} else {
-#ifdef t4c
-			t4c v=*(t4c *)do_not_optimize_here(pattern);
+			unsigned v=*(unsigned *)do_not_optimize_here(pattern);
 			/* ICC has an optimization bug here */
 			icc_volatile int a;
 
 			{
-#ifdef t8c
-				t8c vv = ((t8c)v << 32) | v;
-#endif
+				unsigned long vv = ((unsigned long)v << 32) | v;
 				a = n >> 2;
 				while (a) {
-#ifdef t8c
 					if (!((unsigned long)dest & 7) && a >= 2) {
 						do {
-							*((t8c *)dest) = vv;
+							*((unsigned long *)dest) = vv;
 							dest += 8;
 							a -= 2;
 						} while (a >= 2);
-					} else
-#endif
-					{
-						*(t4c *)dest = v;
+					} else {
+						*(unsigned *)dest = v;
 						dest += 4;
 						a--;
 					}
 				}
 			}
-#else
-			unsigned char a,b,c,d;
-			int i;
-
-			a=*(unsigned char*)pattern;
-			b=((unsigned char*)pattern)[1];
-			c=((unsigned char*)pattern)[2];
-			d=((unsigned char*)pattern)[3];
-			for (i=0;i<=n-4;i+=4){
-				dest[i]=a;
-				dest[i+1]=b;
-				dest[i+2]=c;
-				dest[i+3]=d;
-			}
-#endif
 		}
 		break;
 

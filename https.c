@@ -130,13 +130,7 @@ links_ssl *getSSL(void)
 			mem_free(os_pool);
 		}
 
-#if defined(HAVE_OPENSSL_INIT_SSL)
 		OPENSSL_init_ssl(0, NULL);
-#elif defined(OpenSSL_add_ssl_algorithms)
-		OpenSSL_add_ssl_algorithms();
-#else
-		SSLeay_add_ssl_algorithms();
-#endif
 		ssl_initialized = 1;
 	}
 
@@ -233,158 +227,6 @@ void https_func(struct connection *c)
 
 #ifdef HAVE_SSL_CERTIFICATES
 
-#if !(defined(HAVE_X509_CHECK_HOST) && defined(HAVE_X509_CHECK_IP))
-
-static int check_host_name(const unsigned char *templ, const unsigned char *host)
-{
-	int templ_len = (int)strlen(cast_const_char templ);
-	int host_len = (int)strlen(cast_const_char host);
-	unsigned char *wildcard;
-
-	if (templ_len > 0 && templ[templ_len - 1] == '.') templ_len--;
-	if (host_len > 0 && host[host_len - 1] == '.') host_len--;
-
-	wildcard = memchr(templ, '*', templ_len);
-	if (!wildcard) {
-		if (templ_len == host_len && !casecmp(templ, host, templ_len))
-			return 0;
-		return -1;
-	} else {
-		int prefix_len, suffix_len;
-		if (templ_len > host_len)
-			return -1;
-		prefix_len = (int)(wildcard - templ);
-		suffix_len = (int)(templ + templ_len - (wildcard + 1));
-		if (memchr(templ, '.', prefix_len))
-			return -1;
-		if (memchr(wildcard + 1, '*', suffix_len))
-			return -1;
-		if (casecmp(host, templ, prefix_len))
-			return -1;
-		if (memchr(host + prefix_len, '.', host_len - prefix_len - suffix_len))
-			return -1;
-		if (casecmp(host + host_len - suffix_len, wildcard + 1, suffix_len))
-			return -1;
-		return 0;
-	}
-}
-
-#ifdef HAVE_ASN1_STRING_GET0_DATA
-#define asn_string_data	ASN1_STRING_get0_data
-#else
-#define asn_string_data	ASN1_STRING_data
-#endif
-
-/*
- * This function is based on verifyhost in libcurl - I hope that it is correct.
- */
-static int verify_ssl_host_name(X509 *server_cert, unsigned char *host)
-{
-	unsigned char ipv4_address[4];
-#ifdef SUPPORT_IPV6
-	unsigned char ipv6_address[16];
-#endif
-	unsigned char *address = NULL;
-	int address_len = 0;
-	int type = GEN_DNS;
-
-	STACK_OF(GENERAL_NAME) *altnames;
-
-	if (!numeric_ip_address(host, ipv4_address)) {
-		address = ipv4_address;
-		address_len = 4;
-		type = GEN_IPADD;
-	}
-#ifdef SUPPORT_IPV6
-	if (!numeric_ipv6_address(host, ipv6_address, NULL)) {
-		address = ipv6_address;
-		address_len = 16;
-		type = GEN_IPADD;
-	}
-#endif
-
-#if 1
-	altnames = X509_get_ext_d2i(server_cert, NID_subject_alt_name, NULL, NULL);
-	if (altnames) {
-		int retval = 1;
-		int i;
-		int n_altnames = sk_GENERAL_NAME_num(altnames);
-		for (i = 0; i < n_altnames; i++) {
-			const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
-			const unsigned char *altname_ptr;
-			int altname_len;
-			if (altname->type != type) {
-				if (altname->type == GEN_IPADD || altname->type == GEN_DNS || altname->type == GEN_URI)
-					retval = S_INVALID_CERTIFICATE;
-				continue;
-			}
-			altname_ptr = asn_string_data(altname->d.ia5);
-			altname_len = ASN1_STRING_length(altname->d.ia5);
-			if (type == GEN_IPADD) {
-				if (altname_len == address_len && !memcmp(altname_ptr, address, address_len)) {
-					retval = 0;
-					break;
-				}
-			} else {
-				if (altname_len == (int)strlen(cast_const_char altname_ptr) && !check_host_name(altname_ptr, host)) {
-					retval = 0;
-					break;
-				}
-			}
-			retval = S_INVALID_CERTIFICATE;
-		}
-		GENERAL_NAMES_free(altnames);
-		if (retval != 1)
-			return retval;
-	}
-#endif
-
-	{
-		unsigned char *nulstr = cast_uchar "";
-		unsigned char *peer_CN = nulstr;
-		X509_NAME *name;
-		int j, i = -1;
-
-		retval = 1;
-
-		name = X509_get_subject_name(server_cert);
-		if (name)
-			while ((j = X509_NAME_get_index_by_NID(name, NID_commonName, i)) >= 0)
-				i = j;
-		if (i >= 0) {
-			ASN1_STRING *tmp = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(name, i));
-			if (tmp) {
-				if (ASN1_STRING_type(tmp) == V_ASN1_UTF8STRING) {
-					j = ASN1_STRING_length(tmp);
-					if (j >= 0) {
-						peer_CN = OPENSSL_malloc(j + 1);
-						if (peer_CN) {
-							memcpy(peer_CN, asn_string_data(tmp), j);
-							peer_CN[j] = '\0';
-						}
-					}
-				} else {
-					j = ASN1_STRING_to_UTF8(&peer_CN, tmp);
-				}
-				if (peer_CN && (int)strlen(cast_const_char peer_CN) != j) {
-					retval = S_INVALID_CERTIFICATE;
-				}
-			}
-		}
-		if (peer_CN && peer_CN != nulstr) {
-			if (retval == 1 && !check_host_name(peer_CN, host))
-				retval = 0;
-			OPENSSL_free(peer_CN);
-		}
-		if (retval != 1)
-			return retval;
-	}
-
-	return S_INVALID_CERTIFICATE;
-}
-
-#else
-
 static int verify_ssl_host_name(X509 *server_cert, unsigned char *host)
 {
 	int v;
@@ -407,8 +249,6 @@ static int verify_ssl_host_name(X509 *server_cert, unsigned char *host)
 
 	return v == 1 ? 0 : S_INVALID_CERTIFICATE;
 }
-
-#endif
 
 int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 {

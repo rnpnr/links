@@ -10,8 +10,6 @@
 
 #include "links.h"
 
-#include "bits.h"
-
 #include <math.h>
 
 /* The input of dithering function is 3 times 16-bit value. The value is
@@ -311,19 +309,10 @@ ROUND_TEMPLATE(round_1byte)
 #undef SAVE_CODE
 
 #define SKIP_CODE out->x*2
-#if defined(t2c) && defined(C_LITTLE_ENDIAN)
 #define SAVE_CODE \
 	o=rt|gt|bt;\
-	*(t2c *)outp=(o>>16);\
+	*(unsigned short *)outp=(o>>16);\
 	outp+=2;
-#else
-#define SAVE_CODE \
-	o=rt|gt|bt;\
-	o>>=16;\
-	*(unsigned char *)outp=o;\
-	((unsigned char *)outp)[1]=o>>8;\
-	outp+=2;
-#endif /* #ifdef t2c */
 
 DITHER_TEMPLATE(dither_2byte)
 ROUND_TEMPLATE(round_2byte)

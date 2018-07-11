@@ -1,5 +1,7 @@
 #include "links.h"
 
+#include <zlib.h>
+
 #ifdef write
 #undef write
 #endif
@@ -13,8 +15,6 @@ static int display_error(struct terminal *term, unsigned char *msg, int *errp)
 	if (!errp) if (find_msg_box(term, msg, NULL, NULL)) return 0;
 	return 1;
 }
-
-#ifdef HAVE_ANY_COMPRESSION
 
 static void decoder_memory_init(unsigned char **p, size_t *size, off_t init_length)
 {
@@ -56,10 +56,6 @@ static void decompress_error(struct terminal *term, struct cache_entry *ce, unsi
 	msg_box(term, getml(u, NULL), TEXT_(T_DECOMPRESSION_ERROR), AL_CENTER, TEXT_(T_ERROR_DECOMPRESSING_), u, TEXT_(T__wITH_), lib, cast_uchar ": ", msg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 }
 
-#endif
-
-#ifdef HAVE_ZLIB
-#include <zlib.h>
 static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, int *errp)
 {
 	unsigned char err;
@@ -255,7 +251,6 @@ static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, 
 	ce->decompressed = mem_realloc(ce->decompressed, ce->decompressed_len);
 	return 0;
 }
-#endif
 
 int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, unsigned char **end, int *errp)
 {
@@ -266,23 +261,19 @@ int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned cha
 	*start = *end = NULL;
 	if (!ce) return 1;
 	if (ce->decompressed) {
-#if defined(HAVE_ANY_COMPRESSION)
 		return_decompressed:
-#endif
 		*start = ce->decompressed;
 		*end = ce->decompressed + ce->decompressed_len;
 		return 0;
 	}
 	enc = get_content_encoding(ce->head, ce->url, 0);
 	if (enc) {
-#ifdef HAVE_ZLIB
 		if (!casestrcmp(enc, cast_uchar "gzip") || !casestrcmp(enc, cast_uchar "x-gzip") || !casestrcmp(enc, cast_uchar "deflate")) {
 			int defl = !casestrcmp(enc, cast_uchar "deflate");
 			mem_free(enc);
 			if (decode_gzip(term, ce, defl, errp)) goto uncompressed;
 			goto return_decompressed;
 		}
-#endif
 		mem_free(enc);
 		goto uncompressed;
 	}
@@ -322,12 +313,9 @@ void free_decompressed_data(struct cache_entry *e)
 	}
 }
 
-#ifdef HAVE_ANY_COMPRESSION
-
 void add_compress_methods(unsigned char **s, int *l)
 {
 	int cl = 0;
-#ifdef HAVE_ZLIB
 	{
 		if (!cl) cl = 1; else add_to_str(s, l, cast_uchar ", ");
 		add_to_str(s, l, cast_uchar "ZLIB");
@@ -337,7 +325,4 @@ void add_compress_methods(unsigned char **s, int *l)
 		add_to_str(s, l, cast_uchar ")");
 #endif
 	}
-#endif
 }
-
-#endif

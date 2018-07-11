@@ -86,7 +86,7 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_num_to_str(&s, &l, DEBUGLEVEL);
+	add_num_to_str(&s, &l, 0);
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
@@ -104,11 +104,7 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef HAVE_ANY_COMPRESSION
 	add_compress_methods(&s, &l);
-#else
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#endif
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
@@ -380,7 +376,6 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOADING), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
-#ifdef HAVE_ANY_COMPRESSION
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_DECOMPRESSED_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_BYTES));
@@ -395,7 +390,6 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	add_to_str(&a, &l, cast_uchar " ");
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
-#endif
 
 #ifdef G
 	if (F) {
@@ -1233,18 +1227,12 @@ static void dlg_ipv6_options(struct terminal *term, void *xxx, void *yyy)
 
 #endif
 
-#ifdef HAVE_SSL
 #define N_N	6
-#else
-#define N_N	5
-#endif
 
 static unsigned char * const proxy_msg[] = {
 	TEXT_(T_HTTP_PROXY__HOST_PORT),
 	TEXT_(T_FTP_PROXY__HOST_PORT),
-#ifdef HAVE_SSL
 	TEXT_(T_HTTPS_PROXY__HOST_PORT),
-#endif
 	TEXT_(T_SOCKS_4A_PROXY__USER_HOST_PORT),
 	TEXT_(T_APPEND_TEXT_TO_SOCKS_LOOKUPS),
 	TEXT_(T_NOPROXY_LIST),
@@ -1528,13 +1516,11 @@ static void dlg_proxy_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].data = ftp_proxy;
 	d->items[a].fn = check_proxy;
 	a++;
-#ifdef HAVE_SSL
 	d->items[a].type = D_FIELD;
 	d->items[a].dlen = MAX_STR_LEN;
 	d->items[a].data = https_proxy;
 	d->items[a].fn = check_proxy;
 	a++;
-#endif
 	d->items[a].type = D_FIELD;
 	d->items[a].dlen = MAX_STR_LEN;
 	d->items[a].data = socks_proxy;
@@ -1731,9 +1717,7 @@ static void dlg_ssl_options(struct terminal *term, void *xxx, void *yyy)
 #endif
 
 static unsigned char * const http_labels[] = { TEXT_(T_USE_HTTP_10), TEXT_(T_ALLOW_SERVER_BLACKLIST), TEXT_(T_BROKEN_302_REDIRECT), TEXT_(T_NO_KEEPALIVE_AFTER_POST_REQUEST), TEXT_(T_DO_NOT_SEND_ACCEPT_CHARSET),
-#ifdef HAVE_ANY_COMPRESSION
 	TEXT_(T_DO_NOT_ADVERTISE_COMPRESSION_SUPPORT),
-#endif
 	TEXT_(T_RETRY_ON_INTERNAL_ERRORS), NULL };
 
 static unsigned char * const http_header_labels[] = { TEXT_(T_FAKE_FIREFOX), TEXT_(T_DO_NOT_TRACK), TEXT_(T_REFERER_NONE), TEXT_(T_REFERER_SAME_URL), TEXT_(T_REFERER_FAKE), TEXT_(T_REFERER_REAL_SAME_SERVER), TEXT_(T_REFERER_REAL), TEXT_(T_FAKE_REFERER), TEXT_(T_FAKE_USERAGENT), TEXT_(T_EXTRA_HEADER), NULL };
@@ -1884,13 +1868,11 @@ static void dlg_http_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].dlen = sizeof(int);
 	d->items[a].data = (void *)&http_options.no_accept_charset;
 	a++;
-#ifdef HAVE_ANY_COMPRESSION
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].gid = 0;
 	d->items[a].dlen = sizeof(int);
 	d->items[a].data = (void *)&http_options.no_compression;
 	a++;
-#endif
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].gid = 0;
 	d->items[a].dlen = sizeof(int);

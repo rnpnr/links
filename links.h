@@ -47,31 +47,19 @@
 
 #include "os_dep.h"
 #include <stdio.h>
-#ifdef HAVE_STDLIB_H_X
 #include <stdlib.h>
-#endif
 #include <stdarg.h>
 #include <stddef.h>
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-#ifdef HAVE_STRING_H
 #include <string.h>
-#endif
 #ifdef HAVE_BSD_STRING_H
 #include <bsd/string.h>
 #endif
-#ifdef HAVE_STRINGS_H
 #include <strings.h>
-#endif
 #include <errno.h>
-#ifdef HAVE_LIMITS_H
 #include <limits.h>
-#endif
 #include <sys/types.h>
-#ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
-#endif
 
 #ifndef __USE_XOPEN
 #define U_X
@@ -91,35 +79,16 @@
 #endif
 
 #include <sys/stat.h>
-#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
-#if defined(HAVE_LINUX_FALLOC_H) && !defined(FALLOC_FL_KEEP_SIZE)
+#if defined(__linux__) && !defined(FALLOC_FL_KEEP_SIZE)
 #include <linux/falloc.h>
 #endif
-#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#endif
-#if defined(HAVE_DIRENT_H)
 #include <dirent.h>
-#elif defined(HAVE_SYS_NDIR_H)
-#include <sys/ndir.h>
-#elif defined(HAVE_SYS_DIR_H)
-#include <sys/dir.h>
-#ifndef dirent
-#define dirent direct
-#endif
-#elif defined(HAVE_NDIR_H)
-#include <ndir.h>
-#endif
 #include <signal.h>
 #include <sys/wait.h>
-#ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
-#endif
-#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
-#endif
 #ifdef HAVE_UWIN_H
 #include <uwin.h>
 #endif
@@ -132,41 +101,23 @@
 #ifdef HAVE_UNIXLIB_H
 #include <unixlib.h>
 #endif
-#ifdef HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
-#endif
-#ifdef HAVE_PWD_H
 #include <pwd.h>
-#endif
-#ifdef HAVE_GRP_H
 #include <grp.h>
-#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
-#ifdef HAVE_SEARCH_H
 #include <search.h>
-#endif
 
-#ifdef HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
-#else
-#ifdef HAVE_NETINET_IN_SYSTEM_H
-#include <netinet/in_system.h>
-#endif
-#endif
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#ifdef HAVE_NETINET_IP_H
 #include <netinet/ip.h>
-#endif
-#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-#endif
 #include <utime.h>
 
 #if defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1) && defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_2)
@@ -177,11 +128,7 @@
 #define HAVE_CRYPTO_SET_MEM_FUNCTIONS
 #endif
 
-#ifdef HAVE_SSL
-
-#ifdef HAVE_OPENSSL
-
-#if !defined(NO_SSL_CERTIFICATES) && defined(HAVE_OPENSSL_X509V3_H) && defined(HAVE_ASN1_STRING_TO_UTF8)
+#if !defined(NO_SSL_CERTIFICATES)
 #define HAVE_SSL_CERTIFICATES
 #endif
 
@@ -193,16 +140,10 @@
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 
-#ifdef HAVE_SSL_GET1_SESSION
 #define SSL_SESSION_RESUME
-#endif
-
-#endif
 
 #ifdef HAVE_NSS
 #include <nss_compat_ossl/nss_compat_ossl.h>
-#endif
-
 #endif
 
 #if defined(G)
@@ -224,25 +165,13 @@
 #endif /* _SETJMP_H */
 #endif
 
-#ifdef HAVE_TERMIOS_H
 #include <termios.h>
-#elif defined(HAVE_SGTTY_H)
-#include <sgtty.h>
-#endif
 
-#if defined(HAVE_POLL_H) && defined(HAVE_POLL) && !defined(__HOS_AIX__)
 #define USE_POLL
 #include <poll.h>
-#endif
 
-#if (defined(HAVE_EVENT_H) || defined(HAVE_EV_EVENT_H)) && (defined(HAVE_LIBEVENT) || defined(HAVE_LIBEV))
-#if defined(HAVE_EVENT_H)
 #include <event.h>
-#else
-#include <ev-event.h>
-#endif
 #define USE_LIBEVENT
-#endif
 
 #define omp_get_num_threads()	1
 #define omp_get_thread_num()	0
@@ -253,13 +182,8 @@
 #define OPENMP_NONATOMIC	0
 #endif
 
-#ifdef HAVE_LONG_LONG
 #define longlong long long
 #define ulonglong unsigned long long
-#else
-#define longlong double
-#define ulonglong double
-#endif
 
 #define stringify_internal(arg)	#arg
 #define stringify(arg)		stringify_internal(arg)
@@ -302,7 +226,7 @@ do {							\
 	(ret_) = (call_);				\
 } while (!(ret_) && errno == EINTR)
 
-#if defined(HAVE_PTHREAD_SIGMASK) && !defined(__BIONIC__)
+#if defined(HAVE_PTHREAD_SIGMASK)
 static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 {
 	int r;
@@ -313,12 +237,8 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 	}
 	return 0;
 }
-#elif defined(HAVE_SIGPROCMASK)
-#define do_sigprocmask	sigprocmask
 #else
-#ifdef sigset_t
-#undef sigset_t
-#endif
+#define do_sigprocmask	sigprocmask
 #define sigset_t	int
 #ifndef SIG_BLOCK
 #define SIG_BLOCK	0
@@ -329,7 +249,6 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 {
 	sigset_t old = 0;
-#if defined(HAVE_SIGBLOCK) && defined(HAVE_SIGSETMASK)
 	switch (how) {
 		case SIG_BLOCK:
 			old = sigblock(*set);
@@ -338,7 +257,6 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 			old = sigsetmask(*set);
 			break;
 	}
-#endif
 	if (oset) *oset = old;
 	return 0;
 }
@@ -346,9 +264,6 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 #undef sigdelset
 #endif
 #define sigdelset(x, s)	(*(x) &= ~(1 << (s)), 0)
-#ifndef HAVE_SIGDELSET
-#define HAVE_SIGDELSET		1
-#endif
 #ifdef HAVE_SIGFILLSET
 #undef HAVE_SIGFILLSET
 #endif
@@ -673,13 +588,8 @@ static inline int cmpbeg(const unsigned char *str, const unsigned char *b)
 
 /* os_dep.c */
 
-#ifdef HAVE_LONG_LONG
 typedef unsigned long long uttime;
 typedef unsigned long long tcount;
-#else
-typedef unsigned long uttime;
-typedef unsigned long tcount;
-#endif
 
 #if defined(HAVE_GPM_H) && defined(HAVE_LIBGPM)
 #define USE_GPM
@@ -931,9 +841,7 @@ struct cache_entry {
 	unsigned char *decompressed;
 	size_t decompressed_len;
 	unsigned char *ip_address;
-#ifdef HAVE_SSL
 	unsigned char *ssl_info;
-#endif
 	list_entry_last
 	unsigned char url[1];
 };
@@ -968,7 +876,6 @@ void trim_cache_entry(struct cache_entry *e);
 
 /* sched.c */
 
-#ifdef HAVE_SSL
 typedef struct {
 	SSL *ssl;
 	SSL_CTX *ctx;
@@ -977,7 +884,6 @@ typedef struct {
 	int session_set;
 	int session_retrieved;
 } links_ssl;
-#endif
 
 #define PRI_MAIN	0
 #define PRI_DOWNLOAD	0
@@ -1034,11 +940,9 @@ struct connection {
 	unsigned char socks_proxy[MAX_STR_LEN];
 	unsigned char dns_append[MAX_STR_LEN];
 	struct lookup_state last_lookup_state;
-#ifdef HAVE_SSL
 	links_ssl *ssl;
 	int no_ssl_session;
 	int no_tls;
-#endif
 	list_entry_last
 };
 
@@ -1055,9 +959,7 @@ struct k_conn {
 	uttime timeout;
 	uttime add_time;
 	int protocol_data;
-#ifdef HAVE_SSL
 	links_ssl *ssl;
-#endif
 	struct lookup_state last_lookup_state;
 	list_entry_last
 };
@@ -1247,9 +1149,7 @@ struct read_buffer {
 	unsigned char data[1];
 };
 
-#ifdef HAVE_SSL
 void clear_ssl_errors(int line);
-#endif
 int socket_and_bind(int pf, unsigned char *address);
 void close_socket(int *);
 void make_connection(struct connection *, int, int *, void (*)(struct connection *));
@@ -1319,7 +1219,6 @@ void proxy_func(struct connection *);
 /* https.c */
 
 void https_func(struct connection *c);
-#ifdef HAVE_SSL
 extern int ssl_asked_for_password;
 void ssl_finish(void);
 links_ssl *getSSL(void);
@@ -1331,9 +1230,8 @@ int verify_ssl_cipher(links_ssl *ssl);
 #endif
 int ssl_not_reusable(links_ssl *ssl);
 unsigned char *get_cipher_string(links_ssl *ssl);
-#endif
 
-#if defined(HAVE_SSL) && defined(SSL_SESSION_RESUME)
+#if defined(SSL_SESSION_RESUME)
 SSL_SESSION *get_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port);
 void retrieve_ssl_session(struct connection *c);
 unsigned long session_info(int type);
@@ -1666,13 +1564,8 @@ void generic_set_clip_area(struct graphics_device *dev, struct rect *r);
  * on a monochromatic backround and font operations.
  */
 
-#if !SIZEOF_UNSIGNED_SHORT || SIZEOF_UNSIGNED_SHORT > 2
-#define limit_16(x)	((x) >= 0xffff ? 0xffff : (x))
-#define cmd_limit_16(x)	do { if ((x) >= 0xffff) (x) = 0xffff; } while (0)
-#else
 #define limit_16(x)	(x)
 #define cmd_limit_16(x)	do { } while (0)
-#endif
 
 #define sRGB_gamma	0.45455		/* For HTML, which runs
 					 * according to sRGB standard. Number
@@ -2153,10 +2046,6 @@ void release_object_get_stat(struct object_request **, struct status *, int);
 void detach_object_connection(struct object_request *, off_t);
 
 /* compress.c */
-
-#if defined(HAVE_ZLIB)
-#define HAVE_ANY_COMPRESSION
-#endif
 
 extern my_uintptr_t decompressed_cache_size;
 

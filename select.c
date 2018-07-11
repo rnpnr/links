@@ -234,7 +234,7 @@ static void restrict_fds(void)
 #if defined(RLIMIT_OFILE) && !defined(RLIMIT_NOFILE)
 #define RLIMIT_NOFILE RLIMIT_OFILE
 #endif
-#if defined(HAVE_GETRLIMIT) && defined(HAVE_SETRLIMIT) && defined(RLIMIT_NOFILE)
+#if defined(RLIMIT_NOFILE)
 	struct rlimit limit;
 	int rs;
 	EINTRLOOP(rs, getrlimit(RLIMIT_NOFILE, &limit));
@@ -266,9 +266,7 @@ static inline struct event *timer_event(struct timer *tm)
 	return (struct event *)((unsigned char *)tm - sizeof_struct_event);
 }
 
-#ifdef HAVE_EVENT_BASE_SET
 static struct event_base *event_base;
-#endif
 
 static void event_callback(int h, short ev, void *data)
 {
@@ -313,10 +311,8 @@ static void set_event_for_action(int h, void (*func)(void *), struct event **evp
 #endif
 			*evptr = mem_alloc(sizeof_struct_event);
 			event_set(*evptr, h, evtype, event_callback, *evptr);
-#ifdef HAVE_EVENT_BASE_SET
 			if (event_base_set(event_base, *evptr) == -1)
 				fatal_exit("ERROR: event_base_set failed: %s at %s:%d, handle %d", strerror(errno), sh_file, sh_line, h);
-#endif
 		}
 		if (event_add(*evptr, NULL) == -1)
 			fatal_exit("ERROR: event_add failed: %s at %s:%d, handle %d", strerror(errno), sh_file, sh_line, h);
@@ -339,10 +335,8 @@ static void set_event_for_timer(struct timer *tm)
 	struct timeval tv;
 	struct event *ev = timer_event(tm);
 	timeout_set(ev, timer_callback, tm);
-#ifdef HAVE_EVENT_BASE_SET
 	if (event_base_set(event_base, ev) == -1)
 		fatal_exit("ERROR: event_base_set failed: %s", strerror(errno));
-#endif
 	tv.tv_sec = tm->interval / 1000;
 	tv.tv_usec = (tm->interval % 1000) * 1000;
 #if defined(HAVE_LIBEV)
@@ -364,38 +358,9 @@ static void enable_libevent(void)
 	if (disable_libevent)
 		return;
 
-#if !defined(NO_FORK_ON_EXIT) && defined(HAVE_KQUEUE) && !defined(HAVE_EVENT_REINIT)
-	/* kqueue doesn't work after fork */
-	if (!F)
-		return;
-#endif
-
-#if defined(HAVE_EVENT_CONFIG_SET_FLAG)
-	{
-		struct event_config *cfg;
-		cfg = event_config_new();
-		if (!cfg)
-			return;
-		if (event_config_set_flag(cfg, EVENT_BASE_FLAG_NOLOCK) == -1) {
-			event_config_free(cfg);
-			return;
-		}
-		event_base = event_base_new_with_config(cfg);
-		event_config_free(cfg);
-		if (!event_base)
-			return;
-	}
-#elif defined(HAVE_EVENT_BASE_NEW)
 	event_base = event_base_new();
 	if (!event_base)
 		return;
-#elif defined(HAVE_EVENT_BASE_SET)
-	event_base = event_init();
-	if (!event_base)
-		return;
-#else
-	event_init();
-#endif
 	event_enabled = 1;
 
 	sh_file = (unsigned char *)__FILE__;
@@ -419,9 +384,7 @@ static void terminate_libevent(void)
 			if (threads[i].write_event)
 				mem_free(threads[i].write_event);
 		}
-#ifdef HAVE_EVENT_BASE_FREE
 		event_base_free(event_base);
-#endif
 		event_enabled = 0;
 	}
 }
@@ -429,11 +392,7 @@ static void terminate_libevent(void)
 static void do_event_loop(int flags)
 {
 	int e;
-#ifdef HAVE_EVENT_BASE_SET
 	e = event_base_loop(event_base, flags);
-#else
-	e = event_loop(flags);
-#endif
 	if (e == -1)
 		fatal_exit("ERROR: event_base_loop failed: %s", strerror(errno));
 }
@@ -456,7 +415,6 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 #else
 	add_to_str(s, l, cast_uchar "LibEvent");
 #endif
-#ifdef HAVE_EVENT_GET_VERSION
 	add_to_str(s, l, cast_uchar " ");
 	{
 #if defined(HAVE_LIBEV)
@@ -469,19 +427,13 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 #endif
 		add_to_str(s, l, cast_uchar event_get_version());
 	}
-#endif
 	if (!event_enabled) {
 		add_to_str(s, l, cast_uchar " ");
 		add_to_str(s, l, get_text_translation(TEXT_(T_dISABLED), term));
 		add_to_str(s, l, cast_uchar ")");
 	} else {
-#if defined(HAVE_EVENT_BASE_GET_METHOD)
 		add_to_str(s, l, cast_uchar " ");
 		add_to_str(s, l, cast_uchar event_base_get_method(event_base));
-#elif defined(HAVE_EVENT_GET_METHOD)
-		add_to_str(s, l, cast_uchar " ");
-		add_to_str(s, l, cast_uchar event_get_method());
-#endif
 	}
 #endif
 }
@@ -691,10 +643,6 @@ SIGNAL_HANDLER static void got_signal(int sig)
 	int sv_errno = errno;
 		/*fprintf(stderr, "ERROR: signal number: %d\n", sig);*/
 
-#if !defined(HAVE_SIGACTION)
-	do_signal(sig, got_signal);
-#endif
-
 	/* if we get signal from a forked child, don't do anything */
 	if (getpid() != signal_pid) goto ret;
 
@@ -717,16 +665,12 @@ SIGNAL_HANDLER static void got_signal(int sig)
 	errno = sv_errno;
 }
 
-#ifdef HAVE_SIGACTION
 static struct sigaction sa_zero;
-#endif
 
 #endif
 
 void install_signal_handler(int sig, void (*fn)(void *), void *data, int critical)
 {
-#if defined(NO_SIGNAL_HANDLERS)
-#elif defined(HAVE_SIGACTION)
 	int rs;
 	struct sigaction sa = sa_zero;
 	/*debug("install (%d) -> %p,%d", sig, fn, critical);*/
@@ -745,18 +689,11 @@ void install_signal_handler(int sig, void (*fn)(void *), void *data, int critica
 	signal_handlers[sig].critical = critical;
 	if (fn)
 		EINTRLOOP(rs, sigaction(sig, &sa, NULL));
-#else
-	if (!fn) do_signal(sig, SIG_IGN);
-	signal_handlers[sig].fn = fn;
-	signal_handlers[sig].data = data;
-	signal_handlers[sig].critical = critical;
-	if (fn) do_signal(sig, got_signal);
-#endif
 }
 
 void interruptible_signal(int sig, int in)
 {
-#if defined(HAVE_SIGACTION) && !defined(NO_SIGNAL_HANDLERS)
+#if !defined(NO_SIGNAL_HANDLERS)
 	struct sigaction sa = sa_zero;
 	int rs;
 	if (sig >= NUM_SIGNALS || sig < 0) {
@@ -779,7 +716,6 @@ void block_signals(int except1, int except2)
 	int rs;
 	sigset_t mask;
 	sig_fill_set(&mask);
-#ifdef HAVE_SIGDELSET
 	if (except1) sigdelset(&mask, except1);
 	if (except2) sigdelset(&mask, except2);
 #ifdef SIGILL
@@ -796,9 +732,6 @@ void block_signals(int except1, int except2)
 #endif
 #ifdef SIGBUS
 	sigdelset(&mask, SIGBUS);
-#endif
-#else
-	if (except1 || except2) return;
 #endif
 	EINTRLOOP(rs, do_sigprocmask(SIG_BLOCK, &mask, &sig_old_mask));
 	if (!rs) sig_unblock = 1;
@@ -868,10 +801,8 @@ void reinit_child(void)
 #endif
 #ifdef USE_LIBEVENT
 	if (event_enabled) {
-#ifdef HAVE_EVENT_REINIT
 		if (event_reinit(event_base))
 			fatal_exit("ERROR: event_reinit failed: %s", strerror(errno));
-#endif
 	}
 #endif
 }
@@ -885,9 +816,7 @@ void select_loop(void (*init)(void))
 #endif
 
 #if !defined(NO_SIGNAL_HANDLERS)
-#if defined(HAVE_SIGACTION)
 	memset(&sa_zero, 0, sizeof sa_zero);
-#endif
 	memset((void *)signal_mask, 0, sizeof signal_mask);
 	memset((void *)signal_handlers, 0, sizeof signal_handlers);
 #endif

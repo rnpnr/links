@@ -40,7 +40,7 @@ void sig_tstp(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
 #if defined(SIGSTOP) && !defined(NO_CTRL_Z)
-#if defined(SIGCONT) && defined(SIGTTOU) && defined(HAVE_GETPID)
+#if defined(SIGCONT) && defined(SIGTTOU)
 	pid_t pid, newpid;
 	EINTRLOOP(pid, getpid());
 #endif
@@ -52,7 +52,7 @@ void sig_tstp(void *t_)
 		drv->block(NULL);
 	}
 #endif
-#if defined(SIGCONT) && defined(SIGTTOU) && defined(HAVE_GETPID)
+#if defined(SIGCONT) && defined(SIGTTOU)
 	EINTRLOOP(newpid, fork());
 	if (!newpid) {
 		while (1) {
@@ -66,7 +66,7 @@ void sig_tstp(void *t_)
 		int rr;
 		EINTRLOOP(rr, raise(SIGSTOP));
 	}
-#if defined(SIGCONT) && defined(SIGTTOU) && defined(HAVE_GETPID)
+#if defined(SIGCONT) && defined(SIGTTOU)
 	if (newpid != -1) {
 		int rr;
 		EINTRLOOP(rr, kill(newpid, SIGKILL));
@@ -472,9 +472,7 @@ static void terminate_all_subsystems(void)
 
 	free_all_caches();
 	free_format_text_cache();
-#ifdef HAVE_SSL
 	ssl_finish();
-#endif
 	if (init_b) save_url_history();
 	free_history_lists();
 	free_term_specs();

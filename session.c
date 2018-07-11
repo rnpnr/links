@@ -675,7 +675,6 @@ found:
 
 time_t parse_http_date(unsigned char *date)	/* this functions is bad !!! */
 {
-#ifdef HAVE_MKTIME
 	static unsigned char *months[12] = {
 		cast_uchar "Jan",
 		cast_uchar "Feb",
@@ -786,9 +785,6 @@ time_t parse_http_date(unsigned char *date)	/* this functions is bad !!! */
 	t = mktime(&tm);
 	if (t == (time_t) -1) return 0;
 	return t;
-#else
-	return 0;
-#endif
 }
 
 
@@ -956,35 +952,21 @@ have_frag:
 				exec_on_terminal(get_download_ses(down)->term, down->prog, down->orig_file, !!down->prog_flag_block);
 				mem_free(down->prog), down->prog = NULL;
 			} else if (down->remotetime && download_utime) {
-#if defined(HAVE_UTIME) || defined(HAVE_UTIMES)
-#ifdef HAVE_UTIMES
 				struct timeval utv[2];
-#else
-				struct utimbuf ut;
-#endif
 				unsigned char *file = stracpy(down->orig_file);
 				unsigned char *wd = get_cwd();
 				set_cwd(down->cwd);
-#ifdef HAVE_UTIMES
 				utv[0].tv_usec = utv[1].tv_usec = 0;
 				utv[0].tv_sec = utv[1].tv_sec = down->remotetime;
-#else
-				ut.actime = ut.modtime = down->remotetime;
-#endif
 				while (1) {
 					unsigned char *f = translate_download_file(file);
-#ifdef HAVE_UTIMES
 					EINTRLOOP(rs, utimes(cast_char f, utv));
-#else
-					EINTRLOOP(rs, utime(cast_const_char f, &ut));
-#endif
 					mem_free(f);
 					if (!strcmp(cast_const_char file, cast_const_char down->file)) break;
 					increase_download_file(&file);
 				}
 				mem_free(file);
 				if (wd) set_cwd(wd), mem_free(wd);
-#endif
 			}
 		}
 		abort_download(down);

@@ -11,7 +11,6 @@ unsigned char system_name[MAX_STR_LEN];
 
 static void get_system_name(void)
 {
-#if defined(HAVE_SYS_UTSNAME_H) && defined(HAVE_UNAME)
 	{
 		struct utsname name;
 		int rs;
@@ -30,27 +29,6 @@ static void get_system_name(void)
 			return;
 		}
 	}
-#endif
-#ifdef HAVE_POPEN
-	/*if (0) {
-		FILE *f;
-		unsigned char *p;
-		memset(system_name, 0, MAX_STR_LEN);
-		ENULLLOOP(f, popen("uname -srm", "r"));
-		if (!f) goto fail;
-		if (!fread(system_name, 1, MAX_STR_LEN - 1, f)) {
-			pclose(f);
-			goto fail;
-		}
-		pclose(f);
-		for (p = system_name; *p; p++) if (*p < ' ') {
-			*p = 0;
-			break;
-		}
-		if (system_name[0]) return;
-	}
-	fail:*/
-#endif
 	strcpy(cast_char system_name, SYSTEM_NAME);
 }
 
@@ -1325,7 +1303,7 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 	do_real_lookup(h3, ipv6_options.addr_preference, &addr);
 	mem_free(h3);
 	if (!addr.n) {
-#if !defined(USE_GETADDRINFO) && defined(HAVE_GETHOSTBYNAME) && defined(HAVE_HERROR)
+#if !defined(USE_GETADDRINFO)
 		herror("error");
 #else
 		fprintf(stderr, "error: host not found\n");

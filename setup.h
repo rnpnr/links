@@ -16,9 +16,7 @@
  *		 3=leaky, ruda zona, alloc, realloc a free patterny
  *		-1=tajny level ;-)
  */
-/* nastavuje se v configure --enable-debuglevel=-1,0,1,2,3
-#define DEBUGLEVEL			2
-*/
+/* nastavuje se v configure --enable-debuglevel=-1,0,1,2,3 */
 
 #define LINKS_SOCK_NAME			"socket"
 #define LINKS_ANONYMOUS_SOCK_SUFFIX	"-a"

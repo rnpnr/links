@@ -79,22 +79,11 @@
 #undef format
 #endif
 
-#if defined(HAVE_XOPENIM) && defined(HAVE_XCLOSEIM) && defined(HAVE_XCREATEIC) && defined(HAVE_XDESTROYIC) && (defined(HAVE_XWCLOOKUPSTRING) || defined(HAVE_XUTF8LOOKUPSTRING))
-#define X_INPUT_METHOD
-#endif
-
 #include <X11/Xlib.h>
 #include <X11/X.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
-#if defined(HAVE_X11_XLOCALE_H) && defined(HAVE_XSETLOCALE)
 #include <X11/Xlocale.h>
-#else
-#ifdef HAVE_SETLOCALE
-#undef HAVE_SETLOCALE
-#endif
-#endif
-
 
 #ifndef XK_MISCELLANY
 #define XK_MISCELLANY
@@ -105,9 +94,7 @@
 #endif
 #include <X11/keysymdef.h>
 
-#ifdef HAVE_LANGINFO_H
 #include <langinfo.h>
-#endif
 
 #define X_BORDER_WIDTH 4
 #define X_HASH_TABLE_SIZE 64
@@ -145,9 +132,7 @@ static Atom x_delete_window_atom, x_wm_protocols_atom, x_sel_atom, x_targets_ato
 static Visual* x_default_visual;
 static Pixmap x_icon = 0;
 
-#ifdef X_INPUT_METHOD
 static XIM xim = NULL;
-#endif
 
 extern struct graphics_driver x_driver;
 
@@ -180,9 +165,7 @@ x_hash_table[X_HASH_TABLE_SIZE];
 static unsigned char * x_my_clipboard=NULL;
 
 struct window_info {
-#ifdef X_INPUT_METHOD
 	XIC xic;
-#endif
 	Window window;
 };
 
@@ -358,32 +341,16 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 	int table = x_input_encoding < 0 ? g_kbd_codepage(&x_driver) : x_input_encoding;
 	int len;
 
-#ifdef X_INPUT_METHOD
 	if (get_window_info(gd)->xic) {
 		Status status;
-#ifndef HAVE_XUTF8LOOKUPSTRING
-		{
-			wchar_t wc;
-			len = XwcLookupString(get_window_info(gd)->xic, e, &wc, 1, &ks, &status);
-			if (len == 1) {
-				strcpy(cast_char str, cast_const_char encode_utf_8(wc));
-				len = strlen(cast_const_char str);
-			} else
-				len = 0;
-		}
-#else
 		{
 			len = Xutf8LookupString(get_window_info(gd)->xic, e, cast_char str, str_size, &ks, &status);
 		}
-#endif
 		table = utf8_table;
 		/*fprintf(stderr, "len: %d, ks %ld, status %d\n", len, ks, status);*/
 	} else
-#endif
-
-	{
 		len = XLookupString(e,cast_char str,str_size,&ks,&comp);
-	}
+
 	str[len>str_size?str_size:len]=0;
 	if (!len) str[0]=(unsigned char)ks, str[1]=0;
 	*flag=0;
@@ -557,9 +524,7 @@ static void x_free_hash_table(void)
 		if (x_copy_gc) XFreeGC(x_display,x_copy_gc), x_copy_gc = 0;
 		if (x_drawbitmap_gc) XFreeGC(x_display,x_drawbitmap_gc), x_drawbitmap_gc = 0;
 		if (x_scroll_gc) XFreeGC(x_display,x_scroll_gc), x_scroll_gc = 0;
-#ifdef X_INPUT_METHOD
 		if (xim) XCloseIM(xim), xim = NULL;
-#endif
 		XCloseDisplay(x_display), x_display = NULL;
 	}
 
@@ -784,10 +749,8 @@ static void x_process_events(void *data)
 					MESSAGE(txt);
 				}
 #endif
-#ifdef X_INPUT_METHOD
 				if (XFilterEvent(&event, None))
 					break;
-#endif
 				gd=x_find_gd(&(event.xkey.window));
 				if (!gd)break;
 				if (x_translate_key(gd, (XKeyEvent*)(&event),&k,&f))
@@ -1038,9 +1001,7 @@ static unsigned char *x_get_af_unix_name(void)
 	return x_display_string;
 }
 
-#ifdef X_INPUT_METHOD
 static XIC x_open_xic(Window w);
-#endif
 
 /* initiate connection with X server */
 static unsigned char *x_init_driver(unsigned char *param, unsigned char *display)
@@ -1054,7 +1015,7 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 	n_wins=0;
 
-#if defined(HAVE_SETLOCALE) && defined(LC_CTYPE)
+#if defined(LC_CTYPE)
 	setlocale(LC_CTYPE, "");
 #endif
 #ifdef X_DEBUG
@@ -1065,7 +1026,7 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 	}
 #endif
 	x_input_encoding=-1;
-#if defined(HAVE_NL_LANGINFO) && defined(HAVE_LANGINFO_H) && defined(CODESET) && !defined(WIN)
+#if defined(CODESET)
 	{
 		unsigned char *cp;
 		cp = cast_uchar nl_langinfo(CODESET);
@@ -1348,9 +1309,8 @@ visual_found:;
 
 	XSetLineAttributes(x_display,x_normal_gc,1,LineSolid,CapRound,JoinRound);
 
-#ifdef X_INPUT_METHOD
 	{
-#if defined(HAVE_SETLOCALE) && defined(LC_CTYPE)
+#if defined(LC_CTYPE)
 		/*
 		 * Unfortunatelly, dead keys are translated according to
 		 * current locale, even if we use Xutf8LookupString.
@@ -1376,7 +1336,7 @@ visual_found:;
 		}
 #endif
 		xim = XOpenIM(x_display, NULL, NULL, NULL);
-#if defined(HAVE_SETLOCALE) && defined(LC_CTYPE)
+#if defined(LC_CTYPE)
 		if (!xim) {
 			l = cast_uchar setlocale(LC_CTYPE, "en_US.UTF-8");
 			xim = XOpenIM(x_display, NULL, NULL, NULL);
@@ -1390,17 +1350,13 @@ visual_found:;
 				XCloseIM(xim), xim = NULL;
 			}
 		}
-#if defined(HAVE_SETLOCALE) && defined(LC_CTYPE)
+#if defined(LC_CTYPE)
 		setlocale(LC_CTYPE, "");
 #endif
 	}
-#endif
 
-	if (x_input_encoding<0
-#ifdef X_INPUT_METHOD
-		&& !xim
-#endif
-		) x_driver.flags|=GD_NEED_CODEPAGE;
+	if (x_input_encoding < 0 && !xim)
+		x_driver.flags|=GD_NEED_CODEPAGE;
 
 	x_fd=XConnectionNumber(x_display);
 	set_handlers(x_fd, x_process_events, NULL, NULL);
@@ -1420,12 +1376,10 @@ static void x_shutdown_driver(void)
 	x_free_hash_table();
 }
 
-#ifdef X_INPUT_METHOD
 static XIC x_open_xic(Window w)
 {
 	return XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, w, XNFocusWindow, w, NULL);
 }
-#endif
 
 /* create new window */
 static struct graphics_device* x_init_device(void)
@@ -1530,11 +1484,8 @@ nic_nebude_bobankove:;
 		0
 	);
 
-#ifdef X_INPUT_METHOD
-	if (xim) {
+	if (xim)
 		wi->xic = x_open_xic(wi->window);
-	}
-#endif
 
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
@@ -1553,11 +1504,8 @@ static void x_shutdown_device(struct graphics_device *gd)
 
 	n_wins--;
 	XDestroyWindow(x_display, wi->window);
-#ifdef X_INPUT_METHOD
-	if (wi->xic) {
+	if (wi->xic)
 		XDestroyIC(wi->xic);
-	}
-#endif
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
 
@@ -2132,12 +2080,10 @@ static void x_set_window_title(struct graphics_device *gd, unsigned char *title)
 	int output_encoding;
 	Status ret;
 
-#if defined(HAVE_XSUPPORTSLOCALE) && defined(HAVE_XMBTEXTLISTTOTEXTPROPERTY)
 	if (XSupportsLocale()) {
 		output_encoding = x_input_encoding >= 0 ? x_input_encoding : 0;
 	} else
 retry_encode_ascii:
-#endif
 	{
 		output_encoding = 0;
 	}
@@ -2147,7 +2093,6 @@ retry_encode_ascii:
 	clr_white(t);
 	/*XStoreName(x_display,get_window_info(gd)->window,"blabla");*/
 
-#if defined(HAVE_XSUPPORTSLOCALE) && defined(HAVE_XMBTEXTLISTTOTEXTPROPERTY)
 	if (XSupportsLocale()) {
 		ret = XmbTextListToTextProperty(x_display, (char**)(void *)(&t), 1, XStdICCTextStyle, &windowName);
 #ifdef X_HAVE_UTF8_STRING
@@ -2169,7 +2114,6 @@ retry_encode_ascii:
 		}
 	} else
 retry_print_ascii:
-#endif
 	{
 		ret = XStringListToTextProperty((char**)(void *)(&t), 1, &windowName);
 		if (!ret) {

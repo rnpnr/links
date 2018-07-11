@@ -224,10 +224,8 @@ static void http_send_header(struct connection *c)
 	set_connection_timeout(c);
 	info = mem_calloc(sizeof(struct http_connection_info));
 	c->info = info;
-#ifdef HAVE_SSL
 	info->https_forward = !c->ssl && proxy && host && !casecmp(host, cast_uchar "https://", 8);
 	if (c->ssl) proxy = 0;
-#endif
 	hdr = init_str();
 	if (!host) {
 		http_bad_url:
@@ -246,7 +244,6 @@ static void http_send_header(struct connection *c)
 		if (post) post++;
 	}
 	info->send_close = info->https_forward || http10 || (post && http_options.bug_post_no_keepalive);
-#ifdef HAVE_SSL
 	if (info->https_forward) {
 		add_to_str(&hdr, &l, cast_uchar "CONNECT ");
 		h = get_host_name(host);
@@ -259,23 +256,21 @@ static void http_send_header(struct connection *c)
 		add_to_str(&hdr, &l, h);
 		mem_free(h);
 		goto added_connect;
-	} else
-#endif
-	if (!post) {
+	} else if (!post)
 		add_to_str(&hdr, &l, cast_uchar "GET ");
-	} else {
+	else {
 		add_to_str(&hdr, &l, cast_uchar "POST ");
 		c->unrestartable = 2;
 	}
 	if (!proxy) {
 		add_to_str(&hdr, &l, cast_uchar "/");
 		u = get_url_data(host);
-	} else {
+	} else
 		u = host;
-	}
-	if (post && post < u) {
+
+	if (post && post < u)
 		goto http_bad_url;
-	}
+
 	u2 = u;
 	if (proxy && !*c->socks_proxy && *proxies.dns_append) {
 		unsigned char *u_host;
@@ -289,9 +284,7 @@ static void http_send_header(struct connection *c)
 	}
 	add_url_to_str(&hdr, &l, u2);
 	if (u2 != u) mem_free(u2);
-#ifdef HAVE_SSL
 	added_connect:
-#endif
 	if (!http10) add_to_str(&hdr, &l, cast_uchar " HTTP/1.1\r\n");
 	else add_to_str(&hdr, &l, cast_uchar " HTTP/1.0\r\n");
 	if (!info->https_forward && (h = get_host_name(host))) {
@@ -361,7 +354,6 @@ static void test_restart(struct connection *c)
 			mem_free(d);
 			c->from = 0;
 			c->no_compress = 1;
-#ifdef HAVE_ANY_COMPRESSION
 			if (c->tries >= 1) {
 				unsigned char *h;
 				if ((h = get_host_name(c->url))) {
@@ -369,7 +361,6 @@ static void test_restart(struct connection *c)
 					mem_free(h);
 				}
 			}
-#endif
 		}
 	}
 }
@@ -492,7 +483,6 @@ static void add_accept_language(unsigned char **hdr, int *l, struct http_connect
 	}
 }
 
-#ifdef HAVE_ANY_COMPRESSION
 static int advertise_compression(unsigned char *url, struct connection *c)
 {
 	struct http_connection_info *info = c->info;
@@ -510,26 +500,21 @@ static int advertise_compression(unsigned char *url, struct connection *c)
 		return 0;
 	return 1;
 }
-#endif
 
 static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url, struct connection *c)
 {
-#if defined(HAVE_ANY_COMPRESSION)
 #define info	((struct http_connection_info *)c->info)
 	if (advertise_compression(url, c)) {
 		int orig_l = *l;
 		int l1;
 		add_to_str(hdr, l, cast_uchar "Accept-Encoding: ");
 		l1 = *l;
-#if defined(HAVE_ZLIB)
 		if (*l != l1) add_to_str(hdr, l, cast_uchar ", ");
 		add_to_str(hdr, l, cast_uchar "gzip, deflate");
-#endif
 		if (*l != l1) add_to_str(hdr, l, cast_uchar "\r\n");
 		else *l = orig_l;
 	}
 #undef info
-#endif
 }
 
 static void add_accept_charset(unsigned char **hdr, int *l, struct http_connection_info *info)
@@ -915,7 +900,6 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 		abort_connection(c);
 		return;
 	}
-#ifdef HAVE_SSL
 	if (info->https_forward && h >= 200 && h < 300) {
 		mem_free(head);
 		mem_free(c->info);
@@ -930,7 +914,6 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 		abort_connection(c);
 		return;
 	}
-#endif
 	if (h != 401 && h != 407) {
 		unsigned char *cookie;
 		unsigned char *ch = head;
@@ -1023,12 +1006,10 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 		}
 		mem_free(d);
 	}
-#ifdef HAVE_SSL
 	if (c->ssl) {
 		if (e->ssl_info) mem_free(e->ssl_info);
 		e->ssl_info = get_cipher_string(c->ssl);
 	}
-#endif
 	if (e->redirect) mem_free(e->redirect), e->redirect = NULL;
 	if ((h == 302 || h == 303 || h == 307 || h == 511) && !e->expire_time) e->expire_time = 1;
 	if (h == 301 || h == 302 || h == 303 || h == 307) {

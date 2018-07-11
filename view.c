@@ -4098,14 +4098,12 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			add_to_str(&s, &l, a);
 			mem_free(a);
 		}
-#ifdef HAVE_SSL
 		if (ce->ssl_info) {
 			add_to_str(&s, &l, cast_uchar "\n");
 			add_to_str(&s, &l, get_text_translation(TEXT_(T_SSL_CIPHER), term));
 			add_to_str(&s, &l, cast_uchar ": ");
 			add_to_str(&s, &l, ce->ssl_info);
 		}
-#endif
 		ce->refcount--;
 	}
 	if ((a = print_current_linkx_plus(frame, term))) {

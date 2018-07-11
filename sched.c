@@ -178,10 +178,8 @@ int get_keepalive_socket(struct connection *c, int *protocol_data)
 	if (!(k = is_host_on_keepalive_list(c))) return -1;
 	cc = k->conn;
 	if (protocol_data) *protocol_data = k->protocol_data;
-#ifdef HAVE_SSL
 	freeSSL(c->ssl);
 	c->ssl = k->ssl;
-#endif
 	memcpy(&c->last_lookup_state, &k->last_lookup_state, sizeof(struct lookup_state));
 	del_from_list(k);
 	mem_free(k->host);
@@ -311,9 +309,7 @@ void add_keepalive_socket(struct connection *c, uttime timeout, int protocol_dat
 	}
 	k = mem_alloc(sizeof(struct k_conn));
 	if (c->netcfg_stamp != netcfg_stamp ||
-#ifdef HAVE_SSL
 	    ssl_not_reusable(c->ssl) ||
-#endif
 	    (k->port = get_port(c->url)) == -1 ||
 	    !(k->protocol = get_protocol_handle(c->url)) ||
 	    !(k->host = get_keepalive_id(c->url))) {
@@ -325,9 +321,7 @@ void add_keepalive_socket(struct connection *c, uttime timeout, int protocol_dat
 	k->timeout = timeout;
 	k->add_time = get_absolute_time();
 	k->protocol_data = protocol_data;
-#ifdef HAVE_SSL
 	k->ssl = c->ssl;
-#endif
 	memcpy(&k->last_lookup_state, &c->last_lookup_state, sizeof(struct lookup_state));
 	add_to_list(keepalive_connections, k);
 	del:
@@ -345,9 +339,7 @@ static void del_keepalive_socket(struct k_conn *kc)
 {
 	int rs;
 	del_from_list(kc);
-#ifdef HAVE_SSL
 	freeSSL(kc->ssl);
-#endif
 	EINTRLOOP(rs, close(kc->conn));
 	mem_free(kc->host);
 	mem_free(kc);
@@ -414,10 +406,8 @@ static void sort_queue(void)
 
 static void interrupt_connection(struct connection *c)
 {
-#ifdef HAVE_SSL
 	freeSSL(c->ssl);
 	c->ssl = NULL;
-#endif
 	close_socket(&c->sock1);
 	free_connection_data(c);
 }
@@ -688,9 +678,7 @@ unsigned char *get_proxy_string(unsigned char *url)
 		return NULL;
 	if (*proxies.http_proxy && !casecmp(url, cast_uchar "http://", 7)) return proxies.http_proxy;
 	if (*proxies.ftp_proxy && !casecmp(url, cast_uchar "ftp://", 6)) return proxies.ftp_proxy;
-#ifdef HAVE_SSL
 	if (*proxies.https_proxy && !casecmp(url, cast_uchar "https://", 8)) return proxies.https_proxy;
-#endif
 	return NULL;
 }
 
@@ -892,11 +880,7 @@ void load_url(unsigned char *url, unsigned char *prev_url, struct status *stat, 
 	c->cache = NULL;
 	c->est_length = -1;
 	c->unrestartable = 0;
-#ifdef HAVE_ANY_COMPRESSION
 	c->no_compress = http_options.no_compression || no_compress || dmp == D_SOURCE;
-#else
-	c->no_compress = 1;
-#endif
 	c->prg.timer = NULL;
 	c->timer = NULL;
 	if (position || must_detach) {

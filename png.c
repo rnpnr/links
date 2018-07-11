@@ -12,18 +12,6 @@
 #undef REPACK_16
 #endif /* #ifdef REPACK_16 */
 
-#if SIZEOF_UNSIGNED_SHORT != 2
-#define REPACK_16
-#endif /* #if SIZEOF_UNSIGNED_SHORT != 2 */
-
-#ifndef REPACK_16
-#ifndef C_LITTLE_ENDIAN
-#ifndef C_BIG_ENDIAN
-#define REPACK_16
-#endif /* #ifndef C_BIG_ENDIAN */
-#endif /* #ifndef C_LITTLE_ENDIAN */
-#endif /* #ifndef REPACK_16 */
-
 /* Decoder structs */
 
 struct png_decoder{
@@ -72,13 +60,11 @@ static void png_info_callback(png_structp png_ptr, png_infop info_ptr)
 		png_set_gray_to_rgb(png_ptr);
 	if (bit_depth==16){
 #ifndef REPACK_16
-#ifdef C_LITTLE_ENDIAN
 		/* We use native endianity only if unsigned short is 2-byte
 		 * because otherwise we have to reassemble the buffer so we
 		 * will leave in the libpng-native big endian.
 		 */
 		png_set_swap(png_ptr);
-#endif /* #ifdef C_LITTLE_ENDIAN */
 #endif /* #ifndef REPACK_16 */
 		bytes_per_pixel*=(int)sizeof(unsigned short);
 	}
@@ -264,11 +250,7 @@ void png_destroy_decoder(struct cached_image *cimg)
 void add_png_version(unsigned char **s, int *l)
 {
 	add_to_str(s, l, cast_uchar "PNG (");
-#ifdef HAVE_PNG_GET_LIBPNG_VER
 	add_to_str(s, l, cast_uchar png_get_libpng_ver(NULL));
-#else
-	add_to_str(s, l, cast_uchar PNG_LIBPNG_VER_STRING);
-#endif
 	add_to_str(s, l, cast_uchar ")");
 }
 

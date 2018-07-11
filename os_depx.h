@@ -24,10 +24,6 @@
 #define MAX_SIZE_T	((size_t)-0x1000)
 #endif
 
-#if !defined(HAVE_ERRNO) && !defined(errno)
-extern int errno;
-#endif
-
 #ifndef SEEK_SET
 #ifdef L_SET
 #define SEEK_SET	L_SET
@@ -150,10 +146,6 @@ extern int errno;
 #define SIGNAL_HANDLER
 #endif
 
-#ifndef HAVE_SOCKLEN_T
-#define socklen_t int
-#endif
-
 #ifndef PF_INET
 #define PF_INET AF_INET
 #endif
@@ -193,9 +185,7 @@ extern int errno;
 #define ATTR_NOINLINE
 #endif
 
-#if defined(HAVE_GETADDRINFO) && defined(HAVE_FREEADDRINFO)
 #define USE_GETADDRINFO
-#endif
 
 #ifdef SUPPORT_IPV6
 #ifndef PF_INET6
@@ -211,13 +201,8 @@ extern int errno;
 #endif
 
 #ifdef G
-#ifndef HAVE_POWF
-#define float_double double
-#define fd_pow pow
-#else
 #define float_double float
 #define fd_pow powf
-#endif
 #endif
 
 #if defined(__DECC_VER)

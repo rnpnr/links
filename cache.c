@@ -5,18 +5,12 @@
 
 #include "links.h"
 
-#if defined(HAVE_SEARCH_H) && defined(HAVE_TDELETE) && defined(HAVE_TFIND) && defined(HAVE_TSEARCH)
-#define USE_TREE
-#endif
-
 static struct list_head cache = {&cache, &cache};
 
 static my_uintptr_t cache_size = 0;
 
 static tcount cache_count = 1;
 
-
-#ifdef USE_TREE
 
 static void *cache_root = NULL;
 
@@ -81,24 +75,6 @@ static struct cache_entry *cache_search_tree(unsigned char *url)
 	if (!p) return NULL;
 	return get_struct(*p, struct cache_entry, url);
 }
-
-#else
-
-static void cache_add_to_tree(struct cache_entry *e) { }
-static void cache_delete_from_tree(struct cache_entry *e) { }
-
-static struct cache_entry *cache_search_tree(unsigned char *url)
-{
-	struct cache_entry *e;
-	struct list_head *le;
-	foreach(struct cache_entry, e, le, cache)
-		if (!strcmp(cast_const_char e->url, cast_const_char url))
-			return e;
-	return NULL;
-}
-
-#endif
-
 
 my_uintptr_t cache_info(int type)
 {
@@ -473,9 +449,7 @@ void delete_cache_entry(struct cache_entry *e)
 	if (e->head) mem_free(e->head);
 	if (e->redirect) mem_free(e->redirect);
 	if (e->ip_address) mem_free(e->ip_address);
-#ifdef HAVE_SSL
 	if (e->ssl_info) mem_free(e->ssl_info);
-#endif
 	mem_free(e);
 }
 
@@ -547,10 +521,8 @@ ret:
 
 void init_cache(void)
 {
-#ifdef HAVE_GETPAGESIZE
 	int getpg;
 	EINTRLOOP(getpg, getpagesize());
 	if (getpg > 0 && getpg < 0x10000 && !(getpg & (getpg - 1))) page_size = getpg;
-#endif
 	register_cache_upcall(shrink_file_cache, 0, cast_uchar "file");
 }
