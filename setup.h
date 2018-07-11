@@ -3,12 +3,6 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-#if 0
-#define VERSION_STRING			VERSION " ["__DATE__ " " __TIME__"]"
-#else
-#define VERSION_STRING			VERSION
-#endif
-
 /* DEBUG LEVEL:
  *		 0=vsechno vypnuty
  *		 1=leaky

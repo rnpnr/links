@@ -59,7 +59,7 @@ static void menu_version(void *term_)
 	text_ptr = version_texts;
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, cast_uchar VERSION_STRING);
+	add_to_str(&s, &l, cast_uchar VERSION);
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);

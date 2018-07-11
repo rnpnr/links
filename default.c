@@ -1323,7 +1323,7 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 
 static unsigned char *version_cmd(struct option *o, unsigned char ***argv, int *argc)
 {
-	printf("Links " VERSION_STRING "\n");
+	printf("Links " VERSION "\n");
 	fflush(stdout);
 	do_exit(RET_OK);
 	return NULL;

@@ -2927,33 +2927,3 @@ unsigned char *get_current_title(struct f_data_c *fd, unsigned char *str, size_t
 
 	return str;
 }
-
-#if 0
-/*
-  Gets the url of the link currently selected. Writes it into str.
-  A maximum of str_size bytes (including null) will be written.
-*/
-unsigned char *get_current_link_url(struct session *ses, unsigned char *str, size_t str_size)
-{
-	struct f_data_c *fd;
-	struct link *l;
-
-	fd = (struct f_data_c *)current_frame(ses);
-	/* What the hell is an 'fd'? */
-	if (!fd)
-		return NULL;
-
-	/* Nothing selected? */
-	if (fd->vs->current_link == -1 || fd->vs->current_link >= fd->f_data->nlinks)
-		return NULL;
-
-	l = &fd->f_data->links[fd->vs->current_link];
-	/* Only write a link */
-	if (l->type != L_LINK)
-		return NULL;
-
-	safe_strncpy(str, l->where, str_size);
-
-	return str;
-}
-#endif

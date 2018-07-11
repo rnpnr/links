@@ -371,7 +371,7 @@ static void add_user_agent(unsigned char **hdr, int *l)
 	if (SCRUB_HEADERS) {
 		add_to_str(hdr, l, cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0\r\n");
 	} else if (!(*http_options.header.fake_useragent)) {
-		add_to_str(hdr, l, cast_uchar("Links (" VERSION_STRING "; "));
+		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
 		add_to_str(hdr, l, system_name);
 		add_to_str(hdr, l, cast_uchar "; ");
 		add_to_str(hdr, l, compiler_name);

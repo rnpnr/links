@@ -495,17 +495,11 @@ static void terminate_all_subsystems(void)
 	terminate_osdep();
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	g_argc = argc;
 	g_argv = (unsigned char **)argv;
-
-#if 0
-	if (argc != 3)
-		fprintf(stderr, "two args expected\n"), exit(1);
-	printf("cookie %saccepted\n", allow_cookie_domain(cast_uchar argv[1], cast_uchar argv[2]) ? "" : "not ");
-	return 0;
-#endif
 
 	init_heap();
 
@@ -513,151 +507,9 @@ int main(int argc, char *argv[])
 
 	get_path_to_exe();
 
-#if 0
-	{
-		int i;
-		int ix, iy, ox, oy, rep;
-		ulonglong tm = 0;
-		parse_options(g_argc - 1, g_argv + 1);
-		ix = getenv("SRC_X") ? atoi(getenv("SRC_X")) : 100;
-		iy = getenv("SRC_Y") ? atoi(getenv("SRC_Y")) : ix;
-		ox = getenv("DST_X") ? atoi(getenv("DST_X")) : 100;
-		oy = getenv("DST_Y") ? atoi(getenv("DST_Y")) : ox;
-		rep = getenv("REP") ? atoi(getenv("REP")) : 1;
-		for (i = 0; i <= rep; i++) {
-			unsigned short *dst;
-			unsigned short *src;
-			struct timeval tv1, tv2;
-			src = mem_alloc(sizeof(unsigned short) * ix * iy * 3);
-			memset(src, 0x12, sizeof(unsigned short) * ix * iy * 3);
-			gettimeofday(&tv1, NULL);
-			scale_color(src, ix, iy, &dst, ox, oy);
-			gettimeofday(&tv2, NULL);
-			if (dst) mem_free(dst);
-			if (i)
-				tm += ((ulonglong)tv2.tv_sec * 1000000 + tv2.tv_usec) - ((ulonglong)tv1.tv_sec * 1000000 + tv1.tv_usec);
-		}
-		fprintf(stderr, "time: %f\n", (double)tm / 1000 / rep);
-		check_memory_leaks();
-		return 0;
-	}
-#endif
-#if 0
-	{
-		int i;
-		for (i = 0; i < 100; i++) {
-			unsigned char *a = mem_calloc(i);
-			unsigned char *b = base64_encode(a, i, cast_uchar "", cast_uchar "", 5);
-			fprintf(stderr, "X:\n%.*s\n", (int)strlen(cast_const_char b), b);
-			mem_free(a);
-			mem_free(b);
-		}
-		check_memory_leaks();
-		return 0;
-	}
-#endif
-#if 0
-	{
-		unsigned char *puny_encode(unsigned char *s);
-		unsigned char *puny_decode(unsigned char *s);
-		int i;
-		for (i = 1; i < g_argc; i++) {
-			unsigned char *str = puny_encode(g_argv[i]);
-			if (str) {
-				fprintf(stderr, "'%s'\n", str);
-				unsigned char *d = puny_decode(str);
-				if (!d || strcmp(cast_const_char d, cast_const_char g_argv[i])) {
-					internal("mismatch - %s", d);
-				}
-				mem_free(str);
-				mem_free(d);
-			}
-		}
-		check_memory_leaks();
-		return 0;
-	}
-#endif
-#if 0
-	while (1) {
-#define maxn	12
-		static unsigned long long count = 0;
-		unsigned char *puny_encode(unsigned char *s, int len);
-		unsigned char *puny_decode(unsigned char *s, int len);
-		int punycode_encode(size_t input_length, const uint32_t input[], const unsigned char case_flags[], size_t *output_length, char output[]);
-		int punycode_decode(size_t input_length, const char input[], size_t * output_length, uint32_t output[], unsigned char case_flags[]);
-		uint32_t unistr[maxn];
-		unsigned i, n;
-		unsigned char *utfstr, *puny, *dec;
-		int utfstr_l;
-		char pce_o[60];
-		size_t pce_ol;
-		int pce_s;
-		n = random() % (maxn + 1);
-		for (i = 0; i < n; i++) {
-			uint32_t uni;
-			uni = random() % (0x10FFFF + 1);
-			if (uni >= 0xd800 && uni <= 0xdfff)
-				uni = random() % 128;
-			while (uni < 128 && !(
-				uni == '-' ||
-				(uni >= '0' && uni <= '9') ||
-				(uni >= 'A' && uni <= 'Z') ||
-				(uni >= 'a' && uni <= 'z'))) {
-				uni = random() % 128;
-			}
-			unistr[i] = uni;
-		}
-		utfstr = init_str();
-		utfstr_l = 0;
-		for (i = 0; i < n; i++) {
-			unsigned char *us = encode_utf_8(unistr[i]);
-			add_to_str(&utfstr, &utfstr_l, us);
-		}
-		puny = puny_encode(utfstr, utfstr_l);
-		if (!puny) {
-			fprintf(stderr, "failed:");
-			goto err;
-		}
-		dec = puny_decode(puny, (int)strlen(cast_const_char puny));
-		if (!dec)
-			dec = stracpy(puny);
-		if (strcmp(cast_const_char utfstr, cast_const_char dec)) {
-			fprintf(stderr, "mismatch(%s,%s):", utfstr, dec);
-			goto err;
-		}
-		pce_ol = 59;
-		pce_s = punycode_encode(n, unistr, NULL, &pce_ol, pce_o);
-		if (pce_s) {
-			fprintf(stderr, "punycode_encode(%d):", pce_s);
-			goto err;
-		}
-		pce_o[pce_ol] = 0;
-		if (!strncmp(cast_const_char puny, "xn--", 4) && strcmp(cast_const_char puny + 4, pce_o)) {
-			fprintf(stderr, "punycode_encode differs(%s,%s):", puny, pce_o);
-			goto err;
-		}
-		mem_free(dec);
-		mem_free(puny);
-		mem_free(utfstr);
-		if (0) {
-err:
-			for (i = 0; i < n; i++) {
-				fprintf(stderr, " %u", unistr[i]);
-			}
-			internal("failed");
-		}
-		count++;
-		if (!(count % 10000)) {
-			printf("%llu\r", count);
-			fflush(stdout);
-		}
-	}
-#endif
-
 	select_loop(init);
 	terminate_all_subsystems();
 
 	check_memory_leaks();
 	return retval;
 }
-

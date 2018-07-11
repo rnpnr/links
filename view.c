@@ -3996,17 +3996,7 @@ unsigned char *print_current_title(struct session *ses)
 
 static inline int find_in_cache_idn(unsigned char *xurl, struct cache_entry **ce)
 {
-#if 0
-	unsigned char *url;
-	int r;
-	url = idn_encode_url(xurl, 0);
-	if (!url) url = stracpy(xurl);
-	r = find_in_cache(url, ce);
-	mem_free(url);
-	return r;
-#else
 	return find_in_cache(xurl, ce);
-#endif
 }
 
 void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)

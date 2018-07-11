@@ -2913,7 +2913,6 @@ struct f_data_c *find_frame(struct session *ses, unsigned char *target, struct f
 unsigned char *get_current_url(struct session *, unsigned char *, size_t);
 unsigned char *get_current_title(struct f_data_c *, unsigned char *, size_t);
 
-/*unsigned char *get_current_link_url(struct session *, unsigned char *, size_t);*/
 unsigned char *get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form, int *onsubmit);
 
 /* bfu.c */
