@@ -29,7 +29,6 @@ static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
 static void add_accept_charset(unsigned char **hdr, int *l, struct http_connection_info *info);
 static void add_connection(unsigned char **hdr, int *l, int http10, int proxy, int post);
 static void add_upgrade(unsigned char **hdr, int *l);
-static void add_dnt(unsigned char **hdr, int *l);
 static void add_if_modified(unsigned char **hdr, int *l, struct connection *c);
 static void add_range(unsigned char **hdr, int *l, unsigned char *url, struct connection *c);
 static void add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache);
@@ -317,7 +316,8 @@ static void http_send_header(struct connection *c)
 		add_accept_language(&hdr, &l, info);
 		add_accept_encoding(&hdr, &l, host, c);
 		add_accept_charset(&hdr, &l, info);
-		add_dnt(&hdr, &l);
+		/* Always add DNT */
+		add_to_str(&hdr, &l, cast_uchar "DNT: 1\r\n");
 		add_connection(&hdr, &l, http10, proxy, !info->send_close);
 		add_upgrade(&hdr, &l);
 		add_if_modified(&hdr, &l, c);
@@ -545,12 +545,6 @@ static void add_accept_charset(unsigned char **hdr, int *l, struct http_connecti
 		mem_free(ac);
 	}
 	add_to_str(hdr, l, accept_charset);
-}
-
-static void add_dnt(unsigned char **hdr, int *l)
-{
-	if (http_options.header.do_not_track)
-		add_to_str(hdr, l, cast_uchar "DNT: 1\r\n");
 }
 
 static void add_connection(unsigned char **hdr, int *l, int http10, int proxy, int alive)
