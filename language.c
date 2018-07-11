@@ -78,22 +78,14 @@ search_again:
 
 int get_default_charset(void)
 {
-	static int default_charset = -1;
 	unsigned char *lang, *p;
 	int i;
-	if (default_charset >= 0)
-		return default_charset;
-
-	i = os_default_charset();
-	if (i >= 0)
-		goto ret_i;
 
 	lang = cast_uchar getenv("LC_CTYPE");
 	if (!lang)
 		lang = cast_uchar getenv("LANG");
 	if (!lang) {
-		i = 0;
-		goto ret_i;
+		return 0;
 	}
 	if ((p = cast_uchar strchr(cast_const_char lang, '.'))) {
 		p++;
@@ -109,10 +101,8 @@ int get_default_charset(void)
 	i = get_cp_index(p);
 
 	if (i < 0)
-		i = 0;
+		return 0;
 
-	ret_i:
-	default_charset = i;
 	return i;
 }
 

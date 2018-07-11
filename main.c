@@ -206,8 +206,6 @@ void gfx_connection(int h)
 	int info_len;
 	struct terminal *term;
 
-	if (os_send_fg_cookie(h))
-		goto err_close;
 	if (hard_read(h, cwd, MAX_CWD_LEN) != MAX_CWD_LEN)
 		goto err_close;
 	cwd[MAX_CWD_LEN - 1] = 0;
@@ -233,13 +231,6 @@ err_close_free:
 	mem_free(info);
 err_close:
 	EINTRLOOP(r, close(h));
-}
-
-static void gfx_connection_terminate(void *p)
-{
-	int h = (int)(my_intptr_t)p;
-	set_handlers(h, NULL, NULL, NULL);
-	terminate_loop = 1;
 }
 
 #endif

@@ -675,11 +675,7 @@ void set_highpri(void);
 void os_free_clipboard(void);
 
 void os_seed_random(unsigned char **pool, int *pool_size);
-int os_send_fg_cookie(int);
-int os_receive_fg_cookie(int);
 void os_detach_console(void);
-int os_default_language(void);
-int os_default_charset(void);
 
 /* memory.c */
 

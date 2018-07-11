@@ -987,37 +987,6 @@ static void ext_wr(struct option *o, unsigned char **s, int *l)
 	}
 }
 
-static unsigned char *prog_rd(struct option *o, unsigned char *c)
-{
-	unsigned char *err = cast_uchar "Error reading program specification";
-	unsigned char *prog, *w;
-	int n;
-	if (!(prog = get_token(&c))) goto err_1;
-	if (!(w = get_token(&c))) goto err_2;
-	if (getnum(w, &n, 0, 256)) goto err_3;
-	update_prog(o->ptr, prog, n);
-	err = NULL;
-	err_3:
-	mem_free(w);
-	err_2:
-	mem_free(prog);
-	err_1:
-	return err;
-}
-
-static void prog_wr(struct option *o, unsigned char **s, int *l)
-{
-	struct protocol_program *a;
-	struct list_head *la;
-	foreachback(struct protocol_program, a, la, *(struct list_head *)o->ptr) {
-		if (!*a->prog) continue;
-		add_nm(o, s, l);
-		add_quoted_to_str(s, l, a->prog);
-		add_to_str(s, l, cast_uchar " ");
-		add_num_to_str(s, l, a->system);
-	}
-}
-
 static unsigned char *term_rd(struct option *o, unsigned char *c)
 {
 	struct term_spec *ts;

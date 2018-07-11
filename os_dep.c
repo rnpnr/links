@@ -871,15 +871,6 @@ void os_seed_random(unsigned char **pool, int *pool_size)
 	*pool_size = 0;
 }
 
-int os_send_fg_cookie(int h)
-{
-	return 0;
-}
-int os_receive_fg_cookie(int h)
-{
-	return 0;
-}
-
 void os_detach_console(void)
 {
 #if !defined(NO_FORK_ON_EXIT)
@@ -906,14 +897,4 @@ void os_detach_console(void)
 		}
 	}
 #endif
-}
-
-int os_default_language(void)
-{
-	return -1;
-}
-
-int os_default_charset(void)
-{
-	return -1;
 }
