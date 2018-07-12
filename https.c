@@ -23,8 +23,6 @@
 #define PATH_MAX 255
 #endif
 
-#ifdef HAVE_SSL
-
 #ifndef LINKS_CRT_FILE
 #define LINKS_CRT_FILE		links.crt
 #endif
@@ -34,15 +32,8 @@
 static int ssl_initialized = 0;
 static SSL_CTX *contexts[N_SSL_CONTEXTS];
 
-#ifdef HAVE_CRYPTO_SET_MEM_FUNCTIONS_1
 #define file_line_arg
 #define pass_file_line
-#else
-#define file_line_arg	, const char *file, int line
-#define pass_file_line	, file, line
-#endif
-
-#ifdef HAVE_CRYPTO_SET_MEM_FUNCTIONS
 
 static unsigned in_ssl_malloc_hook = 0;
 
@@ -50,12 +41,8 @@ static void *malloc_hook(size_t size file_line_arg)
 {
 	void *p;
 	in_ssl_malloc_hook++;
-#if !defined(HAVE_OPENSSL_CLEANUP) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1)
 	if (!size) size = 1;
 	do p = malloc(size); while (!p && out_of_memory(0, NULL, 0));
-#else
-	p = mem_alloc_mayfail(size);
-#endif
 	in_ssl_malloc_hook--;
 	return p;
 }
@@ -65,12 +52,8 @@ static void *realloc_hook(void *ptr, size_t size file_line_arg)
 	void *p;
 	if (!ptr) return malloc_hook(size pass_file_line);
 	in_ssl_malloc_hook++;
-#if !defined(HAVE_OPENSSL_CLEANUP) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1)
 	if (!size) size = 1;
 	do p = realloc(ptr, size); while (!p && out_of_memory(0, NULL, 0));
-#else
-	p = mem_realloc_mayfail(ptr, size);
-#endif
 	in_ssl_malloc_hook--;
 	return p;
 }
@@ -78,14 +61,8 @@ static void *realloc_hook(void *ptr, size_t size file_line_arg)
 static void free_hook(void *ptr file_line_arg)
 {
 	if (!ptr) return;
-#if !defined(HAVE_OPENSSL_CLEANUP) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1)
 	free(ptr);
-#else
-	mem_free(ptr);
-#endif
 }
-
-#endif
 
 #define ssl_set_private_paths(c)		(-1)
 
@@ -106,9 +83,7 @@ links_ssl *getSSL(void)
 	links_ssl *ssl;
 	if (!ssl_initialized) {
 		memset(contexts, 0, sizeof contexts);
-#ifdef HAVE_CRYPTO_SET_MEM_FUNCTIONS
 		CRYPTO_set_mem_functions(malloc_hook, realloc_hook, free_hook);
-#endif
 
 #if defined(HAVE_RAND_EGD)
 		{
@@ -225,27 +200,18 @@ void https_func(struct connection *c)
 	http_func(c);
 }
 
-#ifdef HAVE_SSL_CERTIFICATES
-
 static int verify_ssl_host_name(X509 *server_cert, unsigned char *host)
 {
 	int v;
 	unsigned char ipv4_address[4];
-#ifdef SUPPORT_IPV6
 	unsigned char ipv6_address[16];
-#endif
 
-	if (!numeric_ip_address(host, ipv4_address)) {
+	if (!numeric_ip_address(host, ipv4_address))
 		v = X509_check_ip(server_cert, ipv4_address, 4, 0);
-	}
-#ifdef SUPPORT_IPV6
-	else if (!numeric_ipv6_address(host, ipv6_address, NULL)) {
+	else if (!numeric_ipv6_address(host, ipv6_address, NULL))
 		v = X509_check_ip(server_cert, ipv6_address, 16, 0);
-	}
-#endif
-	else {
+	else
 		v = X509_check_host(server_cert, cast_const_char host, strlen(cast_const_char host), 0, NULL);
-	}
 
 	return v == 1 ? 0 : S_INVALID_CERTIFICATE;
 }
@@ -288,8 +254,6 @@ int verify_ssl_cipher(links_ssl *ssl)
 	}
 	return 0;
 }
-
-#endif
 
 int ssl_not_reusable(links_ssl *ssl)
 {
@@ -412,12 +376,6 @@ void retrieve_ssl_session(struct connection *c)
 		} else {
 			s = SSL_get1_session(c->ssl->ssl);
 		}
-#ifdef HAVE_SSL_SESSION_IS_RESUMABLE
-		if (s && !SSL_SESSION_is_resumable(s)) {
-			SSL_SESSION_free(s);
-			s = NULL;
-		}
-#endif
 		orig_url = remove_proxy_prefix(c->url);
 		h = get_host_name(orig_url);
 		p = get_port(orig_url);
@@ -435,10 +393,8 @@ static int shrink_session_cache(int u)
 	struct session_cache_entry *d;
 	struct list_head *ld;
 	int f = 0;
-#ifdef HAVE_CRYPTO_SET_MEM_FUNCTIONS
 	if (in_ssl_malloc_hook++)
 		goto ret;
-#endif
 	if (u == SH_FREE_SOMETHING && !list_empty(session_cache)) {
 		d = list_struct(session_cache.prev, struct session_cache_entry);
 		goto delete_last;
@@ -451,10 +407,8 @@ delete_last:
 		mem_free(d);
 		f = ST_SOMETHING_FREED;
 	}
-#ifdef HAVE_CRYPTO_SET_MEM_FUNCTIONS
 ret:
 	in_ssl_malloc_hook--;
-#endif
 	return f | (list_empty(session_cache) ? ST_CACHE_EMPTY : 0);
 }
 
@@ -472,16 +426,6 @@ unsigned long session_info(int type)
 void init_session_cache(void)
 {
 	register_cache_upcall(shrink_session_cache, 0, cast_uchar "session");
-}
-
-#endif
-
-#else
-
-void https_func(struct connection *c)
-{
-	setcstate(c, S_NO_SSL);
-	abort_connection(c);
 }
 
 #endif

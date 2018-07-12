@@ -5,9 +5,7 @@
 
 #include "links.h"
 
-#ifdef SUPPORT_IPV6
 int support_ipv6;
-#endif
 
 struct dnsentry {
 	list_entry_1st
@@ -66,8 +64,6 @@ int numeric_ip_address(unsigned char *name, unsigned char address[4])
 	return 0;
 }
 
-#ifdef SUPPORT_IPV6
-
 static int extract_ipv6_address(struct addrinfo *p, unsigned char address[16], unsigned *scope_id)
 {
 	/*{
@@ -77,11 +73,7 @@ static int extract_ipv6_address(struct addrinfo *p, unsigned char address[16], u
 	}*/
 	if (p->ai_family == AF_INET6 && (socklen_t)p->ai_addrlen >= (socklen_t)sizeof(struct sockaddr_in6) && p->ai_addr->sa_family == AF_INET6) {
 		memcpy(address, &((struct sockaddr_in6 *)p->ai_addr)->sin6_addr, 16);
-#ifdef SUPPORT_IPV6_SCOPE
 		*scope_id = ((struct sockaddr_in6 *)p->ai_addr)->sin6_scope_id;
-#else
-		*scope_id = 0;
-#endif
 		return 0;
 	}
 	return -1;
@@ -115,8 +107,6 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	return r;
 }
 
-#endif
-
 #if MAX_ADDRESSES > 1
 static int memcmp_host_address(struct host_address *a, struct host_address *b)
 {
@@ -135,10 +125,8 @@ static void add_address(struct lookup_result *host, int af, unsigned char *addre
 #endif
 	if (af != AF_INET && preference == ADDR_PREFERENCE_IPV4_ONLY)
 		return;
-#ifdef SUPPORT_IPV6
 	if (af != AF_INET6 && preference == ADDR_PREFERENCE_IPV6_ONLY)
 		return;
-#endif
 	if (host->n >= MAX_ADDRESSES)
 		return;
 	memset(&neww, 0, sizeof(struct host_address));
@@ -155,12 +143,10 @@ static void add_address(struct lookup_result *host, int af, unsigned char *addre
 			t = n;
 			break;
 		}
-#ifdef SUPPORT_IPV6
 		if (preference == ADDR_PREFERENCE_IPV6 && af == AF_INET6 && n->af != AF_INET6) {
 			t = n;
 			break;
 		}
-#endif
 	}
 	memmove(t + 1, t, (e - t) * sizeof(struct host_address));
 #endif
@@ -182,7 +168,6 @@ static int use_getaddrinfo(unsigned char *name, struct addrinfo *hints, int pref
 			add_address(host, AF_INET, (unsigned char *)&((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr, 0, preference);
 			continue;
 		}
-#ifdef SUPPORT_IPV6
 		{
 			unsigned char address[16];
 			unsigned scope_id;
@@ -191,7 +176,6 @@ static int use_getaddrinfo(unsigned char *name, struct addrinfo *hints, int pref
 				continue;
 			}
 		}
-#endif
 	}
 	freeaddrinfo(res);
 	return 0;
@@ -230,9 +214,7 @@ do_swap:
 void do_real_lookup(unsigned char *name, int preference, struct lookup_result *host)
 {
 	unsigned char address[16];
-#ifdef SUPPORT_IPV6
 	size_t nl;
-#endif
 
 	memset(host, 0, sizeof(struct lookup_result));
 
@@ -245,7 +227,6 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 		add_address(host, AF_INET, address, 0, preference);
 		goto ret;
 	}
-#ifdef SUPPORT_IPV6
 	nl = strlen(cast_const_char name);
 	if (name[0] == '[' && name[nl - 1] == ']') {
 		unsigned char *n2 = cast_uchar strdup(cast_const_char(name + 1));
@@ -266,11 +247,10 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 			goto ret;
 		}
 	}
-#endif
 
 #if defined(USE_GETADDRINFO)
 	use_getaddrinfo(name, NULL, preference, host);
-#if defined(SUPPORT_IPV6) && defined(EXTRA_IPV6_LOOKUP)
+#if defined(EXTRA_IPV6_LOOKUP)
 	if ((preference == ADDR_PREFERENCE_IPV4 && !host->n) ||
 	    preference == ADDR_PREFERENCE_IPV6 ||
 	    preference == ADDR_PREFERENCE_IPV6_ONLY) {
@@ -514,16 +494,10 @@ delete_last:
 unsigned char *print_address(struct host_address *a)
 {
 #define SCOPE_ID_LEN	11
-#ifdef SUPPORT_IPV6
 	static unsigned char buffer[INET6_ADDRSTRLEN + SCOPE_ID_LEN];
-#else
-	static unsigned char buffer[INET_ADDRSTRLEN + SCOPE_ID_LEN];
-#endif
 	union {
 		struct in_addr in;
-#ifdef SUPPORT_IPV6
 		struct in6_addr in6;
-#endif
 		char pad[16];
 	} u;
 	memcpy(&u, a->addr, 16);
@@ -538,7 +512,6 @@ unsigned char *print_address(struct host_address *a)
 
 int ipv6_full_access(void)
 {
-#ifdef SUPPORT_IPV6
 	/*
 	 * Test if we can access global IPv6 address space.
 	 * This doesn't send anything anywhere, it just creates an UDP socket,
@@ -556,23 +529,20 @@ int ipv6_full_access(void)
 	EINTRLOOP(c, connect(h, (struct sockaddr *)(void *)&sin6, sizeof sin6));
 	EINTRLOOP(rs, close(h));
 	if (!c) return 1;
-#endif
 	return 0;
 }
 
 void init_dns(void)
 {
 	register_cache_upcall(shrink_dns_cache, 0, cast_uchar "dns");
-#ifdef SUPPORT_IPV6
 	{
 		int h, rs;
 		h = c_socket(AF_INET6, SOCK_STREAM, 0);
-		if (h == -1) {
+		if (h == -1)
 			support_ipv6 = 0;
-		} else {
+		else {
 			EINTRLOOP(rs, close(h));
 			support_ipv6 = 1;
 		}
 	}
-#endif
 }

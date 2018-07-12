@@ -408,9 +408,7 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 #ifdef USE_LIBEVENT
 	if (!event_enabled)
 		add_to_str(s, l, cast_uchar " (");
-#ifdef HAVE_LIBEVENT
-	add_to_str(s, l, cast_uchar "LibEvent");
-#elif defined(HAVE_LIBEV)
+#if defined(HAVE_LIBEV)
 	add_to_str(s, l, cast_uchar "LibEv");
 #else
 	add_to_str(s, l, cast_uchar "LibEvent");

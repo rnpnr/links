@@ -187,10 +187,8 @@
 
 #define USE_GETADDRINFO
 
-#ifdef SUPPORT_IPV6
 #ifndef PF_INET6
 #define PF_INET6 AF_INET6
-#endif
 #endif
 
 #if !defined(INET_ADDRSTRLEN)

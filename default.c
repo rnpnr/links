@@ -1206,9 +1206,7 @@ static unsigned char *ipv6_rd(struct option *o, unsigned char *c)
 	unsigned char *e;
 	e = str_rd(o, c);
 	if (e) return e;
-#ifdef SUPPORT_IPV6
 	if (*(unsigned char *)o->ptr && numeric_ipv6_address(o->ptr, NULL, NULL) == -1) return cast_uchar "Invalid IPv6 address";
-#endif
 	return NULL;
 }
 

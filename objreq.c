@@ -184,8 +184,6 @@ static int auth_window(struct object_request *rq, unsigned char *realm)
 	return 0;
 }
 
-#ifdef HAVE_SSL_CERTIFICATES
-
 struct cert_dialog {
 	tcount term;
 	unsigned char *host;
@@ -275,8 +273,6 @@ static int cert_window(struct object_request *rq)
 	return 0;
 }
 
-#endif
-
 /* prev_url is a pointer to previous url or NULL */
 /* prev_url will NOT be deallocated */
 void request_object(struct terminal *term, unsigned char *url, unsigned char *prev_url, int pri, int cache, int allow_flags, void (*upcall)(struct object_request *, void *), void *data, struct object_request **rqp)
@@ -326,7 +322,6 @@ static void objreq_end(struct status *stat, void *data)
 	set_ce_internal(rq);
 
 	if (stat->state < 0) {
-#ifdef HAVE_SSL_CERTIFICATES
 		if (!stat->ce && rq->state == O_WAITING && (stat->state == S_INVALID_CERTIFICATE || stat->state == S_DOWNGRADED_METHOD || stat->state == S_INSECURE_CIPHER) && ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
 			if (!cert_window(rq)) {
 				rq->hold = HOLD_CERT;
@@ -334,7 +329,6 @@ static void objreq_end(struct status *stat, void *data)
 				goto tm;
 			}
 		}
-#endif
 		if (stat->ce && rq->state == O_WAITING && stat->ce->redirect) {
 			if (rq->redirect_cnt++ < MAX_REDIRECTS) {
 				int cache, allow_flags;

@@ -716,11 +716,6 @@ int get_input_handle(void)
 		EINTRLOOP(rs, close(fd[1]));
 		return 0;
 	}
-/*
-#if defined(HAVE_MOUOPEN) && !defined(USE_GPM)
-	_beginthread(mouse_thread, NULL, 0x10000, (void *)tp);
-#endif
-*/
 	return fd[0];
 }
 

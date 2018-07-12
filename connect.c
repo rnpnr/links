@@ -53,7 +53,6 @@ static void log_number(int number)
 #define log_number(x)		do { } while (0)
 #endif
 
-#ifdef HAVE_SSL
 static void log_ssl_error(unsigned char *url, int line, int ret1, int ret2)
 {
 #ifndef LOG_SSL
@@ -86,7 +85,6 @@ void clear_ssl_errors(int line)
 	if (ERR_peek_error())
 		log_ssl_error(cast_uchar "", line, 0, 0);
 }
-#endif
 
 static void connected(void *);
 static void update_dns_priority(struct connection *);
@@ -125,7 +123,6 @@ int socket_and_bind(int pf, unsigned char *address)
 			}
 			break;
 		}
-#ifdef SUPPORT_IPV6
 		case PF_INET6: {
 			struct sockaddr_in6 sa;
 			unsigned char addr[16];
@@ -139,9 +136,7 @@ int socket_and_bind(int pf, unsigned char *address)
 			sa.sin6_family = AF_INET6;
 			memcpy(&sa.sin6_addr, addr, 16);
 			sa.sin6_port = htons(0);
-#ifdef SUPPORT_IPV6_SCOPE
 			sa.sin6_scope_id = scope;
-#endif
 			EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
 			if (rs) {
 				int sv_errno = errno;
@@ -151,7 +146,6 @@ int socket_and_bind(int pf, unsigned char *address)
 			}
 			break;
 		}
-#endif
 		default: {
 			EINTRLOOP(rs, close(s));
 			errno = EINVAL;
@@ -246,7 +240,6 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 
 int is_ipv6(int h)
 {
-#ifdef SUPPORT_IPV6
 	union {
 		struct sockaddr sa;
 		struct sockaddr_in sin;
@@ -258,9 +251,6 @@ int is_ipv6(int h)
 	EINTRLOOP(rs, getsockname(h, &u.sa, &len));
 	if (rs) return 0;
 	return u.sa.sa_family == AF_INET6;
-#else
-	return 0;
-#endif
 }
 
 int get_pasv_socket(struct connection *c, int cc, int *sock, unsigned char *port)
@@ -301,7 +291,6 @@ int get_pasv_socket(struct connection *c, int cc, int *sock, unsigned char *port
 	return -1;
 }
 
-#ifdef SUPPORT_IPV6
 int get_pasv_socket_ipv6(struct connection *c, int cc, int *sock, unsigned char *result)
 {
 	int s;
@@ -355,9 +344,7 @@ int get_pasv_socket_ipv6(struct connection *c, int cc, int *sock, unsigned char 
 	retry_connection(c);
 	return -1;
 }
-#endif
 
-#ifdef HAVE_SSL
 static void ssl_setup_downgrade(struct connection *c)
 {
 #if !defined(HAVE_NSS)
@@ -461,7 +448,6 @@ static void ssl_want_io(void *c_)
 			break;
 	}
 }
-#endif
 
 static void handle_socks(void *c_)
 {
@@ -615,10 +601,8 @@ static void try_connect(struct connection *c)
 	/*debug("%p: %p %d %d\n", b, addr, b->l.addr_index, addr->af);*/
 	if (addr->af == AF_INET) {
 		s = socket_and_bind(PF_INET, bind_ip_address);
-#ifdef SUPPORT_IPV6
 	} else if (addr->af == AF_INET6) {
 		s = socket_and_bind(PF_INET6, bind_ipv6_address);
-#endif
 	} else {
 		setcstate(c, S_INTERNAL);
 		abort_connection(c);
@@ -648,18 +632,14 @@ static void try_connect(struct connection *c)
 		memcpy(&sa.sin_addr.s_addr, addr->addr, 4);
 		sa.sin_port = htons(p);
 		EINTRLOOP(rs, connect(s, (struct sockaddr *)(void *)&sa, sizeof sa));
-#ifdef SUPPORT_IPV6
 	} else if (addr->af == AF_INET6) {
 		struct sockaddr_in6 sa;
 		memset(&sa, 0, sizeof sa);
 		sa.sin6_family = AF_INET6;
 		memcpy(&sa.sin6_addr, addr->addr, 16);
-#ifdef SUPPORT_IPV6_SCOPE
 		sa.sin6_scope_id = addr->scope_id;
-#endif
 		sa.sin6_port = htons(p);
 		EINTRLOOP(rs, connect(s, (struct sockaddr *)(void *)&sa, sizeof sa));
-#endif
 	} else {
 		rs = -1;
 		errno = EINVAL;
@@ -734,15 +714,13 @@ static void connected(void *c_)
 		return;
 	}
 	log_string(cast_uchar "\nCONNECTED\n");
-#ifdef HAVE_SSL
 	if (c->ssl) {
 		int ret1, ret2;
 		unsigned char *orig_url = remove_proxy_prefix(c->url);
 		unsigned char *h = get_host_name(orig_url);
 		log_string(cast_uchar "\nSSL\n");
-		if (*h && h[strlen(cast_const_char h) - 1] == '.') {
+		if (*h && h[strlen(cast_const_char h) - 1] == '.')
 			h[strlen(cast_const_char h) - 1] = 0;
-		}
 		c->ssl = getSSL();
 		if (!c->ssl) {
 			ret1 = ret2 = 0;
@@ -761,7 +739,7 @@ static void connected(void *c_)
 			mem_free(h);
 		}
 #endif
-#if defined(HAVE_SSL_CERTIFICATES) && !defined(OPENSSL_NO_STDIO)
+#if !defined(OPENSSL_NO_STDIO)
 		if (!proxies.only_proxies) {
 			if (ssl_options.client_cert_key[0]) {
 				SSL_use_PrivateKey_file(c->ssl->ssl, cast_const_char ssl_options.client_cert_key, SSL_FILETYPE_PEM);
@@ -775,9 +753,7 @@ static void connected(void *c_)
 		ssl_setup_downgrade(c);
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 		if (h[0] == '[' || !numeric_ip_address(h, NULL)
-#ifdef SUPPORT_IPV6
 		    || !numeric_ipv6_address(h, NULL, NULL)
-#endif
 		    ) goto skip_numeric_address;
 		SSL_set_tlsext_host_name(c->ssl->ssl, h);
 skip_numeric_address:
@@ -801,7 +777,6 @@ skip_numeric_address:
 				return;
 		}
 	}
-#endif
 	connected_callback(c);
 }
 
@@ -825,7 +800,6 @@ static void connected_callback(struct connection *c)
 {
 	struct conn_info *b = c->newconn;
 	update_dns_priority(c);
-#ifdef HAVE_SSL_CERTIFICATES
 	if (c->ssl) {
 		if (ssl_options.certificates != SSL_ACCEPT_INVALID_CERTIFICATE) {
 			unsigned char *h = get_host_name(remove_proxy_prefix(c->url));
@@ -873,7 +847,6 @@ static void connected_callback(struct connection *c)
 			mem_free(h);
 		}
 	}
-#endif
 	retrieve_ssl_session(c);
 	c->last_lookup_state = b->l;
 	c->newconn = NULL;

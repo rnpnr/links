@@ -28,3 +28,7 @@
   - better font support
 
 - links and links-g?
+
+- get rid of _BSD_SOURCE macro
+  - completely if possible
+  - _POSIX_C_SOURCE or _XOPEN_SOURCE aren't as bad

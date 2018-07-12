@@ -94,13 +94,9 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef SUPPORT_IPV6
 	if (!support_ipv6) add_to_str(&s, &l, get_text_translation(TEXT_(T_NOT_ENABLED_IN_SYSTEM), term));
 	else if (!ipv6_full_access()) add_to_str(&s, &l, get_text_translation(TEXT_(T_LOCAL_NETWORK_ONLY), term));
 	else add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
-#else
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#endif
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
@@ -108,19 +104,10 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef HAVE_SSL
 #ifdef OPENSSL_VERSION
 	add_to_str(&s, &l, (unsigned char *)OpenSSL_version(OPENSSL_VERSION));
 #else
 	add_to_str(&s, &l, (unsigned char *)SSLeay_version(SSLEAY_VERSION));
-#endif
-#ifndef HAVE_SSL_CERTIFICATES
-	add_to_str(&s, &l, cast_uchar " (");
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO_CERTIFICATE_VERIFICATION), term));
-	add_to_str(&s, &l, cast_uchar ")");
-#endif
-#else
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
 #endif
 	add_to_str(&s, &l, cast_uchar "\n");
 
@@ -1147,7 +1134,6 @@ static void dlg_net_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].data = bind_ip_address;
 	d->items[a].dlen = sizeof(bind_ip_address);
 	d->items[a++].fn = check_local_ip_address;
-#ifdef SUPPORT_IPV6
 	if (support_ipv6) {
 		net_msg[a] = TEXT_(T_BIND_TO_LOCAL_IPV6_ADDRESS);
 		d->items[a].type = D_FIELD;
@@ -1155,7 +1141,6 @@ static void dlg_net_options(struct terminal *term, void *xxx, void *yyy)
 		d->items[a].dlen = sizeof(bind_ipv6_address);
 		d->items[a++].fn = check_local_ipv6_address;
 	}
-#endif
 	net_msg[a] = TEXT_(T_ASYNC_DNS_LOOKUP);
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].data = (unsigned char *)&async_lookup;
@@ -1175,8 +1160,6 @@ static void dlg_net_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].type = D_END;
 	do_dialog(term, d, getml(d, NULL));
 }
-
-#ifdef SUPPORT_IPV6
 
 static unsigned char * const ipv6_labels[] = { TEXT_(T_IPV6_DEFAULT), TEXT_(T_IPV6_PREFER_IPV4), TEXT_(T_IPV6_PREFER_IPV6), TEXT_(T_IPV6_USE_ONLY_IPV4), TEXT_(T_IPV6_USE_ONLY_IPV6), NULL };
 
@@ -1224,8 +1207,6 @@ static void dlg_ipv6_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[7].type = D_END;
 	do_dialog(term, d, getml(d, NULL));
 }
-
-#endif
 
 #define N_N	6
 
@@ -1555,8 +1536,6 @@ static void dlg_proxy_options(struct terminal *term, void *xxx, void *yyy)
 
 #undef N_N
 
-#ifdef HAVE_SSL_CERTIFICATES
-
 static int check_file(struct dialog_data *dlg, struct dialog_item_data *di, int type)
 {
 	unsigned char *p = di->cdata;
@@ -1713,8 +1692,6 @@ static void dlg_ssl_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].type = D_END;
 	do_dialog(term, d, getml(d, NULL));
 }
-
-#endif
 
 static unsigned char * const http_labels[] = { TEXT_(T_USE_HTTP_10), TEXT_(T_ALLOW_SERVER_BLACKLIST), TEXT_(T_BROKEN_302_REDIRECT), TEXT_(T_NO_KEEPALIVE_AFTER_POST_REQUEST), TEXT_(T_DO_NOT_SEND_ACCEPT_CHARSET),
 	TEXT_(T_DO_NOT_ADVERTISE_COMPRESSION_SUPPORT),
@@ -3132,35 +3109,27 @@ static_const struct menu_item help_menu_g[] = {
 static_const struct menu_item net_options_menu[] = {
 	{ TEXT_(T_CONNECTIONS), cast_uchar "", TEXT_(T_HK_CONNECTIONS), dlg_net_options, NULL, 0, 0 },
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
-#ifdef HAVE_SSL_CERTIFICATES
 	{ TEXT_(T_SSL_OPTIONS), cast_uchar "", TEXT_(T_HK_SSL_OPTIONS), dlg_ssl_options, NULL, 0, 0 },
-#endif
 	{ TEXT_(T_HTTP_OPTIONS), cast_uchar "", TEXT_(T_HK_HTTP_OPTIONS), dlg_http_options, NULL, 0, 0 },
 	{ TEXT_(T_FTP_OPTIONS), cast_uchar "", TEXT_(T_HK_FTP_OPTIONS), dlg_ftp_options, NULL, 0, 0 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-#ifdef SUPPORT_IPV6
 static_const struct menu_item net_options_ipv6_menu[] = {
 	{ TEXT_(T_CONNECTIONS), cast_uchar "", TEXT_(T_HK_CONNECTIONS), dlg_net_options, NULL, 0, 0 },
 	{ TEXT_(T_IPV6_OPTIONS), cast_uchar "", TEXT_(T_HK_IPV6_OPTIONS), dlg_ipv6_options, NULL, 0, 0 },
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
-#ifdef HAVE_SSL_CERTIFICATES
 	{ TEXT_(T_SSL_OPTIONS), cast_uchar "", TEXT_(T_HK_SSL_OPTIONS), dlg_ssl_options, NULL, 0, 0 },
-#endif
 	{ TEXT_(T_HTTP_OPTIONS), cast_uchar "", TEXT_(T_HK_HTTP_OPTIONS), dlg_http_options, NULL, 0, 0 },
 	{ TEXT_(T_FTP_OPTIONS), cast_uchar "", TEXT_(T_HK_FTP_OPTIONS), dlg_ftp_options, NULL, 0, 0 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
-#endif
 
 static void network_menu(struct terminal *term, void *xxx, void *yyy)
 {
-#ifdef SUPPORT_IPV6
 	if (support_ipv6)
 		do_menu(term, (struct menu_item *)net_options_ipv6_menu, NULL);
 	else
-#endif
 		do_menu(term, (struct menu_item *)net_options_menu, NULL);
 }
 

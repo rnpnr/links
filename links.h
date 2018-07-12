@@ -30,8 +30,6 @@
 
 #include "cfg.h"
 
-#include "com-defs.h"
-
 #define LINKS_COPYRIGHT "(C) 1999 - 2018 Mikulas Patocka\n(C) 2000 - 2018 Petr Kulhavy, Karel Kulhavy, Martin Pergel"
 #define LINKS_COPYRIGHT_8859_1 "(C) 1999 - 2018 Mikul\341s Patocka\n(C) 2000 - 2018 Petr Kulhav\375, Karel Kulhav\375, Martin Pergel"
 #define LINKS_COPYRIGHT_8859_2 "(C) 1999 - 2018 Mikul\341\271 Pato\350ka\n(C) 2000 - 2018 Petr Kulhav\375, Karel Kulhav\375, Martin Pergel"
@@ -104,9 +102,6 @@
 #include <sys/utsname.h>
 #include <pwd.h>
 #include <grp.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
@@ -120,23 +115,9 @@
 #include <arpa/inet.h>
 #include <utime.h>
 
-#if defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1) && defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_2)
-#undef HAVE_CRYPTO_SET_MEM_FUNCTIONS_1
-#undef HAVE_CRYPTO_SET_MEM_FUNCTIONS_2
-#endif
-#if defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_1) || defined(HAVE_CRYPTO_SET_MEM_FUNCTIONS_2)
-#define HAVE_CRYPTO_SET_MEM_FUNCTIONS
-#endif
-
-#if !defined(NO_SSL_CERTIFICATES)
-#define HAVE_SSL_CERTIFICATES
-#endif
-
 #include <openssl/ssl.h>
 #include <openssl/rand.h>
-#ifdef HAVE_SSL_CERTIFICATES
 #include <openssl/x509v3.h>
-#endif
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 
@@ -591,10 +572,6 @@ static inline int cmpbeg(const unsigned char *str, const unsigned char *b)
 typedef unsigned long long uttime;
 typedef unsigned long long tcount;
 
-#if defined(HAVE_GPM_H) && defined(HAVE_LIBGPM)
-#define USE_GPM
-#endif
-
 #define mem_freed_large(x)	do { } while (0)
 
 struct terminal;
@@ -791,16 +768,10 @@ struct lookup_state {
 	int target_port;
 };
 
-#ifdef SUPPORT_IPV6
 extern int support_ipv6;
-#else
-#define support_ipv6	0
-#endif
 
 int numeric_ip_address(unsigned char *name, unsigned char address[4]);
-#ifdef SUPPORT_IPV6
 int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigned *scope_id);
-#endif
 void rotate_addresses(struct lookup_result *);
 void do_real_lookup(unsigned char *, int, struct lookup_result *);
 int find_host(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
@@ -1153,9 +1124,7 @@ void retry_connect(struct connection *, int, int);
 void continue_connection(struct connection *, int *, void (*)(struct connection *));
 int is_ipv6(int);
 int get_pasv_socket(struct connection *, int, int *, unsigned char *);
-#ifdef SUPPORT_IPV6
 int get_pasv_socket_ipv6(struct connection *, int, int *, unsigned char *);
-#endif
 void write_to_socket(struct connection *, int, unsigned char *, int, void (*)(struct connection *));
 struct read_buffer *alloc_read_buffer(struct connection *c);
 void read_from_socket(struct connection *, int, struct read_buffer *, void (*)(struct connection *, struct read_buffer *));
@@ -1219,11 +1188,8 @@ extern int ssl_asked_for_password;
 void ssl_finish(void);
 links_ssl *getSSL(void);
 void freeSSL(links_ssl *);
-#ifdef HAVE_SSL_CERTIFICATES
 int verify_ssl_certificate(links_ssl *ssl, unsigned char *host);
 int verify_ssl_cipher(links_ssl *ssl);
-#define HAVE_BUILTIN_SSL_CERTIFICATES
-#endif
 int ssl_not_reusable(links_ssl *ssl);
 unsigned char *get_cipher_string(links_ssl *ssl);
 

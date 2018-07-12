@@ -1581,10 +1581,9 @@ static int check_local_ip_address_internal(struct dialog_data *dlg, struct dialo
 	if (!*p) {
 		return 0;
 	}
-#ifdef SUPPORT_IPV6
-	if (pf == PF_INET6) rs = numeric_ipv6_address(p, NULL, NULL);
+	if (pf == PF_INET6)
+		rs = numeric_ipv6_address(p, NULL, NULL);
 	else
-#endif
 		rs = numeric_ip_address(p, NULL);
 	if (rs) {
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_IP_ADDRESS), AL_CENTER, TEXT_(T_INVALID_IP_ADDRESS_SYNTAX), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
@@ -1624,11 +1623,7 @@ int check_local_ip_address(struct dialog_data *dlg, struct dialog_item_data *di)
 
 int check_local_ipv6_address(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-#ifdef SUPPORT_IPV6
 	return check_local_ip_address_internal(dlg, di, PF_INET6);
-#else
-	return 0;
-#endif
 }
 
 int cancel_dialog(struct dialog_data *dlg, struct dialog_item_data *di)

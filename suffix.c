@@ -55,9 +55,7 @@ int allow_cookie_domain(unsigned char *server, unsigned char *domain)
 	if (casestrcmp(domain, server + sl - dl)) return 0;
 	if (dl == sl) return 1;
 	if (!numeric_ip_address(server, NULL)) return 0;
-#ifdef SUPPORT_IPV6
 	if (!numeric_ipv6_address(server, NULL, NULL)) return 0;
-#endif
 	if (server[sl - dl - 1] != '.') return 0;
 	if (search_list_and_wildcards(domain_suffix_x, array_elements(domain_suffix_x), domain)) return 1;
 	if (!strchr(cast_const_char domain, '.')) return 0;
