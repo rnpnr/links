@@ -32,3 +32,6 @@
 - get rid of _BSD_SOURCE macro
   - completely if possible
   - _POSIX_C_SOURCE or _XOPEN_SOURCE aren't as bad
+
+- check if restrict is being used correctly
+  - its likely not even necessary

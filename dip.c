@@ -116,7 +116,7 @@ typedef double scale_t;
  * black or 255 is black doesn't matter.
  */
 
-static void add_col_gray(unsigned *my_restrict col_buf, unsigned char *my_restrict ptr, int
+static void add_col_gray(unsigned *restrict col_buf, unsigned char *restrict ptr, int
 		line_skip, int n, unsigned weight)
 {
 	for (;n;n--){
@@ -127,7 +127,7 @@ static void add_col_gray(unsigned *my_restrict col_buf, unsigned char *my_restri
 }
 
  /* We assume unsigned short holds at least 16 bits. */
-static void add_row_gray(unsigned *my_restrict row_buf, unsigned char *my_restrict ptr, int n,
+static void add_row_gray(unsigned *restrict row_buf, unsigned char *restrict ptr, int n,
 	unsigned weight)
 {
 	for (;n;n--){
@@ -139,7 +139,7 @@ static void add_row_gray(unsigned *my_restrict row_buf, unsigned char *my_restri
 
 /* line_skip is in pixels. The column contains the whole pixels (R G B)
  * We assume unsigned short holds at least 16 bits. */
-static void add_col_color(scale_t *my_restrict col_buf, unsigned short *my_restrict ptr,
+static void add_col_color(scale_t *restrict col_buf, unsigned short *restrict ptr,
 	int line_skip, int n, ulonglong weight)
 {
 	if (!weight) return;
@@ -157,7 +157,7 @@ static void add_col_color(scale_t *my_restrict col_buf, unsigned short *my_restr
 
 /* n is in pixels. pixel is 3 unsigned shorts in series */
  /* We assume unsigned short holds at least 16 bits. */
-static void add_row_color(scale_t *my_restrict row_buf, unsigned short *my_restrict ptr,
+static void add_row_color(scale_t *restrict row_buf, unsigned short *restrict ptr,
 	int n, ulonglong weight)
 {
 	if (!weight) return;
@@ -174,7 +174,7 @@ static void add_row_color(scale_t *my_restrict row_buf, unsigned short *my_restr
 }
 
 /* We assume unsigned holds at least 32 bits */
-static void emit_and_bias_col_gray(unsigned *my_restrict col_buf, unsigned char *my_restrict out,
+static void emit_and_bias_col_gray(unsigned *restrict col_buf, unsigned char *restrict out,
 	int line_skip, int n, unsigned weight)
 {
 	unsigned half=weight>>1;
@@ -187,7 +187,7 @@ static void emit_and_bias_col_gray(unsigned *my_restrict col_buf, unsigned char 
 }
 
 /* We assume unsigned holds at least 32 bits */
-static void emit_and_bias_row_gray(unsigned *my_restrict row_buf, unsigned char *my_restrict out,
+static void emit_and_bias_row_gray(unsigned *restrict row_buf, unsigned char *restrict out,
 	int n, unsigned weight)
 {
 	unsigned half=weight>>1;
@@ -199,13 +199,13 @@ static void emit_and_bias_row_gray(unsigned *my_restrict row_buf, unsigned char 
 }
 
 /* We assume unsigned holds at least 32 bits */
-static void bias_buf_gray(unsigned *my_restrict col_buf, int n, unsigned half)
+static void bias_buf_gray(unsigned *restrict col_buf, int n, unsigned half)
 {
 	for (;n;n--) *col_buf++=half;
 }
 
 /* We assume unsigned holds at least 32 bits */
-static void bias_buf_color(scale_t *my_restrict col_buf, int n, scale_t half)
+static void bias_buf_color(scale_t *restrict col_buf, int n, scale_t half)
 {
 	for (;n;n--){
 		col_buf[0]=half;
@@ -221,8 +221,8 @@ static void bias_buf_color(scale_t *my_restrict col_buf, int n, scale_t half)
 /* line skip is in pixels. Pixel is 3*unsigned short */
 /* We assume unsigned holds at least 32 bits */
 /* We assume unsigned short holds at least 16 bits. */
-static void emit_and_bias_col_color(scale_t *my_restrict col_buf,
-	unsigned short *my_restrict out, int line_skip, int n, unsigned weight)
+static void emit_and_bias_col_color(scale_t *restrict col_buf,
+	unsigned short *restrict out, int line_skip, int n, unsigned weight)
 {
 	scale_t half=(scale_t)weight / 2;
 	scale_t inv_weight = (scale_t)1 / weight;
@@ -246,8 +246,8 @@ static void emit_and_bias_col_color(scale_t *my_restrict col_buf,
 /* n is in pixels. pixel is 3 unsigned shorts in series. */
 /* We assume unsigned holds at least 32 bits */
 /* We assume unsigned short holds at least 16 bits. */
-static void emit_and_bias_row_color(scale_t *my_restrict row_buf,
-	unsigned short *my_restrict out, int n, unsigned weight)
+static void emit_and_bias_row_color(scale_t *restrict row_buf,
+	unsigned short *restrict out, int n, unsigned weight)
 {
 	scale_t half=(scale_t)weight / 2;
 	scale_t inv_weight = (scale_t)1 / weight;
@@ -954,7 +954,7 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 /* Fills a block with given color. length is number of pixels. pixel is a
  * tribyte. 24 bits per pixel.
  */
-void mix_one_color_24(unsigned char *my_restrict dest, int length,
+void mix_one_color_24(unsigned char *restrict dest, int length,
 		   unsigned char r, unsigned char g, unsigned char b)
 {
 	for (;length;length--){
@@ -969,7 +969,7 @@ void mix_one_color_24(unsigned char *my_restrict dest, int length,
  * tribyte. 48 bits per pixel.
  * We assume unsigned short holds at least 16 bits.
  */
-void mix_one_color_48(unsigned short *my_restrict dest, int length,
+void mix_one_color_48(unsigned short *restrict dest, int length,
 		   unsigned short r, unsigned short g, unsigned short b)
 {
 	for (;length;length--){
@@ -987,7 +987,7 @@ void mix_one_color_48(unsigned short *my_restrict dest, int length,
  * alpha is 8-bit, rgb are all 16-bit
  * We assume unsigned short holds at least 16 bits.
  */
-static void mix_two_colors(unsigned short *my_restrict dest, unsigned char *my_restrict alpha,
+static void mix_two_colors(unsigned short *restrict dest, unsigned char *restrict alpha,
 	int length ,unsigned short r0, unsigned short g0, unsigned short b0,
 	unsigned short r255, unsigned short g255, unsigned short b255)
 {
@@ -1016,8 +1016,8 @@ static void mix_two_colors(unsigned short *my_restrict dest, unsigned char *my_r
 }
 
 /* We assume unsigned short holds at least 16 bits. */
-void agx_and_uc_32_to_48_table(unsigned short *my_restrict dest,
-		const unsigned char *my_restrict src, int lenght, unsigned short *my_restrict table,
+void agx_and_uc_32_to_48_table(unsigned short *restrict dest,
+		const unsigned char *restrict src, int lenght, unsigned short *restrict table,
 		unsigned short rb, unsigned short gb, unsigned short bb)
 {
 	unsigned char alpha, calpha;
@@ -1056,8 +1056,8 @@ void agx_and_uc_32_to_48_table(unsigned short *my_restrict dest,
  * in linear monitor output photon space
  */
 /* We assume unsigned short holds at least 16 bits. */
-void agx_and_uc_32_to_48(unsigned short *my_restrict dest,
-		const unsigned char *my_restrict src, int lenght, float red_gamma,
+void agx_and_uc_32_to_48(unsigned short *restrict dest,
+		const unsigned char *restrict src, int lenght, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb,
 		unsigned short gb, unsigned short bb)
 {
@@ -1110,8 +1110,8 @@ void agx_and_uc_32_to_48(unsigned short *my_restrict dest,
  * in linear monitor output photon space. alpha 255 means full image no background.
  */
 /* We assume unsigned short holds at least 16 bits. */
-void agx_and_uc_64_to_48(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, float red_gamma,
+void agx_and_uc_64_to_48(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb,
 		unsigned short gb, unsigned short bb)
 {
@@ -1164,8 +1164,8 @@ void agx_and_uc_64_to_48(unsigned short *my_restrict dest,
  * dest. src and dest may be identical and it will work. rb, gb, bb are 0-65535
  * in linear monitor output photon space. alpha 255 means full image no background.
  * We assume unsigned short holds at least 16 bits. */
-void agx_and_uc_64_to_48_table(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, unsigned short *my_restrict gamma_table,
+void agx_and_uc_64_to_48_table(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, unsigned short *restrict gamma_table,
 		unsigned short rb, unsigned short gb, unsigned short bb)
 {
 	unsigned short alpha, calpha;
@@ -1202,8 +1202,8 @@ void agx_and_uc_64_to_48_table(unsigned short *my_restrict dest,
  * number of triplets. output is input powered to the given gamma, passed into
  * dest. src and dest may be identical and it will work.
  * We assume unsigned short holds at least 16 bits. */
-void agx_48_to_48(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, float red_gamma,
+void agx_48_to_48(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, float red_gamma,
 		float green_gamma, float blue_gamma)
 {
 	float_double a;
@@ -1233,8 +1233,8 @@ void agx_48_to_48(unsigned short *my_restrict dest,
  * number of triples. output is input powered to the given gamma, passed into
  * dest. src and dest may be identical and it will work.
  * We assume unsigned short holds at least 16 bits. */
-void agx_48_to_48_table(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, unsigned short *my_restrict table)
+void agx_48_to_48_table(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, unsigned short *restrict table)
 {
 	for (;lenght;lenght--,src+=3,dest+=3)
 	{
@@ -1248,7 +1248,7 @@ void agx_48_to_48_table(unsigned short *my_restrict dest,
  * number of triples. output is input powered to the given gamma, passed into
  * dest. src and dest may be identical and it will work.
  * We assume unsigned short holds at least 16 bits. */
-void agx_24_to_48(unsigned short *my_restrict dest, const unsigned char *my_restrict src, int
+void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src, int
 			  lenght, float red_gamma, float green_gamma, float
 			  blue_gamma)
 {
@@ -1343,8 +1343,8 @@ void make_gamma_table(struct cached_image *cimg)
 }
 
 /* We assume unsigned short holds at least 16 bits. */
-void agx_24_to_48_table(unsigned short *my_restrict dest, const unsigned char *my_restrict src, int
-			  lenght, unsigned short *my_restrict table)
+void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src, int
+			  lenght, unsigned short *restrict table)
 {
 	for (;lenght;lenght--,src+=3,dest+=3)
 	{

@@ -86,26 +86,26 @@ static unsigned short round_blue_table[256];
  * voltage appropriate to given sRGB coordinate.
  */
 
-void (*round_fn)(unsigned short *my_restrict in, struct bitmap *out);
+void (*round_fn)(unsigned short *restrict in, struct bitmap *out);
 /* When you finish the stuff with dither_start, dither_restart, just do "if (dregs) mem_free(dregs);" */
-static void (*dither_fn_internal)(unsigned short *my_restrict in, struct bitmap *out, int *dregs);
+static void (*dither_fn_internal)(unsigned short *restrict in, struct bitmap *out, int *dregs);
 
 
      /* prototypes */
-static void dither_1byte(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_1byte(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_2byte(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_2byte(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_195(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_195(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_451(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_451(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_196(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_196(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_452(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_452(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_708(unsigned short *my_restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_708(unsigned short *my_restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_1byte(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_1byte(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_2byte(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_2byte(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_195(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_195(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_451(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_451(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_196(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_196(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_452(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_452(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
+static void dither_708(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
+static void round_708(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
 static long color_332(int);
 static long color_121(int);
 static long color_pass_rgb(int);
@@ -224,11 +224,11 @@ int slow_fpu = -1;
 	bptr+=3;
 
 #define DITHER_TEMPLATE(template_name) \
-	static void template_name(unsigned short *my_restrict in, struct bitmap *out, int *dregs)\
+	static void template_name(unsigned short *restrict in, struct bitmap *out, int *dregs)\
 		{\
 		int r,g,b,o,rt,gt,bt,y,x;\
-		unsigned char *my_restrict outp=out->data;\
-		int *my_restrict bptr;\
+		unsigned char *restrict outp=out->data;\
+		int *restrict bptr;\
 		int skip=out->skip-SKIP_CODE;\
 \
 		o=0;o=o; /*warning go away */\
@@ -259,10 +259,10 @@ int slow_fpu = -1;
 	}
 
 #define ROUND_TEMPLATE(template_name)\
-	static void template_name(unsigned short *my_restrict in, struct bitmap *out)\
+	static void template_name(unsigned short *restrict in, struct bitmap *out)\
 	{\
 		int rt,gt,bt,o,x,y;\
-		unsigned char *my_restrict outp=out->data;\
+		unsigned char *restrict outp=out->data;\
 		int skip=out->skip-SKIP_CODE;\
 	\
 		o=0;o=o; /*warning go away */\
@@ -985,8 +985,8 @@ pixel memory organisation %d",depth);
  * Output is linear 48-bit value (in photons) that has corresponding
  * voltage nearest to the voltage that would be procduced ideally
  * by the input value. */
-void round_color_sRGB_to_48(unsigned short *my_restrict red, unsigned short *my_restrict green,
-		unsigned short *my_restrict blue, int rgb)
+void round_color_sRGB_to_48(unsigned short *restrict red, unsigned short *restrict green,
+		unsigned short *restrict blue, int rgb)
 {
 	*red=round_red_table[(rgb>>16)&255];
 	*green=round_green_table[(rgb>>8)&255];

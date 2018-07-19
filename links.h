@@ -1600,34 +1600,34 @@ int g_char_width(struct style *style, unsigned ch);
 unsigned short ags_8_to_16(unsigned char input, float gamma);
 unsigned char ags_16_to_8(unsigned short input, float gamma);
 unsigned short ags_16_to_16(unsigned short input, float gamma);
-void agx_24_to_48(unsigned short *my_restrict dest, const unsigned char *my_restrict src, int
+void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src, int
 			  lenght, float red_gamma, float green_gamma, float
 			  blue_gamma);
 void make_gamma_table(struct cached_image *cimg);
-void agx_24_to_48_table(unsigned short *my_restrict dest, const unsigned char *my_restrict src
-	,int lenght, unsigned short *my_restrict gamma_table);
-void agx_48_to_48_table(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, unsigned short *my_restrict table);
-void agx_48_to_48(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, float red_gamma,
+void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src
+	,int lenght, unsigned short *restrict gamma_table);
+void agx_48_to_48_table(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, unsigned short *restrict table);
+void agx_48_to_48(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, float red_gamma,
 		float green_gamma, float blue_gamma);
-void agx_and_uc_32_to_48_table(unsigned short *my_restrict dest,
-		const unsigned char *my_restrict src, int lenght, unsigned short *my_restrict table,
+void agx_and_uc_32_to_48_table(unsigned short *restrict dest,
+		const unsigned char *restrict src, int lenght, unsigned short *restrict table,
 		unsigned short rb, unsigned short gb, unsigned short bb);
-void agx_and_uc_32_to_48(unsigned short *my_restrict dest,
-		const unsigned char *my_restrict src, int lenght, float red_gamma,
+void agx_and_uc_32_to_48(unsigned short *restrict dest,
+		const unsigned char *restrict src, int lenght, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb, unsigned
 		short gb, unsigned short bb);
-void agx_and_uc_64_to_48_table(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, unsigned short *my_restrict gamma_table,
+void agx_and_uc_64_to_48_table(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, unsigned short *restrict gamma_table,
 		unsigned short rb, unsigned short gb, unsigned short bb);
-void agx_and_uc_64_to_48(unsigned short *my_restrict dest,
-		const unsigned short *my_restrict src, int lenght, float red_gamma,
+void agx_and_uc_64_to_48(unsigned short *restrict dest,
+		const unsigned short *restrict src, int lenght, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb, unsigned
 		short gb, unsigned short bb);
-void mix_one_color_48(unsigned short *my_restrict dest, int length,
+void mix_one_color_48(unsigned short *restrict dest, int length,
 		   unsigned short r, unsigned short g, unsigned short b);
-void mix_one_color_24(unsigned char *my_restrict dest, int length,
+void mix_one_color_24(unsigned char *restrict dest, int length,
 		   unsigned char r, unsigned char g, unsigned char b);
 void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 	int ox, int oy);
@@ -1684,12 +1684,12 @@ extern int slow_fpu;	/* -1 --- don't know, 0 --- no, 1 --- yes */
 void dither (unsigned short *in, struct bitmap *out);
 int *dither_start(unsigned short *in, struct bitmap *out);
 void dither_restart(unsigned short *in, struct bitmap *out, int *dregs);
-extern void (*round_fn)(unsigned short *my_restrict in, struct bitmap *out);
+extern void (*round_fn)(unsigned short *restrict in, struct bitmap *out);
 
 long (*get_color_fn(int depth))(int rgb);
 void init_dither(int depth);
-void round_color_sRGB_to_48(unsigned short *my_restrict red, unsigned short *my_restrict green,
-		unsigned short *my_restrict blue, int rgb);
+void round_color_sRGB_to_48(unsigned short *restrict red, unsigned short *restrict green,
+		unsigned short *restrict blue, int rgb);
 
 void q_palette(unsigned size, unsigned color, unsigned scale, unsigned rgb[3]);
 double rgb_distance(int r1, int g1, int b1, int r2, int g2, int b2);
