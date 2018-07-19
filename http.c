@@ -374,8 +374,6 @@ static void add_user_agent(unsigned char **hdr, int *l)
 		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
 		add_to_str(hdr, l, system_name);
 		add_to_str(hdr, l, cast_uchar "; ");
-		add_to_str(hdr, l, compiler_name);
-		add_to_str(hdr, l, cast_uchar "; ");
 		if (!F && !list_empty(terminals)) {
 			struct terminal *term;
 			struct list_head *lterm;

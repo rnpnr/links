@@ -3839,7 +3839,6 @@ struct driver_param *get_driver_param(unsigned char *);
 extern int anonymous;
 
 extern unsigned char system_name[];
-extern unsigned char compiler_name[];
 
 extern unsigned char *links_home;
 extern int first_use;

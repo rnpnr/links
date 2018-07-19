@@ -10,7 +10,6 @@ static unsigned char * const version_texts[] = {
 	TEXT_(T_LINKS_VERSION),
 	TEXT_(T_OPERATING_SYSTEM_TYPE),
 	TEXT_(T_OPERATING_SYSTEM_VERSION),
-	TEXT_(T_COMPILER),
 	TEXT_(T_WORD_SIZE),
 	TEXT_(T_DEBUGGING_LEVEL),
 	TEXT_(T_EVENT_HANDLER),
@@ -68,10 +67,6 @@ static void menu_version(void *term_)
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 	add_to_str(&s, &l, system_name);
-	add_to_str(&s, &l, cast_uchar "\n");
-
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, compiler_name);
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
