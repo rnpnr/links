@@ -74,7 +74,7 @@ install: all
 	cp -f links $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/links
 	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
-	cp -f links.1 $(DESTDIR)$(MANPREFIX)/man1
+	sed s:VERSION:$(VERSION): <links.1 >$(DESTDIR)$(MANPREFIX)/man1/links.1
 	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/links.1
 
 uninstall:

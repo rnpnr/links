@@ -37,3 +37,5 @@
   - its likely not even necessary
 
 - other error mechanisms should be replaced with die()
+
+- fix command-line flag handling
