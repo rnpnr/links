@@ -991,12 +991,6 @@ static unsigned char *set_cmd(struct option *o, unsigned char ***argv, int *argc
 	return NULL;
 }
 
-static unsigned char *unset_cmd(struct option *o, unsigned char ***argv, int *argc)
-{
-	*(int *)o->ptr = 0;
-	return NULL;
-}
-
 static unsigned char *setstr_cmd(struct option *o, unsigned char ***argv, int *argc)
 {
 	if (!*argc) return cast_uchar "Parameter expected";

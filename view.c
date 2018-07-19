@@ -45,24 +45,6 @@ void destroy_vs(struct view_state *vs)
 	mem_free(vs);
 }
 
-void free_js_event_spec(struct js_event_spec *j)
-{
-}
-
-int compare_js_event_spec(struct js_event_spec *j1, struct js_event_spec *j2)
-{
-	return 0;
-}
-
-void copy_js_event_spec(struct js_event_spec **target, struct js_event_spec *source)
-{
-}
-
-int join_js_event_spec(struct js_event_spec **target, struct js_event_spec *source)
-{
-	return 0;
-}
-
 unsigned char *print_js_event_spec(struct js_event_spec *j)
 {
 	return stracpy(cast_uchar "");
@@ -159,7 +141,6 @@ void sort_links(struct f_data *f)
 			if (link->where_img) mem_free(link->where_img);
 			if (link->img_alt) mem_free(link->img_alt);
 			if (link->pos) mem_free(link->pos);
-			free_js_event_spec(link->js_event);
 			memmove(link, link + 1, (f->nlinks - i - 1) * sizeof(struct link));
 			f->nlinks--;
 			i--;

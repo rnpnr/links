@@ -182,7 +182,6 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 			if (b != a) memmove(a, b, strlen(cast_const_char b) + 1);
 			for (b = a + strlen(cast_const_char a) - 1; b >= a && *b == ' '; b--) *b = 0;
 		}
-		set_mem_comment(a, name, (int)strlen(cast_const_char name));
 		return a;
 	}
 	goto aa;
@@ -546,7 +545,6 @@ void kill_html_stack_item(struct html_element *e)
 	if (e->attr.href_base) mem_free(e->attr.href_base);
 	if (e->attr.target_base) mem_free(e->attr.target_base);
 	if (e->attr.select) mem_free(e->attr.select);
-	free_js_event_spec(e->attr.js_event);
 	del_from_list(e);
 	mem_free(e);
 }
@@ -584,29 +582,10 @@ void html_stack_dup(void)
 	e->attr.href_base = stracpy(ep->attr.href_base);
 	e->attr.target_base = stracpy(ep->attr.target_base);
 	e->attr.select = stracpy(ep->attr.select);
-	copy_js_event_spec(&e->attr.js_event, ep->attr.js_event);
-	/*if (e->name) {
-		if (e->attr.link) set_mem_comment(e->attr.link, e->name, e->namelen);
-		if (e->attr.target) set_mem_comment(e->attr.target, e->name, e->namelen);
-		if (e->attr.image) set_mem_comment(e->attr.image, e->name, e->namelen);
-		if (e->attr.href_base) set_mem_comment(e->attr.href_base, e->name, e->namelen);
-		if (e->attr.target_base) set_mem_comment(e->attr.target_base, e->name, e->namelen);
-		if (e->attr.select) set_mem_comment(e->attr.select, e->name, e->namelen);
-	}*/
 	e->name = e->options = NULL;
 	e->namelen = 0;
 	e->dontkill = 0;
 	add_to_list(html_stack, e);
-}
-
-
-static int get_js_events_x(struct js_event_spec **spec, unsigned char *a)
-{
-	return 0;
-}
-static int get_js_events(unsigned char *a)
-{
-	return 0;
 }
 
 void *ff;
@@ -915,32 +894,27 @@ static void html_span(unsigned char *a)
 
 static void html_bold(unsigned char *a)
 {
-	get_js_events(a);
 	format_.attr |= AT_BOLD;
 }
 
 static void html_italic(unsigned char *a)
 {
-	get_js_events(a);
 	format_.attr |= AT_ITALIC;
 }
 
 static void html_underline(unsigned char *a)
 {
-	get_js_events(a);
 	format_.attr |= AT_UNDERLINE;
 }
 
 static void html_fixed(unsigned char *a)
 {
-	get_js_events(a);
 	format_.attr |= AT_FIXED;
 }
 
 static void html_invert(unsigned char *a)
 {
 	struct rgb rgb;
-	get_js_events(a);
 	memcpy(&rgb, &format_.fg, sizeof(struct rgb));
 	memcpy(&format_.fg, &format_.bg, sizeof(struct rgb));
 	memcpy(&format_.bg, &rgb, sizeof(struct rgb));
@@ -950,8 +924,6 @@ static void html_invert(unsigned char *a)
 static void html_a(unsigned char *a)
 {
 	unsigned char *al;
-
-	int ev = get_js_events(a);
 
 	if ((al = get_url_val(a, cast_uchar "href"))) {
 		unsigned char *all = al;
@@ -969,7 +941,8 @@ static void html_a(unsigned char *a)
 		}
 		/*format_.attr ^= AT_BOLD;*/
 		set_link_attr();
-	} else if (!ev) kill_html_stack_item(&html_top);
+	} else
+		kill_html_stack_item(&html_top);
 	if ((al = get_attr_val(a, cast_uchar "name"))) {
 		special_f(ff, SP_TAG, al);
 		mem_free(al);
@@ -992,7 +965,6 @@ static void html_a_special(unsigned char *a, unsigned char *next, unsigned char 
 static void html_sub(unsigned char *a)
 {
 	if (!F) put_chrs(cast_uchar "_", 1);
-	get_js_events(a);
 	format_.fontsize = 1;
 	format_.baseline = -1;
 }
@@ -1000,7 +972,6 @@ static void html_sub(unsigned char *a)
 static void html_sup(unsigned char *a)
 {
 	if (!F) put_chrs(cast_uchar "^", 1);
-	get_js_events(a);
 	format_.fontsize = 1;
 	if (format_.baseline <= 0) format_.baseline = format_.fontsize;
 }
@@ -1046,7 +1017,6 @@ static void html_img(unsigned char *a)
 	unsigned char *orig_link = NULL;
 	int ismap, usemap = 0;
 	/*put_chrs(cast_uchar " ", 1);*/
-	get_js_events(a);
 	if ((!F || !d_opt->display_images) && ((al = get_url_val(a, cast_uchar "usemap")))) {
 		unsigned char *u;
 		usemap = 1;
@@ -1739,7 +1709,6 @@ static void html_button(unsigned char *a)
 	}
 	mem_free(al);
 	xxx:
-	get_js_events(a);
 	fc->form_num = last_form_tag ? (int)(last_form_tag - startf) : 0;
 	fc->ctrl_num = last_form_tag ? (int)(a - last_form_tag) : (int)(a - startf);
 	fc->position = (int)(a - startf);
@@ -1865,7 +1834,6 @@ static void html_input(unsigned char *a)
 	put_chrs(cast_uchar " ", 1);
 	html_stack_dup();
 	format_.form = fc;
-	get_js_events(a);
 	switch (fc->type) {
 		case FC_TEXT:
 		case FC_PASSWORD:
@@ -2279,7 +2247,6 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	format_.fontsize = 3;
 	put_chrs(cast_uchar "[", 1);
 	html_stack_dup();
-	get_js_events(attr);
 	format_.form = fc;
 	format_.attr |= AT_BOLD | AT_FIXED;
 	format_.fontsize = 3;
@@ -2359,7 +2326,6 @@ static void do_html_textarea(unsigned char *attr, unsigned char *html, unsigned 
 	if (rows > 1) ln_break(1);
 	else put_chrs(cast_uchar " ", 1);
 	html_stack_dup();
-	get_js_events(attr);
 	format_.form = fc;
 	format_.attr = AT_BOLD | AT_FIXED;
 #ifdef G
@@ -3329,7 +3295,6 @@ void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 	if (namelen == 4 && !casecmp(name, cast_uchar "BODY", 4)) {
 		if (background) *background = get_attr_val(attr, cast_uchar "background"), background = NULL;
 		if (bgcolor) *bgcolor = get_attr_val(attr, cast_uchar "bgcolor"), bgcolor = NULL;
-		if (j) get_js_events_x(j, attr);
 		/*return;*/
 	}
 	if (title && !tlen && namelen == 5 && !casecmp(name, cast_uchar "TITLE", 5)) {

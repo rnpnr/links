@@ -858,7 +858,6 @@ void select_loop(void (*init)(void))
 			if (terminate_loop) break;
 			do_event_loop(EVLOOP_ONCE);
 		}
-		nopr();
 	} else
 #endif
 
@@ -953,12 +952,10 @@ void select_loop(void (*init)(void))
 			}
 			n -= k;
 		}
-		nopr();
 	}
 #ifdef DEBUG_CALLS
 	fprintf(stderr, "exit loop\n");
 #endif
-	nopr();
 }
 
 void terminate_select(void)

@@ -718,7 +718,6 @@ static void dst_width(int *p, int n, int w, int *lim)
 static int get_vline_width(struct table *t, int col)
 {			/* return: -1 none, 0, space, 1 line, 2 double */
 	int w = 0;
-	NO_GFX;
 	if (!col) return -1;
 	if (t->rules == R_COLS || t->rules == R_ALL) w = t->cellsp;
 	else if (t->rules == R_GROUPS) w = col < t->c && t->cols[col].group;
@@ -729,7 +728,6 @@ static int get_vline_width(struct table *t, int col)
 static int get_hline_width(struct table *t, int row)
 {
 	int w = 0;
-	NO_GFX;
 	if (!row) return -1;
 	if (t->rules == R_ROWS || t->rules == R_ALL) {
 		x:
@@ -750,7 +748,6 @@ static int g_get_vline_pad(struct table *t, int col, int *plpos, int *plsize)
 {
 	int pad, lpos, lsize;
 	int border;
-	NO_TXT;
 	if (!col || col == t->x) {
 		border = (!col && t->frame & F_LHS) || (col == t->x && t->frame & F_RHS) ? t->border : 0;
 		pad = safe_add(safe_add(border, t->cellsp), t->cellpd);
@@ -777,7 +774,6 @@ static int g_get_hline_pad(struct table *t, int row, int *plpos, int *plsize)
 {
 	int pad, lpos, lsize;
 	int border;
-	NO_TXT;
 	if (!row || row == t->y) {
 		border = (!row && t->frame & F_ABOVE) || (row == t->y && t->frame & F_BELOW) ? t->border : 0;
 		pad = safe_add(safe_add(border, t->cellsp), t->cellpd);

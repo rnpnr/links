@@ -361,7 +361,6 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 
 static void unblock_itrm_x(void *h)
 {
-	NO_GFX;
 	close_handle(h);
 	if (!ditrm) return;
 	unblock_itrm(0);
@@ -386,7 +385,6 @@ int unblock_itrm(int fd)
 void block_itrm(int fd)
 {
 	struct itrm *itrm = ditrm;
-	NO_GFX;
 	if (!itrm) return;
 	if (itrm->blocked) return;
 	itrm->blocked = fd + 1;

@@ -96,7 +96,6 @@ static void set_margin(struct terminal *term)
 static void alloc_term_screen(struct terminal *term)
 {
 	chr *s, *t;
-	NO_GFX;
 	if (term->x < 0) term->x = 1;
 	if (term->y < 0) term->y = 1;
 	if (term->x && (unsigned)term->x * (unsigned)term->y / (unsigned)term->x != (unsigned)term->y) overalloc();
@@ -114,7 +113,6 @@ static void alloc_term_screen(struct terminal *term)
 
 static void clear_terminal(struct terminal *term)
 {
-	NO_GFX;
 	fill_area(term, 0, 0, term->x, term->y, ' ', 0);
 	set_cursor(term, 0, 0, 0, 0);
 }
@@ -126,7 +124,6 @@ void redraw_below_window(struct window *win)
 	struct window *w;
 	struct list_head *lw;
 	struct links_event ev = { EV_REDRAW, 0, 0, 0 };
-	NO_GFX;
 	ev.x = term->x;
 	ev.y = term->y;
 	if (term->redrawing >= 2) return;
@@ -145,7 +142,6 @@ static void redraw_terminal_ev(struct terminal *term, int e)
 	struct window *win;
 	struct list_head *lwin;
 	struct links_event ev = {0, 0, 0, 0};
-	NO_GFX;
 	ev.ev = e;
 	ev.x = term->x;
 	ev.y = term->y;
@@ -157,19 +153,16 @@ static void redraw_terminal_ev(struct terminal *term, int e)
 
 static void redraw_terminal(struct terminal *term)
 {
-	NO_GFX;
 	redraw_terminal_ev(term, EV_REDRAW);
 }
 
 static void redraw_terminal_all(struct terminal *term)
 {
-	NO_GFX;
 	redraw_terminal_ev(term, EV_RESIZE);
 }
 
 static void erase_screen(struct terminal *term)
 {
-	NO_GFX;
 	if (!term->master || !is_blocked()) {
 		if (term->master) want_draw();
 		hard_write(term->fdout, cast_uchar "\033[2J\033[1;1H", 10);
@@ -179,7 +172,6 @@ static void erase_screen(struct terminal *term)
 
 static void redraw_terminal_cls(struct terminal *term)
 {
-	NO_GFX;
 	erase_screen(term);
 	set_margin(term);
 	alloc_term_screen(term);
@@ -405,7 +397,6 @@ void set_window_pos(struct window *win, int x1, int y1, int x2, int y2)
 {
 	struct terminal *term = win->term;
 	struct rect r;
-	NO_TXT;
 	r.x1 = x1, r.y1 = y1, r.x2 = x2, r.y2 = y2;
 	if (is_rect_valid(&win->pos) && (x1 > win->pos.x1 || x2 < win->pos.x2 || y1 > win->pos.y1 || y2 < win->pos.y2) && term->redrawing < 2) {
 		struct window *w;
@@ -564,7 +555,6 @@ static struct term_spec *get_term_spec(unsigned char *term)
 {
 	struct term_spec *t;
 	struct list_head *lt;
-	NO_GFX;
 	foreach(struct term_spec, t, lt, term_specs) if (!casestrcmp(t->term, term)) return t;
 	return default_term_spec(term);
 }
@@ -595,7 +585,6 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 	static tcount terminal_count = 0;
 	struct terminal *term;
 	struct window *win;
-	NO_GFX;
 	term = mem_calloc(sizeof(struct terminal));
 	term->count = terminal_count++;
 	term->fdin = fdin;
@@ -661,7 +650,6 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	struct terminal *term;
 	struct graphics_device *dev;
 	struct window *win;
-	NO_TXT;
 	term = mem_calloc(sizeof(struct terminal));
 	term->count = terminal_count++;
 	term->fdin = -1;
@@ -798,7 +786,6 @@ static void in_term(void *term_)
 	struct links_event *ev;
 	int r;
 	unsigned char *iq;
-	NO_GFX;
 	if ((unsigned)term->qlen + ALLOC_GR > MAXINT) overalloc();
 	iq = mem_realloc(term->input_queue, term->qlen + ALLOC_GR);
 	term->input_queue = iq;
@@ -1011,7 +998,6 @@ static void redraw_screen(struct terminal *term)
 	int mode = -1;
 	int l = 0;
 	struct term_spec *s;
-	NO_GFX;
 	if (!term->dirty || (term->master && is_blocked())) return;
 	a = init_str();
 	s = term->spec;
@@ -1152,7 +1138,6 @@ static void check_if_no_terminal(void)
 
 void set_char(struct terminal *t, int x, int y, unsigned ch, unsigned char at)
 {
-	NO_GFX;
 	t->dirty = 1;
 	if (x >= 0 && x < t->x && y >= 0 && y < t->y) {
 		chr *cc = &t->screen[x + t->x * y];
@@ -1163,7 +1148,6 @@ void set_char(struct terminal *t, int x, int y, unsigned ch, unsigned char at)
 
 chr *get_char(struct terminal *t, int x, int y)
 {
-	NO_GFX;
 	if (!t->x || !t->y) {
 		static chr empty;
 		empty.ch = ' ';
@@ -1179,7 +1163,6 @@ chr *get_char(struct terminal *t, int x, int y)
 
 void set_color(struct terminal *t, int x, int y, unsigned char c)
 {
-	NO_GFX;
 	t->dirty = 1;
 	if (x >= 0 && x < t->x && y >= 0 && y < t->y) t->screen[x + t->x * y].at = (t->screen[x + t->x * y].at & ATTR_FRAME) | (c & ~ATTR_FRAME);
 }
@@ -1187,7 +1170,6 @@ void set_color(struct terminal *t, int x, int y, unsigned char c)
 void set_only_char(struct terminal *t, int x, int y, unsigned ch, unsigned char at)
 {
 	chr *cc;
-	NO_GFX;
 	t->dirty = 1;
 	cc = get_char(t, x, y);
 	at = (at & ATTR_FRAME) | (cc->at & ~ATTR_FRAME);
@@ -1198,7 +1180,6 @@ void set_line(struct terminal *t, int x, int y, int l, chr *line)
 {
 	int i;
 	chr *cc;
-	NO_GFX;
 	t->dirty = 1;
 	if (y < 0 || y >= t->y) return;
 	i = x >= 0 ? 0 : -x;
@@ -1212,7 +1193,6 @@ void set_line(struct terminal *t, int x, int y, int l, chr *line)
 void set_line_color(struct terminal *t, int x, int y, int l, unsigned char c)
 {
 	int i;
-	NO_GFX;
 	t->dirty = 1;
 	if (y < 0 || y >= t->y) return;
 	for (i = x >= 0 ? 0 : -x; i < (x+l <= t->x ? l : t->x-x); i++)
@@ -1223,7 +1203,6 @@ void fill_area(struct terminal *t, int x, int y, int xw, int yw, unsigned ch, un
 {
 	int i;
 	chr *p, *ps;
-	NO_GFX;
 	if (x < 0) xw += x, x = 0;
 	if (x + xw > t->x) xw = t->x - x;
 	if (xw <= 0) return;
@@ -1250,7 +1229,6 @@ static int p2[] = { 201, 187, 200, 188, 186, 205 };
 void draw_frame(struct terminal *t, int x, int y, int xw, int yw, unsigned char c, int w)
 {
 	int *p = w > 1 ? p2 : p1;
-	NO_GFX;
 	c |= ATTR_FRAME;
 	set_char(t, x, y, p[0], c);
 	set_char(t, x+xw-1, y, p[1], c);
@@ -1264,7 +1242,6 @@ void draw_frame(struct terminal *t, int x, int y, int xw, int yw, unsigned char 
 
 void print_text(struct terminal *t, int x, int y, int l, unsigned char *text, unsigned char c)
 {
-	NO_GFX;
 	for (; l--; x++) {
 		unsigned u = GET_TERM_CHAR(t, &text);
 		if (!u) break;
@@ -1274,7 +1251,6 @@ void print_text(struct terminal *t, int x, int y, int l, unsigned char *text, un
 
 void set_cursor(struct terminal *term, int x, int y, int altx, int alty)
 {
-	NO_GFX;
 	term->dirty = 1;
 	if (term->spec->block_cursor && !term->spec->braille) x = altx, y = alty;
 	if (x >= term->x) x = term->x - 1;
@@ -1421,7 +1397,6 @@ void do_terminal_function(struct terminal *term, unsigned char code, unsigned ch
 {
 	unsigned char *x_data;
 	int x_datal;
-	NO_GFX;
 	x_data = init_str();
 	x_datal = 0;
 	add_chr_to_str(&x_data, &x_datal, 0);

@@ -718,10 +718,13 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 	g_nobreak = 0;
 	if (p->cx < par_format.leftmargin * G_HTML_MARGIN) p->cx = par_format.leftmargin * G_HTML_MARGIN;
 	if (html_format_changed) {
-		if (memcmp(&ta_cache, &format_, sizeof(struct text_attrib_beginning)) || xstrcmp(cached_font_face, format_.fontface) || cached_font_face == to_je_ale_prasarna ||
-	xstrcmp(format_.link, last_link) || xstrcmp(format_.target, last_target) ||
-	    xstrcmp(format_.image, last_image) || format_.form != last_form
-	    || ((format_.js_event || last_js_event) && compare_js_event_spec(format_.js_event, last_js_event))	) {
+		if (memcmp(&ta_cache, &format_, sizeof(struct text_attrib_beginning))
+		|| xstrcmp(cached_font_face, format_.fontface)
+		|| cached_font_face == to_je_ale_prasarna
+		|| xstrcmp(format_.link, last_link)
+		|| xstrcmp(format_.target, last_target)
+		|| xstrcmp(format_.image, last_image)
+		|| format_.form != last_form) {
 			/*if (!html_format_changed) internal("html_format_changed not set");*/
 			flush_pending_text_to_line(p);
 			if (xstrcmp(cached_font_face, format_.fontface) || cached_font_face == to_je_ale_prasarna) {
@@ -807,11 +810,12 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 	/* !!! WARNING: THE FOLLOWING CODE IS SHADOWED IN HTML_R.C */
 
 	process_link:
-	if ((last_link /*|| last_target*/ || last_image || last_form) &&
-	    !putchars_link_ptr &&
-	    !xstrcmp(format_.link, last_link) && !xstrcmp(format_.target, last_target) &&
-	    !xstrcmp(format_.image, last_image) && format_.form == last_form
-	    && ((!format_.js_event && !last_js_event) || !compare_js_event_spec(format_.js_event, last_js_event))) {
+	if ((last_link /*|| last_target*/ || last_image || last_form)
+	&& !putchars_link_ptr
+	&& !xstrcmp(format_.link, last_link)
+	&& !xstrcmp(format_.target, last_target)
+	&& !xstrcmp(format_.image, last_image)
+	&& format_.form == last_form) {
 		if (!p->data) goto back_link;
 		if (!p->data->nlinks) {
 			internal("no link");
@@ -823,7 +827,6 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 		if (last_link) mem_free(last_link);
 		if (last_target) mem_free(last_target);
 		if (last_image) mem_free(last_image);
-		free_js_event_spec(last_js_event);
 		last_link = last_target = last_image = NULL;
 		last_form = NULL;
 		last_js_event = NULL;
@@ -851,12 +854,10 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 		last_target = stracpy(format_.target);
 		last_image = stracpy(format_.image);
 		last_form = format_.form;
-		copy_js_event_spec(&last_js_event, format_.js_event);
 		if (!p->data) goto back_link;
 		if (!(link = new_link(p->data))) goto back_link;
 		link->num = p->link_num - 1;
 		link->pos = DUMMY;
-		copy_js_event_spec(&link->js_event, format_.js_event);
 		if (!last_form) {
 			link->type = L_LINK;
 			link->where = stracpy(last_link);
@@ -910,7 +911,6 @@ struct g_part *g_format_html_part(unsigned char *start, unsigned char *end, int 
 	if (last_link) mem_free(last_link);
 	if (last_image) mem_free(last_image);
 	if (last_target) mem_free(last_target);
-	free_js_event_spec(last_js_event);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
 	last_js_event = NULL;
@@ -982,7 +982,6 @@ struct g_part *g_format_html_part(unsigned char *start, unsigned char *end, int 
 	if (last_link) mem_free(last_link);
 	if (last_image) mem_free(last_image);
 	if (last_target) mem_free(last_target);
-	free_js_event_spec(last_js_event);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
 	last_js_event = NULL;

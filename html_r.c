@@ -124,7 +124,6 @@ static void clear_formatted(struct f_data *scr)
 		if (l->where_img) mem_free(l->where_img);
 		if (l->img_alt) mem_free(l->img_alt);
 		if (l->pos) mem_free(l->pos);
-		free_js_event_spec(l->js_event);
 	}
 	mem_free(scr->links);
 	if (!F) for (y = 0; y < scr->y; y++) mem_free(scr->data[y].d);
@@ -698,11 +697,11 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	/* !!! WARNING: THE FOLLOWING CODE IS SHADOWED IN HTML_GR.C */
 
 	process_link:
-	if ((last_link || last_image || last_form) &&
-	    !xstrcmp(format_.link, last_link) && !xstrcmp(format_.target, last_target) &&
-	    !xstrcmp(format_.image, last_image) && format_.form == last_form
-	    && ((!format_.js_event && !last_js_event) || !compare_js_event_spec(format_.js_event, last_js_event))
-	    ) {
+	if ((last_link || last_image || last_form)
+	&& !xstrcmp(format_.link, last_link)
+	&& !xstrcmp(format_.target, last_target)
+	&& !xstrcmp(format_.image, last_image)
+	&& format_.form == last_form) {
 		if (!p->data) goto x;
 		link = &p->data->links[p->data->nlinks - 1];
 		if (!p->data->nlinks) {
@@ -715,7 +714,6 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		if (last_link) mem_free(last_link);
 		if (last_target) mem_free(last_target);
 		if (last_image) mem_free(last_image);
-		free_js_event_spec(last_js_event);
 		last_link = last_target = last_image = NULL;
 		last_form = NULL;
 		last_js_event = NULL;
@@ -753,12 +751,10 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		last_target = stracpy(format_.target);
 		last_image = stracpy(format_.image);
 		last_form = format_.form;
-		copy_js_event_spec(&last_js_event, format_.js_event);
 		if (!p->data) goto no_l;
 		if (!(link = new_link(p->data))) goto no_l;
 		link->num = p->link_num - 1;
 		link->pos = DUMMY;
-		copy_js_event_spec(&link->js_event, format_.js_event);
 		if (!last_form) {
 			link->type = L_LINK;
 			link->where = stracpy(last_link);
@@ -1028,7 +1024,6 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	if (last_link) mem_free(last_link);
 	if (last_image) mem_free(last_image);
 	if (last_target) mem_free(last_target);
-	free_js_event_spec(last_js_event);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
 	last_js_event = NULL;
@@ -1070,7 +1065,6 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	if (last_link) mem_free(last_link);
 	if (last_image) mem_free(last_image);
 	if (last_target) mem_free(last_target);
-	free_js_event_spec(last_js_event);
 	while (&html_top != e) {
 		kill_html_stack_item(&html_top);
 		if (!&html_top || (void *)&html_top == (void *)&html_stack) {

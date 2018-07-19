@@ -2275,7 +2275,6 @@ void get_links_icon(unsigned char **data, int *width, int *height, int *skip, in
 	b.skip=b.x*(drv->depth&7);
 	while (b.skip % pad) b.skip++;
 	*skip=b.skip;
-	retry:
 	b.data = *data = xmalloc(b.skip * b.y);
 	tmp1 = xmalloc(6 * b.y * b.x);
 	agx_24_to_48(tmp1,links_icon,b.x*b.y,g,g,g);

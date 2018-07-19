@@ -187,9 +187,6 @@ static inline void sig_fill_set(sigset_t *set)
 extern int F;
 #endif
 
-#define NO_GFX	do {} while (0)
-#define NO_TXT	do {} while (0)
-
 #ifndef G
 #define gf_val(x, y) (x)
 #define GF(x)
@@ -296,15 +293,12 @@ void *mem_realloc_(void *p, size_t size, int mayfail);
 static inline void *debug_mem_calloc(unsigned char *f, int l, size_t s, int mayfail) { return mem_calloc_(s, mayfail); }
 static inline void debug_mem_free(unsigned char *f, int l, void *p) { mem_free(p); }
 static inline void *debug_mem_realloc(unsigned char *f, int l, void *p, size_t s, int mayfail) { return mem_realloc_(p, s, mayfail); }
-static inline void set_mem_comment(void *p, unsigned char *c, int l) {}
 static inline unsigned char *get_mem_comment(void *p){return (unsigned char *)"";}
 
 unsigned char *memacpy(const unsigned char *src, size_t len);
 unsigned char *stracpy(const unsigned char *src);
 
 #define pr(code) if (1) {code;} else
-static inline void nopr(void) {}
-static inline void xpr(void) {}
 
 /* inline */
 
@@ -3122,11 +3116,6 @@ void reset_form(struct f_data_c *f, int form_num);
 void set_textarea(struct session *, struct f_data_c *, int);
 void free_format_text_cache(void);
 
-void copy_js_event_spec(struct js_event_spec **, struct js_event_spec *);
-int join_js_event_spec(struct js_event_spec **, struct js_event_spec *);
-void free_js_event_spec(struct js_event_spec *);
-void create_js_event_spec(struct js_event_spec **);
-int compare_js_event_spec(struct js_event_spec *, struct js_event_spec *);
 unsigned char *print_js_event_spec(struct js_event_spec *);
 
 /* font_inc.c */

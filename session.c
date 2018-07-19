@@ -1466,7 +1466,6 @@ struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq
 	if (ses) {
 		if (fd->f_data && !strcmp(cast_const_char fd->f_data->rq->url, cast_const_char url) && !compare_opt(&fd->f_data->opt, opt) && is_format_cache_entry_uptodate(fd->f_data)) {
 			f = fd->f_data;
-			xpr();
 			goto ret_f;
 		}
 		foreach(struct f_data, f, lf, ses->format_cache) {
@@ -1482,7 +1481,6 @@ struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq
 				f->fd = fd;
 				if (cch) *cch = 1;
 				f_data_attach(fd, f);
-				xpr();
 				goto ret_f;
 			}
 		}
@@ -2610,7 +2608,7 @@ void map_selected(struct terminal *term, void *ld_, void *ses_)
 	struct session *ses = (struct session *)ses_;
 	int x = 0;
 	if (ld->onclick) {
-		struct f_data_c *fd = current_frame(ses);
+		current_frame(ses);
 		x = 1;
 	}
 	if (ld->link) goto_url_f(ses, NULL, ld->link, ld->target, current_frame(ses), -1, x, 0, 0);
