@@ -145,7 +145,7 @@ static void png_row_callback(png_structp png_ptr, png_bytep new_row, png_uint_32
 				*channels);
 		}else{
 			if ((unsigned)cimg->width > (unsigned)MAXINT / 2 / channels) overalloc();
-			tmp=mem_alloc(cimg->width*2*channels);
+			tmp = xmalloc(cimg->width*2*channels);
 			a2char_from_unsigned_short(tmp, (unsigned short *)(cimg->buffer
 				+cimg->buffer_bytes_per_pixel
 				*cimg->width*row_num), cimg->width*channels);
@@ -208,7 +208,7 @@ error:
 				    png_info_callback, &png_row_callback,
 				    png_end_callback);
 	if (setjmp(png_jmpbuf(png_ptr))) goto error;
-	decoder=mem_alloc(sizeof(*decoder));
+	decoder = xmalloc(sizeof(*decoder));
 	decoder->png_ptr=png_ptr;
 	decoder->info_ptr=info_ptr;
 	cimg->decoder=decoder;

@@ -45,7 +45,7 @@ static struct list *block_new_item(void *ignore)
 	/*Default constructor*/
 	struct block *neww;
 
-	neww = mem_alloc(sizeof(struct block));
+	neww = xmalloc(sizeof(struct block));
 	neww->url = stracpy(cast_uchar "");
 	return &neww->head;
 }
@@ -172,7 +172,7 @@ static void block_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	unsigned char *url, *txt;
 
 	/*Allocate space for dialog, 4 items followed by 1 string*/
-	d = mem_alloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item) + 1 * MAX_STR_LEN);
+	d = xmalloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item) + 1 * MAX_STR_LEN);
 	memset(d, 0, sizeof(struct dialog) + 4 * sizeof(struct dialog_item) + 1 * MAX_STR_LEN);
 
 	/*Set up this string */
@@ -182,7 +182,7 @@ static void block_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	mem_free(txt);
 
 	/* Create the dialog */
-	s = mem_alloc(sizeof(struct assoc_ok_struct));
+	s = xmalloc(sizeof(struct assoc_ok_struct));
 
 	s->fn = ok_fn;
 	s->data = ok_arg;

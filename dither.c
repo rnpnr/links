@@ -833,9 +833,9 @@ static void compress_tables(void)
 			return;
 	}
 	table_16 = 0;
-	rt = mem_alloc(256 * sizeof(*rt));
-	gt = mem_alloc(256 * sizeof(*gt));
-	bt = mem_alloc(256 * sizeof(*bt));
+	rt = xmalloc(256 * sizeof(*rt));
+	gt = xmalloc(256 * sizeof(*gt));
+	bt = xmalloc(256 * sizeof(*bt));
 	for (i = 0; i < 256; i++) {
 		rt[i] = red_table[i << 8];
 		gt[i] = green_table[i << 8];

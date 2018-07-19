@@ -269,7 +269,7 @@ have_f:
 	/*if (C_ALIGN(length) > MAXINT - sizeof(struct fragment) || C_ALIGN(length) < 0) overalloc();*/
 	ca = C_ALIGN(length);
 	if (ca > MAXINT - (int)sizeof(struct fragment) || ca < 0) return S_LARGE_FILE;
-	nf = mem_alloc_mayfail(sizeof(struct fragment) + (size_t)ca);
+	nf = xmalloc(sizeof(struct fragment) + (size_t)ca);
 	if (!nf) return S_OUT_OF_MEM;
 	sf(length);
 	nf->offset = offset;
@@ -337,7 +337,7 @@ int defrag_entry(struct cache_entry *e)
 		l += list_struct(h, struct fragment)->length;
 	}
 	if (l > MAXINT - (int)sizeof(struct fragment)) return S_LARGE_FILE;
-	n = mem_alloc_mayfail(sizeof(struct fragment) + (size_t)l);
+	n = xmalloc(sizeof(struct fragment) + (size_t)l);
 	if (!n) return S_OUT_OF_MEM;
 	n->offset = 0;
 	n->length = l;

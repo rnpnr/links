@@ -143,7 +143,7 @@ links_ssl *getSSL(void)
 		}
 		SSL_CTX_set_default_passwd_cb(ctx, ssl_password_callback);
 	}
-	ssl = mem_alloc_mayfail(sizeof(links_ssl));
+	ssl = xmalloc(sizeof(links_ssl));
 	if (!ssl)
 		return NULL;
 	ssl->ctx = contexts[idx];
@@ -354,7 +354,7 @@ static void set_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port,
 		return;
 	sl = strlen(cast_const_char host);
 	if (sl > MAXINT - sizeof(sizeof(struct session_cache_entry))) return;
-	sce = mem_alloc(sizeof(struct session_cache_entry) + sl);
+	sce = xmalloc(sizeof(struct session_cache_entry) + sl);
 	sce->absolute_time = get_absolute_time();
 	sce->ctx = ctx;
 	sce->session = s;

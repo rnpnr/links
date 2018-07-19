@@ -376,7 +376,7 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 	check_dns_cache_addr_preference();
 	sl = strlen(cast_const_char q->name);
 	if (sl > MAXINT - sizeof(struct dnsentry)) overalloc();
-	dnsentry = mem_alloc(sizeof(struct dnsentry) + sl);
+	dnsentry = xmalloc(sizeof(struct dnsentry) + sl);
 	strcpy(cast_char dnsentry->name, cast_const_char q->name);
 	memcpy(&dnsentry->addr, q->addr, sizeof(struct lookup_result));
 	dnsentry->absolute_time = get_absolute_time();

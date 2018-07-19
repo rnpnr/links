@@ -571,9 +571,9 @@ static void x_add_to_table(struct graphics_device* gd)
 	int a=(int)get_window_info(gd)->window & (X_HASH_TABLE_SIZE-1);
 	int c=x_hash_table[a].count;
 
-	if (!c) {
-		x_hash_table[a].pointer=mem_alloc(sizeof(struct graphics_device *));
-	} else {
+	if (!c)
+		x_hash_table[a].pointer = xmalloc(sizeof(struct graphics_device *));
+	else {
 		if ((unsigned)c > MAXINT / sizeof(struct graphics_device *) - 1) overalloc();
 		x_hash_table[a].pointer=mem_realloc(x_hash_table[a].pointer,(c+1)*sizeof(struct graphics_device *));
 	}
@@ -1393,7 +1393,7 @@ static struct graphics_device* x_init_device(void)
 #ifdef X_DEBUG
 	MESSAGE("x_init_device\n");
 #endif
-	gd=mem_alloc(sizeof(struct graphics_device));
+	gd = xmalloc(sizeof(struct graphics_device));
 
 	wi=mem_calloc(sizeof(struct window_info));
 
@@ -1534,13 +1534,7 @@ static int x_get_empty_bitmap(struct bitmap *bmp)
 	if (pad==x_bitmap_scanline_pad)pad=0;
 	bmp->skip=bmp->x*x_bitmap_bpp+pad;
 	bmp->flags=NULL;
-	retry:
-	if (!(bmp->data=malloc(bmp->skip*bmp->y))) {
-		if (out_of_memory(0, NULL, 0))
-			goto retry;
-		return -1;
-	}
-	/* on error bmp->data should point to NULL */
+	bmp->data = xmalloc(bmp->skip * bmp->y);
 	return 0;
 }
 
@@ -1561,7 +1555,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 	x_translate_colors(bmp->data, bmp->x, bmp->y, bmp->skip);
 
 	/* alloc struct x_bitmapa */
-	p=mem_alloc(sizeof(struct x_pixmapa));
+	p = xmalloc(sizeof(struct x_pixmapa));
 
 	/* alloc XImage in client's memory */
 	retry:
@@ -1584,7 +1578,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 	}
 
 	x_prepare_for_failure();
-	pixmap=mem_alloc(sizeof(Pixmap));
+	pixmap = xmalloc(sizeof(Pixmap));
 	(*pixmap)=XCreatePixmap(x_display,fake_window,bmp->x,bmp->y,x_depth);
 	if (x_test_for_failure()) {
 		if (*pixmap) {
@@ -2010,7 +2004,7 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 		case X_TYPE_PIXMAP:
 
 		retry:
-		x_data=malloc(bmp->skip*lines);
+		x_data = xmalloc(bmp->skip * lines);
 		if (!x_data) {
 			if (out_of_memory(0, NULL, 0))
 				goto retry;

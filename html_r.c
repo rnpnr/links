@@ -64,7 +64,7 @@ struct frameset_desc *copy_frameset_desc(struct frameset_desc *fd)
 	int i;
 	struct frameset_desc *neww;
 	if ((unsigned)fd->n > MAXINT / sizeof(struct frame_desc)) overalloc();
-	neww = mem_alloc(sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
+	neww = xmalloc(sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
 	memcpy(neww, fd, sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
 	for (i = 0; i < neww->n; i++) {
 		if (neww->f[i].subframe) neww->f[i].subframe = copy_frameset_desc(neww->f[i].subframe);
@@ -470,7 +470,7 @@ static inline void shift_chars(struct part *p, int y, int s)
 	chr *a;
 	int l = LEN(y);
 	if ((unsigned)l > MAXINT / sizeof(chr)) overalloc();
-	a = mem_alloc(l * sizeof(chr));
+	a = xmalloc(l * sizeof(chr));
 	memcpy(a, &POS(0, y), l * sizeof(chr));
 	set_hchars(p, 0, y, s, ' ', p->attribute);
 	copy_chars(p, s, y, l, a);
@@ -560,7 +560,7 @@ void html_tag(struct f_data *f, unsigned char *t, int x, int y)
 	add_conv_str(&tt, &ll, t, (int)strlen(cast_const_char t), -2);
 	sl = strlen(cast_const_char tt);
 	if (sl > MAXINT - sizeof(struct tag)) overalloc();
-	tag = mem_alloc(sizeof(struct tag) + sl);
+	tag = xmalloc(sizeof(struct tag) + sl);
 	tag->x = x;
 	tag->y = y;
 	strcpy(cast_char tag->name, cast_const_char tt);
@@ -632,7 +632,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		p->utf8_part_len = 0;
 		if (!l) return;
 		if ((unsigned)l > (unsigned)MAXINT / sizeof(char_t)) overalloc();
-		uni_c = mem_alloc(l * sizeof(char_t));
+		uni_c = xmalloc(l * sizeof(char_t));
 		ll = 0;
 		cc = c;
 		next_utf_char:
@@ -1014,7 +1014,7 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	}
 	if (data) {
 		struct node *n;
-		n = mem_alloc(sizeof(struct node));
+		n = xmalloc(sizeof(struct node));
 		n->x = xs;
 		n->y = ys;
 		n->xw = !table_level ? MAXINT - 1 : width;
@@ -1331,10 +1331,10 @@ static int sort_srch(struct f_data *f)
 	int *min, *max;
 	if ((unsigned)f->y > MAXINT / sizeof(struct search *)) overalloc();
 	if ((unsigned)f->y > MAXINT / sizeof(int)) overalloc();
-	f->slines1 = mem_alloc_mayfail(f->y * sizeof(int));
-	f->slines2 = mem_alloc_mayfail(f->y * sizeof(int));
-	min = mem_alloc_mayfail(f->y * sizeof(int));
-	max = mem_alloc_mayfail(f->y * sizeof(int));
+	f->slines1 = xmalloc(f->y * sizeof(int));
+	f->slines2 = xmalloc(f->y * sizeof(int));
+	min = xmalloc(f->y * sizeof(int));
+	max = xmalloc(f->y * sizeof(int));
 	if (!f->slines1 || !f->slines2 || !min || !max) {
 		if (f->slines1) mem_free(f->slines1), f->slines1 = NULL;
 		if (f->slines2) mem_free(f->slines2), f->slines2 = NULL;
@@ -1469,9 +1469,9 @@ int get_search_data(struct f_data *f)
 	if (f->search_pos) return 0;
 	if (get_srch(f)) return -1;
 	if ((size_t)n_chr > MAX_SIZE_T / sizeof(char_t) || (size_t)n_pos > MAX_SIZE_T / sizeof(struct search)) return -1;
-	f->search_chr = mem_alloc_mayfail(n_chr * sizeof(char_t));
+	f->search_chr = xmalloc(n_chr * sizeof(char_t));
 	if (!f->search_chr) return -1;
-	f->search_pos = mem_alloc_mayfail(n_pos * sizeof(struct search));
+	f->search_pos = xmalloc(n_pos * sizeof(struct search));
 	if (!f->search_pos) {
 		mem_free(f->search_chr);
 		f->search_chr = NULL;

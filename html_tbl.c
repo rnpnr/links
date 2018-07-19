@@ -812,9 +812,12 @@ static int get_column_widths(struct table *t)
 {
 	int i, j, s, ns;
 	if ((unsigned)t->x > MAXINT / sizeof(int)) overalloc();
-	if (!t->min_c) t->min_c = mem_alloc(t->x * sizeof(int));
-	if (!t->max_c) t->max_c = mem_alloc(t->x * sizeof(int));
-	if (!t->w_c) t->w_c = mem_alloc(t->x * sizeof(int));
+	if (!t->min_c)
+		t->min_c = xmalloc(t->x * sizeof(int));
+	if (!t->max_c)
+		t->max_c = xmalloc(t->x * sizeof(int));
+	if (!t->w_c)
+		t->w_c = xmalloc(t->x * sizeof(int));
 	memset(t->min_c, 0, t->x * sizeof(int));
 	memset(t->max_c, 0, t->x * sizeof(int));
 	s = 1;
@@ -903,9 +906,9 @@ static void distribute_widths(struct table *t, int width)
 	memcpy(t->w_c, t->min_c, t->x * sizeof(int));
 	t->rw = width;
 	if ((unsigned)t->x > MAXINT / sizeof(int)) overalloc();
-	u = mem_alloc(t->x);
-	w = mem_alloc(t->x * sizeof(int));
-	mx = mem_alloc(t->x * sizeof(int));
+	u = xmalloc(t->x);
+	w = xmalloc(t->x * sizeof(int));
+	mx = xmalloc(t->x * sizeof(int));
 	while (d) {
 		int mss, mii;
 		int p = 0;
@@ -1311,8 +1314,8 @@ static void display_table_frames(struct table *t, int x, int y)
 	if ((unsigned)t->y > MAXINT) overalloc();
 	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) / ((unsigned)t->x + 2) != ((unsigned)t->y + 2)) overalloc();
 	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) > MAXINT) overalloc();
-	fh = mem_alloc((t->x + 2) * (t->y + 1) * sizeof(short));
-	fv = mem_alloc((t->x + 1) * (t->y + 2) * sizeof(short));
+	fh = xmalloc((t->x + 2) * (t->y + 1) * sizeof(short));
+	fv = xmalloc((t->x + 1) * (t->y + 2) * sizeof(short));
 	get_table_frame(t, fv, fh);
 
 	cy = y;
@@ -1556,7 +1559,7 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	n->yw = p->yp - n->y + p->cy;
 	display_complicated_table(t, x, p->cy, &cye);
 	display_table_frames(t, x, p->cy);
-	nn = mem_alloc(sizeof(struct node));
+	nn = xmalloc(sizeof(struct node));
 	nn->x = n->x;
 	nn->y = safe_add(p->yp, cye);
 	nn->xw = n->xw;
@@ -1782,8 +1785,8 @@ static void process_g_table(struct g_part *gp, struct table *t)
 	if ((unsigned)t->y > MAXINT) overalloc();
 	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) / ((unsigned)t->x + 2) != ((unsigned)t->y + 2)) overalloc();
 	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) > MAXINT) overalloc();
-	fh = mem_alloc((t->x + 2) * (t->y + 1) * sizeof(short));
-	fv = mem_alloc((t->x + 1) * (t->y + 2) * sizeof(short));
+	fh = xmalloc((t->x + 2) * (t->y + 1) * sizeof(short));
+	fv = xmalloc((t->x + 1) * (t->y + 2) * sizeof(short));
 	get_table_frame(t, fv, fh);
 	y = 0;
 	for (j = 0; j <= t->y; j++) {
@@ -1951,12 +1954,12 @@ void *find_table_cache_entry(unsigned char *start, unsigned char *end, int align
 	for (tce = table_cache_hash[hash]; tce; tce = tce->hash_next) {
 		if (tce->start == start && tce->end == end && tce->align == align && tce->m == m && tce->width == width && tce->xs == xs && tce->link_num == link_num) {
 			if (!F) {
-				struct part *p = mem_alloc(sizeof(struct part));
+				struct part *p = xmalloc(sizeof(struct part));
 				memcpy(p, &tce->u.p, sizeof(struct part));
 				return p;
 #ifdef G
 			} else {
-				struct g_part *gp = mem_alloc(sizeof(struct g_part));
+				struct g_part *gp = xmalloc(sizeof(struct g_part));
 				memcpy(gp, &tce->u.gp, sizeof(struct g_part));
 				return gp;
 #endif
@@ -1969,7 +1972,7 @@ void *find_table_cache_entry(unsigned char *start, unsigned char *end, int align
 void add_table_cache_entry(unsigned char *start, unsigned char *end, int align, int m, int width, int xs, int link_num, void *p)
 {
 	int hash;
-	struct table_cache_entry *tce = mem_alloc(sizeof(struct table_cache_entry));
+	struct table_cache_entry *tce = xmalloc(sizeof(struct table_cache_entry));
 	tce->start = start;
 	tce->end = end;
 	tce->align = align;

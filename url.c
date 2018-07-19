@@ -780,7 +780,7 @@ static unsigned char *puny_encode(unsigned char *s, int len)
 
 	if (len > 7 * puny_max_length)
 		goto err;
-	uni = mem_alloc(len * sizeof(unsigned));
+	uni = xmalloc(len * sizeof(unsigned));
 	uni_l = 0;
 	for (p = s; p < s + len; ) {
 		unsigned c;
@@ -903,7 +903,7 @@ static unsigned char *puny_decode(unsigned char *s, int len)
 	if (len > puny_max_length)
 		goto err;
 
-	uni = mem_alloc(len * sizeof(unsigned));
+	uni = xmalloc(len * sizeof(unsigned));
 	uni_l = 0;
 
 	if (last_dash) {

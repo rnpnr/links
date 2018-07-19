@@ -278,7 +278,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
 	if ((unsigned)ox * (unsigned)y > MAXINT) overalloc();
-	outptr=mem_alloc(ox*y);
+	outptr = xmalloc(ox * y);
 	inptr=in;
 	*out=outptr;
 	if (ix==1){
@@ -292,7 +292,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 	}else{
 		total=(ix-1)*(ox-1);
 		if ((unsigned)y > MAXINT / sizeof(*col_buf)) overalloc();
-		col_buf=mem_alloc(y*sizeof(*col_buf));
+		col_buf = xmalloc(y * sizeof(*col_buf));
 		bias_buf_gray(col_buf, y, half);
 		out_pos=0;
 		in_pos=0;
@@ -351,7 +351,7 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 	}
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
 	if ((unsigned)ox * (unsigned)y > MAXINT / 3 / sizeof(*out)) overalloc();
-	out=mem_alloc_mayfail(sizeof(*out)*3*ox*y);
+	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
 		mem_free(in);
@@ -374,7 +374,7 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 	alloc_size = (int)(y*3*sizeof(*col_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
-	col_buf = mem_alloc_mayfail(alloc_size * n_threads);
+	col_buf = xmalloc(alloc_size * n_threads);
 	if (!col_buf) goto skip_omp;
 	{
 		scale_t *thread_col_buf;
@@ -430,11 +430,11 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 	}
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
 	if ((unsigned)ox * (unsigned)y > MAXINT) overalloc();
-	outptr=mem_alloc(ox*y);
+	outptr = xmalloc(ox * y);
 	inptr=in;
 	*out=outptr;
 	if ((unsigned)y > MAXINT / sizeof(*col_buf)) overalloc();
-	col_buf=mem_alloc(y*sizeof(*col_buf));
+	col_buf = xmalloc(y * sizeof(*col_buf));
 	bias_buf_gray(col_buf, y, ix>>1);
 	out_pos=0;
 	in_pos=0;
@@ -494,7 +494,7 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 	multiply_int(ix,ox);
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
 	if ((unsigned)ox * (unsigned)y > MAXINT / 3 / sizeof(*out)) overalloc();
-	out=mem_alloc_mayfail(sizeof(*out)*3*ox*y);
+	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
 		mem_free(in);
@@ -506,7 +506,7 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 	alloc_size = (int)(y*3*sizeof(*col_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
-	col_buf = mem_alloc_mayfail(alloc_size * n_threads);
+	col_buf = xmalloc(alloc_size * n_threads);
 	if (!col_buf) goto skip_omp;
 	{
 		scale_t *thread_col_buf;
@@ -559,7 +559,7 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 	if (iy==1){
 		if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
 		if ((unsigned)x * (unsigned)oy > MAXINT) overalloc();
-		outptr=mem_alloc(oy*x);
+		outptr = xmalloc(oy * x);
 		*out=outptr;
 		for(;oy;oy--,outptr+=x)
 			memcpy(outptr,in,x);
@@ -570,12 +570,12 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 	}else{
 		if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
 		if ((unsigned)x * (unsigned)oy > MAXINT) overalloc();
-		outptr=mem_alloc(oy*x);
+		outptr = xmalloc(oy*x);
 		inptr=in;
 		*out=outptr;
 		total=(iy-1)*(oy-1);
 		if ((unsigned)x > MAXINT / sizeof(*row_buf)) overalloc();
-		row_buf=mem_alloc(x*sizeof(*row_buf));
+		row_buf = xmalloc(x * sizeof(*row_buf));
 		bias_buf_gray(row_buf, x, half);
 		out_pos=0;
 		in_pos=0;
@@ -622,7 +622,7 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	/* Rivendell */
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
 	if ((unsigned)x * (unsigned)oy > MAXINT / 3 / sizeof(*out)) overalloc();
-	out=mem_alloc_mayfail(sizeof(*out)*3*oy*x);
+	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
 		mem_free(in);
@@ -643,7 +643,7 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	alloc_size = (int)(x*3*sizeof(*row_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
-	row_buf = mem_alloc_mayfail(alloc_size * n_threads);
+	row_buf = xmalloc(alloc_size * n_threads);
 	if (!row_buf) goto skip_omp;
 	{
 		scale_t *thread_row_buf;
@@ -701,7 +701,7 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 	}
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
 	if ((unsigned)x * (unsigned)oy > MAXINT) overalloc();
-	outptr=mem_alloc(x*oy);
+	outptr = xmalloc(x * oy);
 	inptr=in;
 	*out=outptr;
 	if ((unsigned)x > MAXINT / sizeof(*row_buf)) overalloc();
@@ -763,7 +763,7 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 	multiply_int(iy,oy);
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
 	if ((unsigned)x * (unsigned)oy > MAXINT / 3 / sizeof(*out)) overalloc();
-	out=mem_alloc_mayfail(sizeof(*out)*3*oy*x);
+	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
 		mem_free(in);
@@ -774,7 +774,7 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 	alloc_size = (int)(x*3*sizeof(*row_buf));
 	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
 	if (alloc_size > MAXINT / n_threads) overalloc();
-	row_buf = mem_alloc_mayfail(alloc_size * n_threads);
+	row_buf = xmalloc(alloc_size * n_threads);
 	if (!row_buf) goto skip_omp;
 	{
 		scale_t *thread_row_buf;
@@ -1289,7 +1289,7 @@ void make_gamma_table(struct cached_image *cimg)
 
 	if (cimg->buffer_bytes_per_pixel<=4){
 		/* 8-bit */
-		ptr_16=mem_alloc(768*sizeof(*(cimg->gamma_table)));
+		ptr_16 = xmalloc(768 * sizeof(*(cimg->gamma_table)));
 		cimg->gamma_table=ptr_16;
 		for (a=0;a<256;a++,ptr_16++){
 			last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_255,rg)+(float_double)0.5);
@@ -1314,7 +1314,7 @@ void make_gamma_table(struct cached_image *cimg)
 		last_val = 0;	/* against warning */
 
 		/* 16-bit */
-		ptr_16=mem_alloc(196608*sizeof(*(cimg->gamma_table)));
+		ptr_16 = xmalloc(196608 * sizeof(*(cimg->gamma_table)));
 		cimg->gamma_table=ptr_16;
 		for (a=0;a<0x10000;a++,ptr_16++){
 			if (!x_slow_fpu || !(a & 0xff)) {
@@ -1489,7 +1489,7 @@ static void load_metric(int *x, int *y, int char_number, int *style_table)
 #ifdef PNG_USER_MEM_SUPPORTED
 void *my_png_alloc(png_structp png_ptr, png_size_t size)
 {
-	void *ptr = mem_alloc_mayfail(size);
+	void *ptr = xmalloc(size);
 	return ptr;
 }
 void my_png_free(png_structp png_ptr, void *ptr)
@@ -1584,9 +1584,9 @@ const unsigned char *png_data, int png_length)
 	png_read_update_info(png_ptr,info_ptr);
 	if (*x && (unsigned)*x * (unsigned)*y / (unsigned)*x != (unsigned)*y) overalloc();
 	if ((unsigned)*x * (unsigned)*y > MAXINT) overalloc();
-	*dest=mem_alloc(*x*(*y));
+	*dest = xmalloc(*x * (*y));
 	if ((unsigned)*y > MAXINT / sizeof(*ptrs)) overalloc();
-	ptrs=mem_alloc(*y*sizeof(*ptrs));
+	ptrs = xmalloc(*y * sizeof(*ptrs));
 	for (y1=0;y1<*y;y1++) ptrs[y1]=*dest+*x*y1;
 	for (;number_of_passes;number_of_passes--){
 		png_read_rows(png_ptr, ptrs, NULL, *y);
@@ -1620,7 +1620,7 @@ const unsigned char *png_data, int png_length, struct style *style)
 	iy=y+2;
 	if (ix && (unsigned)ix * (unsigned)iy / (unsigned)ix != (unsigned)iy) overalloc();
 	if ((unsigned)ix * (unsigned)iy > MAXINT) overalloc();
-	interm2=mem_alloc(ix*iy);
+	interm2 = xmalloc(ix * iy);
 	i2ptr=interm2+ix+1;
 	dptr=*dest;
 	memset(interm2,0,ix);
@@ -1668,13 +1668,13 @@ ATTR_NOINLINE static struct font_cache_entry *supply_color_cache_entry(struct st
 	unsigned short red, green, blue;
 	unsigned bytes_consumed;
 
-	found=mem_alloc(sizeof(*found));
+	found = xmalloc(sizeof(*found));
 	found->bitmap.y=style->height;
 	load_scaled_char(&(found->bitmap.data),&(found->bitmap.x),
 		found->bitmap.y, letter->begin,
 		letter->length, style);
 
-	neww=mem_alloc(sizeof(*neww));
+	neww = xmalloc(sizeof(*neww));
 	locked_color_entry = neww;
 	neww->bitmap=found->bitmap;
 	neww->r0=style->r0;
@@ -1688,8 +1688,7 @@ ATTR_NOINLINE static struct font_cache_entry *supply_color_cache_entry(struct st
 
 	if (neww->bitmap.x && (unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y / (unsigned)neww->bitmap.x != (unsigned)neww->bitmap.y) overalloc();
 	if ((unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y > MAXINT / 3 / sizeof(*primary_data)) overalloc();
-	primary_data=mem_alloc(3
-			*neww->bitmap.x*neww->bitmap.y*sizeof(*primary_data));
+	primary_data = xmalloc(3 * neww->bitmap.x * neww->bitmap.y * sizeof(*primary_data));
 
 	/* We assume the gamma of HTML styles is in sRGB space */
 	round_color_sRGB_to_48(&red, &green, &blue,
@@ -2150,7 +2149,7 @@ struct style *g_invert_style(struct style *old)
 	int length;
 
 	struct style *st;
-	st = mem_alloc(sizeof(struct style));
+	st = xmalloc(sizeof(struct style));
 	st->refcount=1;
 	st->r0=old->r1;
 	st->g0=old->g1;
@@ -2168,7 +2167,7 @@ struct style *g_invert_style(struct style *old)
 	}
 	if ((unsigned)n_fonts > MAXINT / sizeof(*st->table)) overalloc();
 	length=(int)sizeof(*st->table)*(n_fonts-1);
-	st->table=mem_alloc(length);
+	st->table = xmalloc(length);
 	memcpy(st->table,old->table,length);
 	st->mono_space=old->mono_space;
 	st->mono_height=old->mono_height;
@@ -2197,7 +2196,7 @@ struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int fla
 
 	bg = hack_rgb(bg);
 
-	st = mem_alloc(sizeof(struct style));
+	st = xmalloc(sizeof(struct style));
 	/* strcpy(st->font, font); */
 	st->refcount = 1;
 	st->r0 = bg >> 16;
@@ -2215,7 +2214,7 @@ struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int fla
 		st->underline_color=dip_get_color_sRGB(fg);
 	}
 	if ((unsigned)n_fonts > MAXINT / sizeof(*st->table)) overalloc();
-	st->table=mem_alloc(sizeof(*st->table)*(n_fonts-1));
+	st->table = xmalloc(sizeof(*st->table)*(n_fonts-1));
 	if(fill_style_table(st->table, font))
 		load_metric(&(st->mono_space), &(st->mono_height),' ',st->table);
 	else
@@ -2263,8 +2262,6 @@ long real_dip_get_color_sRGB(int rgb)
 
 #include "links_ic.inc"
 
-/* ATTENTION!!! allocates using malloc. Due to braindead Xlib, which
- * frees it using free and thus it is not possible to use mem_alloc. */
 void get_links_icon(unsigned char **data, int *width, int *height, int *skip, int pad)
 {
 	struct bitmap b;
@@ -2279,11 +2276,8 @@ void get_links_icon(unsigned char **data, int *width, int *height, int *skip, in
 	while (b.skip % pad) b.skip++;
 	*skip=b.skip;
 	retry:
-	if (!(b.data=*data=malloc(b.skip*b.y))) {
-		out_of_memory(0, cast_uchar "icon malloc", b.skip*b.y);
-		goto retry;
-	}
-	tmp1=mem_alloc(6*b.y*b.x);
+	b.data = *data = xmalloc(b.skip * b.y);
+	tmp1 = xmalloc(6 * b.y * b.x);
 	agx_24_to_48(tmp1,links_icon,b.x*b.y,g,g,g);
 	dither(tmp1, &b);
 	mem_free(tmp1);

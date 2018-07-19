@@ -362,7 +362,7 @@ void file_func(struct connection *c)
 					if (buf) mem_free(buf);
 					size += ALLOC_GR;
 					if ((unsigned)size > MAXINT) overalloc();
-					buf = mem_alloc(size);
+					buf = xmalloc(size);
 					EINTRLOOP(r, (int)readlink(cast_const_char n, cast_char buf, size));
 				} while (r == size);
 				if (r == -1) goto yyy;
@@ -420,7 +420,7 @@ void file_func(struct connection *c)
 		}
 		/* + !stt.st_size is there because of bug in Linux. Read returns
 		   -EACCES when reading 0 bytes to invalid address */
-		file = mem_alloc_mayfail((size_t)stt.st_size + !stt.st_size);
+		file = xmalloc((size_t)stt.st_size + !stt.st_size);
 		if (!file) {
 			EINTRLOOP(rs, close(h));
 			setcstate(c, S_OUT_OF_MEM);

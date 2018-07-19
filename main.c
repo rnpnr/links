@@ -4,12 +4,40 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "links.h"
 
 int retval = RET_OK;
 
 static void unhandle_basic_signals(struct terminal *);
 static void poll_fg(void *);
+
+void
+die(const char *errstr, ...)
+{
+	va_list ap;
+
+	va_start(ap, errstr);
+	vfprintf(stderr, errstr, ap);
+	va_end(ap);
+	exit(1);
+}
+
+void *
+xmalloc(size_t len)
+{
+	void *p;
+
+	if (!(p = malloc(len)))
+		die("malloc: %s\n", strerror(errno));
+
+	return p;
+}
 
 static void sig_intr(void *t_)
 {
@@ -213,7 +241,7 @@ void gfx_connection(int h)
 		goto err_close;
 	if (hard_read(h, (unsigned char *)&info_len, sizeof(int)) != sizeof(int) || info_len < 0)
 		goto err_close;
-	info = mem_alloc(info_len);
+	info = xmalloc(info_len);
 	if (hard_read(h, info, info_len) != info_len)
 		goto err_close_free;
 	term = init_gfx_term(win_func, cwd, info, info_len);

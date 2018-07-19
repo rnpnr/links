@@ -114,9 +114,9 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 	struct kawasaki *zelena;
 	unsigned char *txt;
 
-	txt=mem_alloc(MAX_STR_LEN);
+	txt = xmalloc(MAX_STR_LEN);
 
-	zelena=mem_alloc(sizeof(struct kawasaki));
+	zelena = xmalloc(sizeof(struct kawasaki));
 
 	zelena->url=NULL;
 	zelena->title=NULL;
@@ -256,7 +256,7 @@ static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void 
 	int a;
 
 	/* Create the dialog */
-	s = mem_alloc(sizeof(struct bookmark_ok_struct));
+	s = xmalloc(sizeof(struct bookmark_ok_struct));
 	s->fn = ok_fn;
 	s->data = ok_arg;
 	s->dlg = dlg;
@@ -342,7 +342,7 @@ static struct list *bookmark_new_item(void *data)
 	struct bookmark_list *b;
 	struct kawasaki *zelena = (struct kawasaki *)data;
 
-	b = mem_alloc(sizeof(struct bookmark_list));
+	b = xmalloc(sizeof(struct bookmark_list));
 
 	if (zelena && zelena->title)
 		b->title = zelena->title;
@@ -479,7 +479,7 @@ static void add_bookmark(unsigned char *title, unsigned char *url, int depth)
 
 	if (!title) return;
 
-	b = mem_alloc(sizeof(struct bookmark_list));
+	b = xmalloc(sizeof(struct bookmark_list));
 
 	dop = mem_calloc(sizeof(struct document_options));
 	dop->cp = bookmark_ld.codepage;

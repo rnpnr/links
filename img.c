@@ -291,7 +291,7 @@ int header_dimensions_known(struct cached_image *cimg)
 			goto skip_img;
 		}
 		if ((unsigned)cimg->width > MAXINT / sizeof(*buf_16) / 3) overalloc();
-		buf_16=mem_alloc(sizeof(*buf_16)*3*cimg->width);
+		buf_16 = xmalloc(sizeof(*buf_16) * 3 * cimg->width);
 		round_color_sRGB_to_48(&red, &green, &blue
 			, cimg->background_color);
 		mix_one_color_48(buf_16,cimg->width, red, green, blue);
@@ -333,7 +333,7 @@ int header_dimensions_known(struct cached_image *cimg)
 		cimg->bmp_used=0;
 		if (cimg->width && (unsigned)cimg->width * (unsigned)cimg->height / (unsigned)cimg->width != (unsigned)cimg->height) overalloc();
 		if ((unsigned)cimg->width * (unsigned)cimg->height > (unsigned)MAXINT / cimg->buffer_bytes_per_pixel) overalloc();
-		cimg->buffer=mem_alloc_mayfail((size_t)cimg->width * (size_t)cimg->height * (size_t)cimg->buffer_bytes_per_pixel);
+		cimg->buffer = xmalloc((size_t)cimg->width * (size_t)cimg->height * (size_t)cimg->buffer_bytes_per_pixel);
 		if (!cimg->buffer)
 			return 1;
 		if (cimg->buffer_bytes_per_pixel==4
@@ -513,7 +513,7 @@ buffer_to_bitmap_incremental");
 	}
 #endif /* #ifdef DEBUG */
 	if ((unsigned)cimg->width > MAXINT / max_height / 3 / sizeof(*tmp)) overalloc();
-	tmp=mem_alloc(cimg->width*(height<max_height?height:max_height)*3*sizeof(*tmp));
+	tmp = xmalloc(cimg->width*(height<max_height?height:max_height)*3*sizeof(*tmp));
 	/* Prepare a fake bitmap for dithering */
 	tmpbmp.x=cimg->width;
 	if (!use_strip){
@@ -596,7 +596,7 @@ buffer_to_bitmap");
 		gonna_be_smart=0;
 		if (ix && (unsigned)ix * (unsigned)iy / (unsigned)ix != (unsigned)iy) overalloc();
 		if ((unsigned)ix * (unsigned)iy > MAXINT / sizeof(*tmp) / 3) overalloc();
-		tmp=mem_alloc_mayfail(ix*iy*3*sizeof(*tmp));
+		tmp = xmalloc(ix*iy*3*sizeof(*tmp));
 		if (tmp) buffer_to_16(tmp,cimg,cimg->buffer,iy);
 		if (!cimg->decoder){
 			mem_free_buffer(cimg);
@@ -1127,7 +1127,7 @@ static void find_or_make_cached_image(struct g_object_image *image, unsigned cha
 	if (!(cimg = find_cached_image(image->background, url, image->goti.go.xw,
 		image->goti.go.yw, image->xyw_meaning, scale, aspect))){
 		/* We have to make a new image cache entry */
-		cimg = mem_alloc(sizeof(*cimg));
+		cimg = xmalloc(sizeof(*cimg));
 		cimg->refcount = 1;
 		cimg->background_color = image->background;
 #ifdef DEBUG

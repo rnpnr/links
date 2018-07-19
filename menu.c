@@ -306,7 +306,7 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	int l;
 	struct refresh *r;
 
-	r = mem_alloc(sizeof(struct refresh));
+	r = xmalloc(sizeof(struct refresh));
 	r->term = term;
 	r->win = NULL;
 	r->fn = resource_info;
@@ -1437,7 +1437,7 @@ int save_noproxy_list(int charset, unsigned char *result, unsigned char *noproxy
 
 static int check_proxy_noproxy(struct dialog_data *dlg, struct dialog_item_data *di, int (*save)(int, unsigned char *, unsigned char *))
 {
-	unsigned char *result = mem_alloc(MAX_STR_LEN);
+	unsigned char *result = xmalloc(MAX_STR_LEN);
 	if (save(term_charset(dlg->win->term), result, di->cdata)) {
 		mem_free(result);
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_STRING), AL_CENTER, TEXT_(T_BAD_PROXY_SYNTAX), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
@@ -2928,7 +2928,7 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 	int x;
 	int o;
 	struct menu_item *file_menu, *e;
-	file_menu = mem_alloc(sizeof(file_menu11) + sizeof(file_menu12) + sizeof(file_menu21) + sizeof(file_menu22) + sizeof(file_menu3) + 3 * sizeof(struct menu_item));
+	file_menu = xmalloc(sizeof(file_menu11) + sizeof(file_menu12) + sizeof(file_menu21) + sizeof(file_menu22) + sizeof(file_menu3) + 3 * sizeof(struct menu_item));
 	e = file_menu;
 	if (!F) {
 		memcpy(e, file_menu11, sizeof(file_menu11));
@@ -3189,7 +3189,7 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 		sizeof(setup_menu_6) +
 		sizeof(setup_menu_7) +
 		sizeof(setup_menu_8);
-	setup_menu = mem_alloc(size);
+	setup_menu = xmalloc(size);
 	e = setup_menu;
 	if (!F) {
 		memcpy(e, setup_menu_2, sizeof(setup_menu_2));
@@ -3327,7 +3327,7 @@ static void does_file_exist(void *d_, unsigned char *file)
 	unsigned char *msg;
 	int file_type = 0;
 
-	h = mem_alloc(sizeof(struct does_file_exist_s));
+	h = xmalloc(sizeof(struct does_file_exist_s));
 	h->fn = d->fn;
 	h->cancel = d->cancel;
 	h->flags = d->flags;
@@ -3430,7 +3430,7 @@ void query_file(struct session *ses, unsigned char *url, unsigned char *head, vo
 	int dfl = 0;
 	struct does_file_exist_s *h;
 
-	h = mem_alloc(sizeof(struct does_file_exist_s));
+	h = xmalloc(sizeof(struct does_file_exist_s));
 
 	fc = get_filename_from_url(url, head, 0);
 	file = convert(utf8_table, 0, fc, NULL);

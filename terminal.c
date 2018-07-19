@@ -48,7 +48,7 @@ unsigned char *get_cwd(void)
 	unsigned char *buf;
 	unsigned char *gcr;
 	while (1) {
-		buf = mem_alloc(bufsize);
+		buf = xmalloc(bufsize);
 		ENULLLOOP(gcr, cast_uchar getcwd(cast_char buf, bufsize));
 		if (gcr) return buf;
 		mem_free(buf);
@@ -536,7 +536,7 @@ static void empty_window_handler(struct window *win, struct links_event *ev, int
 void add_empty_window(struct terminal *term, void (*fn)(void *), void *data)
 {
 	struct ewd *ewd;
-	ewd = mem_alloc(sizeof(struct ewd));
+	ewd = xmalloc(sizeof(struct ewd));
 	ewd->fn = fn;
 	ewd->data = data;
 	ewd->b = 0;
@@ -581,7 +581,7 @@ struct term_spec *new_term_spec(unsigned char *term)
 	struct term_spec *t;
 	struct list_head *lt;
 	foreach(struct term_spec, t, lt, term_specs) if (!casestrcmp(t->term, term)) return t;
-	t = mem_alloc(sizeof(struct term_spec));
+	t = xmalloc(sizeof(struct term_spec));
 	memcpy(t, default_term_spec(term), sizeof(struct term_spec));
 	if (strlen(cast_const_char term) < MAX_TERM_LEN) strcpy(cast_char t->term, cast_const_char term);
 	else memcpy(t->term, term, MAX_TERM_LEN - 1), t->term[MAX_TERM_LEN - 1] = 0;
@@ -702,7 +702,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 		ev.x = dev->size.x2;
 		ev.y = dev->size.y2;
 		if ((unsigned)len > MAXINT - sizeof(int)) overalloc();
-		ptr = mem_alloc(sizeof(int) + len);
+		ptr = xmalloc(sizeof(int) + len);
 		*ptr = len;
 		memcpy(ptr + 1, info, len);
 		ev.b = (long)ptr;

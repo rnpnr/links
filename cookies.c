@@ -55,7 +55,7 @@ int set_cookie(struct terminal *term, unsigned char *url, unsigned char *str)
 		break;
 	}
 	if (str == q || q + 1 == p) return 0;
-	cookie = mem_alloc(sizeof(struct cookie));
+	cookie = xmalloc(sizeof(struct cookie));
 	server = get_host_name(url);
 	cookie->name = memacpy(str, q - str);
 	cookie->value = !noval ? memacpy(q + 1, p - q - 1) : NULL;
@@ -135,7 +135,7 @@ static void accept_cookie(struct cookie *c)
 	foreach(struct c_domain, cd, lcd, c_domains) if (!casestrcmp(cd->domain, c->domain)) return;
 	sl = strlen(cast_const_char c->domain);
 	if (sl > MAXINT - sizeof(struct c_domain)) overalloc();
-	cd = mem_alloc(sizeof(struct c_domain) + sl);
+	cd = xmalloc(sizeof(struct c_domain) + sl);
 	strcpy(cast_char cd->domain, cast_const_char c->domain);
 	add_to_list(c_domains, cd);
 }

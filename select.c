@@ -186,7 +186,7 @@ void register_bottom_half(void (*fn)(void *), void *data)
 	struct bottom_half *bh;
 	struct list_head *lbh;
 	foreach(struct bottom_half, bh, lbh, bottom_halves) if (bh->fn == fn && bh->data == data) return;
-	bh = mem_alloc(sizeof(struct bottom_half));
+	bh = xmalloc(sizeof(struct bottom_half));
 	bh->fn = fn;
 	bh->data = data;
 	add_to_list(bottom_halves, bh);
@@ -309,7 +309,7 @@ static void set_event_for_action(int h, void (*func)(void *), struct event **evp
 #ifdef EV_PERSIST
 			evtype |= EV_PERSIST;
 #endif
-			*evptr = mem_alloc(sizeof_struct_event);
+			*evptr = xmalloc(sizeof_struct_event);
 			event_set(*evptr, h, evtype, event_callback, *evptr);
 			if (event_base_set(event_base, *evptr) == -1)
 				fatal_exit("ERROR: event_base_set failed: %s at %s:%d, handle %d", strerror(errno), sh_file, sh_line, h);
@@ -474,11 +474,11 @@ struct timer *install_timer(uttime t, void (*func)(void *), void *data)
 	struct timer *tm;
 #ifdef USE_LIBEVENT
 	{
-		unsigned char *q = mem_alloc(sizeof_struct_event + sizeof(struct timer));
+		unsigned char *q = xmalloc(sizeof_struct_event + sizeof(struct timer));
 		tm = (struct timer *)(q + sizeof_struct_event);
 	}
 #else
-	tm = mem_alloc(sizeof(struct timer));
+	tm = xmalloc(sizeof(struct timer));
 #endif
 	tm->interval = t;
 	tm->func = func;

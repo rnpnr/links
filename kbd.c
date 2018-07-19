@@ -303,7 +303,7 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 		error("ERROR: could not get terminal size");
 		return;
 	}
-	itrm = mem_alloc(sizeof(struct itrm));
+	itrm = xmalloc(sizeof(struct itrm));
 	itrm->queue_event = queue_event;
 	itrm->free_trm = free_trm;
 	ditrm = itrm;
@@ -523,7 +523,7 @@ static void in_sock(void *itrm_)
 				EINTRLOOP(rs, unlink(cast_const_char delet));
 			goto to_je_ale_hnus;
 		}
-		param = mem_alloc(strlen(cast_const_char path) + strlen(cast_const_char delet) + 3);
+		param = xmalloc(strlen(cast_const_char path) + strlen(cast_const_char delet) + 3);
 		param[0] = fg;
 		strcpy(cast_char(param + 1), cast_const_char path);
 		strcpy(cast_char(param + 1 + strlen(cast_const_char path) + 1), cast_const_char delet);

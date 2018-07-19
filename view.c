@@ -297,7 +297,7 @@ struct line_info *format_text(unsigned char *text, int width, int wrap, int cp)
 			goto have_it;
 	}
 	if (text_len > MAXINT - sizeof(struct format_text_cache_entry)) overalloc();
-	ftce = mem_alloc(sizeof(struct format_text_cache_entry) + text_len);
+	ftce = xmalloc(sizeof(struct format_text_cache_entry) + text_len);
 	memcpy(ftce->copied_text, text, text_len + 1);
 	ftce->text_ptr = text;
 	ftce->text_len = (int)text_len;
@@ -375,7 +375,7 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 				q = area_cursor(scr, link->form, fs);
 			}
 			if ((unsigned)link->n > MAXINT / sizeof(struct link_bg)) overalloc();
-			scr->link_bg = mem_alloc(link->n * sizeof(struct link_bg));
+			scr->link_bg = xmalloc(link->n * sizeof(struct link_bg));
 			scr->link_bg_n = link->n;
 			for (i = 0; i < link->n; i++) {
 				int x = link->pos[i].x + xp - vx;
@@ -1111,7 +1111,7 @@ int dump_to_file(struct f_data *fd, int h)
 	int x, y;
 	unsigned char *buf;
 	int bptr = 0;
-	buf = mem_alloc(D_BUF);
+	buf = xmalloc(D_BUF);
 	for (y = 0; y < fd->y; y++) for (x = 0; x <= fd->data[y].l; x++) {
 		unsigned c;
 		if (x == fd->data[y].l) c = '\n';

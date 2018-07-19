@@ -147,7 +147,7 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 		current_tra[text - dummyarray] = trn;
 	} else {
 		if (current_lang_charset && charset != current_lang_charset) {
-			current_tra = translation_array[charset] = mem_alloc(sizeof (unsigned char *) * T__N_TEXTS);
+			current_tra = translation_array[charset] = xmalloc(sizeof (unsigned char *) * T__N_TEXTS);
 			memset(current_tra, 0, sizeof (unsigned char *) * T__N_TEXTS);
 			goto tr;
 		}

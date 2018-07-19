@@ -107,20 +107,6 @@ void debug_msg(char *m, ...)
 	va_end(l);
 }
 
-void *mem_alloc_(size_t size, int mayfail)
-{
-	void *p;
-	dos_poll_break();
-	debug_test_free(NULL, 0);
-	if (!size) return DUMMY;
-	retry:
-	if (!(p = heap_malloc(size))) {
-		if (out_of_memory_fl(0, !mayfail ? cast_uchar "malloc" : NULL, size, NULL, 0)) goto retry;
-		return NULL;
-	}
-	return p;
-}
-
 void *mem_calloc_(size_t size, int mayfail)
 {
 	void *p;
@@ -149,7 +135,7 @@ void mem_free(void *p)
 void *mem_realloc_(void *p, size_t size, int mayfail)
 {
 	void *np;
-	if (p == DUMMY) return mem_alloc_(size, mayfail);
+	if (p == DUMMY) return xmalloc(size);
 	dos_poll_break();
 	debug_test_free(NULL, 0);
 	if (!p) {
@@ -172,7 +158,7 @@ unsigned char *memacpy(const unsigned char *src, size_t len)
 {
 	unsigned char *m;
 	if (!(len + 1)) overalloc();
-	m = (unsigned char *)mem_alloc(len + 1);
+	m = xmalloc(len + 1);
 	if (len)
 		memcpy(m, src, len);
 	m[len] = 0;

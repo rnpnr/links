@@ -82,8 +82,8 @@ void jpeg_start(struct cached_image *cimg)
 {
 	struct jpg_decoder *jd;
 
-	global_cinfo=mem_alloc(sizeof(*global_cinfo));
-	global_jerr=mem_alloc(sizeof(*global_jerr));
+	global_cinfo = xmalloc(sizeof(*global_cinfo));
+	global_jerr = xmalloc(sizeof(*global_jerr));
 	global_cinfo->err = jpeg_std_error(&(global_jerr->pub));
 	global_jerr->pub.error_exit=my_error_exit;
 	global_jerr->pub.output_message=my_output_message;
@@ -107,7 +107,7 @@ g19_2000:
 	global_cinfo->src->term_source=nop;
 	global_cinfo->src->bytes_in_buffer=0;
 	global_cinfo->src->next_input_byte=NULL;
-	cimg->decoder=mem_alloc(sizeof(struct jpg_decoder));
+	cimg->decoder = xmalloc(sizeof(struct jpg_decoder));
 	jd=(struct jpg_decoder *)cimg->decoder;
 	jd->cinfo=global_cinfo;
 	jd->jerr=global_jerr;
@@ -223,7 +223,7 @@ void jpeg_restart(struct cached_image *cimg, unsigned char *data, int length)
 	}else{
 		/* If there is no decoder buffer we'll have to allocate
 		 * space for a new buffer */
-		deco->jdata=mem_alloc(global_cinfo->src->bytes_in_buffer+length);
+		deco->jdata = xmalloc(global_cinfo->src->bytes_in_buffer+length);
 	}
 
 	/* Copy the data iself into the decoder buffer */

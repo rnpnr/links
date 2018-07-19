@@ -270,7 +270,7 @@ static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	safe_strncpy(prog, neww->prog, MAX_STR_LEN);
 
 	/* Create the dialog */
-	s = mem_alloc(sizeof(struct assoc_ok_struct));
+	s = xmalloc(sizeof(struct assoc_ok_struct));
 	s->fn = ok_fn;
 	s->data = ok_arg;
 	s->dlg = dlg;
@@ -614,7 +614,7 @@ static void ext_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_
 	safe_strncpy(ct, neww->ct, MAX_STR_LEN);
 
 	/* Create the dialog */
-	s = mem_alloc(sizeof(struct assoc_ok_struct));
+	s = xmalloc(sizeof(struct assoc_ok_struct));
 	s->fn = ok_fn;
 	s->data = ok_arg;
 	s->dlg = dlg;
@@ -719,11 +719,11 @@ void update_prog(struct list_head *l, unsigned char *p, int s)
 		mem_free(repl->prog);
 		goto ss;
 	}
-	repl = mem_alloc(sizeof(struct protocol_program));
+	repl = xmalloc(sizeof(struct protocol_program));
 	add_to_list(*l, repl);
 	repl->system = s;
 ss:
-	repl->prog = mem_alloc(MAX_STR_LEN);
+	repl->prog = xmalloc(MAX_STR_LEN);
 	safe_strncpy(repl->prog, p, MAX_STR_LEN);
 }
 
@@ -1103,7 +1103,7 @@ struct assoc *get_type_assoc(struct terminal *term, unsigned char *type, int *n)
 	*n = count;
 	if (!count) return NULL;
 	if ((unsigned)count > MAXINT / sizeof(struct assoc)) overalloc();
-	assoc_array = mem_alloc(count * sizeof(struct assoc));
+	assoc_array = xmalloc(count * sizeof(struct assoc));
 	count = 0;
 	foreach(struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);

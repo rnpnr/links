@@ -24,7 +24,7 @@ static inline void row_delete(struct lru_entry *ptr)
 
 void lru_insert(struct lru *cache, void *entry, struct lru_entry **row, unsigned bytes_consumed)
 {
-	struct lru_entry *new_entry = mem_alloc(sizeof(*new_entry));
+	struct lru_entry *new_entry = xmalloc(sizeof(*new_entry));
 
 	new_entry->above = NULL;
 	new_entry->below = cache->top;

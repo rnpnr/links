@@ -1231,7 +1231,7 @@ static unsigned char *x_proxy_cmd(struct option *o, unsigned char ***argv, int *
 	unsigned char **pass_argv;
 	unsigned char *result, *ret;
 	if (!*argc) return cast_uchar "Parameter expected";
-	result = mem_alloc(MAX_STR_LEN);
+	result = xmalloc(MAX_STR_LEN);
 	if (save(get_commandline_charset(), result, **argv)) {
 		mem_free(result);
 		return err;

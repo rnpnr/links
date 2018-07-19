@@ -920,7 +920,7 @@ void write_to_socket(struct connection *c, int s, unsigned char *data, int len, 
 	struct write_buffer *wb;
 	log_data(data, len);
 	if ((unsigned)len > MAXINT - sizeof(struct write_buffer)) overalloc();
-	wb = mem_alloc(sizeof(struct write_buffer) + len);
+	wb = xmalloc(sizeof(struct write_buffer) + len);
 	wb->sock = s;
 	wb->len = len;
 	wb->pos = 0;
@@ -1008,7 +1008,7 @@ success:
 struct read_buffer *alloc_read_buffer(struct connection *c)
 {
 	struct read_buffer *rb;
-	rb = mem_alloc(sizeof(struct read_buffer) + READ_SIZE);
+	rb = xmalloc(sizeof(struct read_buffer) + READ_SIZE);
 	memset(rb, 0, sizeof(struct read_buffer));
 	return rb;
 }

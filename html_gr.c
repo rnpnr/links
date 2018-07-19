@@ -32,7 +32,7 @@ struct background *get_background(unsigned char *bg, unsigned char *bgcolor)
 {
 	struct background *b;
 	struct rgb r;
-	b = mem_alloc(sizeof(struct background));
+	b = xmalloc(sizeof(struct background));
 	{
 		if (bgcolor && !decode_color(bgcolor, &r)) {
 			b->u.sRGB=(r.r << 16) + (r.g << 8) + r.b;
@@ -503,7 +503,7 @@ static void do_image(struct g_part *p, struct image_description *im)
 			if (get_file(af->rq, &start, &end)) goto ft;
 			if (start == end) goto ft;
 			if (get_image_map(ce->head, start, end, tag, &menu, &ml, format_.href_base, format_.target_base, 0, 0, 0, 1)) goto ft;
-			map = mem_alloc(sizeof(struct image_map));
+			map = xmalloc(sizeof(struct image_map));
 			map->n_areas = 0;
 			for (i = 0; menu[i].text; i++) {
 				struct link_def *ld = menu[i].data;

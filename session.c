@@ -140,7 +140,7 @@ have_error:
 	foreach(struct strerror_val, s, ls, strerror_buf) if (!strcmp(cast_const_char s->msg, cast_const_char e)) return s->msg;
 	sl = strlen(cast_const_char e);
 	if (sl > MAXINT - sizeof(struct strerror_val)) overalloc();
-	s = mem_alloc(sizeof(struct strerror_val) + sl);
+	s = xmalloc(sizeof(struct strerror_val) + sl);
 	strcpy(cast_char s->msg, cast_const_char e);
 	add_to_list(strerror_buf, s);
 	return s->msg;
@@ -1681,7 +1681,7 @@ struct additional_file *request_additional_file(struct f_data *f, unsigned char 
 	if ((u = extract_position(url))) mem_free(u);
 	if (!f->af) {
 		if (!(f->af = f->fd->af)) {
-			f->af = f->fd->af = mem_alloc(sizeof(struct additional_files));
+			f->af = f->fd->af = xmalloc(sizeof(struct additional_files));
 			f->af->refcount = 1;
 			init_list(f->af->af);
 		}
@@ -1693,7 +1693,7 @@ struct additional_file *request_additional_file(struct f_data *f, unsigned char 
 	}
 	sl = strlen(cast_const_char url);
 	if (sl > MAXINT - sizeof(struct additional_file)) overalloc();
-	af = mem_alloc(sizeof(struct additional_file) + sl);
+	af = xmalloc(sizeof(struct additional_file) + sl);
 	af->use_tag = 0;
 	af->use_tag2 = 0;
 	strcpy(cast_char af->url, cast_const_char url);
@@ -1715,14 +1715,14 @@ static void copy_additional_files(struct additional_files **a)
 	struct list_head *laf;
 	if (!*a || (*a)->refcount == 1) return;
 	(*a)->refcount--;
-	afs = mem_alloc(sizeof(struct additional_files));
+	afs = xmalloc(sizeof(struct additional_files));
 	afs->refcount = 1;
 	init_list(afs->af);
 	foreachback(struct additional_file, af, laf, (*a)->af) {
 		struct additional_file *afc;
 		size_t sl = strlen(cast_const_char af->url);
 		if (sl > MAXINT - sizeof(struct additional_file)) overalloc();
-		afc = mem_alloc(sizeof(struct additional_file) + sl);
+		afc = xmalloc(sizeof(struct additional_file) + sl);
 		memcpy(afc, af, sizeof(struct additional_file) + sl);
 		if (af->rq) clone_object(af->rq, &afc->rq);
 		add_to_list(afs->af, afc);
@@ -1772,7 +1772,7 @@ void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm)
 		}
 		return;
 	}
-	ir = mem_alloc(sizeof(struct image_refresh));
+	ir = xmalloc(sizeof(struct image_refresh));
 	ir->img = img;
 	ir->tim = tm;
 	ir->start = now;
@@ -2334,7 +2334,7 @@ static void type_query_multiple_programs(struct session *ses, unsigned char *ct,
 	struct memory_list *ml;
 	unsigned char **text_array;
 
-	text_array = mem_alloc(6 * sizeof(unsigned char *));
+	text_array = xmalloc(6 * sizeof(unsigned char *));
 	text_array[0] = TEXT_(T_CONTENT_TYPE_IS);
 	text_array[1] = cast_uchar " ";
 	text_array[2] = ct;
@@ -2771,7 +2771,7 @@ static int read_session_info(struct session *ses, void *data, int len)
 		unsigned char *tgt;
 		if (len<3*(int)sizeof(int)+sz+sz1) goto bla;
 		if ((unsigned)sz1 >= MAXINT) overalloc();
-		tgt=mem_alloc(sz1+1);
+		tgt = xmalloc(sz1 + 1);
 		memcpy(tgt, (unsigned char*)((int*)data+3)+sz,sz1);
 		tgt[sz1]=0;
 		if (ses->wanted_framename) mem_free(ses->wanted_framename), ses->wanted_framename=NULL;
@@ -2782,7 +2782,7 @@ static int read_session_info(struct session *ses, void *data, int len)
 		unsigned char *u, *uu;
 		if (len < 3 * (int)sizeof(int) + sz) return -1;
 		if ((unsigned)sz >= MAXINT) overalloc();
-		u = mem_alloc(sz + 1);
+		u = xmalloc(sz + 1);
 		memcpy(u, (int *)data + 3, sz);
 		u[sz] = 0;
 		uu = decode_url(u);

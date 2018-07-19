@@ -305,6 +305,9 @@ extern int F;
 	}								\
 }									\
 
+void die(const char *, ...);
+void *xmalloc(size_t);
+
 /* error.c */
 
 #define ANSI_BELL		"\007"
@@ -389,21 +392,17 @@ static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 
 #define safe_add(x, y)	safe_add_function(x, y, (unsigned char *)__FILE__, __LINE__)
 
-void *mem_alloc_(size_t size, int mayfail);
 void *mem_calloc_(size_t size, int mayfail);
 void mem_free(void *p);
 void *mem_realloc_(void *p, size_t size, int mayfail);
 
-#define mem_alloc(x)			mem_alloc_(x, 0)
 #define mem_calloc(x)			mem_calloc_(x, 0)
 #define mem_realloc(x, y)		mem_realloc_(x, y, 0)
 
-#define mem_alloc_mayfail(x)		mem_alloc_(x, 1)
 #define mem_calloc_mayfail(x)		mem_calloc_(x, 1)
 #define mem_realloc_mayfail(x, y)	mem_realloc_(x, y, 1)
 
 
-static inline void *debug_mem_alloc(unsigned char *f, int l, size_t s, int mayfail) { return mem_alloc_(s, mayfail); }
 static inline void *debug_mem_calloc(unsigned char *f, int l, size_t s, int mayfail) { return mem_calloc_(s, mayfail); }
 static inline void debug_mem_free(unsigned char *f, int l, void *p) { mem_free(p); }
 static inline void *debug_mem_realloc(unsigned char *f, int l, void *p, size_t s, int mayfail) { return mem_realloc_(p, s, mayfail); }

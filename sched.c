@@ -307,7 +307,7 @@ void add_keepalive_socket(struct connection *c, uttime timeout, int protocol_dat
 		internal("keepalive connection not connected");
 		goto del;
 	}
-	k = mem_alloc(sizeof(struct k_conn));
+	k = xmalloc(sizeof(struct k_conn));
 	if (c->netcfg_stamp != netcfg_stamp ||
 	    ssl_not_reusable(c->ssl) ||
 	    (k->port = get_port(c->url)) == -1 ||
@@ -501,7 +501,7 @@ static void run_connection(struct connection *c)
 		return;
 	}
 	if (!(hc = is_host_on_list(c))) {
-		hc = mem_alloc(sizeof(struct h_conn));
+		hc = xmalloc(sizeof(struct h_conn));
 		if (!(hc->host = get_host_name(c->url))) {
 			mem_free(hc);
 			goto s_bad_url;
@@ -1086,7 +1086,7 @@ void add_blacklist_entry(unsigned char *host, int flags)
 	}
 	sl = strlen(cast_const_char host);
 	if (sl > MAXINT - sizeof(struct blacklist_entry)) overalloc();
-	b = mem_alloc(sizeof(struct blacklist_entry) + sl);
+	b = xmalloc(sizeof(struct blacklist_entry) + sl);
 	b->flags = flags;
 	strcpy(cast_char b->host, cast_const_char host);
 	add_to_list(blacklist, b);

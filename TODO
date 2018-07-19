@@ -35,3 +35,5 @@
 
 - check if restrict is being used correctly
   - its likely not even necessary
+
+- other error mechanisms should be replaced with die()

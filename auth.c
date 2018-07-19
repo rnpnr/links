@@ -31,7 +31,7 @@ unsigned char *base64_encode(unsigned char *in, int inlen, unsigned char *prefix
 		line_mask = (1 << line_bits) - 1;
 		data_len += (data_len + line_mask) >> line_bits;
 	}
-	outstr = mem_alloc(prefix_len + data_len + suffix_len + 1);
+	outstr = xmalloc(prefix_len + data_len + suffix_len + 1);
 	memcpy(outstr, prefix, prefix_len);
 	out = outstr + prefix_len;
 	col = 0;
@@ -220,7 +220,7 @@ void add_auth(unsigned char *url, unsigned char *realm, unsigned char *user, uns
 		la = la->prev;
 		free_auth_entry(a);
 	}
-	a = mem_alloc(sizeof(struct http_auth));
+	a = xmalloc(sizeof(struct http_auth));
 	a->host = host;
 	a->port = port;
 	a->realm = stracpy(realm);

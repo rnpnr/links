@@ -575,7 +575,7 @@ void html_stack_dup(void)
 	struct html_element *ep;
 	html_format_changed = 1;
 	ep = &html_top;
-	e = mem_alloc(sizeof(struct html_element));
+	e = xmalloc(sizeof(struct html_element));
 	memcpy(e, ep, sizeof(struct html_element));
 	e->attr.fontface = stracpy(ep->attr.fontface);
 	e->attr.link = stracpy(ep->attr.link);
@@ -2494,7 +2494,7 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 		for (i = 0; i < ol; i++) if (o[i] < 0) nn = 1;
 		if (!nn) goto distribute;
 		if ((unsigned)ol > MAXINT / sizeof(int)) overalloc();
-		oo = mem_alloc(ol * sizeof(int));
+		oo = xmalloc(ol * sizeof(int));
 		memcpy(oo, o, ol * sizeof(int));
 		for (i = 0; i < ol; i++) if (o[i] < 1) o[i] = 1;
 		q = ww - q;
@@ -2568,7 +2568,7 @@ static void html_frameset(unsigned char *a)
 		horiz = 1;
 		if (!(c = get_attr_val(a, cast_uchar "rows"))) return;
 	}
-	fp = mem_alloc(sizeof(struct frameset_param));
+	fp = xmalloc(sizeof(struct frameset_param));
 	fp->n = 0;
 	fp->horiz = horiz;
 	par_format.leftmargin = par_format.rightmargin = 0;

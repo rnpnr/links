@@ -143,7 +143,7 @@ static int auth_window(struct object_request *rq, unsigned char *realm)
 		}
 	}
 	urealm = convert(term_charset(term), net_cp, realm, NULL);
-	d = mem_alloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item) + sizeof(struct auth_dialog) + strlen(cast_const_char get_text_translation(TEXT_(T_ENTER_USERNAME), term)) + strlen(cast_const_char urealm) + 1 + strlen(cast_const_char get_text_translation(TEXT_(T_AT), term)) + strlen(cast_const_char host));
+	d = xmalloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item) + sizeof(struct auth_dialog) + strlen(cast_const_char get_text_translation(TEXT_(T_ENTER_USERNAME), term)) + strlen(cast_const_char urealm) + 1 + strlen(cast_const_char get_text_translation(TEXT_(T_AT), term)) + strlen(cast_const_char host));
 	memset(d, 0, sizeof(struct dialog) + 5 * sizeof(struct dialog_item) + sizeof(struct auth_dialog));
 	a = (struct auth_dialog *)((unsigned char *)d + sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
 	strcpy(cast_char a->msg, cast_const_char get_text_translation(TEXT_(T_ENTER_USERNAME), term));
@@ -243,7 +243,7 @@ static int cert_window(struct object_request *rq)
 	struct memory_list *ml;
 	if (!(term = find_terminal(rq->term))) return -1;
 	h = get_host_name(rq->url);
-	cs = mem_alloc(sizeof(struct cert_dialog));
+	cs = xmalloc(sizeof(struct cert_dialog));
 	cs->term = rq->term;
 	cs->host = h;
 	cs->state = rq->stat.state;

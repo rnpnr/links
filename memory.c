@@ -61,7 +61,7 @@ int shrink_memory(int type, int flags)
 void register_cache_upcall(int (*upcall)(int), int flags, unsigned char *name)
 {
 	struct cache_upcall *c;
-	c = mem_alloc(sizeof(struct cache_upcall) + strlen(cast_const_char name));
+	c = xmalloc(sizeof(struct cache_upcall) + strlen(cast_const_char name));
 	c->upcall = upcall;
 	c->flags = (unsigned char)flags;
 	strcpy(cast_char c->name, cast_const_char name);

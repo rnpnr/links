@@ -924,7 +924,7 @@ static int list_item_delete(struct dialog_data *dlg,struct dialog_item_data *use
 
 	if (item==ld->list||list_empty(item->list_entry))return 0;  /* head or empty list */
 
-	narez=mem_alloc(sizeof(struct ve_skodarne_je_jeste_vetsi_narez));
+	narez = xmalloc(sizeof(struct ve_skodarne_je_jeste_vetsi_narez));
 	narez->ld=ld;narez->item=item;narez->dlg=dlg;
 
 	txt=ld->type_item(term, item,0);
@@ -1017,7 +1017,7 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 			x+=draw_bfu_element(term,dlg->x+DIALOG_LB,y,color,bgcolor,fgcolor,element,(l->type)&4);
 			break;
 		case 1:
-			xp = mem_alloc(l->depth + 1);
+			xp = xmalloc(l->depth + 1);
 			memset(xp, 0, l->depth + 1);
 			xd = l->depth + 1;
 			for (lx = list_next(l); lx != ld->list; lx = list_next(lx)) {
@@ -1354,7 +1354,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 		{
 			struct redraw_data *r;
 
-			r=mem_alloc(sizeof(struct redraw_data));
+			r = xmalloc(sizeof(struct redraw_data));
 			r->ld=ld;
 			r->dlg=dlg;
 
@@ -1365,7 +1365,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 		{
 			struct redraw_data *r;
 
-			r=mem_alloc(sizeof(struct redraw_data));
+			r = xmalloc(sizeof(struct redraw_data));
 			r->ld=ld;
 			r->dlg=dlg;
 

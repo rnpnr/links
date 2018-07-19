@@ -168,7 +168,7 @@ static void add_utf_8(struct conv_table *ct, int u, unsigned char *str)
 				internal("bad utf encoding #1");
 				return;
 			}
-			nct = mem_alloc(sizeof(struct conv_table) * 256);
+			nct = xmalloc(sizeof(struct conv_table) * 256);
 			memset(nct, 0, sizeof(struct conv_table) * 256);
 			new_translation_table(nct);
 			ct[*p].t = 1;
@@ -381,7 +381,7 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 		return memacpy(c, l);
 		xx:;
 	}
-	buffer = mem_alloc(ALLOC_GR);
+	buffer = xmalloc(ALLOC_GR);
 	while (pp < l) {
 		unsigned char *e = NULL;	/* against warning */
 		if (c[pp] < 128 && c[pp] != '&') {

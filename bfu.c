@@ -20,7 +20,7 @@ struct memory_list *getml(void *p, ...)
 		n++, q = va_arg(ap, void *);
 	}
 	if ((unsigned)n > (MAXINT - sizeof(struct memory_list)) / sizeof(void *)) overalloc();
-	ml = mem_alloc(sizeof(struct memory_list) + n * sizeof(void *));
+	ml = xmalloc(sizeof(struct memory_list) + n * sizeof(void *));
 	ml->n = n;
 	n = 0;
 	q = p;
@@ -38,7 +38,7 @@ void add_to_ml(struct memory_list **ml, ...)
 	int n = 0;
 	void *q;
 	if (!*ml) {
-		*ml = mem_alloc(sizeof(struct memory_list));
+		*ml = xmalloc(sizeof(struct memory_list));
 		(*ml)->n = 0;
 	}
 	va_start(ap, ml);
@@ -160,7 +160,7 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 	int i;
 	struct menu *menu;
 	for (i = 0; items[i].text; i++) if (i == (MAXINT - sizeof(struct menu)) / sizeof(unsigned)) overalloc();
-	menu = mem_alloc(sizeof(struct menu) + (!i ? 0 : i - 1) * sizeof(unsigned));
+	menu = xmalloc(sizeof(struct menu) + (!i ? 0 : i - 1) * sizeof(unsigned));
 	menu->selected = selected;
 	menu->view = 0;
 	menu->ni = i;
@@ -617,7 +617,7 @@ void do_mainmenu(struct terminal *term, struct menu_item *items, void *data, int
 	int i;
 	struct mainmenu *menu;
 	for (i = 0; items[i].text; i++) if (i == (MAXINT - sizeof(struct mainmenu)) / sizeof(unsigned)) overalloc();
-	menu = mem_alloc(sizeof(struct mainmenu) + (!i ? 0 : i - 1) * sizeof(unsigned));
+	menu = xmalloc(sizeof(struct mainmenu) + (!i ? 0 : i - 1) * sizeof(unsigned));
 	menu->selected = sel == -1 ? 0 : sel;
 	menu->ni = i;
 	menu->items = items;
@@ -872,7 +872,7 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 				}
 			}
 			if (di->item->type == D_FIELD_PASS) {
-				t = mem_alloc(vposlen + 1);
+				t = xmalloc(vposlen + 1);
 				memset(t, '*', vposlen);
 				t[vposlen] = 0;
 			} else {
@@ -996,7 +996,7 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 			case D_BUTTON:
 				st = sel ? bfu_style_wb_b : bfu_style_bw;
 				text = get_text_translation(di->item->text, term);
-				text2 = mem_alloc(strlen(cast_const_char text) + 5);
+				text2 = xmalloc(strlen(cast_const_char text) + 5);
 				strcpy(cast_char text2, cast_const_char G_DIALOG_BUTTON_L);
 				strcpy(cast_char(text2 + 2), cast_const_char text);
 				strcat(cast_char text2, cast_const_char G_DIALOG_BUTTON_R);
@@ -1251,7 +1251,7 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 				struct dialog_item_data * highc_volatile di = &dlg->items[i];
 				memset(di, 0, sizeof(struct dialog_item_data));
 				di->item = &dlg->dlg->items[i];
-				di->cdata = mem_alloc(di->item->dlen);
+				di->cdata = xmalloc(di->item->dlen);
 				if (di->item->dlen)
 					memcpy(di->cdata, di->item->data, di->item->dlen);
 				if (di->item->type == D_CHECKBOX) {
@@ -1269,7 +1269,7 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 							struct history_item *hi;
 							size_t sl = strlen(cast_const_char j->str);
 							if (sl > MAXINT - sizeof(struct history_item)) overalloc();
-							hi = mem_alloc(sizeof(struct history_item) + sl);
+							hi = xmalloc(sizeof(struct history_item) + sl);
 							strcpy(cast_char hi->str, cast_const_char j->str);
 							add_to_list(di->history, hi);
 						}
@@ -2282,7 +2282,7 @@ void add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 	}
 	l = strlen(cast_const_char s);
 	if (l > MAXINT - sizeof(struct history_item)) overalloc();
-	hi = mem_alloc(sizeof(struct history_item) + l);
+	hi = xmalloc(sizeof(struct history_item) + l);
 	memcpy(hi->str, s, l + 1);
 	if (term)
 		mem_free(s);
