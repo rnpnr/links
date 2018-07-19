@@ -4,114 +4,50 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-/*
- * WARNING: this file MUST be C++ compatible. this means:
- *	no implicit conversions from void *:
- *		BAD: unsigned char *c = mem_alloc(4);
- *		GOOD: unsigned char *c = (unsigned char *)mem_alloc(4);
- *	no implicit char * -> unsigned char * conversions:
- *		BAD: unsigned char *c = stracpy("A");
- *		GOOD: unsigned char *c = stracpy((unsigned char *)"A");
- *	no implicit unsigned char * -> char * conversions:
- *		BAD: unsigned char *x, *y, *z; z = strcpy(x, y);
- *		BAD: l = strlen(x);
- *		GOOD: unsigned char *x, *y; z = (unsigned char *)strcpy((char *)x, (char *)y);
- *		GOOD: l = strlen((char *)x);
- *	don't use C++ keywords (like template)
- *	if there is struct X, you cannot use variable X or typedef X
- *		(this applies to typedef ip as well -- don't use it!)
- *
- *	IF YOU WRITE ANYTHING NEW TO THIS FILE, try compiling this file in c++
- *		to make sure that you didn't break anything:
- *			g++ -DHAVE_CONFIG_H -x c++ links.h
- */
-#ifndef LINKS_H
-#define LINKS_H
-
 #define LINKS_COPYRIGHT "(C) 1999 - 2018 Mikulas Patocka\n(C) 2000 - 2018 Petr Kulhavy, Karel Kulhavy, Martin Pergel"
-#define LINKS_COPYRIGHT_8859_1 "(C) 1999 - 2018 Mikul\341s Patocka\n(C) 2000 - 2018 Petr Kulhav\375, Karel Kulhav\375, Martin Pergel"
-#define LINKS_COPYRIGHT_8859_2 "(C) 1999 - 2018 Mikul\341\271 Pato\350ka\n(C) 2000 - 2018 Petr Kulhav\375, Karel Kulhav\375, Martin Pergel"
 
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-#if ((__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))) && \
-  !(defined(__clang__) || defined(__llvm__) || defined(__OPEN64__) || defined(__PATHSCALE__) || defined(__PGI) || defined(__PGIC__)) && \
-  defined(__OPTIMIZE__) && !defined(__OPTIMIZE_SIZE__) && \
-  !(defined(__arm__) && defined(__thumb__) && !defined(__thumb2__))	/* avoid gcc bug */
-#pragma GCC optimize ("-ftree-vectorize", "-ffast-math")
-#endif
-#endif
-
-#include "os_dep.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <netdb.h>
+#include <pwd.h>
+#include <search.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_BSD_STRING_H
-#include <bsd/string.h>
-#endif
 #include <strings.h>
-#include <errno.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <inttypes.h>
-
-#ifndef __USE_XOPEN
-#define U_X
-#define __USE_XOPEN
-#endif
-#ifndef _XOPEN_SOURCE
-#define X_S
-#define _XOPEN_SOURCE	5	/* The 5 is a kludge to get a strptime() prototype in NetBSD */
-#endif
-#include <sys/time.h>
-#include <time.h>
-#ifdef X_S
-#undef _XOPEN_SOURCE
-#endif
-#ifdef U_X
-#undef __USE_XOPEN
-#endif
-
+#include <sys/file.h>
+#include <sys/resource.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <sys/wait.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
+#include <utime.h>
+
+#include "os_dep.h"
+#include "os_depx.h"
+#include "setup.h"
+
 #if defined(__linux__) && !defined(FALLOC_FL_KEEP_SIZE)
 #include <linux/falloc.h>
 #endif
-#include <sys/file.h>
-#include <dirent.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <sys/select.h>
-#include <sys/resource.h>
-#ifdef HAVE_UWIN_H
-#include <uwin.h>
-#endif
-#ifdef HAVE_IO_H
-#include <io.h>
-#endif
-#ifdef HAVE_PROCESS_H
-#include <process.h>
-#endif
-#ifdef HAVE_UNIXLIB_H
-#include <unixlib.h>
-#endif
-#include <sys/utsname.h>
-#include <pwd.h>
-#include <grp.h>
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
-#include <search.h>
 
-#include <netinet/in_systm.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
 #include <arpa/inet.h>
-#include <utime.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
 
 #include <openssl/ssl.h>
 #include <openssl/rand.h>
@@ -120,10 +56,6 @@
 #include <openssl/crypto.h>
 
 #define SSL_SESSION_RESUME
-
-#ifdef HAVE_NSS
-#include <nss_compat_ossl/nss_compat_ossl.h>
-#endif
 
 #if defined(G)
 #if defined(HAVE_PNG_H)
@@ -141,8 +73,6 @@
 #endif /* _SETJMP_H */
 #endif /* #if defined(G) */
 
-#include <termios.h>
-
 #define USE_POLL
 #include <poll.h>
 
@@ -152,11 +82,7 @@
 #define omp_get_num_threads()	1
 #define omp_get_thread_num()	0
 #define SMP_ALIGN		1
-#if (defined(__alpha__) || defined(__alpha)) && !defined(__alpha_bwx__)
-#define OPENMP_NONATOMIC	1
-#else
 #define OPENMP_NONATOMIC	0
-#endif
 
 #define longlong long long
 #define ulonglong unsigned long long
@@ -165,12 +91,6 @@
 #define stringify(arg)		stringify_internal(arg)
 
 #define array_elements(a)	(sizeof(a) / sizeof(*a))
-
-#include "os_depx.h"
-
-#include "setup.h"
-
-#define LINKS_2
 
 #ifdef HAVE_POINTER_COMPARISON_BUG
 #define DUMMY ((void *)1L)
@@ -267,18 +187,8 @@ static inline void sig_fill_set(sigset_t *set)
 extern int F;
 #endif
 
-#if defined(DEBUG)
-#if defined(G)
-#define NO_GFX	do {if (F) internal("call to text-only function");} while (0)
-#define NO_TXT	do {if (!F) internal("call to graphics-only function");} while (0)
-#else
-#define NO_GFX	do {} while (0)
-#define NO_TXT	this_should_not_be_compiled
-#endif
-#else
 #define NO_GFX	do {} while (0)
 #define NO_TXT	do {} while (0)
-#endif
 
 #ifndef G
 #define gf_val(x, y) (x)
@@ -408,19 +318,8 @@ struct list_head {
 	struct list_head *prev;
 };
 
-#ifdef DEBUG
-static inline void corrupted_list_entry(unsigned char *file, int line, char *msg, struct list_head *l, struct list_head *a)
-{
-	errfile = file;
-	errline = line;
-	int_error("%s %p, %p, %p, %p, %p, %p", msg, l, l->next, l->prev, l->next->prev, l->prev->next, a);
-}
-#define verify_list_entry(e)			((e)->next->prev != (e) || (e)->prev->next != (e) ? corrupted_list_entry(cast_uchar __FILE__, __LINE__, "corrupted link pointers", e, NULL) : (void)0)
-#define verify_double_add(l, e)			((l) == (e) || (l)->next == (e) || (l)->prev == (e) ? corrupted_list_entry(cast_uchar __FILE__, __LINE__, "double add", l, e) : (void)0)
-#else
 #define verify_list_entry(e)			((void)0)
 #define verify_double_add(l, e)			((void)0)
-#endif
 
 #define list_struct(ptr, struc)			get_struct(ptr, struc, list_entry)
 #define init_list(x)				do { (x).next = &(x); (x).prev = &(x); } while (0)
@@ -448,25 +347,13 @@ static inline unsigned long list_size(struct list_head *l)
 	return n;
 }
 
-#ifdef DEBUG
-#define REORDER_LIST_ENTRIES
-#endif
-
-#ifndef REORDER_LIST_ENTRIES
 #define list_entry_1st		struct list_head list_entry;
 #define list_entry_last
 #define init_list_1st(x)	{ (x), (x) },
 #define init_list_last(x)
-#else
-#define list_entry_1st
-#define list_entry_last		struct list_head list_entry;
-#define init_list_1st(x)
-#define init_list_last(x)	{ (x), (x) },
-#endif
 
 #define WHITECHAR(x) ((x) == 9 || (x) == 10 || (x) == 12 || (x) == 13 || (x) == ' ')
 #define U(x) ((x) == '"' || (x) == '\'')
-
 
 #define CI_BYTES	1
 #define CI_FILES	2
@@ -647,11 +534,7 @@ extern int malloc_try_hard;
 int out_of_memory_fl(int flags, unsigned char *msg, size_t size, unsigned char *file, int line);
 #define out_of_memory(flags, msg, size)	out_of_memory_fl(flags, msg, size, (unsigned char *)__FILE__, __LINE__)
 
-#ifndef DEBUG_TEST_FREE
 #define debug_test_free(file, line)
-#else
-void debug_test_free(unsigned char *file, int line);
-#endif
 
 /* select.c */
 
@@ -1118,9 +1001,6 @@ struct cookie {
 
 struct c_domain {
 	list_entry_1st
-#ifdef REORDER_LIST_ENTRIES
-	unsigned char pad;
-#endif
 	list_entry_last
 	unsigned char domain[1];
 };
@@ -2315,13 +2195,8 @@ struct g_object {
 	struct g_object *parent;
 };
 
-#ifndef REORDER_LIST_ENTRIES
 #define go_go_head_1st	struct g_object go;
 #define go_head_last
-#else
-#define go_go_head_1st
-#define go_head_last	struct g_object go;
-#endif
 
 struct g_object_text_image {
 	go_go_head_1st
@@ -2333,14 +2208,9 @@ struct g_object_text_image {
 };
 
 struct g_object_text {
-#ifndef REORDER_LIST_ENTRIES
 	struct g_object_text_image goti;
-#endif
 	struct style *style;
 	int srch_pos;
-#ifdef REORDER_LIST_ENTRIES
-	struct g_object_text_image goti;
-#endif
 	unsigned char text[1];
 };
 
@@ -2370,9 +2240,6 @@ struct g_object_table {
 
 struct g_object_tag {
 	go_go_head_1st
-#ifdef REORDER_LIST_ENTRIES
-	unsigned char pad;
-#endif
 	go_head_last
 	/* private data... */
 	unsigned char name[1];
@@ -2461,9 +2328,7 @@ struct cached_image {
 struct additional_file;
 
 struct g_object_image {
-#ifndef REORDER_LIST_ENTRIES
 	struct g_object_text_image goti;
-#endif
 			  /* x,y: coordinates
 			     xw, yw: width on the screen, or <0 if
 			     not yet known. Already scaled. */
@@ -2505,9 +2370,6 @@ struct g_object_image {
 	int xyw_meaning;
 
 	list_entry_last
-#ifdef REORDER_LIST_ENTRIES
-	struct g_object_text_image goti;
-#endif
 };
 
 void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm);
@@ -2921,9 +2783,6 @@ struct mainmenu {
 
 struct history_item {
 	list_entry_1st
-#ifdef REORDER_LIST_ENTRIES
-	unsigned char pad;
-#endif
 	list_entry_last
 	unsigned char str[1];
 };
@@ -3565,17 +3424,7 @@ extern unsigned char *startf;
 extern unsigned char *eofff;
 
 #define html_top_	list_struct(html_stack.next, struct html_element)
-#ifndef DEBUG
 #define html_top	(*html_top_)
-#else
-static inline void empty_html_stack(unsigned char *file, int line)
-{
-	errfile = file;
-	errline = line;
-	int_error("empty html stack");
-}
-#define html_top	(*(list_empty(html_stack) ? empty_html_stack(cast_uchar __FILE__, __LINE__), html_top_ : html_top_))
-#endif
 #define format_		(html_top.attr)
 #define par_format	(html_top.parattr)
 
@@ -3994,13 +3843,8 @@ static inline struct list *list_prev(struct list *l)
 #define list_prev(l)	(verify_list_entry(&(l)->list_entry), list_struct((l)->list_entry.prev, struct list))
 #endif
 
-#ifndef REORDER_LIST_ENTRIES
 #define list_head_1st	struct list head;
 #define list_head_last
-#else
-#define list_head_1st
-#define list_head_last	struct list head;
-#endif
 
 struct list_description {
 	unsigned char type;  /* 0=flat, 1=tree */
@@ -4132,5 +3976,3 @@ void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file, in
 
 /* Launches bookmark manager */
 void menu_bookmark_manager(struct terminal *, void *, void *);
-
-#endif /* #ifndef LINKS_H */
