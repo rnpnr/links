@@ -365,26 +365,6 @@ static inline int test_int_overflow(int x, int y)
 
 static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 {
-#ifndef HAVE___BUILTIN_ADD_OVERFLOW
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 7)
-#if defined(__i386__) || defined(__x86_64__)
-	int result;
-	unsigned char ovf;
-	__asm__ ("addl %2, %0; seto %1":"=r"(result),
-#if defined(__PATHSCALE__) || defined(__OPEN64__)
-		"=q"	/* a bug in the PathScale and Open64 compiler */
-#else
-		"=qm"
-#endif
-		(ovf):"g"(y),"0"(x));
-	if (ovf)
-		fatal_exit("ERROR: arithmetic overflow at %s:%d: %d + %d", file, line, (x), (y));
-	return result;
-#endif
-#endif
-#endif
-#endif
 	if (test_int_overflow(x, y))
 		fatal_exit("ERROR: arithmetic overflow at %s:%d: %d + %d", file, line, (x), (y));
 	return (int)((unsigned)x + (unsigned)y);
