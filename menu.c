@@ -23,7 +23,6 @@ static unsigned char * const version_texts[] = {
 	TEXT_(T_GRAPHICS_MODE),
 #ifdef G
 	TEXT_(T_IMAGE_LIBRARIES),
-	TEXT_(T_OPENMP),
 #endif
 	TEXT_(T_CONFIGURATION_DIRECTORY),
 	NULL,
@@ -133,12 +132,6 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar ", ");
 	add_jpeg_version(&s, &l);
 #endif
-	add_to_str(&s, &l, cast_uchar "\n");
-#endif
-
-#ifdef G
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
 	add_to_str(&s, &l, cast_uchar "\n");
 #endif
 
@@ -1136,10 +1129,6 @@ static void dlg_net_options(struct terminal *term, void *xxx, void *yyy)
 		d->items[a].dlen = sizeof(bind_ipv6_address);
 		d->items[a++].fn = check_local_ipv6_address;
 	}
-	net_msg[a] = TEXT_(T_ASYNC_DNS_LOOKUP);
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].data = (unsigned char *)&async_lookup;
-	d->items[a++].dlen = sizeof(int);
 	net_msg[a] = TEXT_(T_SET_TIME_OF_DOWNLOADED_FILES);
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].data = (unsigned char *)&download_utime;

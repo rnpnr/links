@@ -871,10 +871,6 @@ void os_detach_console(void)
 #if !defined(NO_FORK_ON_EXIT)
 	{
 		pid_t rp;
-	/* Intel and PathScale handle fork gracefully */
-#if !defined(__PATHSCALE__)
-		disable_openmp = 1;
-#endif
 		EINTRLOOP(rp, fork());
 		if (!rp) {
 			reinit_child();

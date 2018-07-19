@@ -3673,7 +3673,6 @@ extern unsigned char *links_home;
 extern int first_use;
 
 extern int disable_libevent;
-extern int disable_openmp;
 extern int no_connect;
 extern int base_session;
 #define D_DUMP		1
@@ -3691,7 +3690,6 @@ extern int unrestartable_receive_timeout;
 extern int timeout_multiple_addresses;
 extern unsigned char bind_ip_address[16];
 extern unsigned char bind_ipv6_address[INET6_ADDRSTRLEN];
-extern int async_lookup;
 extern int download_utime;
 
 extern int max_format_cache_entries;

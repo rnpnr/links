@@ -42,12 +42,7 @@ Does name lookup, like command "host".
 Run Links in graphics mode. If not given, Links will run in text mode.
 Running in graphics mode means that Links will probe all compiled-in graphics
 devices and run on the first found. If none found, links will not run in
-graphics mode. This option works only if --enable-graphics was given
-to ./configure.
-
-.TP
-\f3-no-g\f1
-Run in text mode (overrides previous \-g).
+graphics mode.
 
 .TP
 \f3-driver \f2<driver name>\f1
@@ -151,14 +146,6 @@ Use a specific local IPv6 address.
 .TP
 \f3-no-libevent\f1
 Don't use libevent library.
-
-.TP
-\f3-no-openmp\f1
-Don't use OpenMP.
-
-.TP
-\f3-async-dns \f2<0>/<1>\f1
-Asynchronous DNS resolver on(1)/off(0).
 
 .TP
 \f3-download-utime \f2<0>/<1>\f1

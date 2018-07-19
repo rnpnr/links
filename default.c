@@ -1038,9 +1038,6 @@ fprintf(stdout, "%s%s%s%s%s%s\n",
 " -g\n"
 "  Run in graphics mode.\n"
 "\n"
-" -no-g\n"
-"  Run in text mode (overrides previous -g).\n"
-"\n"
 " -driver <driver name>\n"
 "  Graphics driver to use. Drivers are: x, svgalib, fb, directfb, pmshell,\n"
 "    atheos.\n"
@@ -1126,12 +1123,6 @@ fprintf(stdout, "%s%s%s%s%s%s\n",
 "\n"
 " -no-libevent\n"
 "  Don't use libevent library.\n"
-"\n"
-" -no-openmp\n"
-"  Don't use OpenMP.\n"
-"\n"
-" -async-dns <0>/<1>\n"
-"  Asynchronous DNS resolver on(1)/off(0).\n"
 "\n"
 " -download-utime <0>/<1>\n"
 "  Set time of downloaded files to last modification time reported by server.\n"
@@ -1517,7 +1508,6 @@ unsigned char *links_home = NULL;
 int first_use = 0;
 
 int disable_libevent = 0;
-int disable_openmp = 0;
 int no_connect = 0;
 int base_session = 0;
 int dmp = 0;
@@ -1533,7 +1523,6 @@ int unrestartable_receive_timeout = 600;
 int timeout_multiple_addresses = 3;
 unsigned char bind_ip_address[16] = "";
 unsigned char bind_ipv6_address[INET6_ADDRSTRLEN] = "";
-int async_lookup = 1;
 int download_utime = 0;
 
 int max_format_cache_entries = 5;
@@ -1625,7 +1614,6 @@ static struct option links_options[] = {
 	{1, set_cmd, NULL, NULL, 0, 0, &no_connect, NULL, "no-connect"},
 	{1, set_cmd, NULL, NULL, 0, 0, &anonymous, NULL, "anonymous"},
 	{1, set_cmd, NULL, NULL, 0, 0, &ggr, NULL, "g"},
-	{1, unset_cmd, NULL, NULL, 0, 0, &ggr, NULL, "no-g"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_drv, NULL, "driver"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, default_target, NULL, "target"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_mode, NULL, "mode"},
@@ -1646,8 +1634,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, ip_rd, str_wr, 0, 16, bind_ip_address, "bind_address", "bind-address"},
 	{1, gen_cmd, ipv6_rd, str_wr, 0, INET6_ADDRSTRLEN, bind_ipv6_address, "bind_address_ipv6", "bind-address-ipv6"},
 	{1, set_cmd, NULL, NULL, 0, 0, &disable_libevent, NULL, "no-libevent"},
-	{1, set_cmd, NULL, NULL, 0, 0, &disable_openmp, NULL, "no-openmp"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &async_lookup, "async_dns", "async-dns"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &download_utime, "download_utime", "download-utime"},
 	{1, gen_cmd, num_rd, num_wr, 0, 999, &max_format_cache_entries, "format_cache_size", "format-cache-size"},
 	{1, gen_cmd, num_rd, num_wr, 0, MAXINT, &memory_cache_size, "memory_cache_size", "memory-cache-size"},
