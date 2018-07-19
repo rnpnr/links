@@ -6,8 +6,6 @@
 
 /* TODO: remove superfluous deco->im_width and deco->im_height */
 
-#include "cfg.h"
-
 #ifdef G
 
 #include "links.h"

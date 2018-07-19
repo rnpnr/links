@@ -61,8 +61,6 @@
  */
 
 
-#include "cfg.h"
-
 #ifdef GRDRV_X
 
 /* #define X_DEBUG */

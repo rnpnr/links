@@ -3,8 +3,6 @@
  * This file is a part of the Links program, released under GPL
  */
 
-#include "cfg.h"
-
 #ifdef G
 
 #include "links.h"

@@ -28,8 +28,6 @@
 #ifndef LINKS_H
 #define LINKS_H
 
-#include "cfg.h"
-
 #define LINKS_COPYRIGHT "(C) 1999 - 2018 Mikulas Patocka\n(C) 2000 - 2018 Petr Kulhavy, Karel Kulhavy, Martin Pergel"
 #define LINKS_COPYRIGHT_8859_1 "(C) 1999 - 2018 Mikul\341s Patocka\n(C) 2000 - 2018 Petr Kulhav\375, Karel Kulhav\375, Martin Pergel"
 #define LINKS_COPYRIGHT_8859_2 "(C) 1999 - 2018 Mikul\341\271 Pato\350ka\n(C) 2000 - 2018 Petr Kulhav\375, Karel Kulhav\375, Martin Pergel"
@@ -138,13 +136,10 @@
 #ifndef png_jmpbuf
 #define png_jmpbuf(png_ptr)	((png_ptr)->jmpbuf)
 #endif
-#endif /* #if defined(G) */
-
-#ifdef HAVE_SETJMP_H
 #ifndef _SETJMP_H
 #include <setjmp.h>
 #endif /* _SETJMP_H */
-#endif
+#endif /* #if defined(G) */
 
 #include <termios.h>
 

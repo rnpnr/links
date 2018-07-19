@@ -3,8 +3,6 @@
  * (c) 2002 Karel 'Clock' Kulhavy
  * This is a part of the Links program, released under GPL.
  */
-#include "cfg.h"
-
 #ifdef G
 #include "links.h"
 

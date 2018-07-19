@@ -6,8 +6,6 @@
  * rendering.
  */
 
-#include "cfg.h"
-
 #ifdef G
 
 #include "links.h"
