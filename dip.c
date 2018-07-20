@@ -319,12 +319,6 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 	/* ztracena zeme :) */
 }
 
-static inline longlong multiply_int(int a, int b)
-{
-	longlong result = (ulonglong)a * (ulonglong)b;
-	return result;
-}
-
 /* For enlargement only -- does linear filtering
  * Frees input and allocates output.
  * We assume unsigned holds at least 32 bits
@@ -332,7 +326,6 @@ static inline longlong multiply_int(int a, int b)
 static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 	unsigned short **outa, int ox)
 {
-	int n_threads;
 	int alloc_size;
 	scale_t *col_buf;
 	int a;
@@ -367,19 +360,18 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 		mem_free(in);
 		return;
 	}
-	multiply_int(ix-1,ox-1);
 
-	n_threads = omp_start();
-	if ((unsigned)y > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*col_buf)) overalloc();
+	if ((unsigned)y > (MAXINT) / 3 / sizeof(*col_buf))
+		overalloc();
 	alloc_size = (int)(y*3*sizeof(*col_buf));
-	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
-	if (alloc_size > MAXINT / n_threads) overalloc();
-	col_buf = xmalloc(alloc_size * n_threads);
-	if (!col_buf) goto skip_omp;
+	alloc_size = (alloc_size) & ~(0);
+	if (alloc_size > MAXINT)
+		overalloc();
+	col_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_col_buf;
 		int out_idx;
-		thread_col_buf = (scale_t *)((char *)col_buf + alloc_size * omp_get_thread_num());
+		thread_col_buf = (scale_t *)((char *)col_buf);
 		bias_buf_color(thread_col_buf, y, (scale_t)(ox - 1) / 2);
 		for (out_idx = 0; out_idx <= ox - 1; out_idx++) {
 			ulonglong out_pos, in_pos, in_end;
@@ -398,9 +390,6 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 			emit_and_bias_col_color(thread_col_buf, out + out_idx * 3, oskip, y, ox - 1);
 		}
 	}
-skip_omp:
-	omp_end();
-
 	mem_free(in);
 	if (col_buf) mem_free(col_buf);
 	else {
@@ -471,7 +460,6 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		unsigned short **outa, int ox)
 {
-	int n_threads;
 	int alloc_size;
 	scale_t *col_buf;
 	unsigned skip=3*ix;
@@ -491,7 +479,6 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		enlarge_color_horizontal(in,ix,y,outa,ox);
 		return;
 	}
-	multiply_int(ix,ox);
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
 	if ((unsigned)ox * (unsigned)y > MAXINT / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
@@ -501,17 +488,17 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 
-	n_threads = omp_start();
-	if ((unsigned)y > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*col_buf)) overalloc();
+	if ((unsigned)y > (MAXINT) / 3 / sizeof(*col_buf))
+		overalloc();
 	alloc_size = (int)(y*3*sizeof(*col_buf));
-	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
-	if (alloc_size > MAXINT / n_threads) overalloc();
-	col_buf = xmalloc(alloc_size * n_threads);
-	if (!col_buf) goto skip_omp;
+	alloc_size = (alloc_size) & ~(0);
+	if (alloc_size > MAXINT)
+		overalloc();
+	col_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_col_buf;
 		int out_idx;
-		thread_col_buf = (scale_t *)((char *)col_buf + alloc_size * omp_get_thread_num());
+		thread_col_buf = (scale_t *)((char *)col_buf);
 		bias_buf_color(thread_col_buf, y, (scale_t)ix / 2);
 		for (out_idx = 0; out_idx < ox; out_idx++) {
 			ulonglong out_pos, out_end, in_pos;
@@ -533,9 +520,6 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 			emit_and_bias_col_color(thread_col_buf, out + out_idx * 3, oskip, y, ix);
 		}
 	}
-skip_omp:
-	omp_end();
-
 	mem_free(in);
 	if (col_buf) mem_free(col_buf);
 	else {
@@ -605,7 +589,6 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	unsigned short **outa ,int oy)
 {
-	int n_threads;
 	int alloc_size;
 	scale_t *row_buf;
 	unsigned short *out;
@@ -636,19 +619,18 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 		mem_free(in);
 		return;
 	}
-	multiply_int(iy-1,oy-1);
 
-	n_threads = omp_start();
-	if ((unsigned)x > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*row_buf)) overalloc();
+	if ((unsigned)x > (MAXINT) / 3 / sizeof(*row_buf))
+		overalloc();
 	alloc_size = (int)(x*3*sizeof(*row_buf));
-	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
-	if (alloc_size > MAXINT / n_threads) overalloc();
-	row_buf = xmalloc(alloc_size * n_threads);
-	if (!row_buf) goto skip_omp;
+	alloc_size = (alloc_size) & ~(0);
+	if (alloc_size > MAXINT)
+		overalloc();
+	row_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_row_buf;
 		int out_idx;
-		thread_row_buf = (scale_t *)((char *)row_buf + alloc_size * omp_get_thread_num());
+		thread_row_buf = (scale_t *)((char *)row_buf);
 		bias_buf_color(thread_row_buf,x,(scale_t)(oy-1) / 2);
 		for (out_idx = 0; out_idx <= oy - 1; out_idx++) {
 			ulonglong out_pos, in_pos, in_end;
@@ -667,9 +649,6 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 			emit_and_bias_row_color(thread_row_buf, out + out_idx * 3 * x, x, oy - 1);
 		}
 	}
-skip_omp:
-	omp_end();
-
 	mem_free(in);
 	if (row_buf) mem_free(row_buf);
 	else {
@@ -742,7 +721,6 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 static void scale_color_vertical(unsigned short *in, int x, int iy,
 	unsigned short **outa, int oy)
 {
-	int n_threads;
 	int alloc_size;
 	scale_t *row_buf;
 	unsigned short *out;
@@ -760,7 +738,6 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 		enlarge_color_vertical(in,x,iy,outa,oy);
 		return;
 	}
-	multiply_int(iy,oy);
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
 	if ((unsigned)x * (unsigned)oy > MAXINT / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
@@ -769,17 +746,17 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 		mem_free(in);
 		return;
 	}
-	n_threads = omp_start();
-	if ((unsigned)x > (MAXINT - SMP_ALIGN + 1) / 3 / sizeof(*row_buf)) overalloc();
+	if ((unsigned)x > (MAXINT) / 3 / sizeof(*row_buf))
+		overalloc();
 	alloc_size = (int)(x*3*sizeof(*row_buf));
-	alloc_size = (alloc_size + SMP_ALIGN - 1) & ~(SMP_ALIGN - 1);
-	if (alloc_size > MAXINT / n_threads) overalloc();
-	row_buf = xmalloc(alloc_size * n_threads);
-	if (!row_buf) goto skip_omp;
+	alloc_size = (alloc_size) & ~(0);
+	if (alloc_size > MAXINT)
+		overalloc();
+	row_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_row_buf;
 		int out_idx;
-		thread_row_buf = (scale_t *)((char *)row_buf + alloc_size * omp_get_thread_num());
+		thread_row_buf = (scale_t *)((char *)row_buf);
 		bias_buf_color(thread_row_buf,x,(scale_t)iy / 2);
 		for (out_idx = 0; out_idx < oy; out_idx++) {
 			ulonglong out_pos, out_end, in_pos;
@@ -801,9 +778,6 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 			emit_and_bias_row_color(thread_row_buf, out + out_idx * 3 * x, x, iy);
 		}
 	}
-skip_omp:
-	omp_end();
-
 	mem_free(in);
 	if (row_buf) mem_free(row_buf);
 	else {

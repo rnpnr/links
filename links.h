@@ -79,11 +79,6 @@
 #include <event.h>
 #define USE_LIBEVENT
 
-#define omp_get_num_threads()	1
-#define omp_get_thread_num()	0
-#define SMP_ALIGN		1
-#define OPENMP_NONATOMIC	0
-
 #define longlong long long
 #define ulonglong unsigned long long
 
@@ -589,8 +584,6 @@ void interruptible_signal(int sig, int in);
 void block_signals(int except1, int except2);
 void unblock_signals(void);
 void set_sigcld(void);
-#define omp_start()	1
-#define omp_end()	do { } while (0)
 
 /* dns.c */
 
