@@ -11,20 +11,10 @@ int F = 0;
 
 struct graphics_driver *drv = NULL;
 
-#ifdef GRDRV_X
 extern struct graphics_driver x_driver;
-#endif
-
-/*
- * On SPAD you must test first svgalib and then X (because X test is slow).
- * On other systems you must test first X and then svgalib (because svgalib
- *	would work in X too and it's undesirable).
- */
 
 static struct graphics_driver *graphics_drivers[] = {
-#ifdef GRDRV_X
 	&x_driver,
-#endif
 	NULL
 };
 
@@ -37,20 +27,6 @@ int dummy_unblock(struct graphics_device *dev)
 {
 	return 0;
 }
-
-#if 0
-static unsigned char *list_graphics_drivers(void)
-{
-	unsigned char *d = init_str();
-	int l = 0;
-	struct graphics_driver **gd;
-	for (gd = graphics_drivers; *gd; gd++) {
-		if (l) add_to_str(&d, &l, cast_uchar " ");
-		add_to_str(&d, &l, (*gd)->name);
-	}
-	return d;
-}
-#endif
 
 /* Driver je jednorazovy argument, kterej se preda grafickymu driveru, nikde se dal
  * neuklada.  Param se skladuje v default_driver param a uklada se do konfiguraku. Pred

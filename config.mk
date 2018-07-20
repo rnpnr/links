@@ -11,7 +11,7 @@ LIBS = -L$(X11LIB) -L/usr/lib -lX11 -levent -lpng -ljpeg -lcrypto -lssl -lz
 
 CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_BSD_SOURCE
 CFLAGS = -O2 -std=c99 -Wall -pedantic -include config.h \
-	-DG=1 -DGRDRV_X \
+	-DG=1 \
 	-DHAVE_JPEG=1 -DHAVE_LIBJPEG=1 -DHAVE_JPEGLIB_H=1 \
 	-DHAVE_PNG_H=1 -DHAVE_LIBPNG=1 -DHAVE_LIBPNG_PNG_H=1
 LDFLAGS = $(LIBS) $(INCS)

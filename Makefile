@@ -19,7 +19,6 @@ SRC = \
 	error.c\
 	file.c\
 	html.c\
-	html_gr.c\
 	html_r.c\
 	html_tbl.c\
 	http.c\
@@ -28,7 +27,6 @@ SRC = \
 	kbd.c\
 	language.c\
 	listedit.c\
-	lru.c\
 	mailto.c\
 	main.c\
 	memory.c\
@@ -51,8 +49,10 @@ XSRC = \
 	dither.c\
 	font_inc.c\
 	gif.c\
+	html_gr.c\
 	imgcache.c\
 	jpeg.c\
+	lru.c\
 	png.c\
 	view_gr.c\
 	x.c

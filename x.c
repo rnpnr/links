@@ -61,8 +61,6 @@
  */
 
 
-#ifdef GRDRV_X
-
 /* #define X_DEBUG */
 /* #define SC_DEBUG */
 
@@ -2394,5 +2392,3 @@ struct graphics_driver x_driver={
 	0,				/* codepage */
 	NULL,				/* shell */
 };
-
-#endif /* GRDRV_X */
