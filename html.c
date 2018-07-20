@@ -1332,15 +1332,11 @@ static void html_h(int h, unsigned char *a)
 	}
 #endif
 	par_format.align = AL_LEFT;
-	if (h == 1) {
-		html_center(a);
+	if (h == 1)
 		return;
-	}
 	html_linebrk(a);
 	switch (par_format.align) {
 		case AL_LEFT:
-			par_format.leftmargin = (h - 2) * 2;
-			par_format.rightmargin = 0;
 			break;
 		case AL_RIGHT:
 			par_format.leftmargin = 0;
