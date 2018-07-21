@@ -514,7 +514,9 @@ static void g_get_search(struct f_data *f, unsigned char *s)
 	if (f->last_search && !strcmp(cast_const_char f->last_search, cast_const_char s)) return;
 	mem_free(f->search_positions);
 	mem_free(f->search_lengths);
-	f->search_positions = DUMMY, f->search_lengths = DUMMY, f->n_search_positions = 0;
+	f->search_positions = NULL;
+	f->search_lengths = NULL;
+	f->n_search_positions = 0;
 	if (f->last_search) mem_free(f->last_search);
 	if (!(f->last_search = stracpy(s))) return;
 	for (i = 0; i < f->srch_string_size; i++) {

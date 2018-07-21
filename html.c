@@ -120,7 +120,7 @@ int get_attr_val_nl = 0;
 unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 {
 	unsigned char *n;
-	unsigned char *a = DUMMY;
+	unsigned char *a = NULL;
 	int l = 0;
 	int f;
 	aa:
@@ -2026,7 +2026,7 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 static void init_menu(void)
 {
 	menu_stack_size = 0;
-	menu_stack = DUMMY;
+	menu_stack = NULL;
 	new_menu_item(stracpy(cast_uchar ""), -1, 0);
 }
 
@@ -2052,7 +2052,8 @@ static struct menu_item *detach_menu(void)
 
 static void destroy_menu(void)
 {
-	if (menu_stack && menu_stack != DUMMY) free_menu(menu_stack[0]);
+	if (menu_stack)
+		free_menu(menu_stack[0]);
 	detach_menu();
 }
 
@@ -2115,7 +2116,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	lbl_l = 0;
 	vlbl = NULL;
 	vlbl_l = 0;
-	val = DUMMY;
+	val = NULL;
 	order = 0, group = 0, preselect = -1;
 	init_menu();
 	se:
@@ -2405,7 +2406,7 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 	int *oo, *o;
 	int ol;
 	ol = 0;
-	o = DUMMY;
+	o = NULL;
 	new_ch:
 	while (WHITECHAR(*a)) a++;
 	n = strtoul(cast_const_char a, (char **)(void *)&a, 10);

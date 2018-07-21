@@ -41,3 +41,6 @@
 - fix command-line flag handling
 
 - remove if (x) free(x), it only guards against free(NULL) which is a no-op
+
+- remove DUMMY from http[,s].c and connect.c, changing to NULL breaks https
+  sites

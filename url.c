@@ -1087,7 +1087,7 @@ static unsigned char *display_url_or_host(struct terminal *term, unsigned char *
 			add_to_strn(&ret, url_conv);
 		} else {
 			ret = url_conv;
-			url_conv = DUMMY;
+			url_conv = NULL;
 		}
 	} else {
 		ret = convert(utf8_table, term_charset(term), url, NULL);

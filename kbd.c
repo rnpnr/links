@@ -315,7 +315,7 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 	itrm->blocked = 0;
 	itrm->qlen = 0;
 	itrm->tm = NULL;
-	itrm->ev_queue = DUMMY;
+	itrm->ev_queue = NULL;
 	itrm->eqlen = 0;
 	setraw(itrm->ctl_in, 1);
 	set_handlers(std_in, in_kbd, NULL, itrm);

@@ -32,7 +32,7 @@ struct thread {
 #endif
 };
 
-static struct thread *threads = DUMMY;
+static struct thread *threads = NULL;
 static int n_threads = 0;
 
 static fd_set w_read;

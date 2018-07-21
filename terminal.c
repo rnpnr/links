@@ -594,10 +594,10 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 	term->lcy = -1;
 	term->dirty = 1;
 	term->blocked = -1;
-	term->screen = DUMMY;
-	term->last_screen = DUMMY;
+	term->screen = NULL;
+	term->last_screen = NULL;
 	term->spec = default_term_spec(cast_uchar "");
-	term->input_queue = DUMMY;
+	term->input_queue = NULL;
 	init_list(term->windows);
 	term->handle_to_close = -1;
 	win = mem_calloc(sizeof(struct window));

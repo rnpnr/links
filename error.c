@@ -111,7 +111,8 @@ void *mem_calloc_(size_t size, int mayfail)
 {
 	void *p;
 	debug_test_free(NULL, 0);
-	if (!size) return DUMMY;
+	if (!size)
+		return NULL;
 	retry:
 	if (!(p = heap_calloc(size))) {
 		if (out_of_memory_fl(0, !mayfail ? cast_uchar "calloc" : NULL, size, NULL, 0)) goto retry;
@@ -122,26 +123,20 @@ void *mem_calloc_(size_t size, int mayfail)
 
 void mem_free(void *p)
 {
-	if (p == DUMMY) return;
-	if (!p) {
-		internal("mem_free(NULL)");
+	if (!p)
 		return;
-	}
 	heap_free(p);
 }
 
 void *mem_realloc_(void *p, size_t size, int mayfail)
 {
 	void *np;
-	if (p == DUMMY) return xmalloc(size);
+	if (!p)
+		return xmalloc(size);
 	debug_test_free(NULL, 0);
-	if (!p) {
-		internal("mem_realloc(NULL, %lu)", (unsigned long)size);
-		return NULL;
-	}
 	if (!size) {
 		mem_free(p);
-		return DUMMY;
+		return NULL;
 	}
 	retry:
 	if (!(np = heap_realloc(p, size))) {

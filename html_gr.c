@@ -552,7 +552,7 @@ static void do_image(struct g_part *p, struct image_description *im)
 				map = mem_realloc(map, sizeof(struct image_map) + (map->n_areas + 1) * sizeof(struct map_area));
 				a = &map->area[map->n_areas++];
 				a->shape = shape;
-				a->coords = DUMMY;
+				a->coords = NULL;
 				a->ncoords = 0;
 				if (ld->coords) {
 					unsigned char *p = ld->coords;
@@ -584,7 +584,7 @@ static void do_image(struct g_part *p, struct image_description *im)
 				if (!(link = new_link(p->data)))
 					a->link_num = -1;
 				else {
-					link->pos = DUMMY;
+					link->pos = NULL;
 					link->type = L_LINK;
 					link->where = stracpy(ld->link);
 					link->target = stracpy(ld->target);
@@ -905,7 +905,7 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 		if (!(link = new_link(p->data)))
 			goto back_link;
 		link->num = p->link_num - 1;
-		link->pos = DUMMY;
+		link->pos = NULL;
 		if (!last_form) {
 			link->type = L_LINK;
 			link->where = stracpy(last_link);

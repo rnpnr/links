@@ -278,7 +278,8 @@ void file_func(struct connection *c)
 			setcstate(c, get_error_from_errno(er)); abort_connection(c); return;
 		}
 		dir:
-		dir = DUMMY, dirl = 0;
+		dir = NULL;
+		dirl = 0;
 		if (name[0] && !dir_sep(name[strlen(cast_const_char name) - 1])) {
 			if (!c->cache) {
 				if (get_connection_cache_entry(c)) {

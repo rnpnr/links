@@ -28,7 +28,7 @@ struct view_state *create_vs(void)
 	vs->orig_link = -1;
 	vs->frame_pos = -1;
 	vs->plain = -1;
-	vs->form_info = DUMMY;
+	vs->form_info = NULL;
 	vs->form_info_len = 0;
 	return vs;
 }
@@ -190,7 +190,7 @@ int textptr_diff(unsigned char *t2, unsigned char *t1, int cp)
 
 static struct line_info *format_text_uncached(unsigned char *text, int width, int wrap, int cp)
 {
-	struct line_info *ln = DUMMY;
+	struct line_info *ln = NULL;
 	int lnn = 0;
 	unsigned char *b = text;
 	int sk, ps = 0;
@@ -507,7 +507,7 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 	int s1, s2;
 	int l;
 	unsigned c;
-	struct point *points = DUMMY;
+	struct point *points = NULL;
 	int len = 0;
 	unsigned char *ww;
 	unsigned char *w = scr->ses->search_word;
@@ -1863,7 +1863,7 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 		      unsigned char *bound, int cp_from, int cp_to)
 {
 	int errn;
-	int *bound_ptrs = DUMMY;
+	int *bound_ptrs = NULL;
 	int nbound_ptrs = 0;
 	unsigned char *m1, *m2;
 	struct submitted_value *sv = NULL;	/* against warning */
@@ -2094,7 +2094,7 @@ static unsigned char *get_link_url(struct session *ses, struct f_data_c *f, stru
 
 static struct menu_item *clone_select_menu(struct menu_item *m)
 {
-	struct menu_item *n = DUMMY;
+	struct menu_item *n = NULL;
 	int i = 0;
 	do {
 		if ((unsigned)i > MAXINT / sizeof(struct menu_item) - 1) overalloc();

@@ -10,17 +10,17 @@ struct f_data *init_formatted(struct document_options *opt)
 	struct f_data *scr;
 	scr = mem_calloc(sizeof(struct f_data));
 	copy_opt(&scr->opt, opt);
-	scr->data = DUMMY;
+	scr->data = NULL;
 	scr->nlinks = 0;
-	scr->links = DUMMY;
+	scr->links = NULL;
 	init_list(scr->forms);
 	init_list(scr->tags);
 	init_list(scr->nodes);
 #ifdef G
 	scr->n_images=0;
 	init_list(scr->images);
-	scr->search_positions = DUMMY;
-	scr->search_lengths = DUMMY;
+	scr->search_positions = NULL;
+	scr->search_lengths = NULL;
 	init_list(scr->image_refresh);
 	scr->start_highlight_x = -1;
 	scr->start_highlight_y = -1;
@@ -255,7 +255,7 @@ static void xpand_lines(struct part *p, int y)
 		for (i = p->data->y; i < y; i++) {
 			p->data->data[i].l = 0;
 			p->data->data[i].allocated = 0;
-			p->data->data[i].d = DUMMY;
+			p->data->data[i].d = NULL;
 		}
 		p->data->y = y;
 	}
@@ -580,7 +580,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	static struct text_attrib_beginning ta_cache = { -1, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, 0, 0 };
 	static int bg_cache;
 	static int fg_cache;
-	char_t *uni_c = DUMMY;
+	char_t *uni_c = NULL;
 
 	int bg, fg;
 	int i;
@@ -749,7 +749,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		if (!p->data) goto no_l;
 		if (!(link = new_link(p->data))) goto no_l;
 		link->num = p->link_num - 1;
-		link->pos = DUMMY;
+		link->pos = NULL;
 		if (!last_form) {
 			link->type = L_LINK;
 			link->where = stracpy(last_link);
@@ -1029,7 +1029,7 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	p->xp = xs; p->yp = ys;
 	/*p->xmax = p->xa = 0;*/
 	p->attribute = get_attribute(find_nearest_color(&format_.fg, 16), find_nearest_color(&par_format.bgcolor, 8));
-	p->spaces = DUMMY;
+	p->spaces = NULL;
 	/*p->z_spaces = 0;*/
 	/*p->spl = 0;*/
 	p->link_num = link_num;

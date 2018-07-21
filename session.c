@@ -425,7 +425,6 @@ static void abort_download(void *down_)
 static void abort_and_delete_download(void *down_)
 {
 	struct download *down = (struct download *)down_;
-	if (!down->prog) down->prog = DUMMY;
 	abort_download(down);
 }
 

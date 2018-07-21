@@ -45,7 +45,7 @@
  */
 
 /* We assume here int holds at least 32 bits */
-static int *red_table = DUMMY, *green_table = DUMMY, *blue_table = DUMMY;
+static int *red_table = NULL, *green_table = NULL, *blue_table = NULL;
 static int table_16 = 1;
 
 /* If we want to represent some 16-bit from-screen-light, it would require certain display input
@@ -992,9 +992,12 @@ void round_color_sRGB_to_48(unsigned short *restrict red, unsigned short *restri
 
 void free_dither(void)
 {
-	if (red_table) mem_free(red_table), red_table = DUMMY;
-	if (green_table) mem_free(green_table), green_table = DUMMY;
-	if (blue_table) mem_free(blue_table), blue_table = DUMMY;
+	free(red_table);
+	red_table = NULL;
+	free(green_table);
+	green_table = NULL;
+	free(blue_table);
+	blue_table = NULL;
 }
 
 #endif

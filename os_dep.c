@@ -823,7 +823,7 @@ static const struct {
 struct open_in_new *get_open_in_new(int environment)
 {
 	int i;
-	struct open_in_new *oin = DUMMY;
+	struct open_in_new *oin = NULL;
 	int noin = 0;
 	if (anonymous) return NULL;
 	if (environment & ENV_G) environment = ENV_G;
@@ -838,7 +838,6 @@ struct open_in_new *get_open_in_new(int environment)
 		oin[noin].hk = NULL;
 		oin[noin].open_window_fn = NULL;
 	}
-	if (oin == DUMMY) return NULL;
 	return oin;
 }
 
@@ -861,7 +860,7 @@ void set_highpri(void)
 
 void os_seed_random(unsigned char **pool, int *pool_size)
 {
-	*pool = DUMMY;
+	*pool = NULL;
 	*pool_size = 0;
 }
 

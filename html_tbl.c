@@ -193,12 +193,12 @@ static struct table *new_table(void)
 	t->p = NULL;
 #ifdef G
 	t->gp = NULL;
-	t->r_frame = DUMMY;
+	t->r_frame = NULL;
 	t->nr_frame = 0;
-	t->r_bg = DUMMY;
+	t->r_bg = NULL;
 	t->nr_bg = 0;
-	t->r_cells = DUMMY;
-	t->w_cells = DUMMY;
+	t->r_cells = NULL;
+	t->w_cells = NULL;
 	t->nr_cells = 0;
 #endif
 	t->x = t->y = 0;
@@ -208,9 +208,9 @@ static struct table *new_table(void)
 	t->c = 0;
 	t->rc = INIT_X;
 	t->cols = mem_calloc(INIT_X * sizeof(struct table_column));
-	t->xcols = DUMMY;
+	t->xcols = NULL;
 	t->xc = 0;
-	t->r_heights = DUMMY;
+	t->r_heights = NULL;
 	return t;
 }
 
@@ -417,7 +417,7 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	memcpy(&l_col, bgcolor, sizeof(struct rgb));
 	*end = html;
 	if (bad_html) {
-		*bad_html = DUMMY;
+		*bad_html = NULL;
 		*bhp = 0;
 	}
 	t = new_table();
@@ -1609,7 +1609,10 @@ static void add_to_cell_sets(struct table_cell ****s, int **nn, int *n, struct r
 			if ((unsigned)i > MAXINT / sizeof(int *) - 1) overalloc();
 			ns = mem_realloc(*s, (i + 1) * sizeof(struct table_cell **));
 			nnn = mem_realloc(*nn, (i + 1) * sizeof(int));
-			for (j = *n; j < i + 1; j++) ns[j] = DUMMY, nnn[j] = 0;
+			for (j = *n; j < i + 1; j++) {
+				ns[j] = NULL;
+				nnn[j] = 0;
+			}
 			*s = ns;
 			*nn = nnn;
 			*n = i + 1;

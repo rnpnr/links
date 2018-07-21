@@ -1194,7 +1194,7 @@ static void do_tab_compl(struct terminal *term, struct list_head *history, struc
 	int l = (int)strlen(cast_const_char cdata), n = 0;
 	struct history_item *hi;
 	struct list_head *lhi;
-	struct menu_item *items = DUMMY;
+	struct menu_item *items = NULL;
 	foreach(struct history_item, hi, lhi, *history) {
 		unsigned char *s = dlg_get_history_string(term, hi, MAXINT);
 		if (!strncmp(cast_const_char cdata, cast_const_char s, l)) {
@@ -2222,7 +2222,7 @@ void msg_box(struct terminal *term, struct memory_list *ml, unsigned char *title
 	int udatan;
 	va_list ap;
 	va_start(ap, align);
-	udata = DUMMY;
+	udata = NULL;
 	udatan = 0;
 	do {
 		text = va_arg(ap, unsigned char *);
