@@ -55,8 +55,6 @@
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 
-#define SSL_SESSION_RESUME
-
 #if defined(G)
 #if defined(HAVE_PNG_H)
 #define PNG_THREAD_UNSAFE_OK
@@ -421,8 +419,6 @@ static inline int cmpbeg(const unsigned char *str, const unsigned char *b)
 
 typedef unsigned long long uttime;
 typedef unsigned long long tcount;
-
-#define mem_freed_large(x)	do { } while (0)
 
 struct terminal;
 
@@ -1034,15 +1030,10 @@ int verify_ssl_cipher(links_ssl *ssl);
 int ssl_not_reusable(links_ssl *ssl);
 unsigned char *get_cipher_string(links_ssl *ssl);
 
-#if defined(SSL_SESSION_RESUME)
 SSL_SESSION *get_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port);
 void retrieve_ssl_session(struct connection *c);
 unsigned long session_info(int type);
 void init_session_cache(void);
-#else
-#define init_session_cache()	do { } while (0)
-#define retrieve_ssl_session(c)	do { } while (0)
-#endif
 
 /* data.c */
 
@@ -1366,9 +1357,6 @@ void generic_set_clip_area(struct graphics_device *dev, struct rect *r);
  * where different size is defined in the HTML), two colors mixing (alpha monochromatic letter
  * on a monochromatic backround and font operations.
  */
-
-#define limit_16(x)	(x)
-#define cmd_limit_16(x)	do { } while (0)
 
 #define sRGB_gamma	0.45455		/* For HTML, which runs
 					 * according to sRGB standard. Number
@@ -1779,10 +1767,6 @@ unsigned char *get_english_translation(unsigned char *);
 void set_language(void);
 
 #define TEXT_(x) (dummyarray + x) /* TEXT causes name clash on windows */
-
-/* dos.c */
-/* Used in error.c */
-#define dos_poll_break()        do { } while (0)
 
 /* main.c */
 
@@ -3145,10 +3129,6 @@ void png_destroy_decoder(struct cached_image *cimg);
 void add_png_version(unsigned char **s, int *l);
 
 #endif /* #ifdef G */
-
-/* svg.c */
-
-#define spawn_font_thread()	do { } while (0)
 
 /* img.c */
 

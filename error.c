@@ -110,7 +110,6 @@ void debug_msg(char *m, ...)
 void *mem_calloc_(size_t size, int mayfail)
 {
 	void *p;
-	dos_poll_break();
 	debug_test_free(NULL, 0);
 	if (!size) return DUMMY;
 	retry:
@@ -123,7 +122,6 @@ void *mem_calloc_(size_t size, int mayfail)
 
 void mem_free(void *p)
 {
-	dos_poll_break();
 	if (p == DUMMY) return;
 	if (!p) {
 		internal("mem_free(NULL)");
@@ -136,7 +134,6 @@ void *mem_realloc_(void *p, size_t size, int mayfail)
 {
 	void *np;
 	if (p == DUMMY) return xmalloc(size);
-	dos_poll_break();
 	debug_test_free(NULL, 0);
 	if (!p) {
 		internal("mem_realloc(NULL, %lu)", (unsigned long)size);

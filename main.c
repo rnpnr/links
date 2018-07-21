@@ -405,7 +405,6 @@ static void init(void)
 					}
 					mem_free(n);
 				}
-				spawn_font_thread();
 				init_dither(drv->depth);
 			}
 #else

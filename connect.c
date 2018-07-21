@@ -727,7 +727,6 @@ static void connected(void *c_)
 			mem_free(h);
 			goto ssl_error;
 		}
-#ifdef SSL_SESSION_RESUME
 		if (!proxies.only_proxies && !c->no_ssl_session) {
 			unsigned char *h = get_host_name(orig_url);
 			int p = get_port(orig_url);
@@ -738,7 +737,6 @@ static void connected(void *c_)
 			}
 			mem_free(h);
 		}
-#endif
 #if !defined(OPENSSL_NO_STDIO)
 		if (!proxies.only_proxies) {
 			if (ssl_options.client_cert_key[0]) {

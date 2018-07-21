@@ -53,7 +53,6 @@ static void destroy_decoder (struct cached_image *cimg)
 static void mem_free_buffer(struct cached_image *cimg)
 {
 	mem_free(cimg->buffer);
-	mem_freed_large(cimg->width * cimg->height * cimg->buffer_bytes_per_pixel);
 }
 
 static void img_destruct_image(struct g_object *object)
@@ -551,7 +550,6 @@ not_enough:
 	goto not_enough;
 end:
 	mem_free(tmp);
-	mem_freed_large(cimg->width*(height<max_height?height:max_height)*3*sizeof(*tmp));
 	if (!use_strip) drv->register_bitmap(&(cimg->bmp));
 }
 
@@ -619,12 +617,8 @@ buffer_to_bitmap");
 	cimg->bmp.x=ox;
 	cimg->bmp.y=oy;
 	if (drv->get_empty_bitmap(&(cimg->bmp))) {
-		if (!gonna_be_smart) {
-			if (tmp) {
-				mem_free(tmp);
-				mem_freed_large(ix*iy*3*sizeof(*tmp));
-			}
-		}
+		if (!gonna_be_smart)
+			free(tmp);
 		goto bitmap_failed;
 	}
 	if (gonna_be_smart){
@@ -643,8 +637,7 @@ buffer_to_bitmap");
 				dither(tmp,&(cimg->bmp));
 			else
 				(*round_fn)(tmp,&(cimg->bmp));
-			mem_free(tmp);
-			mem_freed_large(ix*iy*3*sizeof(*tmp));
+			free(tmp);
 		} else {
 			int i;
 			unsigned char *ptr = cimg->bmp.data;

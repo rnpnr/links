@@ -267,9 +267,9 @@ int slow_fpu = -1;
 		if (table_16) {\
 			for (y=out->y;y;y--){\
 				for (x=out->x;x;x--){\
-					rt=red_table[limit_16(in[0])];\
-					gt=green_table[limit_16(in[1])];\
-					bt=blue_table[limit_16(in[2])];\
+					rt = red_table[in[0]];\
+					gt = green_table[in[1]];\
+					bt = blue_table[in[2]];\
 					in+=3;\
 					SAVE_CODE\
 				}\
@@ -278,9 +278,9 @@ int slow_fpu = -1;
 		} else {\
 			for (y=out->y;y;y--){\
 				for (x=out->x;x;x--){\
-					rt=red_table[limit_16(in[0]) >> 8];\
-					gt=green_table[limit_16(in[1]) >> 8];\
-					bt=blue_table[limit_16(in[2]) >> 8];\
+					rt = red_table[in[0] >> 8];\
+					gt = green_table[in[1] >> 8];\
+					bt = blue_table[in[2] >> 8];\
 					in+=3;\
 					SAVE_CODE\
 				}\
@@ -807,8 +807,7 @@ void dither_restart(unsigned short *in, struct bitmap *out, int *dregs)
 static void make_round_tables(void)
 {
 	int a;
-	/* ICC bug */
-	icc_volatile unsigned short v;
+	unsigned short v;
 
 	for (a=0;a<256;a++){
 		/* a is sRGB coordinate */

@@ -163,7 +163,6 @@ void freeSSL(links_ssl *ssl)
 {
 	if (!ssl || ssl == DUMMY)
 		return;
-#ifdef SSL_SESSION_RESUME
 	{
 		int r;
 		SSL_set_quiet_shutdown(ssl->ssl, 1);
@@ -171,7 +170,6 @@ void freeSSL(links_ssl *ssl)
 		if (r < 0)
 			clear_ssl_errors(__LINE__);
 	}
-#endif
 	SSL_free(ssl->ssl);
 	mem_free(ssl);
 }
@@ -294,15 +292,8 @@ unsigned char *get_cipher_string(links_ssl *ssl)
 		add_chr_to_str(&s, &l, ' ');
 		add_to_str(&s, &l, cipher);
 	}
-#if defined(SSL_SESSION_RESUME) && 0
-	if (SSL_session_reused(ssl->ssl)) {
-		add_to_str(&s, &l, cast_uchar " (reused session)");
-	}
-#endif
 	return s;
 }
-
-#ifdef SSL_SESSION_RESUME
 
 struct session_cache_entry {
 	list_entry_1st
@@ -427,5 +418,3 @@ void init_session_cache(void)
 {
 	register_cache_upcall(shrink_session_cache, 0, cast_uchar "session");
 }
-
-#endif

@@ -203,27 +203,7 @@
 #define fd_pow powf
 #endif
 
-#if defined(__DECC_VER)
-#define static_const	static
-#define decc_volatile	volatile
-#else
 #define static_const	static const
-#define decc_volatile
-#endif
-
-#ifdef __HIGHC__
-#define highc_volatile	volatile
-#else
-#define highc_volatile
-#endif
-
-#define icc_volatile
-
-#ifdef __SUNPRO_C
-#define sun_volatile	volatile
-#else
-#define sun_volatile
-#endif
 
 typedef const char *const_char_ptr;
 

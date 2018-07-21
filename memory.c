@@ -127,9 +127,7 @@ retry:
 #endif
 	fprintf(stderr, "Formatted document cache: %lu documents, %lu locked\n", formatted_info(CI_FILES), formatted_info(CI_LOCKED));
 	fprintf(stderr, "DNS cache: %lu servers", dns_info(CI_FILES));
-#ifdef SSL_SESSION_RESUME
 	fprintf(stderr, ", TLS session cache: %lu servers", session_info(CI_FILES));
-#endif
 	fprintf(stderr, "\n");
 
 	if (file) fatal_exit("ERROR: out of memory (%s(%lu) at %s:%d returned NULL)", msg, (unsigned long)size, file, line);

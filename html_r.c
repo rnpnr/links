@@ -95,18 +95,13 @@ static void clear_formatted(struct f_data *scr)
 	int y;
 	struct form_control *fc;
 	struct list_head *lfc;
-	if (!scr) return;
+	if (!scr)
+		return;
 
-	if (scr->search_chr) {
-		mem_free(scr->search_chr);
-		mem_freed_large(scr->nsearch_chr * sizeof(char_t));
-	}
-	if (scr->search_pos) {
-		mem_free(scr->search_pos);
-		mem_freed_large(scr->nsearch_pos * sizeof(struct search));
-	}
-	if (scr->slines1) mem_free(scr->slines1);
-	if (scr->slines2) mem_free(scr->slines2);
+	free(scr->search_chr);
+	free(scr->search_pos);
+	free(scr->slines1);
+	free(scr->slines2);
 
 #ifdef G
 	if (scr->root) scr->root->destruct(scr->root);

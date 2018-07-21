@@ -182,8 +182,7 @@ int get_terminal_size(int fd, int *x, int *y)
 {
 	int rs = -1;
 #ifdef TIOCGWINSZ
-	/* Sun Studio misoptimizes it */
-	sun_volatile struct winsize ws;
+	struct winsize ws;
 	EINTRLOOP(rs, ioctl(1, TIOCGWINSZ, &ws));
 #endif
 	if ((rs == -1

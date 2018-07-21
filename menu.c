@@ -44,7 +44,7 @@ static void menu_version(void *term_)
 	int maxlen = 0;
 	unsigned char *s;
 	int l;
-	unsigned char * const * decc_volatile text_ptr;
+	unsigned char * const *text_ptr;
 	for (i = 0; version_texts[i]; i++) {
 		unsigned char *t = get_text_translation(version_texts[i], term);
 		int tl = cp_len(term_charset(term), t);
@@ -412,14 +412,12 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	add_unsigned_long_num_to_str(&a, &l, dns_info(CI_FILES));
 	add_to_str(&a, &l, cast_uchar " ");
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_SERVERS), term));
-#ifdef SSL_SESSION_RESUME
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_TLS_SESSION_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, session_info(CI_FILES));
 	add_to_str(&a, &l, cast_uchar " ");
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_SERVERS), term));
-#endif
 	add_to_str(&a, &l, cast_uchar ".");
 
 	if (r2 && !strcmp(cast_const_char a, cast_const_char *(unsigned char **)((struct dialog_data *)r2->win->data)->dlg->udata)) {
@@ -3231,10 +3229,9 @@ static_const struct menu_item main_menu[] = {
 void activate_bfu_technology(struct session *ses, int item)
 {
 	struct terminal *term = ses->term;
-	/* decc_volatile to avoid compiler bug */
-	struct menu_item * decc_volatile m = (struct menu_item *)main_menu;
+	struct menu_item *m = (struct menu_item *)main_menu;
 #ifdef G
-	struct menu_item * decc_volatile mg = m;
+	struct menu_item *mg = m;
 #endif
 	do_mainmenu(term, gf_val(m, mg), ses, item);
 }

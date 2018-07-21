@@ -626,9 +626,7 @@ void do_mainmenu(struct terminal *term, struct menu_item *items, void *data, int
 		menu->hotkeys[i] = select_hotkey(term, NULL, items[i].hotkey, menu->hotkeys, i);
 	add_window(term, mainmenu_func, menu);
 	if (sel != -1) {
-		/* icc_volatile is workaround for some weird bug in icc or linker,
-		   it results in unaligned sse load */
-		icc_volatile struct links_event ev = {EV_KBD, KBD_ENTER, 0, 0};
+		struct links_event ev = {EV_KBD, KBD_ENTER, 0, 0};
 		struct window *win = list_struct(term->windows.next, struct window);
 		win->handler(win, (struct links_event *)&ev, 0);
 	}
@@ -1247,8 +1245,7 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 	switch ((int)ev->ev) {
 		case EV_INIT:
 			for (i = 0; i < dlg->n; i++) {
-				/* highc_volatile because of a compiler bug */
-				struct dialog_item_data * highc_volatile di = &dlg->items[i];
+				struct dialog_item_data *di = &dlg->items[i];
 				memset(di, 0, sizeof(struct dialog_item_data));
 				di->item = &dlg->dlg->items[i];
 				di->cdata = xmalloc(di->item->dlen);
@@ -1649,10 +1646,9 @@ void get_dialog_data(struct dialog_data *dlg)
 {
 	int i;
 	for (i = 0; i < dlg->n; i++) {
-		/* highc_volatile because of a compiler bug */
-		void * highc_volatile p1 = dlg->dlg->items[i].data;
-		void * highc_volatile p2 = dlg->items[i].cdata;
-		highc_volatile int l = dlg->dlg->items[i].dlen;
+		void *p1 = dlg->dlg->items[i].data;
+		void *p2 = dlg->items[i].cdata;
+		int l = dlg->dlg->items[i].dlen;
 		if (l)
 			memcpy(p1, p2, l);
 	}

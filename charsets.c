@@ -456,7 +456,7 @@ need_table:
 
 int get_cp_index(unsigned char *n)
 {
-	decc_volatile int i, a, p, q, sl, ii = -1, ll = 0;
+	int i, a, p, q, sl, ii = -1, ll = 0;
 	for (i = 0; codepages[i].name; i++) {
 		for (a = 0; codepages[i].aliases[a]; a++) {
 			for (p = 0; n[p]; p++) {

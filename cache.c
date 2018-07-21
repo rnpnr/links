@@ -211,7 +211,6 @@ static void mem_free_fragment(struct fragment *f)
 	size_t s = (size_t)f->length;
 	mem_free(f);
 	s += sizeof(struct fragment);
-	mem_freed_large(s);
 }
 
 #define sf(x) e->data_size += (x), cache_size += (my_uintptr_t)(x)
@@ -226,7 +225,7 @@ int add_fragment(struct cache_entry *e, off_t offset, const unsigned char *data,
 	struct list_head *lf;
 	struct fragment *nf;
 	int trunc = 0;
-	icc_volatile off_t ca;
+	off_t ca;
 	if (!length) return 0;
 	free_decompressed_data(e);
 	e->incomplete = 1;

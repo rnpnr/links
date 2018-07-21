@@ -247,7 +247,7 @@ static void emit_and_bias_col_color(scale_t *restrict col_buf,
 static void emit_and_bias_row_color(scale_t *restrict row_buf,
 	unsigned short *restrict out, int n, unsigned weight)
 {
-	scale_t half=(scale_t)weight / 2;
+	scale_t half = (scale_t)weight / 2;
 	scale_t inv_weight = (scale_t)1 / weight;
 	for (;n;n--){
 		out[0]=(unsigned short)op(row_buf[0]);
@@ -916,11 +916,8 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 		scale_color_horizontal(in,ix,iy,&intermediate_buffer,ox);
 		scale_color_vertical(intermediate_buffer,ox,iy,out,oy);
 	}
-	if (do_optimize) decimate_3(out, ox0, oy);
-	mem_freed_large(
-		3 * sizeof(short) * ix * iy > 3 * sizeof(short) * ox * oy ?
-		3 * sizeof(short) * ix * iy : 3 * sizeof(short) * ox * oy
-	);
+	if (do_optimize)
+		decimate_3(out, ox0, oy);
 }
 
 /* Fills a block with given color. length is number of pixels. pixel is a
@@ -1054,10 +1051,7 @@ void agx_and_uc_32_to_48(unsigned short *restrict dest,
 		ri=(unsigned)((r*65535)+(float_double)0.5);
 		gi=(unsigned)((g*65535)+(float_double)0.5);
 		bi=(unsigned)((b*65535)+(float_double)0.5);
-		cmd_limit_16(ri);
-		cmd_limit_16(gi);
-		cmd_limit_16(bi);
-		if (((alpha+1)&255)>=2){
+		if (((alpha + 1) & 255) >= 2) {
 			calpha=255-alpha;
 			dest[0]=(unsigned short)((ri*alpha+calpha*rb+127U)/255U);
 			dest[1]=(unsigned short)((gi*alpha+calpha*gb+127U)/255U);
@@ -1108,10 +1102,7 @@ void agx_and_uc_64_to_48(unsigned short *restrict dest,
 		ri=(unsigned short)(r*65535+(float_double)0.5);
 		gi=(unsigned short)(g*65535+(float_double)0.5);
 		bi=(unsigned short)(b*65535+(float_double)0.5);
-		cmd_limit_16(ri);
-		cmd_limit_16(gi);
-		cmd_limit_16(bi);
-		if (((alpha+1)&65535)>=2){
+		if (((alpha + 1) & 65535) >= 2) {
 			calpha=65535-alpha;
 			dest[0]=(unsigned short)((ri*alpha+calpha*rb+32767U)/65535U);
 			dest[1]=(unsigned short)((gi*alpha+calpha*gb+32767U)/65535U);
@@ -1187,17 +1178,14 @@ void agx_48_to_48(unsigned short *restrict dest,
 		a*=inv_65535;
 		a=fd_pow(a,red_gamma);
 		dest[0]=(unsigned short)((a*65535)+(float_double)0.5);
-		cmd_limit_16(dest[0]);
 		a=src[1];
 		a*=inv_65535;
 		a=fd_pow(a,green_gamma);
 		dest[1]=(unsigned short)((a*65535)+(float_double)0.5);
-		cmd_limit_16(dest[1]);
 		a=src[2];
 		a*=inv_65535;
 		a=fd_pow(a,blue_gamma);
 		dest[2]=(unsigned short)((a*65535)+(float_double)0.5);
-		cmd_limit_16(dest[2]);
 	}
 }
 
@@ -1233,17 +1221,14 @@ void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict s
 		a*=inv_255;
 		a=fd_pow(a,red_gamma);
 		dest[0]=(unsigned short)((a*65535)+(float_double)0.5);
-		cmd_limit_16(dest[0]);
 		a=src[1];
 		a*=inv_255;
 		a=fd_pow(a,green_gamma);
 		dest[1]=(unsigned short)((a*65535)+(float_double)0.5);
-		cmd_limit_16(dest[1]);
 		a=src[2];
 		a*=inv_255;
 		a=fd_pow(a,blue_gamma);
 		dest[2]=(unsigned short)((a*65535)+(float_double)0.5);
-		cmd_limit_16(dest[2]);
 	}
 }
 
@@ -1267,17 +1252,14 @@ void make_gamma_table(struct cached_image *cimg)
 		cimg->gamma_table=ptr_16;
 		for (a=0;a<256;a++,ptr_16++){
 			last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_255,rg)+(float_double)0.5);
-			cmd_limit_16(last_val);
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<256;a++,ptr_16++){
 			last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_255,gg)+(float_double)0.5);
-			cmd_limit_16(last_val);
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<256;a++,ptr_16++){
 			last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_255,bg)+(float_double)0.5);
-			cmd_limit_16(last_val);
 			*ptr_16 = last_val;
 		}
 	}else{
@@ -1291,24 +1273,18 @@ void make_gamma_table(struct cached_image *cimg)
 		ptr_16 = xmalloc(196608 * sizeof(*(cimg->gamma_table)));
 		cimg->gamma_table=ptr_16;
 		for (a=0;a<0x10000;a++,ptr_16++){
-			if (!x_slow_fpu || !(a & 0xff)) {
+			if (!x_slow_fpu || !(a & 0xff))
 				last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_65535,rg)+(float_double)0.5);
-				cmd_limit_16(last_val);
-			}
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<0x10000;a++,ptr_16++){
-			if (!x_slow_fpu || !(a & 0xff)) {
+			if (!x_slow_fpu || !(a & 0xff))
 				last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_65535,gg)+(float_double)0.5);
-				cmd_limit_16(last_val);
-			}
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<0x10000;a++,ptr_16++){
-			if (!x_slow_fpu || !(a & 0xff)) {
+			if (!x_slow_fpu || !(a & 0xff))
 				last_val = (unsigned short)(65535*fd_pow((float_double)a*inv_65535,bg)+(float_double)0.5);
-				cmd_limit_16(last_val);
-			}
 			*ptr_16 = last_val;
 		}
 	}
@@ -1347,7 +1323,6 @@ unsigned short ags_8_to_16(unsigned char input, float gamma)
 	a=fd_pow(a,gamma);
 	a*=65535;
 	retval = (unsigned short)(a+(float_double)0.5);
-	cmd_limit_16(retval);
 	return retval;
 }
 
@@ -1366,7 +1341,6 @@ unsigned short ags_16_to_16(unsigned short input, float gamma)
 	const float_double inv_65535=(float_double)(1/65535.);
 
 	retval = (unsigned short)(65535*fd_pow((float_double)input*inv_65535,gamma)+(float_double)0.5);
-	cmd_limit_16(retval);
 	return retval;
 }
 

@@ -22,8 +22,7 @@ static inline void pixel_set(unsigned char *dest, int n,void * pattern)
 		case 2:
 		{
 			unsigned short v=*(unsigned short *)do_not_optimize_here(pattern);
-			/* ICC has an optimization bug here */
-			icc_volatile int a;
+			int a;
 
 			if ((v & 255) == ((v >> 8) & 255)) {
 				memset(dest, v, n);
@@ -70,8 +69,7 @@ static inline void pixel_set(unsigned char *dest, int n,void * pattern)
 			memset(dest, ((unsigned char *)pattern)[1], n);
 		} else {
 			unsigned v=*(unsigned *)do_not_optimize_here(pattern);
-			/* ICC has an optimization bug here */
-			icc_volatile int a;
+			int a;
 
 			{
 				unsigned long vv = ((unsigned long)v << 32) | v;

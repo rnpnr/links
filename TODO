@@ -39,3 +39,5 @@
 - other error mechanisms should be replaced with die()
 
 - fix command-line flag handling
+
+- remove if (x) free(x), it only guards against free(NULL) which is a no-op

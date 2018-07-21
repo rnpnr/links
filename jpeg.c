@@ -157,7 +157,7 @@ static void gray_to_rgb(unsigned char *data, int pixels)
 static inline void fix_data( struct jpg_decoder *deco, int lines_read)
 {
 	/* ICC bug */
-	icc_volatile int a;
+	int a;
 
 	switch (global_cinfo->output_components){
 		case 1:
