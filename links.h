@@ -3240,7 +3240,6 @@ static inline void intersect(int s1, int l1, int s2, int l2, int *s3, int *l3)
 }
 
 
-void g_release_background(struct background *bg);
 void g_draw_background(struct graphics_device *dev, struct background *bg, int x, int y, int xw, int yw);
 int g_forward_mouse(struct f_data_c *fd, struct g_object *a, int x, int y, int b);
 

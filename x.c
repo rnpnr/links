@@ -501,17 +501,17 @@ static void x_free_hash_table(void)
 	unregister_bottom_half(x_process_events, NULL);
 	unregister_bottom_half(x_do_flush, NULL);
 
-	for (a=0;a<X_HASH_TABLE_SIZE;a++)
-	{
-		for (b=0;b<x_hash_table[a].count;b++)
-			mem_free(x_hash_table[a].pointer[b]);
+	for (a = 0; a < X_HASH_TABLE_SIZE; a++) {
+		for (b = 0; b < x_hash_table[a].count; b++)
+			free(x_hash_table[a].pointer[b]);
 		if (x_hash_table[a].pointer)
-			mem_free(x_hash_table[a].pointer);
+			free(x_hash_table[a].pointer);
 	}
 
 	x_clear_clipboard();
 
-	if (static_color_table) mem_free(static_color_table), static_color_table = NULL;
+	free(static_color_table);
+	static_color_table = NULL;
 
 	if (x_display) {
 		if (x_icon) XFreePixmap(x_display, x_icon), x_icon = 0;
@@ -524,8 +524,10 @@ static void x_free_hash_table(void)
 		XCloseDisplay(x_display), x_display = NULL;
 	}
 
-	if (x_driver_param) mem_free(x_driver_param), x_driver_param = NULL;
-	if (x_display_string) mem_free(x_display_string), x_display_string = NULL;
+	free(x_driver_param);
+	free(x_display_string);
+	x_driver_param = NULL;
+	x_display_string = NULL;
 }
 
 
@@ -554,8 +556,8 @@ static void x_update_driver_param(int w, int h)
 	x_default_window_width=w;
 	x_default_window_height=h;
 
-	if (x_driver_param)mem_free(x_driver_param);
-	x_driver_param=init_str();
+	free(x_driver_param);
+	x_driver_param = init_str();
 	add_num_to_str(&x_driver_param,&l,x_default_window_width);
 	add_to_str(&x_driver_param,&l,cast_uchar "x");
 	add_num_to_str(&x_driver_param,&l,x_default_window_height);
@@ -599,10 +601,8 @@ static void x_remove_from_table(Window *win)
 
 static void x_clear_clipboard(void)
 {
-	if (x_my_clipboard) {
-		mem_free(x_my_clipboard);
-		x_my_clipboard = NULL;
-	}
+	free(x_my_clipboard);
+	x_my_clipboard = NULL;
 }
 
 
@@ -1325,7 +1325,7 @@ visual_found:;
 			if (d) *d = 0;
 			add_to_strn(&m, cast_uchar ".UTF-8");
 			l = cast_uchar setlocale(LC_CTYPE, cast_const_char m);
-			mem_free(m);
+			free(m);
 		}
 		if (!l) {
 			l = cast_uchar setlocale(LC_CTYPE, "en_US.UTF-8");
@@ -1506,8 +1506,8 @@ static void x_shutdown_device(struct graphics_device *gd)
 	X_SCHEDULE_PROCESS_EVENTS();
 
 	x_remove_from_table(&wi->window);
-	mem_free(wi);
-	mem_free(gd);
+	free(wi);
+	free(gd);
 }
 
 static void x_translate_colors(unsigned char *data, int x, int y, int skip)
@@ -1561,7 +1561,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 	if (!image){
 		if (out_of_memory(0, NULL, 0))
 			goto retry;
-		mem_free(p);
+		free(p);
 		goto cant_create;
 	}
 	image->data=bmp->data;
@@ -1587,7 +1587,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 		}
 	}
 	if (!(*pixmap)) {
-		mem_free(pixmap);
+		free(pixmap);
 		can_create_pixmap=0;
 	}
 
@@ -1633,14 +1633,14 @@ static void x_unregister_bitmap(struct bitmap *bmp)
 	{
 		case X_TYPE_PIXMAP:
 		XFreePixmap(x_display,*(XPIXMAPP(bmp->flags)->data.pixmap));   /* free XPixmap from server's memory */
-		mem_free(XPIXMAPP(bmp->flags)->data.pixmap);  /* XPixmap */
+		free(XPIXMAPP(bmp->flags)->data.pixmap);  /* XPixmap */
 		break;
 
 		case X_TYPE_IMAGE:
 		XDestroyImage(XPIXMAPP(bmp->flags)->data.image);  /* free XImage from client's memory */
 		break;
 	}
-	mem_free(bmp->flags);  /* struct x_pixmap */
+	free(bmp->flags);  /* struct x_pixmap */
 }
 
 static long x_get_color(int rgb)
@@ -1881,7 +1881,7 @@ static int x_hscroll(struct graphics_device *gd, struct rect_set **set, int sc)
 				break;
 			}
 			XPutBackEvent(x_display, &ev);
-			mem_free(*set);
+			free(*set);
 			*set = NULL;
 			break;
 		}
@@ -1962,7 +1962,7 @@ static int x_vscroll(struct graphics_device *gd, struct rect_set **set, int sc)
 				break;
 			}
 			XPutBackEvent(x_display, &ev);
-			mem_free(*set);
+			free(*set);
 			*set = NULL;
 			break;
 		}
@@ -2096,22 +2096,21 @@ retry_encode_ascii:
 #endif
 		if (ret < 0) {
 			if (output_encoding) {
-				mem_free(t);
+				free(t);
 				goto retry_encode_ascii;
-			} else {
+			} else
 				goto retry_print_ascii;
-			}
 		}
 	} else
 retry_print_ascii:
 	{
 		ret = XStringListToTextProperty((char**)(void *)(&t), 1, &windowName);
 		if (!ret) {
-			mem_free(t);
+			free(t);
 			return;
 		}
 	}
-	mem_free(t);
+	free(t);
 	XSetWMName(x_display, get_window_info(gd)->window, &windowName);
 	XSetWMIconName(x_display, get_window_info(gd)->window, &windowName);
 	XFree(windowName.value);
@@ -2170,7 +2169,7 @@ static void selection_request(XEvent *event)
 				 str,
 				 (int)l
 		);
-		mem_free(str);
+		free(str);
 	} else if (req->target == x_utf8_string_atom) {
 		l = x_my_clipboard ? strlen(cast_const_char x_my_clipboard) : 0;
 		if (l > X_MAX_CLIPBOARD_SIZE) l = X_MAX_CLIPBOARD_SIZE;

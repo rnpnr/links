@@ -37,11 +37,6 @@ void g_draw_background(struct graphics_device *dev, struct background *bg, int x
 	drv->fill_area(dev, x, y, x + xw, y + yw , dip_get_color_sRGB(bg->u.sRGB));
 }
 
-void g_release_background(struct background *bg)
-{
-	mem_free(bg);
-}
-
 void g_dummy_draw(struct f_data_c *fd, struct g_object *t, int x, int y)
 {
 }
@@ -49,7 +44,7 @@ void g_dummy_draw(struct f_data_c *fd, struct g_object *t, int x, int y)
 void g_tag_destruct(struct g_object *t_)
 {
 	struct g_object_tag *t = get_struct(t_, struct g_object_tag,  go);
-	mem_free(t);
+	free(t);
 }
 
 void g_dummy_mouse(struct f_data_c *fd, struct g_object *a, int x, int y, int b)
@@ -248,7 +243,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 							restrict_clip_area(dev, &old, x, 0, x + t->goti.go.xw, dev->size.y2);
 							g_print_text(dev, x, yy + j * t->style->height, t->style, a, NULL);
 							drv->set_clip_area(dev, &old);
-							mem_free(a);
+							free(a);
 						}
 						cur -= form->cols;
 					}
@@ -296,16 +291,13 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 			}
 			if (hl_len) goto hl;
 		}
-		else if (hl_len)
-		{
+		else if (hl_len) {
 			int x;
 			hl:
 			for (x = 0; x < hl_len; x++) mask[hl_start - t->srch_pos + x] ^= 1;
 			/*memset(mask+hl_start-t->srch_pos, 1, hl_len);*/
-		}
-		else
-		{
-			mem_free(mask);
+		} else {
+			free(mask);
 			goto prn;
 		}
 
@@ -316,7 +308,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 		for (ii = 0; ii < tlen; ii++) {
 			if (mask[ii] != pmask) {
 				g_print_text(dev, x, y, pmask ? inv : t->style, tx, &x);
-				mem_free(tx);
+				free(tx);
 				tx = init_str();
 				txl = 0;
 			}
@@ -324,9 +316,9 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 			pmask = mask[ii];
 		}
 		g_print_text(dev, x, y, pmask ? inv : t->style, tx, &x);
-		mem_free(tx);
+		free(tx);
 		g_free_style(inv);
-		mem_free(mask);
+		free(mask);
 	}
 }
 
@@ -335,7 +327,7 @@ void g_text_destruct(struct g_object *t_)
 	struct g_object_text *t = get_struct(t_, struct g_object_text, goti.go);
 	release_image_map(t->goti.map);
 	g_free_style(t->style);
-	mem_free(t);
+	free(t);
 }
 
 void g_line_draw(struct f_data_c *fd, struct g_object *l_, int xx, int yy)
@@ -360,13 +352,13 @@ void g_line_destruct(struct g_object *l_)
 	struct g_object_line *l = get_struct(l_, struct g_object_line, go);
 	int i;
 	for (i = 0; i < l->n_entries; i++) l->entries[i]->destruct(l->entries[i]);
-	mem_free(l);
+	free(l);
 }
 
 void g_line_bg_destruct(struct g_object *l_)
 {
 	struct g_object_line *l = get_struct(l_, struct g_object_line, go);
-	g_release_background(l->bg);
+	free(l->bg);
 	g_line_destruct(&l->go);
 }
 
@@ -423,12 +415,12 @@ void g_area_destruct(struct g_object *a_)
 {
 	struct g_object_area *a = get_struct(a_, struct g_object_area, go);
 	int i;
-	g_release_background(a->bg);
+	free(a->bg);
 	for (i = 0; i < a->n_lines; i++) {
 		struct g_object *o = &a->lines[i]->go;
 		o->destruct(o);
 	}
-	mem_free(a);
+	free(a);
 }
 
 void g_area_get_list(struct g_object *a_, void (*f)(struct g_object *parent, struct g_object *child))
@@ -512,12 +504,12 @@ static void g_get_search(struct f_data *f, unsigned char *s)
 	int i;
 	if (!s || !*s) return;
 	if (f->last_search && !strcmp(cast_const_char f->last_search, cast_const_char s)) return;
-	mem_free(f->search_positions);
-	mem_free(f->search_lengths);
+	free(f->search_positions);
+	free(f->search_lengths);
 	f->search_positions = NULL;
 	f->search_lengths = NULL;
 	f->n_search_positions = 0;
-	if (f->last_search) mem_free(f->last_search);
+	free(f->last_search);
 	if (!(f->last_search = stracpy(s))) return;
 	for (i = 0; i < f->srch_string_size; i++) {
 		int len;
@@ -598,7 +590,7 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 				draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos - (scr->yl - vy));
 				drv->set_clip_area(t->dev, &clip1);
 			}
-			mem_free(rs);
+			free(rs);
 		}
 	}
 
@@ -615,7 +607,7 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 				draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
 				drv->set_clip_area(t->dev, &clip1);
 			}
-			mem_free(rs);
+			free(rs);
 		}
 	}
 
@@ -1175,7 +1167,7 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 							p = m;
 							while ((p = cast_uchar strstr(cast_const_char p, "\302\255"))) memmove(p, p + 2, strlen(cast_const_char(p + 2)) + 1);
 							if (*m) set_clipboard_text(fd->ses->term, m);
-							mem_free(m);
+							free(m);
 						}
 					}
 					return 1;
@@ -1353,7 +1345,7 @@ void draw_title(struct f_data_c *f)
 	drv->fill_area(dev, z, 0, b, G_BFU_FONT_SIZE, bfu_bg_color);
 	g_print_text(dev, b, 0, bfu_style_bw, title, &b);
 	drv->fill_area(dev, b, 0, dev->size.x2, G_BFU_FONT_SIZE, bfu_bg_color);
-	mem_free(title);
+	free(title);
 }
 
 static struct f_data *srch_f_data;
@@ -1512,10 +1504,10 @@ static void find_next_sub(struct g_object *p, struct g_object *c)
 
 				tt = memacpy(t->text, sx);
 				find_opt_x += g_text_width(t->style, tt);
-				mem_free(tt);
+				free(tt);
 				tt = memacpy(t->text + sx, ex - sx);
 				find_opt_xw = g_text_width(t->style, tt);
-				mem_free(tt);
+				free(tt);
 			}
 		}
 	}

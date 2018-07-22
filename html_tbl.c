@@ -234,7 +234,7 @@ static void free_table(struct table *t)
 		if (t->r_bg) mem_free(t->r_bg);
 		for (i = 0; i < t->nr_cells; i++) mem_free(t->r_cells[i]);
 		mem_free(t->r_cells), mem_free(t->w_cells);
-		if (t->frame_bg) g_release_background(t->frame_bg);
+		free(t->frame_bg);
 	}
 #endif
 	if (t->bordercolor) mem_free(t->bordercolor);
