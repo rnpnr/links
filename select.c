@@ -198,7 +198,7 @@ void unregister_bottom_half(void (*fn)(void *), void *data)
 	struct list_head *lbh;
 	foreach(struct bottom_half, bh, lbh, bottom_halves) if (bh->fn == fn && bh->data == data) {
 		del_from_list(bh);
-		mem_free(bh);
+		free(bh);
 		return;
 	}
 }
@@ -214,7 +214,7 @@ void check_bottom_halves(void)
 	fn = bh->fn;
 	data = bh->data;
 	del_from_list(bh);
-	mem_free(bh);
+	free(bh);
 #ifdef DEBUG_CALLS
 	fprintf(stderr, "call: bh %p\n", fn);
 #endif
@@ -378,11 +378,9 @@ static void terminate_libevent(void)
 	if (event_enabled) {
 		for (i = 0; i < n_threads; i++) {
 			set_event_for_action(i, NULL, &threads[i].read_event, EV_READ);
-			if (threads[i].read_event)
-				mem_free(threads[i].read_event);
+			free(threads[i].read_event);
 			set_event_for_action(i, NULL, &threads[i].write_event, EV_WRITE);
-			if (threads[i].write_event)
-				mem_free(threads[i].write_event);
+			free(threads[i].write_event);
 		}
 		event_base_free(event_base);
 		event_enabled = 0;
@@ -504,9 +502,9 @@ void kill_timer(struct timer *tm)
 #ifdef USE_LIBEVENT
 	if (event_enabled)
 		timeout_del(timer_event(tm));
-	mem_free(timer_event(tm));
+	free(timer_event(tm));
 #else
-	mem_free(tm);
+	free(tm);
 #endif
 }
 
@@ -963,5 +961,5 @@ void terminate_select(void)
 #ifdef USE_LIBEVENT
 	terminate_libevent();
 #endif
-	mem_free(threads);
+	free(threads);
 }

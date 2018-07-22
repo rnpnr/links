@@ -153,7 +153,7 @@ static void png_row_callback(png_structp png_ptr, png_bytep new_row, png_uint_32
 			unsigned_short_from_2char((unsigned short *)(cimg->buffer
 				+cimg->buffer_bytes_per_pixel
 				*cimg->width*row_num), tmp, cimg->width*channels);
-			mem_free(tmp);
+			free(tmp);
 		}
 	}else
 #endif /* #ifdef REPACK_16 */
