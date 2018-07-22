@@ -23,7 +23,7 @@ static int search_list_and_wildcards(const_char_ptr const *list, int len, unsign
 	x = stracpy(cast_uchar "*.");
 	add_to_strn(&x, name);
 	sl = search_list(list, len, x);
-	mem_free(x);
+	free(x);
 	if (sl) return 1;
 
 	dot = cast_uchar strchr(cast_const_char name, '.');
@@ -31,7 +31,7 @@ static int search_list_and_wildcards(const_char_ptr const *list, int len, unsign
 	x = stracpy(cast_uchar "*");
 	add_to_strn(&x, dot);
 	sl = search_list(list, len, x);
-	mem_free(x);
+	free(x);
 	return sl;
 }
 

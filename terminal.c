@@ -51,7 +51,7 @@ unsigned char *get_cwd(void)
 		buf = xmalloc(bufsize);
 		ENULLLOOP(gcr, cast_uchar getcwd(cast_char buf, bufsize));
 		if (gcr) return buf;
-		mem_free(buf);
+		free(buf);
 		if (errno != ERANGE) break;
 		if ((unsigned)bufsize > MAXINT - 128) overalloc();
 		bufsize += 128;
@@ -365,7 +365,7 @@ void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *
 			fn(term, data);
 		}
 		drv->set_clip_area(term->dev, &r1);
-		mem_free(s);
+		free(s);
 #endif
 	}
 }
@@ -436,7 +436,7 @@ void delete_window(struct window *win)
 	nxw = win->list_entry.next;
 #endif
 	del_from_list(win);
-	if (win->data) mem_free(win->data);
+	free(win->data);
 	if (!F) redraw_terminal(term);
 #ifdef G
 	else {
@@ -446,7 +446,7 @@ void delete_window(struct window *win)
 		register_bottom_half(redraw_windows, term);
 	}
 #endif
-	mem_free(win);
+	free(win);
 }
 
 void delete_window_ev(struct window *win, struct links_event *ev)
@@ -654,7 +654,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	term->count = terminal_count++;
 	term->fdin = -1;
 	if (!(term->dev = dev = drv->init_device())) {
-		mem_free(term);
+		free(term);
 		check_if_no_terminal();
 		return NULL;
 	}
@@ -695,7 +695,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 		memcpy(ptr + 1, info, len);
 		ev.b = (long)ptr;
 		root_window(win, &ev, 0);
-		mem_free(ptr);
+		free(ptr);
 	}
 	return term;
 }
@@ -1053,7 +1053,7 @@ static void redraw_screen(struct terminal *term)
 	if (l && term->master) want_draw();
 	hard_write(term->fdout, a, l);
 	if (l && term->master) done_draw();
-	mem_free(a);
+	free(a);
 	term->dirty = 0;
 }
 
@@ -1093,11 +1093,11 @@ void destroy_terminal(void *term_)
 	}
 	del_from_list(term);
 	close_socket(&term->blocked);
-	if (term->title) mem_free(term->title);
+	free(term->title);
 	if (!F) {
-		mem_free(term->screen);
-		mem_free(term->last_screen);
-		mem_free(term->input_queue);
+		free(term->screen);
+		free(term->last_screen);
+		free(term->input_queue);
 		set_handlers(term->fdin, NULL, NULL, NULL);
 		EINTRLOOP(rs, close(term->fdin));
 		if (!term->master) {
@@ -1119,7 +1119,7 @@ void destroy_terminal(void *term_)
 		hard_write(term->handle_to_close, cast_uchar "x", 1);
 		close_socket(&term->handle_to_close);
 	}
-	mem_free(term);
+	free(term);
 	check_if_no_terminal();
 }
 
@@ -1346,7 +1346,7 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 				if (!F) block_itrm(term->fdin);
 #ifdef G
 				else if (drv->block(term->dev)) {
-					mem_free(param);
+					free(param);
 					if (*delet)
 						EINTRLOOP(rs, unlink(cast_const_char delet));
 					return;
@@ -1361,10 +1361,10 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 					else drv->unblock(term->dev);
 #endif
 				}
-				mem_free(param);
+				free(param);
 				return;
 			}
-			mem_free(param);
+			free(param);
 			if (fg == 1
 #ifdef G
 				&& !have_extra_exec()
@@ -1389,7 +1389,7 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 		add_chr_to_str(&data, &datal, 0);
 		add_to_str(&data, &datal, delet);
 		hard_write(term->fdout, data, datal + 1);
-		mem_free(data);
+		free(data);
 	}
 }
 
@@ -1402,7 +1402,7 @@ void do_terminal_function(struct terminal *term, unsigned char code, unsigned ch
 	add_chr_to_str(&x_data, &x_datal, 0);
 	add_to_str(&x_data, &x_datal, data);
 	exec_on_terminal(term, NULL, x_data, 0);
-	mem_free(x_data);
+	free(x_data);
 }
 
 void set_terminal_title(struct terminal *term, unsigned char *title)
@@ -1414,11 +1414,11 @@ void set_terminal_title(struct terminal *term, unsigned char *title)
 		*b = 0;
 	}
 	if (term->title && !strcmp(cast_const_char title, cast_const_char term->title)) goto ret;
-	if (term->title) mem_free(term->title);
+	free(term->title);
 	term->title = stracpy(title);
 #ifdef SET_WINDOW_TITLE_UTF_8
 	{
-		mem_free(title);
+		free(title);
 		title = convert(term_charset(term), utf8_table, term->title, NULL);
 	}
 #endif
@@ -1427,7 +1427,7 @@ void set_terminal_title(struct terminal *term, unsigned char *title)
 	else if (drv->set_title) drv->set_title(term->dev, title);
 #endif
 	ret:
-	mem_free(title);
+	free(title);
 }
 
 struct terminal *find_terminal(tcount count)

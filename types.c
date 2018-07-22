@@ -78,11 +78,12 @@ static void assoc_delete_item(struct list *data)
 {
 	struct assoc *del = get_struct(data, struct assoc, head);
 
-	if (del->head.list_entry.next) del_from_list(&del->head);
-	mem_free(del->label);
-	mem_free(del->ct);
-	mem_free(del->prog);
-	mem_free(del);
+	if (del->head.list_entry.next)
+		del_from_list(&del->head);
+	free(del->label);
+	free(del->ct);
+	free(del->prog);
+	free(del);
 }
 
 static void assoc_copy_item(struct list *in, struct list *out)
@@ -98,9 +99,9 @@ static void assoc_copy_item(struct list *in, struct list *out)
 	item_out->accept_ftp = item_in->accept_ftp;
 	item_out->system = item_in->system;
 
-	mem_free(item_out->label);
-	mem_free(item_out->ct);
-	mem_free(item_out->prog);
+	free(item_out->label);
+	free(item_out->ct);
+	free(item_out->prog);
 
 	item_out->label = stracpy(item_in->label);
 	item_out->ct = stracpy(item_in->ct);
@@ -127,7 +128,7 @@ static unsigned char *assoc_type_item(struct terminal *term, struct list *data, 
 		if (item->prog) add_to_strn(&txt, item->prog);
 	}
 	txt1 = convert(assoc_ld.codepage, term_charset(term), txt, NULL);
-	mem_free(txt);
+	free(txt);
 
 	return txt1;
 }
@@ -225,15 +226,15 @@ static void assoc_edit_done(void *data)
 	prog = ct + MAX_STR_LEN;
 
 	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, label, NULL);
-	mem_free(item->label);
+	free(item->label);
 	item->label = txt;
 
 	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, ct, NULL);
-	mem_free(item->ct);
+	free(item->ct);
 	item->ct = txt;
 
 	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, prog, NULL);
-	mem_free(item->prog);
+	free(item->prog);
 	item->prog = txt;
 
 	s->fn(s->dlg, s->data, &item->head, &assoc_ld);
@@ -246,8 +247,9 @@ static void assoc_edit_abort(struct dialog_data *data)
 	struct dialog *dlg = data->dlg;
 	struct assoc *item = (struct assoc *)dlg->udata;
 
-	mem_free(dlg->udata2);
-	if (item) assoc_delete_item(&item->head);
+	free(dlg->udata2);
+	if (item)
+		assoc_delete_item(&item->head);
 }
 
 static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_fn)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *ok_arg, unsigned char dlg_title)
@@ -471,10 +473,11 @@ static void ext_delete_item(struct list *data)
 {
 	struct extension *del = get_struct(data, struct extension, head);
 
-	if (del->head.list_entry.next) del_from_list(&del->head);
-	if (del->ext) mem_free(del->ext);
-	if (del->ct) mem_free(del->ct);
-	mem_free(del);
+	if (del->head.list_entry.next)
+		del_from_list(&del->head);
+	free(del->ext);
+	free(del->ct);
+	free(del);
 }
 
 
@@ -483,8 +486,8 @@ static void ext_copy_item(struct list *in, struct list *out)
 	struct extension *item_in = get_struct(in, struct extension, head);
 	struct extension *item_out = get_struct(out, struct extension, head);
 
-	mem_free(item_out->ext);
-	mem_free(item_out->ct);
+	free(item_out->ext);
+	free(item_out->ct);
 
 	item_out->ext = stracpy(item_in->ext);
 	item_out->ct = stracpy(item_in->ct);
@@ -505,7 +508,7 @@ static unsigned char *ext_type_item(struct terminal *term, struct list *data, in
 	add_to_strn(&txt, cast_uchar ": ");
 	add_to_strn(&txt, item->ct);
 	txt1 = convert(assoc_ld.codepage, term_charset(term), txt, NULL);
-	mem_free(txt);
+	free(txt);
 
 	return txt1;
 }
@@ -574,11 +577,11 @@ static void ext_edit_done(void *data)
 	ct = ext + MAX_STR_LEN;
 
 	txt = convert(term_charset(s->dlg->win->term), ext_ld.codepage,ext, NULL);
-	mem_free(item->ext);
+	free(item->ext);
 	item->ext = txt;
 
 	txt = convert(term_charset(s->dlg->win->term), ext_ld.codepage,ct, NULL);
-	mem_free(item->ct);
+	free(item->ct);
 	item->ct=txt;
 
 	s->fn(s->dlg, s->data, &item->head, &ext_ld);
@@ -592,8 +595,9 @@ static void ext_edit_abort(struct dialog_data *data)
 	struct dialog *dlg = data->dlg;
 	struct extension *item = (struct extension *)dlg->udata;
 
-	mem_free(dlg->udata2);
-	if (item) ext_delete_item(&item->head);
+	free(dlg->udata2);
+	if (item)
+		ext_delete_item(&item->head);
 }
 
 
@@ -716,7 +720,7 @@ void update_prog(struct list_head *l, unsigned char *p, int s)
 	struct protocol_program *repl;
 	struct list_head *lrepl;
 	foreach(struct protocol_program, repl, lrepl, *l) if (repl->system == s) {
-		mem_free(repl->prog);
+		free(repl->prog);
 		goto ss;
 	}
 	repl = xmalloc(sizeof(struct protocol_program));
@@ -902,7 +906,7 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 		if (is_in_list(a->ct, exxt, el))
 			return exxt;
 	}
-	mem_free(exxt);
+	free(exxt);
 	return NULL;
 }
 
@@ -914,7 +918,7 @@ static unsigned char *get_content_type_by_header_and_extension(unsigned char *he
 	file = get_filename_from_header(head);
 	if (file) {
 		ct = get_content_type_by_extension(file);
-		mem_free(file);
+		free(file);
 		if (ct) return ct;
 	}
 	return NULL;
@@ -1014,12 +1018,13 @@ unsigned char *get_content_type(unsigned char *head, unsigned char *url)
 				goto no_code_by_extension;
 			ctt = get_content_type_by_header_and_extension(head, url);
 			if (ctt) {
-				mem_free(ct);
+				free(ct);
 				return ctt;
 			}
 		}
 no_code_by_extension:
-		if (!*ct) mem_free(ct);
+		if (!*ct)
+			free(ct);
 		else return ct;
 	}
 	if (!get_http_code(head, &code, NULL) && code >= 300)
@@ -1041,14 +1046,14 @@ unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int
 		if ((s = cast_uchar strchr(cast_const_char ct, ';'))) *s = 0;
 		ce = get_content_encoding_from_content_type(ct);
 		if (ce) {
-			mem_free(ct);
+			free(ct);
 			return stracpy(ce);
 		}
 		if (is_html_type(ct)) {
-			mem_free(ct);
+			free(ct);
 			return NULL;
 		}
-		mem_free(ct);
+		free(ct);
 	}
 	if (!get_http_code(head, &code, NULL) && code >= 300) return NULL;
 	if (!(ext = get_url_data(url))) ext = url;
@@ -1064,11 +1069,11 @@ unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int
 		if (extd) {
 			ce = get_compress_by_extension(extd + 1, cast_uchar strchr(cast_const_char(extd + 1), 0));
 			if (ce) {
-				mem_free(ext);
+				free(ext);
 				return stracpy(ce);
 			}
 		}
-		mem_free(ext);
+		free(ext);
 	}
 	return NULL;
 }
@@ -1133,20 +1138,20 @@ unsigned char *get_filename_from_header(unsigned char *head)
 		x = parse_header_param(ct, cast_uchar "filename*", 1);
 		if (x) extended = 1;
 		else x = parse_header_param(ct, cast_uchar "filename", 1);
-		mem_free(ct);
+		free(ct);
 		if (x) {
 			if (*x) goto ret_x;
-			mem_free(x);
+			free(x);
 		}
 	}
 	if ((ct = parse_http_header(head, cast_uchar "Content-Type", NULL))) {
 		x = parse_header_param(ct, cast_uchar "name*", 0);
 		if (x) extended = 1;
 		else x = parse_header_param(ct, cast_uchar "name", 0);
-		mem_free(ct);
+		free(ct);
 		if (x) {
 			if (*x) goto ret_x;
-			mem_free(x);
+			free(x);
 		}
 	}
 	return NULL;
@@ -1168,20 +1173,20 @@ no_extended:
 	y = init_str();
 	ly = 0;
 	add_conv_str(&y, &ly, x, (int)strlen(cast_const_char x), -2);
-	mem_free(x);
+	free(x);
 	x = y;
 
 	cp_idx = -1;
 	if (codepage) {
 		cp_idx = get_cp_index(codepage);
-		mem_free(codepage);
+		free(codepage);
 	}
 	if (cp_idx < 0) {
 		cp_idx = get_cp_index(cast_uchar "iso-8859-1");
 		if (cp_idx < 0) cp_idx = 0;
 	}
 	y = convert(cp_idx, 0, x, NULL);
-	mem_free(x);
+	free(x);
 	x = y;
 
 	for (y = x; *y; y++) if (dir_sep(*y)
@@ -1210,22 +1215,22 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 	f = init_str();
 	add_conv_str(&f, &ll, s, (int)(e - s), -2);
 	if (!(ct = parse_http_header(head, cast_uchar "Content-Type", NULL))) goto no_ct;
-	mem_free(ct);
+	free(ct);
 	ct = get_content_type(head, url);
 	if (ct) {
 		x = get_extension_by_content_type(ct);
 		if (x) {
 			add_to_strn(&want_ext, cast_uchar ".");
 			add_to_strn(&want_ext, x);
-			mem_free(x);
+			free(x);
 		}
-		mem_free(ct);
+		free(ct);
 	}
 	no_ct:
 	if (!*want_ext) {
 		x = cast_uchar strrchr(cast_const_char f, '.');
 		if (x) {
-			mem_free(want_ext);
+			free(want_ext);
 			want_ext = stracpy(x);
 		}
 	}
@@ -1236,7 +1241,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 			unsigned char *ct1;
 			ct1 = get_content_encoding(head, url, 1);
 			if (ct1) {
-				mem_free(ct1);
+				free(ct1);
 			} else if (x) {
 				unsigned char *w = cast_uchar strrchr(cast_const_char want_ext, '.');
 				if (w && (ww = canonical_compressed_ext(w + 1, NULL)) && !casestrcmp(x, ww))
@@ -1254,7 +1259,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 				}
 			}
 		}
-		mem_free(ct);
+		free(ct);
 	}
 	if (strlen(cast_const_char want_ext) > strlen(cast_const_char f) || casestrcmp(want_ext, f + strlen(cast_const_char f) - strlen(cast_const_char want_ext))) {
 		x = cast_uchar strrchr(cast_const_char f, '.');
@@ -1264,7 +1269,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 		add_to_strn(&f, want_ext);
 		skip_tgz_2:;
 	}
-	mem_free(want_ext);
+	free(want_ext);
 	return f;
 }
 
@@ -1273,7 +1278,7 @@ static void free_prog_list(struct list_head *l)
 	struct list_head *lp;
 	struct protocol_program *p;
 	foreach(struct protocol_program, p, lp, *l)
-		mem_free(p->prog);
+		free(p->prog);
 	free_list(struct protocol_program, *l);
 }
 
@@ -1283,20 +1288,20 @@ void free_types(void)
 	struct list_head *ll;
 	foreach(struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
-		mem_free(a->ct);
-		mem_free(a->prog);
-		mem_free(a->label);
+		free(a->ct);
+		free(a->prog);
+		free(a->label);
 		ll = ll->prev;
 		del_from_list(&a->head);
-		mem_free(a);
+		free(a);
 	}
 	foreach(struct list, l, ll, extensions.list_entry) {
 		struct extension *e = get_struct(l, struct extension, head);
-		mem_free(e->ext);
-		mem_free(e->ct);
+		free(e->ext);
+		free(e->ct);
 		ll = ll->prev;
 		del_from_list(&e->head);
-		mem_free(e);
+		free(e);
 	}
 	free_prog_list(&mailto_prog);
 
