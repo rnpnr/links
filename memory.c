@@ -90,7 +90,7 @@ void free_all_caches(void)
 			add_to_str(&m, &l, c->name);
 		}
 		internal("could not release entries from caches: %s", m);
-		mem_free(m);
+		free(m);
 	}
 	free_list(struct cache_upcall, cache_upcalls);
 }

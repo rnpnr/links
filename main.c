@@ -205,7 +205,7 @@ int attach_terminal(int in, int out, int ctl, void *info, int len)
 	set_nonblock(terminal_pipe[0]);
 	set_nonblock(terminal_pipe[1]);
 	handle_trm(in, out, out, terminal_pipe[1], ctl, info, len);
-	mem_free(info);
+	free(info);
 	if ((term = init_term(terminal_pipe[0], out, win_func))) {
 		handle_basic_signals(term);	/* OK, this is race condition, but it must be so; GPM installs it's own buggy TSTP handler */
 		return terminal_pipe[1];
@@ -221,7 +221,7 @@ int attach_g_terminal(unsigned char *cwd, void *info, int len)
 {
 	struct terminal *term;
 	term = init_gfx_term(win_func, cwd, info, len);
-	mem_free(info);
+	free(info);
 	return term ? 0 : -1;
 }
 
@@ -252,11 +252,11 @@ void gfx_connection(int h)
 			hard_write(h, cast_uchar "x", 1);
 			EINTRLOOP(r, close(h));
 		}
-		mem_free(info);
+		free(info);
 		return;
 	}
 err_close_free:
-	mem_free(info);
+	free(info);
 err_close:
 	EINTRLOOP(r, close(h));
 }
@@ -320,7 +320,7 @@ static void end_dump(struct object_request *r, void *p)
 		dump_to_file(fd->f_data, oh);
 		term_1:
 		reinit_f_data_c(fd);
-		mem_free(fd);
+		free(fd);
 	}
 	if (r->state != O_OK) {
 		unsigned char *m = get_err_msg(r->stat.state);
@@ -391,7 +391,7 @@ static void init(void)
 				unsigned char *r;
 				if ((r = init_graphics(ggr_drv, ggr_mode, ggr_display))) {
 					fprintf(stderr, "%s", r);
-					mem_free(r);
+					free(r);
 					retval = RET_SYNTAX;
 					goto ttt;
 				}
@@ -403,7 +403,7 @@ static void init(void)
 						add_to_strn(&n, cast_uchar "-");
 						add_to_strn(&n, nn);
 					}
-					mem_free(n);
+					free(n);
 				}
 				init_dither(drv->depth);
 			}
@@ -430,7 +430,7 @@ static void init(void)
 				cwd = stracpy(cast_uchar "");
 			if (attach_g_terminal(cwd, info, len) < 0)
 				fatal_exit("Could not open initial session");
-			mem_free(cwd);
+			free(cwd);
 		}
 #endif
 	} else {
@@ -445,10 +445,10 @@ static void init(void)
 		}
 		uu = convert(get_commandline_charset(), utf8_table, u, NULL);
 		if (!(uuu = translate_url(uu, wd = get_cwd()))) uuu = stracpy(uu);
-		mem_free(uu);
+		free(uu);
 		request_object(NULL, uuu, NULL, PRI_MAIN, NC_RELOAD, ALLOW_ALL, end_dump, NULL, &dump_obj);
-		mem_free(uuu);
-		if (wd) mem_free(wd);
+		free(uuu);
+		free(wd);
 	}
 }
 

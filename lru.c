@@ -65,7 +65,7 @@ void lru_destroy_bottom(struct lru *cache)
 		cache->top = NULL;
 
 	row_delete(it);
-	mem_free(it);
+	free(it);
 }
 
 /* Returns a value of "data"

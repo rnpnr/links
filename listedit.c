@@ -1053,7 +1053,7 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 				}
 				x+=draw_bfu_element(term,dlg->x+DIALOG_LB+x,y,color,bgcolor,fgcolor,element,(l->type)&4);
 			}
-			mem_free(xp);
+			free(xp);
 			break;
 		default:
 			internal(
@@ -1087,7 +1087,7 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 		if (dlg->s)exclude_from_set(&(dlg->s),dlg->x+DIALOG_LB,y,dlg->x+DIALOG_LB+w,y+G_BFU_FONT_SIZE);
 	}
 #endif
-	mem_free(txt);
+	free(txt);
 	return text_position;
 }
 
@@ -1220,7 +1220,7 @@ static void scroll_list(struct terminal *term, void *bla)
 
 		if (set)	/* redraw rectangles in the set - we cannot redraw particular rectangles, we are only able to redraw whole window */
 		{
-			mem_free(set);
+			free(set);
 redraw_all:
 			redraw_list(term, bla);
 		}
@@ -1278,7 +1278,7 @@ static void list_search_for_back(void *rd_, unsigned char *str)
 	if (!*str) return;
 	if (!ld->open) return;
 
-	if (ld->search_word) mem_free(ld->search_word);
+	free(ld->search_word);
 	ld->search_word = to_utf8_upcase(str, term_charset(rd->dlg->win->term));
 	ld->search_direction = -1;
 
@@ -1293,7 +1293,7 @@ static void list_search_for(void *rd_, unsigned char *str)
 	if (!*str) return;
 	if (!ld->open) return;
 
-	if (ld->search_word) mem_free(ld->search_word);
+	free(ld->search_word);
 	ld->search_word = to_utf8_upcase(str, term_charset(rd->dlg->win->term));
 	ld->search_direction = 1;
 
@@ -1813,7 +1813,7 @@ static void close_list_window(struct dialog_data *dlg)
 
 	ld->open=0;
 	ld->dlg=NULL;
-	if (ld->search_word) mem_free(ld->search_word);
+	free(ld->search_word);
 	ld->search_word=NULL;
 	if (ld->save) ld->save(d->udata);
 }
