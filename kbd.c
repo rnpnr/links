@@ -335,7 +335,7 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 		queue_event(itrm, ts, (int)strlen(cast_const_char ts));
 		mm = mem_calloc(ll);
 		queue_event(itrm, mm, ll);
-		mem_free(mm);
+		free(mm);
 	}
 	if (!(ts = get_cwd())) ts = stracpy(cast_uchar "");
 	if (strlen(cast_const_char ts) >= MAX_CWD_LEN) queue_event(itrm, ts, MAX_CWD_LEN);
@@ -345,9 +345,9 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 		queue_event(itrm, ts, (int)strlen(cast_const_char ts));
 		mm = mem_calloc(ll);
 		queue_event(itrm, mm, ll);
-		mem_free(mm);
+		free(mm);
 	}
-	mem_free(ts);
+	free(ts);
 	queue_event(itrm, (unsigned char *)&xwin, sizeof(int));
 	def_charset = get_default_charset();
 	queue_event(itrm, (unsigned char *)&def_charset, sizeof(int));
@@ -400,7 +400,8 @@ static void free_trm(struct itrm *itrm)
 {
 	if (!itrm) return;
 	set_window_title(itrm->orig_title);
-	if (itrm->orig_title) mem_free(itrm->orig_title), itrm->orig_title = NULL;
+	free(itrm->orig_title);
+	itrm->orig_title = NULL;
 	unhandle_terminal_resize(itrm->ctl_in);
 	if (itrm->mouse_h) unhandle_mouse(itrm->mouse_h);
 	send_term_sequence(itrm->std_out, itrm->flags);
@@ -411,8 +412,8 @@ static void free_trm(struct itrm *itrm)
 	set_handlers(itrm->sock_out, NULL, NULL, NULL);
 	unregister_bottom_half(itrm_error, itrm);
 	if (itrm->tm != NULL) kill_timer(itrm->tm);
-	mem_free(itrm->ev_queue);
-	mem_free(itrm);
+	free(itrm->ev_queue);
+	free(itrm);
 	if (itrm == ditrm) ditrm = NULL;
 }
 
@@ -453,8 +454,8 @@ do {								\
 	unsigned char cc;					\
 	if (p < c) cc = buf[p++];				\
 	else if ((hard_read(itrm->sock_in, &cc, 1)) <= 0) {	\
-		mem_free(path);					\
-		mem_free(delet);				\
+		free(path);					\
+		free(delet);					\
 		goto fr;					\
 	}							\
 	xx = cc;						\
@@ -528,19 +529,18 @@ static void in_sock(void *itrm_)
 		if (fg == 1) block_itrm(0);
 		if ((blockh = start_thread(exec_thread, param, (int)strlen(cast_const_char path) + (int)strlen(cast_const_char delet) + 3, *delet != 0)) == -1) {
 			if (fg == 1) unblock_itrm(0);
-			mem_free(param);
+			free(param);
 			goto to_je_ale_hnus;
 		}
-		mem_free(param);
-		if (fg == 1) {
+		free(param);
+		if (fg == 1)
 			set_handlers(blockh, unblock_itrm_x, NULL, (void *)(my_intptr_t)blockh);
-		} else {
+		else
 			set_handlers(blockh, close_handle, NULL, (void *)(my_intptr_t)blockh);
-		}
 	}
 	to_je_ale_hnus:
-	mem_free(path);
-	mem_free(delet);
+	free(path);
+	free(delet);
 	memmove(buf, buf + p, c - p);
 	c -= p;
 	goto qwerty;

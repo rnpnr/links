@@ -38,9 +38,9 @@ void shutdown_trans(void)
 			unsigned char *txt = translation_array[j][k];
 			if (txt &&
 			    txt != cast_uchar translation_english[k].name)
-				mem_free(txt);
+				free(txt);
 		}
-		mem_free(translation_array[j]);
+		free(translation_array[j]);
 	}
 }
 
@@ -62,17 +62,17 @@ search_again:
 	p = stracpy(p);
 	p[strcspn(cast_const_char p, ",;")] = 0;
 	if (!casestrcmp(lang, p)) {
-		mem_free(p);
-		mem_free(lang);
+		free(p);
+		free(lang);
 		return 0;
 	}
-	mem_free(p);
+	free(p);
 
 	if ((p = cast_uchar strchr(cast_const_char lang, '-'))) {
 		*p = 0;
 		goto search_again;
 	}
-	mem_free(lang);
+	free(lang);
 	return -1;
 }
 
@@ -140,7 +140,7 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 			l_opt.cp = charset;
 			trn = convert(current_lang_charset, charset, tt, &l_opt);
 			if (!strcmp(cast_const_char trn, cast_const_char tt)) {
-				mem_free(trn);
+				free(trn);
 				trn = tt;
 			}
 		}

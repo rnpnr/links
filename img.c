@@ -29,7 +29,6 @@ static int is_image_size_sane(int x, int y)
 	return a < MAXINT;
 }
 
-/* mem_free(cimg->decoder) */
 static void destroy_decoder (struct cached_image *cimg)
 {
 	if (cimg->decoder){
@@ -46,30 +45,30 @@ static void destroy_decoder (struct cached_image *cimg)
 			gif_destroy_decoder(cimg);
 			break;
 		}
-		mem_free(cimg->decoder);
+		free(cimg->decoder);
 	}
 }
 
 static void mem_free_buffer(struct cached_image *cimg)
 {
-	mem_free(cimg->buffer);
+	free(cimg->buffer);
 }
 
 static void img_destruct_image(struct g_object *object)
 {
 	struct g_object_image *goi = get_struct(object, struct g_object_image, goti.go);
 
-	if (goi->orig_src) mem_free(goi->orig_src);
-	if (goi->alt) mem_free(goi->alt);
-	if (goi->name) mem_free(goi->name);
-	if (goi->src) mem_free(goi->src);
+	free(goi->orig_src);
+	free(goi->alt);
+	free(goi->name);
+	free(goi->src);
 	release_image_map(goi->goti.map);
 	if (goi->list_entry.next) del_from_list(goi);
 	if (goi->goti.go.xw && goi->goti.go.yw) {
 		 /* At least one dimension is zero */
 		goi->cimg->refcount--;
 	}
-	mem_free(goi);
+	free(goi);
 }
 
 /* Frees all data allocated by cached_image including cached image itself */
@@ -86,15 +85,14 @@ void img_destruct_cached_image(struct cached_image *cimg)
 
 		case 12:
 		case 14:
-		if (cimg->gamma_table) mem_free(cimg->gamma_table);
+		free(cimg->gamma_table);
 		if (cimg->bmp_used){
 			drv->unregister_bitmap(&(cimg->bmp));
 		}
-		if (cimg->strip_optimized){
-			if (cimg->dregs) mem_free(cimg->dregs);
-		}else{
+		if (cimg->strip_optimized) {
+			free(cimg->dregs);
+		} else
 			mem_free_buffer(cimg);
-		}
 		/*-fallthrough*/
 		case 8:
 		case 10:
@@ -112,8 +110,8 @@ void img_destruct_cached_image(struct cached_image *cimg)
 		internal("Invalid state in struct cached_image");
 #endif /* #ifdef DEBUG */
 	}
-	mem_free(cimg->url);
-	mem_free(cimg);
+	free(cimg->url);
+	free(cimg);
 }
 
 /* You throw in a vertical dimension of image and it returns
@@ -317,7 +315,7 @@ int header_dimensions_known(struct cached_image *cimg)
 				(*round_fn)(buf_16,&tmpbmp);
 				tmpbmp.data=(unsigned char *)tmpbmp.data+cimg->bmp.skip;
 			}
-		mem_free(buf_16);
+		free(buf_16);
 		skip_img:
 		drv->register_bitmap(&(cimg->bmp));
 		if(cimg->dregs) memset(cimg->dregs,0,cimg->width*sizeof(*cimg->dregs)*3);
@@ -549,7 +547,7 @@ not_enough:
 	 */
 	goto not_enough;
 end:
-	mem_free(tmp);
+	free(tmp);
 	if (!use_strip) drv->register_bitmap(&(cimg->bmp));
 }
 
@@ -630,8 +628,8 @@ buffer_to_bitmap");
 		}
 		buffer_to_bitmap_incremental(cimg, cimg->buffer, cimg->height,
 			0, dregs, 0);
-		if (dregs) mem_free(dregs);
-	}else{
+		free(dregs);
+	} else {
 		if (tmp) {
 			if (dither_images)
 				dither(tmp,&(cimg->bmp));
@@ -663,14 +661,13 @@ void img_end(struct cached_image *cimg)
 	switch(cimg->state){
 		case 12:
 		case 14:
-		if (cimg->strip_optimized){
-		       if (cimg->dregs)	mem_free(cimg->dregs);
-		}
-		else{
+		if (cimg->strip_optimized)
+		       free(cimg->dregs);
+		else {
 			buffer_to_bitmap(cimg);
 			mem_free_buffer(cimg);
 		}
-		if (cimg->gamma_table) mem_free(cimg->gamma_table);
+		free(cimg->gamma_table);
 		/*-fallthrough*/
 		case 8:
 		case 10:
@@ -712,14 +709,13 @@ static void r3l0ad(struct cached_image *cimg, struct g_object_image *goi)
 		break;
 
 		case 12:
-		if (cimg->gamma_table) mem_free(cimg->gamma_table);
+		free(cimg->gamma_table);
 		destroy_decoder(cimg);
-		if (cimg->strip_optimized){
-			if (cimg->dregs) mem_free(cimg->dregs);
-		}else{
+		if (cimg->strip_optimized)
+			free(cimg->dregs);
+		else
 			mem_free_buffer(cimg);
-		}
-		if (cimg->bmp_used){
+		if (cimg->bmp_used) {
 			case 13:
 			drv->unregister_bitmap(&cimg->bmp);
 		}
@@ -728,14 +724,13 @@ static void r3l0ad(struct cached_image *cimg, struct g_object_image *goi)
 		break;
 
 		case 14:
-		if (cimg->gamma_table) mem_free(cimg->gamma_table);
+		free(cimg->gamma_table);
 		destroy_decoder(cimg);
-		if (cimg->strip_optimized){
-			if (cimg->dregs) mem_free(cimg->dregs);
-		}else{
+		if (cimg->strip_optimized)
+			free(cimg->dregs);
+		else
 			mem_free_buffer(cimg);
-		}
-		if (cimg->bmp_used){
+		if (cimg->bmp_used) {
 			case 15:
 			drv->unregister_bitmap(&cimg->bmp);
 		}
@@ -847,7 +842,7 @@ static int img_process_download(struct g_object_image *goi, struct f_data_c *fda
 			goi->af->rq->url);
 		if (!ctype) ctype = stracpy(cast_uchar "application/octet-stream");
 		type(cimg,ctype,data);
-		mem_free(ctype);
+		free(ctype);
 	}
 
 	/* Now, if we are in state where decoder is running (8, 10, 12, 14), we may feed
@@ -1192,7 +1187,7 @@ struct g_object_image *insert_image(struct g_part *p, struct image_description *
 	}
 	if (image->goti.go.xw >= 0 && image->goti.go.yw >= 0) {
 		if (!is_image_size_sane(image->goti.go.xw, image->goti.go.yw)) {
-			mem_free(image);
+			free(image);
 			return NULL;
 		}
 	}

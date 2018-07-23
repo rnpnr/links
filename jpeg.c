@@ -89,8 +89,8 @@ void jpeg_start(struct cached_image *cimg)
 	global_jerr->pub.output_message=my_output_message;
 	if (setjmp(global_jerr->setjmp_buffer)){
 g19_2000:
-		mem_free(global_cinfo);
-		mem_free(global_jerr);
+		free(global_cinfo);
+		free(global_jerr);
 		img_end(cimg);
 		return;
 	}
@@ -396,9 +396,9 @@ void jpeg_destroy_decoder(struct cached_image *cimg)
 {
 	struct jpg_decoder *deco = (struct jpg_decoder *)cimg->decoder;
 	jpeg_destroy_decompress(deco->cinfo);
-	mem_free(deco->cinfo);
-	mem_free(deco->jerr);
-	if (deco->jdata) mem_free(deco->jdata);
+	free(deco->cinfo);
+	free(deco->jerr);
+	free(deco->jdata);
 }
 
 void add_jpeg_version(unsigned char **s, int *l)
