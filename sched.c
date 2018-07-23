@@ -81,10 +81,10 @@ static struct h_conn *is_host_on_list(struct connection *c)
 	struct list_head *lh;
 	if (!(ho = get_host_name(c->url))) return NULL;
 	foreach(struct h_conn, h, lh, h_conns) if (!strcmp(cast_const_char h->host, cast_const_char ho)) {
-		mem_free(ho);
+		free(ho);
 		return h;
 	}
-	mem_free(ho);
+	free(ho);
 	return NULL;
 }
 
@@ -163,10 +163,10 @@ static struct k_conn *is_host_on_keepalive_list(struct connection *c)
 	if (!(ho = get_keepalive_id(c->url))) return NULL;
 	foreach(struct k_conn, h, lh, keepalive_connections)
 		if (h->protocol == ph && h->port == po && !strcmp(cast_const_char h->host, cast_const_char ho)) {
-			mem_free(ho);
+			free(ho);
 			return h;
 		}
-	mem_free(ho);
+	free(ho);
 	return NULL;
 }
 
@@ -182,8 +182,8 @@ int get_keepalive_socket(struct connection *c, int *protocol_data)
 	c->ssl = k->ssl;
 	memcpy(&c->last_lookup_state, &k->last_lookup_state, sizeof(struct lookup_state));
 	del_from_list(k);
-	mem_free(k->host);
-	mem_free(k);
+	free(k->host);
+	free(k);
 	c->sock1 = cc;
 	if (max_tries == 1) c->tries = -1;
 	return 0;
@@ -213,18 +213,12 @@ static void free_connection_data(struct connection *c)
 	}
 	c->running = 0;
 	if (c->dnsquery) kill_dns_request(&c->dnsquery);
-	if (c->buffer) {
-		mem_free(c->buffer);
-		c->buffer = NULL;
-	}
-	if (c->newconn) {
-		mem_free(c->newconn);
-		c->newconn = NULL;
-	}
-	if (c->info) {
-		mem_free(c->info);
-		c->info = NULL;
-	}
+	free(c->buffer);
+	free(c->newconn);
+	free(c->info);
+	c->buffer = NULL;
+	c->newconn = NULL;
+	c->info = NULL;
 	clear_connection_timeout(c);
 	if (--active_connections < 0) {
 		internal("active connections underflow");
@@ -234,8 +228,8 @@ static void free_connection_data(struct connection *c)
 		if ((h = is_host_on_list(c))) {
 			if (!--h->conn) {
 				del_from_list(h);
-				mem_free(h->host);
-				mem_free(h);
+				free(h->host);
+				free(h);
 			}
 		} else internal("suspending connection that is not on the list (state %d)", c->state);
 	}
@@ -289,13 +283,12 @@ static void del_connection(struct connection *c)
 	if (c->detached) {
 		if (ce && !ce->url[0] && !is_entry_used(ce) && !ce->refcount)
 			delete_cache_entry(ce);
-	} else {
+	} else
 		if (ce)
 			trim_cache_entry(ce);
-	}
-	mem_free(c->url);
-	if (c->prev_url) mem_free(c->prev_url);
-	mem_free(c);
+	free(c->url);
+	free(c->prev_url);
+	free(c);
 }
 
 void add_keepalive_socket(struct connection *c, uttime timeout, int protocol_data)
@@ -313,7 +306,7 @@ void add_keepalive_socket(struct connection *c, uttime timeout, int protocol_dat
 	    (k->port = get_port(c->url)) == -1 ||
 	    !(k->protocol = get_protocol_handle(c->url)) ||
 	    !(k->host = get_keepalive_id(c->url))) {
-		mem_free(k);
+		free(k);
 		del_connection(c);
 		goto clos;
 	}
@@ -341,8 +334,8 @@ static void del_keepalive_socket(struct k_conn *kc)
 	del_from_list(kc);
 	freeSSL(kc->ssl);
 	EINTRLOOP(rs, close(kc->conn));
-	mem_free(kc->host);
-	mem_free(kc);
+	free(kc->host);
+	free(kc);
 }
 
 static struct timer *keepalive_timeout = NULL;
@@ -431,10 +424,10 @@ static int try_to_suspend_connection(struct connection *c, unsigned char *ho)
 			unsigned char *h;
 			if (!(h = get_host_name(d->url))) continue;
 			if (strcmp(cast_const_char h, cast_const_char ho)) {
-				mem_free(h);
+				free(h);
 				continue;
 			}
-			mem_free(h);
+			free(h);
 		}
 		suspend_connection(d);
 		return 0;
@@ -456,7 +449,7 @@ static int is_noproxy_url(unsigned char *url)
 				goto no_match;
 			if (casecmp(np, host + (host_l - l), l))
 				goto no_match;
-			mem_free(host);
+			free(host);
 			return 1;
 no_match:
 			if (!np[l])
@@ -464,7 +457,7 @@ no_match:
 			np += l + 1;
 		}
 	}
-	mem_free(host);
+	free(host);
 	return 0;
 }
 
@@ -503,7 +496,7 @@ static void run_connection(struct connection *c)
 	if (!(hc = is_host_on_list(c))) {
 		hc = xmalloc(sizeof(struct h_conn));
 		if (!(hc->host = get_host_name(c->url))) {
-			mem_free(hc);
+			free(hc);
 			goto s_bad_url;
 		}
 		hc->conn = 0;
@@ -522,21 +515,21 @@ static int is_connection_seekable(struct connection *c)
 	    !casestrcmp(protocol, cast_uchar "https") ||
 	    !casestrcmp(protocol, cast_uchar "proxy")) {
 		unsigned char *d;
-		mem_free(protocol);
+		free(protocol);
 		if (!c->cache || !c->cache->head)
 			return 1;
 		d = parse_http_header(c->cache->head, cast_uchar "Accept-Ranges", NULL);
 		if (d) {
-			mem_free(d);
+			free(d);
 			return 1;
 		}
 		return 0;
 	}
 	if (!casestrcmp(protocol, cast_uchar "ftp")) {
-		mem_free(protocol);
+		free(protocol);
 		return 1;
 	}
-	mem_free(protocol);
+	free(protocol);
 	return 0;
 }
 
@@ -791,7 +784,7 @@ void load_url(unsigned char *url, unsigned char *prev_url, struct status *stat, 
 			unsigned char *enc;
 			enc = parse_http_header(e->head, cast_uchar "Content-Encoding", NULL);
 			if (enc) {
-				mem_free(enc);
+				free(enc);
 				e->refcount--;
 				must_detach = 1;
 				goto skip_cache;
@@ -824,12 +817,12 @@ void load_url(unsigned char *url, unsigned char *prev_url, struct status *stat, 
 			}
 			enc = parse_http_header(c->cache->head, cast_uchar "Content-Encoding", NULL);
 			if (enc) {
-				mem_free(enc);
+				free(enc);
 				must_detach = 1;
 				break;
 			}
 		}
-		mem_free(u);
+		free(u);
 		if (getpri(c) > pri) {
 			del_from_list(c);
 			c->pri[pri]++;
@@ -885,9 +878,9 @@ void load_url(unsigned char *url, unsigned char *prev_url, struct status *stat, 
 	c->timer = NULL;
 	if (position || must_detach) {
 		if (new_cache_entry(cast_uchar "", &c->cache)) {
-			mem_free(c->url);
-			if (c->prev_url) mem_free(c->prev_url);
-			mem_free(c);
+			free(c->url);
+			free(c->prev_url);
+			free(c);
 			if (stat) {
 				stat->state = S_OUT_OF_MEM;
 				if (stat->end) stat->end(stat, stat->data);
@@ -1100,7 +1093,7 @@ void del_blacklist_entry(unsigned char *host, int flags)
 		b->flags &= ~flags;
 		if (!b->flags) {
 			del_from_list(b);
-			mem_free(b);
+			free(b);
 		}
 		return;
 	}

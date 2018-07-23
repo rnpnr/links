@@ -152,7 +152,8 @@ static unsigned char *clipboard = NULL;
 
 void os_free_clipboard(void)
 {
-	if (clipboard) mem_free(clipboard), clipboard = NULL;
+	free(clipboard);
+	clipboard = NULL;
 }
 
 /* Terminal size */
@@ -503,7 +504,7 @@ void set_clipboard_text(struct terminal *term, unsigned char *data)
 		return;
 	}
 #endif
-	if (clipboard) mem_free(clipboard);
+	free(clipboard);
 	clipboard = convert(term_charset(term), utf8_table, data, NULL);
 }
 
@@ -748,7 +749,7 @@ static void exec_new_links(struct terminal *term, unsigned char *xterm, unsigned
 	add_to_strn(&str, cast_uchar " ");
 	add_to_strn(&str, param);
 	exec_on_terminal(term, str, cast_uchar "", 2);
-	mem_free(str);
+	free(str);
 }
 
 static int open_in_new_twterm(struct terminal *term, unsigned char *exe, unsigned char *param)

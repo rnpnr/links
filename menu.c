@@ -139,10 +139,9 @@ static void menu_version(void *term_)
 	if (links_home) {
 		unsigned char *native_home = os_conv_to_external_path(links_home, NULL);
 		add_to_str(&s, &l, native_home);
-		mem_free(native_home);
-	} else {
+		free(native_home);
+	} else
 		add_to_str(&s, &l, get_text_translation(TEXT_(T_NONE), term));
-	}
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	s[l - 1] = 0;
@@ -280,7 +279,7 @@ static void refresh(void *r_)
 static void end_refresh(struct refresh *r)
 {
 	if (r->timer != NULL) kill_timer(r->timer);
-	mem_free(r);
+	free(r);
 }
 
 static void refresh_abort(struct dialog_data *dlg)
@@ -421,8 +420,8 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	add_to_str(&a, &l, cast_uchar ".");
 
 	if (r2 && !strcmp(cast_const_char a, cast_const_char *(unsigned char **)((struct dialog_data *)r2->win->data)->dlg->udata)) {
-		mem_free(a);
-		mem_free(r);
+		free(a);
+		free(r);
 		r2->timer = install_timer(RESOURCE_INFO_REFRESH, refresh, r2);
 		return 1;
 	}
@@ -1335,8 +1334,8 @@ static void display_proxy(struct terminal *term, unsigned char *result, unsigned
 		safe_strncpy(result, res + 8, MAX_STR_LEN);
 	}
 
-	mem_free(url);
-	mem_free(res);
+	free(url);
+	free(res);
 }
 
 static void display_noproxy_list(struct terminal *term, unsigned char *result, unsigned char *noproxy_list)
@@ -1345,10 +1344,9 @@ static void display_noproxy_list(struct terminal *term, unsigned char *result, u
 	res = display_host_list(term, noproxy_list);
 	if (!res) {
 		result[0] = 0;
-	} else {
+	} else
 		safe_strncpy(result, res, MAX_STR_LEN);
-	}
-	mem_free(res);
+	free(res);
 }
 
 int save_proxy(int charset, unsigned char *result, unsigned char *proxy)
@@ -1368,17 +1366,17 @@ int save_proxy(int charset, unsigned char *result, unsigned char *proxy)
 	add_to_strn(&url, proxy);
 	add_to_strn(&url, cast_uchar "/");
 
-	mem_free(proxy);
+	free(proxy);
 
 	if (parse_url(url, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)) {
-		mem_free(url);
+		free(url);
 		result[0] = 0;
 		return -1;
 	}
 
 	res = idn_encode_url(url, 0);
 
-	mem_free(url);
+	free(url);
 
 	if (!res) {
 		result[0] = 0;
@@ -1394,7 +1392,7 @@ int save_proxy(int charset, unsigned char *result, unsigned char *proxy)
 		retval = strlen(cast_const_char (res + 8)) >= MAX_STR_LEN ? -1 : 0;
 	}
 
-	mem_free(res);
+	free(res);
 
 	return retval;
 }
@@ -1405,7 +1403,7 @@ int save_noproxy_list(int charset, unsigned char *result, unsigned char *noproxy
 
 	noproxy_list = convert(charset, utf8_table, noproxy_list, NULL);
 	res = idn_encode_host(noproxy_list, (int)strlen(cast_const_char noproxy_list), cast_uchar ".,", 0);
-	mem_free(noproxy_list);
+	free(noproxy_list);
 	if (!res) {
 		result[0] = 0;
 		return -1;
@@ -1413,7 +1411,7 @@ int save_noproxy_list(int charset, unsigned char *result, unsigned char *noproxy
 		safe_strncpy(result, res, MAX_STR_LEN);
 		retval = strlen(cast_const_char res) >= MAX_STR_LEN ? -1 : 0;
 	}
-	mem_free(res);
+	free(res);
 	return retval;
 }
 
@@ -1421,11 +1419,11 @@ static int check_proxy_noproxy(struct dialog_data *dlg, struct dialog_item_data 
 {
 	unsigned char *result = xmalloc(MAX_STR_LEN);
 	if (save(term_charset(dlg->win->term), result, di->cdata)) {
-		mem_free(result);
+		free(result);
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_STRING), AL_CENTER, TEXT_(T_BAD_PROXY_SYNTAX), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
-	mem_free(result);
+	free(result);
 	return 0;
 }
 
@@ -3331,15 +3329,18 @@ static void does_file_exist(void *d_, unsigned char *file)
 	set_cwd(ses->term->cwd);
 	f = translate_download_file(file);
 	EINTRLOOP(r, stat(cast_const_char f, &st));
-	mem_free(f);
-	if (wd) set_cwd(wd), mem_free(wd);
+	free(f);
+	if (wd) {
+		set_cwd(wd);
+		free(wd);
+	}
 	if (r) {
 		does_file_exist_ok(h, DOWNLOAD_DEFAULT);
 free_h_ret:
-		if (h->head) mem_free(h->head);
-		mem_free(h->file);
-		mem_free(h->url);
-		mem_free(h);
+		free(h->head);
+		free(h->file);
+		free(h->url);
+		free(h);
 		return;
 	}
 
@@ -3415,14 +3416,14 @@ void query_file(struct session *ses, unsigned char *url, unsigned char *head, vo
 
 	fc = get_filename_from_url(url, head, 0);
 	file = convert(utf8_table, 0, fc, NULL);
-	mem_free(fc);
+	free(fc);
 	check_filename(&file);
 
 	def = init_str();
 	add_to_str(&def, &dfl, download_dir);
 	if (*def && !dir_sep(def[strlen(cast_const_char def) - 1])) add_chr_to_str(&def, &dfl, '/');
 	add_to_str(&def, &dfl, file);
-	mem_free(file);
+	free(file);
 
 	h->fn = fn;
 	h->cancel = cancel;
@@ -3433,7 +3434,7 @@ void query_file(struct session *ses, unsigned char *url, unsigned char *head, vo
 	h->head = stracpy(head);
 
 	input_field(ses->term, getml(h, h->url, h->head, NULL), TEXT_(T_DOWNLOAD), TEXT_(T_SAVE_TO_FILE), h, &file_history, MAX_INPUT_URL_LEN, def, 0, 0, NULL, 2, TEXT_(T_OK), does_file_exist, TEXT_(T_CANCEL), query_file_cancel);
-	mem_free(def);
+	free(def);
 }
 
 static struct history search_history = { 0, { &search_history.items, &search_history.items } };

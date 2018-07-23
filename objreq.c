@@ -105,8 +105,8 @@ static int auth_ok(struct dialog_data *dlg, struct dialog_item_data *item)
 		uid = convert(term_charset(dlg->win->term), net_cp, a->uid, NULL);
 		passwd = convert(term_charset(dlg->win->term), net_cp, a->passwd, NULL);
 		add_auth(rq->url, a->realm, uid, passwd, a->proxy);
-		mem_free(uid);
-		mem_free(passwd);
+		free(uid);
+		free(passwd);
 		rq->hold = 0;
 		change_connection(&rq->stat, NULL, PRI_CANCEL);
 		load_url(rq->url, rq->prev_url, &rq->stat, rq->pri, NC_RELOAD, 0, 0, 0);
@@ -135,11 +135,11 @@ static int auth_window(struct object_request *rq, unsigned char *realm)
 		unsigned char *h = get_host_name(rq->url);
 		if (!h) return -1;
 		host = display_host(term, h);
-		mem_free(h);
+		free(h);
 		if ((port = get_port_str(rq->url))) {
 			add_to_strn(&host, cast_uchar ":");
 			add_to_strn(&host, port);
-			mem_free(port);
+			free(port);
 		}
 	}
 	urealm = convert(term_charset(term), net_cp, realm, NULL);
@@ -153,8 +153,8 @@ static int auth_window(struct object_request *rq, unsigned char *realm)
 		strcat(cast_char a->msg, cast_const_char get_text_translation(TEXT_(T_AT), term));
 		strcat(cast_char a->msg, cast_const_char host);
 	}
-	mem_free(host);
-	mem_free(urealm);
+	free(host);
+	free(urealm);
 	a->proxy = rq->ce_internal->http_code == 407;
 	a->realm = stracpy(realm);
 	a->count = rq->count;
@@ -214,7 +214,7 @@ static void cert_forall(struct cert_dialog *cs, int yes)
 	foreach(struct object_request, rq, lrq, requests) if (rq->term == cs->term && rq->hold == HOLD_CERT && rq->stat.state == cs->state) {
 		unsigned char *host = get_host_name(rq->url);
 		if (!strcmp(cast_const_char host, cast_const_char cs->host)) cert_action(rq, yes);
-		mem_free(host);
+		free(host);
 	}
 }
 
@@ -292,7 +292,7 @@ void request_object(struct terminal *term, unsigned char *url, unsigned char *pr
 	rq->data = data;
 	rq->timer = NULL;
 	rq->last_update = get_time() - STAT_UPDATE_MAX;
-	if (rq->prev_url) mem_free(rq->prev_url);
+	free(rq->prev_url);
 	rq->prev_url = stracpy(prev_url);
 	if (rqp) *rqp = rq;
 	rq->count = obj_req_count++;
@@ -336,14 +336,14 @@ static void objreq_end(struct status *stat, void *data)
 				change_connection(stat, NULL, PRI_CANCEL);
 				u = join_urls(rq->url, stat->ce->redirect);
 				if ((pos = extract_position(u))) {
-					if (rq->goto_position) mem_free(rq->goto_position);
+					free(rq->goto_position);
 					rq->goto_position = pos;
 				}
 				if (!http_options.bug_302_redirect && !stat->ce->redirect_get && (p = cast_uchar strchr(cast_const_char u, POST_CHAR))) add_to_strn(&u, p);
 				cache = rq->cache;
 				if (cache < NC_RELOAD && (!strcmp(cast_const_char u, cast_const_char rq->url) || !strcmp(cast_const_char u, cast_const_char rq->orig_url) || rq->redirect_cnt >= MAX_CACHED_REDIRECTS)) cache = NC_RELOAD;
 				allow_flags = get_allow_flags(rq->url);
-				mem_free(rq->url);
+				free(rq->url);
 				rq->url = u;
 				load_url(u, rq->prev_url, &rq->stat, rq->pri, cache, 0, allow_flags, 0);
 				return;
@@ -357,26 +357,26 @@ static void objreq_end(struct status *stat, void *data)
 			unsigned char *user;
 			if (!realm) goto xx;
 			if (stat->ce->http_code == 401 && !find_auth(rq->url, realm)) {
-				mem_free(realm);
+				free(realm);
 				if (rq->redirect_cnt++ >= MAX_REDIRECTS) goto maxrd;
 				change_connection(stat, NULL, PRI_CANCEL);
 				load_url(rq->url, rq->prev_url, &rq->stat, rq->pri, NC_RELOAD, 0, 0, 0);
 				return;
 			}
 			user = get_user_name(rq->url);
-			if (stat->ce->http_code == 401 && user && *user) {
-				mem_free(user);
-				mem_free(realm);
+			if (stat->ce->http_code == 401 && *user) {
+				free(user);
+				free(realm);
 				goto xx;
 			}
-			mem_free(user);
+			free(user);
 			if (!auth_window(rq, realm)) {
 				rq->hold = HOLD_AUTH;
 				rq->redirect_cnt = 0;
-				mem_free(realm);
+				free(realm);
 				goto tm;
 			}
-			mem_free(realm);
+			free(realm);
 			goto xx;
 		}
 	}
@@ -435,12 +435,12 @@ void release_object_get_stat(struct object_request **rqq, struct status *news, i
 	if (rq->timer != NULL) kill_timer(rq->timer);
 	if (rq->ce_internal) rq->ce_internal->refcount--;
 	if (rq->ce) rq->ce->refcount--;
-	mem_free(rq->orig_url);
-	mem_free(rq->url);
-	if (rq->prev_url) mem_free(rq->prev_url);
-	if (rq->goto_position) mem_free(rq->goto_position);
+	free(rq->orig_url);
+	free(rq->url);
+	free(rq->prev_url);
+	free(rq->goto_position);
 	del_from_list(rq);
-	mem_free(rq);
+	free(rq);
 }
 
 void release_object(struct object_request **rqq)
