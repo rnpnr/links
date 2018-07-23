@@ -25,14 +25,15 @@ int end_callback_hit;
 static int is_image_size_sane(int x, int y)
 {
 	unsigned a = (unsigned)x * (unsigned)y * 6;
-	if (y && a / (unsigned)y / 6 != (unsigned)x) return 0;
+	if (y && a / (unsigned)y / 6 != (unsigned)x)
+		return 0;
 	return a < MAXINT;
 }
 
 static void destroy_decoder (struct cached_image *cimg)
 {
-	if (cimg->decoder){
-		switch(cimg->image_type){
+	if (cimg->decoder) {
+		switch(cimg->image_type) {
 		case IM_PNG:
 			png_destroy_decoder(cimg);
 			break;
@@ -1166,15 +1167,17 @@ struct g_object_image *insert_image(struct g_part *p, struct image_description *
 	image->goti.go.x is already filled
 	image->goti.go.y is already filled
 	*/
-	if (im->align == AL_MIDDLE) image->goti.go.y = G_OBJ_ALIGN_MIDDLE;
-	if (im->align == AL_TOP) image->goti.go.y = G_OBJ_ALIGN_TOP;
+	if (im->align == AL_MIDDLE)
+		image->goti.go.y = G_OBJ_ALIGN_MIDDLE;
+	if (im->align == AL_TOP)
+		image->goti.go.y = G_OBJ_ALIGN_TOP;
 
 	if (im->autoscale_x && im->autoscale_y) {
 		/* Autoscale requested */
 		image->goti.go.xw = im->autoscale_x;
 		image->goti.go.yw = im->autoscale_y;
 		image->xyw_meaning = MEANING_AUTOSCALE;
-	}else{
+	} else {
 		/* Autoscale not requested */
 		image->goti.go.xw = img_scale_h(d_opt->image_scale, im->xsize);
 		image->goti.go.yw = img_scale_v(d_opt->image_scale, im->ysize);
@@ -1199,17 +1202,22 @@ struct g_object_image *insert_image(struct g_part *p, struct image_description *
 
 	if (!(image->goti.go.xw && image->goti.go.yw)) {
 		/* At least one is zero */
-		if (image->goti.go.xw < 0) image->goti.go.xw = 0;
-		if (image->goti.go.yw < 0) image->goti.go.yw = 0;
-		if (im->insert_flag) add_to_list(current_f_data->images, image);
-		else image->list_entry.prev = image->list_entry.next = NULL;
+		if (image->goti.go.xw < 0)
+			image->goti.go.xw = 0;
+		if (image->goti.go.yw < 0)
+			image->goti.go.yw = 0;
+		if (im->insert_flag)
+			add_to_list(current_f_data->images, image);
+		else
+			image->list_entry.prev = image->list_entry.next = NULL;
 		return image;
 	}
 	/*
 	image->parent is already filled
 	*/
 	image->af = request_additional_file(current_f_data, im->url);
-	if (image->goti.go.xw < 0 || image->goti.go.yw < 0) image->af->unknown_image_size = 1;
+	if (image->goti.go.xw < 0 || image->goti.go.yw < 0)
+		image->af->unknown_image_size = 1;
 	image->background = hack_rgb(p->root->bg->u.sRGB);
 
 	/* This supplies the result into image->cimg and global_cimg */
@@ -1218,32 +1226,41 @@ struct g_object_image *insert_image(struct g_part *p, struct image_description *
 
 next_chunk:
 	retval = img_process_download(image, NULL);
-	if (retval && !(cimg->state & 4)) goto next_chunk;
+	if (retval && !(cimg->state & 4))
+		goto next_chunk;
 	image->goti.go.xw = image->cimg->xww;
 	image->goti.go.yw = image->cimg->yww;
-	if (cimg->state == 0 || cimg->state == 8 || (!image->af->rq->ce && image->af->unknown_image_size)) if (image->af->need_reparse != -1) image->af->need_reparse = 1;
-	if (im->insert_flag) add_to_list(current_f_data->images, image);
-	else image->list_entry.prev = image->list_entry.next = NULL;
+	if (cimg->state == 0
+	|| cimg->state == 8
+	|| (!image->af->rq->ce && image->af->unknown_image_size))
+		if (image->af->need_reparse != -1)
+			image->af->need_reparse = 1;
+	if (im->insert_flag)
+		add_to_list(current_f_data->images, image);
+	else
+		image->list_entry.prev = image->list_entry.next = NULL;
 	return image;
 }
 
 #endif
 
-int known_image_type(unsigned char *type)
+int
+known_image_type(unsigned char *type)
 {
 #ifdef G
-	if (!casestrcmp(type, cast_uchar "image/png")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/x-png")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/gif")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/x-xbitmap")) return 1;
+	if (!casestrcmp(type, (unsigned char *)"image/png")
+	|| !casestrcmp(type, (unsigned char *)"image/x-png")
+	|| !casestrcmp(type, (unsigned char *)"image/gif")
+	|| !casestrcmp(type, (unsigned char *)"image/x-xbitmap")
 #ifdef HAVE_JPEG
-	if (!casestrcmp(type, cast_uchar "image/jpeg")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/jpg")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/jpe")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/pjpe")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/pjpeg")) return 1;
-	if (!casestrcmp(type, cast_uchar "image/pjpg")) return 1;
+	|| !casestrcmp(type, (unsigned char *)"image/jpeg")
+	|| !casestrcmp(type, (unsigned char *)"image/jpg")
+	|| !casestrcmp(type, (unsigned char *)"image/jpe")
+	|| !casestrcmp(type, (unsigned char *)"image/pjpe")
+	|| !casestrcmp(type, (unsigned char *)"image/pjpeg")
+	|| !casestrcmp(type, (unsigned char *)"image/pjpg"))
 #endif
+		return 1;
 #endif
 	return 0;
 }
