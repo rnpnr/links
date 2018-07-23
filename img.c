@@ -49,11 +49,6 @@ static void destroy_decoder (struct cached_image *cimg)
 	}
 }
 
-static void mem_free_buffer(struct cached_image *cimg)
-{
-	free(cimg->buffer);
-}
-
 static void img_destruct_image(struct g_object *object)
 {
 	struct g_object_image *goi = get_struct(object, struct g_object_image, goti.go);
@@ -92,7 +87,7 @@ void img_destruct_cached_image(struct cached_image *cimg)
 		if (cimg->strip_optimized) {
 			free(cimg->dregs);
 		} else
-			mem_free_buffer(cimg);
+			free(cimg->buffer);
 		/*-fallthrough*/
 		case 8:
 		case 10:
@@ -594,9 +589,9 @@ buffer_to_bitmap");
 		if ((unsigned)ix * (unsigned)iy > MAXINT / sizeof(*tmp) / 3) overalloc();
 		tmp = xmalloc(ix*iy*3*sizeof(*tmp));
 		if (tmp) buffer_to_16(tmp,cimg,cimg->buffer,iy);
-		if (!cimg->decoder){
-			mem_free_buffer(cimg);
-			cimg->buffer=NULL;
+		if (!cimg->decoder) {
+			free(cimg->buffer);
+			cimg->buffer = NULL;
 		}
 
 		/* Scale the image to said size */
@@ -665,7 +660,7 @@ void img_end(struct cached_image *cimg)
 		       free(cimg->dregs);
 		else {
 			buffer_to_bitmap(cimg);
-			mem_free_buffer(cimg);
+			free(cimg->buffer);
 		}
 		free(cimg->gamma_table);
 		/*-fallthrough*/
@@ -714,7 +709,7 @@ static void r3l0ad(struct cached_image *cimg, struct g_object_image *goi)
 		if (cimg->strip_optimized)
 			free(cimg->dregs);
 		else
-			mem_free_buffer(cimg);
+			free(cimg->buffer);
 		if (cimg->bmp_used) {
 			case 13:
 			drv->unregister_bitmap(&cimg->bmp);
@@ -729,7 +724,7 @@ static void r3l0ad(struct cached_image *cimg, struct g_object_image *goi)
 		if (cimg->strip_optimized)
 			free(cimg->dregs);
 		else
-			mem_free_buffer(cimg);
+			free(cimg->buffer);
 		if (cimg->bmp_used) {
 			case 15:
 			drv->unregister_bitmap(&cimg->bmp);
