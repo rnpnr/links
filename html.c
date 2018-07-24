@@ -1035,41 +1035,50 @@ static void html_img(unsigned char *a)
 	ismap = format_.link && (F || !has_attr(a, cast_uchar "usemap")) && has_attr(a, cast_uchar "ismap");
 	free(format_.image);
 	format_.image = NULL;
-	if (
-		(s = get_url_val_nonempty(a, cast_uchar "data-full")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-normal")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-src")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-defer-src")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-li-src")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-original")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-small")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data-lazy")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "src")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "dynsrc")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "data")) ||
-		(s = get_url_val_nonempty(a, cast_uchar "content"))
-	    ) {
-		 if (!format_.link && d_opt->braille) goto skip_img;
+	if ((s = get_url_val_nonempty(a, cast_uchar "data-full"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-normal"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-src"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-defer-src"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-li-src"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-original"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-small"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data-lazy"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "src"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "dynsrc"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "data"))
+	|| (s = get_url_val_nonempty(a, cast_uchar "content"))) {
+		 if (!format_.link && d_opt->braille)
+			goto skip_img;
 		 format_.image = join_urls(format_.href_base, s);
 		 skip_img:
 		 orig_link = s;
 	}
 	if (!F || !d_opt->display_images) {
-		if ((!(al = get_attr_val(a, cast_uchar "alt")) && !(al = get_attr_val(a, cast_uchar "title"))) || !*al) {
+		if ((!(al = get_attr_val(a, cast_uchar "alt"))
+		&& !(al = get_attr_val(a, cast_uchar "title")))
+		|| !*al) {
 			free(al);
-			if (!d_opt->images && !format_.link) goto ret;
+			if (!d_opt->images && !format_.link)
+				goto ret;
 			if (d_opt->image_names && s) {
 				unsigned char *ss;
 				al = stracpy(cast_uchar "[");
-				if (!(ss = cast_uchar strrchr(cast_const_char s, '/'))) ss = s;
-				else ss++;
+				if (!(ss = cast_uchar strrchr(cast_const_char s, '/')))
+					ss = s;
+				else
+					ss++;
 				add_to_strn(&al, ss);
-				if ((ss = cast_uchar strchr(cast_const_char al, '?'))) *ss = 0;
-				if ((ss = cast_uchar strchr(cast_const_char al, '&'))) *ss = 0;
+				if ((ss = cast_uchar strchr(cast_const_char al, '?')))
+					*ss = 0;
+				if ((ss = cast_uchar strchr(cast_const_char al, '&')))
+					*ss = 0;
 				add_to_strn(&al, cast_uchar "]");
-			} else if (usemap) al = stracpy(cast_uchar "[USEMAP]");
-			else if (ismap) al = stracpy(cast_uchar "[ISMAP]");
-			else al = stracpy(cast_uchar "[IMG]");
+			} else if (usemap)
+				al = stracpy(cast_uchar "[USEMAP]");
+			else if
+				(ismap) al = stracpy(cast_uchar "[ISMAP]");
+			else
+				al = stracpy(cast_uchar "[IMG]");
 		}
 		if (al) {
 			if (ismap) {
@@ -1624,27 +1633,26 @@ static void get_html_form(unsigned char *a, struct form *form)
 	}
 	if ((al = get_url_val(a, cast_uchar "action"))) {
 		unsigned char *all = al;
-		while (all[0] == ' ') all++;
-		while (all[0] && all[strlen(cast_const_char all) - 1] == ' ') all[strlen(cast_const_char all) - 1] = 0;
+		while (all[0] == ' ')
+			all++;
+		while (all[0] && all[strlen(cast_const_char all) - 1] == ' ')
+			all[strlen(cast_const_char all) - 1] = 0;
 		form->action = join_urls(format_.href_base, all);
 		free(al);
 	} else {
-		if ((ch = cast_uchar strchr(cast_const_char(form->action = stracpy(format_.href_base)), POST_CHAR))) *ch = 0;
-		if (form->method == FM_GET && (ch = cast_uchar strchr(cast_const_char form->action, '?'))) *ch = 0;
+		if ((ch = cast_uchar strchr(cast_const_char(form->action = stracpy(format_.href_base)), POST_CHAR)))
+			*ch = 0;
+		if (form->method == FM_GET && (ch = cast_uchar strchr(cast_const_char form->action, '?')))
+			*ch = 0;
 	}
 	if ((al = get_target(a))) {
 		form->target = al;
-	} else {
+	} else
 		form->target = stracpy(format_.target_base);
-	}
 	if ((al=get_attr_val(a,cast_uchar "name")))
-	{
-		form->form_name=al;
-	}
+		form->form_name = al;
 	if ((al=get_attr_val(a,cast_uchar "onsubmit")))
-	{
-		form->onsubmit=al;
-	}
+		form->onsubmit = al;
 	form->num = (int)(a - startf);
 }
 
@@ -1706,9 +1714,12 @@ static void html_button(unsigned char *a)
 		fc->type = FC_SUBMIT;
 		goto xxx;
 	}
-	if (!casestrcmp(al, cast_uchar "submit")) fc->type = FC_SUBMIT;
-	else if (!casestrcmp(al, cast_uchar "reset")) fc->type = FC_RESET;
-	else if (!casestrcmp(al, cast_uchar "button")) fc->type = FC_BUTTON;
+	if (!casestrcmp(al, cast_uchar "submit"))
+		fc->type = FC_SUBMIT;
+	else if (!casestrcmp(al, cast_uchar "reset"))
+		fc->type = FC_RESET;
+	else if (!casestrcmp(al, cast_uchar "button"))
+		fc->type = FC_BUTTON;
 	else {
 		free(al);
 		free(fc);
@@ -1726,10 +1737,14 @@ static void html_button(unsigned char *a)
 	fc->name = get_attr_val(a, cast_uchar "name");
 	fc->default_value = get_exact_attr_val(a, cast_uchar "value");
 	fc->ro = has_attr(a, cast_uchar "disabled") ? 2 : has_attr(a, cast_uchar "readonly") ? 1 : 0;
-	if (fc->type == FC_SUBMIT && !fc->default_value) fc->default_value = stracpy(cast_uchar "Submit");
-	if (fc->type == FC_RESET && !fc->default_value) fc->default_value = stracpy(cast_uchar "Reset");
-	if (fc->type == FC_BUTTON && !fc->default_value) fc->default_value = stracpy(cast_uchar "BUTTON");
-	if (!fc->default_value) fc->default_value = stracpy(cast_uchar "");
+	if (fc->type == FC_SUBMIT && !fc->default_value)
+		fc->default_value = stracpy(cast_uchar "Submit");
+	if (fc->type == FC_RESET && !fc->default_value)
+		fc->default_value = stracpy(cast_uchar "Reset");
+	if (fc->type == FC_BUTTON && !fc->default_value)
+		fc->default_value = stracpy(cast_uchar "BUTTON");
+	if (!fc->default_value)
+		fc->default_value = stracpy(cast_uchar "");
 	special_f(ff, SP_CONTROL, fc);
 	format_.form = fc;
 	format_.attr |= AT_BOLD | AT_FIXED;
@@ -1739,13 +1754,20 @@ static void html_button(unsigned char *a)
 		int namelen;
 		p = find_element_end(a);
 p1:
-		while (p < eoff && WHITECHAR(*p)) p2:p++;
-		if (p == eoff) goto put_text;
-		if (*p != '<') return;
-		if (parse_element(p, eoff, &name, &namelen, NULL, &p)) goto p2;
-		if (namelen == 6 && !casecmp(name, cast_uchar "BUTTON", 6)) goto put_text;
-		if (namelen == 7 && !casecmp(name, cast_uchar "/BUTTON", 7)) goto put_text;
-		if (namelen == 3 && !casecmp(name, cast_uchar "IMG", 3)) return;
+		while (p < eoff && WHITECHAR(*p))
+			p2:p++;
+		if (p == eoff)
+			goto put_text;
+		if (*p != '<')
+			return;
+		if (parse_element(p, eoff, &name, &namelen, NULL, &p))
+			goto p2;
+		if (namelen == 6 && !casecmp(name, cast_uchar "BUTTON", 6))
+			goto put_text;
+		if (namelen == 7 && !casecmp(name, cast_uchar "/BUTTON", 7))
+			goto put_text;
+		if (namelen == 3 && !casecmp(name, cast_uchar "IMG", 3))
+			return;
 		goto p1;
 
 put_text:
@@ -2051,7 +2073,8 @@ void free_menu(struct menu_item *m) /* Grrr. Recursion */
 	struct menu_item *mm;
 	for (mm = m; mm->text; mm++) {
 		free(mm->text);
-		if (mm->func == do_select_submenu) free_menu(mm->data);
+		if (mm->func == do_select_submenu)
+			free_menu(mm->data);
 	}
 	free(m);
 }
@@ -3249,7 +3272,8 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	ld->target = target;
 
 	add_to_ml(ml, ld, ld->target, NULL);
-	if (ld->link) add_to_ml(ml, ld->link, NULL);
+	if (ld->link)
+		add_to_ml(ml, ld->link, NULL);
 	scan_area_tag(attr, cast_uchar "shape", &ld->shape, ml);
 	scan_area_tag(attr, cast_uchar "coords", &ld->coords, ml);
 	scan_area_tag(attr, cast_uchar "onclick", &ld->onclick, ml);
@@ -3260,63 +3284,76 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	scan_area_tag(attr, cast_uchar "onmouseout", &ld->onmouseout, ml);
 	scan_area_tag(attr, cast_uchar "onmousemove", &ld->onmousemove, ml);
 
-	if (label) clr_spaces(label, 1);
+	if (label)
+		clr_spaces(label, 1);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
 	ld->label = label;
-	if (!label) label = stracpy(ld->link);
+	if (!label)
+		label = stracpy(ld->link);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) label = stracpy(ld->onclick);
+	if (!label)
+		label = stracpy(ld->onclick);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label && !gfx) goto se2;
-	if (!label) label = stracpy(ld->onmousedown);
+	if (!label && !gfx)
+		goto se2;
+	if (!label)
+		label = stracpy(ld->onmousedown);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) label = stracpy(ld->onmouseup);
+	if (!label)
+		label = stracpy(ld->onmouseup);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) label = stracpy(ld->ondblclick);
+	if (!label)
+		label = stracpy(ld->ondblclick);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) label = stracpy(ld->onmouseover);
+	if (!label)
+		label = stracpy(ld->onmouseover);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) label = stracpy(ld->onmouseout);
+	if (!label)
+		label = stracpy(ld->onmouseout);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) label = stracpy(ld->onmousemove);
+	if (!label)
+		label = stracpy(ld->onmousemove);
 	if (!*label) {
 		free(label);
 		label = NULL;
 	}
-	if (!label) goto se2;
+	if (!label)
+		goto se2;
 	add_to_ml(ml, label, NULL);
 
 	if (!gfx) for (i = 0; i < nmenu; i++) {
 		struct link_def *ll = (*menu)[i].data;
-		if (!xstrcmp(ll->link, ld->link) && !xstrcmp(ll->target, ld->target) && !xstrcmp(ll->onclick, ld->onclick)) {
+		if (!xstrcmp(ll->link, ld->link)
+		&& !xstrcmp(ll->target, ld->target)
+		&& !xstrcmp(ll->onclick, ld->onclick))
 			goto se2;
-		}
 	}
-	if ((unsigned)nmenu > MAXINT / sizeof(struct menu_item) - 2) overalloc();
+	if ((unsigned)nmenu > MAXINT / sizeof(struct menu_item) - 2)
+		overalloc();
 	nm = mem_realloc(*menu, (nmenu + 2) * sizeof(struct menu_item));
 	*menu = nm;
 	memset(&nm[nmenu], 0, 2 * sizeof(struct menu_item));

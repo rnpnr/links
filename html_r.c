@@ -1095,11 +1095,6 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	return p;
 }
 
-static void release_part(struct part *p)
-{
-	free(p);
-}
-
 static void push_base_format(unsigned char *url, struct document_options *opt, int frame, int implicit_pre_wrap)
 {
 	struct html_element *e;
@@ -1209,7 +1204,8 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	last_input_tag = NULL;
 	if (!F) {
 		struct part *rp;
-		if ((rp = format_html_part(start, end, par_format.align, par_format.leftmargin, screen->opt.xw, screen, 0, 0, head, 1))) release_part(rp);
+		if ((rp = format_html_part(start, end, par_format.align, par_format.leftmargin, screen->opt.xw, screen, 0, 0, head, 1)))
+			free(rp);
 #ifdef G
 	} else {
 		struct g_part *rp;
