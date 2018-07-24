@@ -145,7 +145,8 @@ int get_connection_cache_entry(struct connection *c)
 	if (get_cache_entry(c->url, &c->cache))
 		return -1;
 	e = c->cache;
-	if (e->ip_address) mem_free(e->ip_address), e->ip_address = NULL;
+	free(e->ip_address);
+	e->ip_address = NULL;
 	if (!*c->socks_proxy && !is_proxy_url(c->url) && c->last_lookup_state.addr.n) {
 		unsigned char *a;
 		unsigned char *s = init_str();
@@ -209,7 +210,7 @@ void detach_cache_entry(struct cache_entry *e)
 static void mem_free_fragment(struct fragment *f)
 {
 	size_t s = (size_t)f->length;
-	mem_free(f);
+	free(f);
 	s += sizeof(struct fragment);
 }
 
@@ -413,10 +414,8 @@ void free_entry_to(struct cache_entry *e, off_t off)
 void delete_entry_content(struct cache_entry *e)
 {
 	truncate_entry(e, 0, 2);
-	if (e->last_modified) {
-		mem_free(e->last_modified);
-		e->last_modified = NULL;
-	}
+	free(e->last_modified);
+	e->last_modified = NULL;
 }
 
 void trim_cache_entry(struct cache_entry *e)
@@ -445,11 +444,11 @@ void delete_cache_entry(struct cache_entry *e)
 	cache_delete_from_tree(e);
 	delete_entry_content(e);
 	del_from_list(e);
-	if (e->head) mem_free(e->head);
-	if (e->redirect) mem_free(e->redirect);
-	if (e->ip_address) mem_free(e->ip_address);
-	if (e->ssl_info) mem_free(e->ssl_info);
-	mem_free(e);
+	free(e->head);
+	free(e->redirect);
+	free(e->ip_address);
+	free(e->ssl_info);
+	free(e);
 }
 
 static int shrink_file_cache(int u)

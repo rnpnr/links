@@ -63,7 +63,7 @@ static void free_translation_table(struct conv_table *p)
 {
 	int i;
 	for (i = 0; i < 256; i++) if (p[i].t) free_translation_table(p[i].u.tbl);
-	mem_free(p);
+	free(p);
 }
 
 static_const unsigned char no_str[] = "*";
@@ -190,7 +190,8 @@ static int utf_table_init = 1;
 static void free_utf_table(void)
 {
 	int i;
-	for (i = 128; i < 256; i++) mem_free(utf_table[i].u.str);
+	for (i = 128; i < 256; i++)
+		free(utf_table[i].u.str);
 }
 
 static struct conv_table *get_translation_table_to_utf_8(int from)
@@ -530,7 +531,7 @@ void charset_upcase_string(unsigned char **chp, int cp)
 	int i;
 	if (cp == utf8_table) {
 		ch = unicode_upcase_string(ch);
-		mem_free(*chp);
+		free(*chp);
 		*chp = ch;
 	} else {
 		for (i = 0; ch[i]; i++) ch[i] = charset_upcase(ch[i], cp);
@@ -558,7 +559,7 @@ unsigned char *to_utf8_upcase(unsigned char *str, int cp)
 	unsigned char *str1, *str2;
 	str1 = convert(cp, utf8_table, str, NULL);
 	str2 = unicode_upcase_string(str1);
-	mem_free(str1);
+	free(str1);
 	return str2;
 }
 

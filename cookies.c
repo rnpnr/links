@@ -26,12 +26,12 @@ static struct list_head c_servers = { &c_servers, &c_servers };
 
 void free_cookie(struct cookie *c)
 {
-	mem_free(c->name);
-	if (c->value) mem_free(c->value);
-	mem_free(c->server);
-	mem_free(c->path);
-	mem_free(c->domain);
-	mem_free(c);
+	free(c->name);
+	free(c->value);
+	free(c->server);
+	free(c->path);
+	free(c->domain);
+	free(c);
 }
 
 static void accept_cookie(struct cookie *);
@@ -65,7 +65,7 @@ int set_cookie(struct terminal *term, unsigned char *url, unsigned char *str)
 		cookie->expires = parse_http_date(date);
 		/* kdo tohle napsal a proc ?? */
 		/*if (! cookie->expires) cookie->expires++;*/ /* no harm and we can use zero then */
-		mem_free(date);
+		free(date);
 	} else {
 		cookie->expires = 0;
 	}
@@ -85,33 +85,33 @@ int set_cookie(struct terminal *term, unsigned char *url, unsigned char *str)
 		cookie->domain = idn_encode_host(dom, (int)strlen(cast_const_char dom), cast_uchar ".", 0);
 		if (!cookie->domain)
 			cookie->domain = stracpy(server);
-		mem_free(dom);
+		free(dom);
 	}
 	if (cookie->domain[0] == '.') memmove(cookie->domain, cookie->domain + 1, strlen(cast_const_char cookie->domain));
 	if ((s = parse_header_param(str, cast_uchar "secure", 0))) {
 		cookie->secure = 1;
-		mem_free(s);
+		free(s);
 	} else cookie->secure = 0;
 	if (!allow_cookie_domain(server, cookie->domain)) {
-		mem_free(cookie->domain);
+		free(cookie->domain);
 		cookie->domain = stracpy(server);
 	}
 	foreach(struct c_server, cs, lcs, c_servers) if (!casestrcmp(cs->server, server)) {
 		if (cs->accpt) goto ok;
 		else {
 			free_cookie(cookie);
-			mem_free(server);
+			free(server);
 			return 0;
 		}
 	}
 	if (accept_cookies != ACCEPT_ALL) {
 		free_cookie(cookie);
-		mem_free(server);
+		free(server);
 		return 1;
 	}
 	ok:
 	accept_cookie(cookie);
-	mem_free(server);
+	free(server);
 	return 0;
 }
 
@@ -179,7 +179,7 @@ void add_cookies(unsigned char **s, int *l, unsigned char *url)
 	unsigned char *data = get_url_data(url);
 	if (data > url) data--;
 	foreach(struct c_domain, cd, lcd, c_domains) if (is_in_domain(cd->domain, server)) goto ok;
-	mem_free(server);
+	free(server);
 	return;
 	ok:
 	foreachback(struct cookie, c, lc, all_cookies) if (is_in_domain(c->domain, server)) if (is_path_prefix(c->path, data)) {
@@ -199,7 +199,7 @@ void add_cookies(unsigned char **s, int *l, unsigned char *url)
 		}
 	}
 	if (nc) add_to_str(s, l, cast_uchar "\r\n");
-	mem_free(server);
+	free(server);
 }
 
 void free_cookies(void)

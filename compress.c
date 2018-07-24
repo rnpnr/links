@@ -45,10 +45,10 @@ static void decompress_error(struct terminal *term, struct cache_entry *ce, unsi
 {
 	unsigned char *u, *server;
 	if ((u = parse_http_header(ce->head, cast_uchar "Content-Encoding", NULL))) {
-		mem_free(u);
+		free(u);
 		if ((server = get_host_name(ce->url))) {
 			add_blacklist_entry(server, BL_NO_COMPRESSION);
-			mem_free(server);
+			free(server);
 		}
 	}
 	if (!display_error(term, TEXT_(T_DECOMPRESSION_ERROR), errp)) return;
@@ -235,14 +235,14 @@ static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, 
 	}
 	after_inflateend:
 	if (memory_error) {
-		mem_free(p);
+		free(p);
 		if (out_of_memory(0, NULL, 0))
 			goto retry_after_memory_error;
 		decompress_error(term, ce, cast_uchar "zlib", z.msg ? (unsigned char *)z.msg : TEXT_(T_OUT_OF_MEMORY), errp);
 		return 1;
 	}
 	if (err && (unsigned char *)z.next_out == p) {
-		mem_free(p);
+		free(p);
 		return 1;
 	}
 	ce->decompressed = p;
@@ -270,11 +270,11 @@ int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned cha
 	if (enc) {
 		if (!casestrcmp(enc, cast_uchar "gzip") || !casestrcmp(enc, cast_uchar "x-gzip") || !casestrcmp(enc, cast_uchar "deflate")) {
 			int defl = !casestrcmp(enc, cast_uchar "deflate");
-			mem_free(enc);
+			free(enc);
 			if (decode_gzip(term, ce, defl, errp)) goto uncompressed;
 			goto return_decompressed;
 		}
-		mem_free(enc);
+		free(enc);
 		goto uncompressed;
 	}
 	uncompressed:
@@ -308,7 +308,7 @@ void free_decompressed_data(struct cache_entry *e)
 			internal("free_decompressed_data: decompressed_cache_size underflow %lu, %lu", (unsigned long)decompressed_cache_size, (unsigned long)e->decompressed_len);
 		decompressed_cache_size -= e->decompressed_len;
 		e->decompressed_len = 0;
-		mem_free(e->decompressed);
+		free(e->decompressed);
 		e->decompressed = NULL;
 	}
 }
