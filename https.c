@@ -102,7 +102,7 @@ links_ssl *getSSL(void)
 			int os_pool_size;
 			os_seed_random(&os_pool, &os_pool_size);
 			if (os_pool_size) RAND_add(os_pool, os_pool_size, os_pool_size);
-			mem_free(os_pool);
+			free(os_pool);
 		}
 
 		OPENSSL_init_ssl(0, NULL);
@@ -150,7 +150,7 @@ links_ssl *getSSL(void)
 	ssl->ssl = SSL_new(ssl->ctx);
 	clear_ssl_errors(__LINE__);
 	if (!ssl->ssl) {
-		mem_free(ssl);
+		free(ssl);
 		return NULL;
 	}
 	ssl->bytes_read = ssl->bytes_written = 0;
@@ -171,7 +171,7 @@ void freeSSL(links_ssl *ssl)
 			clear_ssl_errors(__LINE__);
 	}
 	SSL_free(ssl->ssl);
-	mem_free(ssl);
+	free(ssl);
 }
 
 void ssl_finish(void)
@@ -337,7 +337,7 @@ static void set_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port,
 			sce->session = s;
 		} else {
 			del_from_list(sce);
-			mem_free(sce);
+			free(sce);
 		}
 		return;
 	}
@@ -373,7 +373,7 @@ void retrieve_ssl_session(struct connection *c)
 		if (s)
 			c->ssl->session_retrieved = 1;
 		set_session_cache_entry(c->ssl->ctx, h, p, s);
-		mem_free(h);
+		free(h);
 		clear_ssl_errors(__LINE__);
 	}
 }
@@ -395,7 +395,7 @@ delete_last:
 		ld = d->list_entry.prev;
 		del_from_list(d);
 		SSL_SESSION_free(d->session);
-		mem_free(d);
+		free(d);
 		f = ST_SOMETHING_FREED;
 	}
 ret:

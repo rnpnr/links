@@ -113,7 +113,7 @@ static struct style *get_style_by_ta(struct text_attrib *ta)
 			(ta->bg.g << 8) + ta->bg.b, fs,
 			fontname=make_html_font_name(ta->attr),
 			ta->attr & AT_UNDERLINE ? FF_UNDERLINE : 0);
-	mem_free(fontname);
+	free(fontname);
 	return stl;
 }
 
@@ -407,7 +407,7 @@ static void g_html_form_control(struct g_part *p, struct form_control *fc)
 {
 	if (!p->data) {
 		/*destroy_fc(fc);
-		mem_free(fc);*/
+		free(fc);*/
 		add_to_list(p->uf, fc);
 		return;
 	}
@@ -416,7 +416,7 @@ static void g_html_form_control(struct g_part *p, struct form_control *fc)
 	if (fc->type == FC_TEXT || fc->type == FC_PASSWORD || fc->type == FC_TEXTAREA) {
 		unsigned char *dv = convert_string(convert_table, fc->default_value, (int)strlen(cast_const_char fc->default_value), d_opt);
 		if (dv) {
-			mem_free(fc->default_value);
+			free(fc->default_value);
 			fc->default_value = dv;
 		}
 	}
@@ -443,8 +443,8 @@ void release_image_map(struct image_map *map)
 	if (!map)
 		return;
 	for (i = 0; i < map->n_areas; i++)
-		mem_free(map->area[i].coords);
-	mem_free(map);
+		free(map->area[i].coords);
+	free(map);
 }
 
 int is_in_area(struct map_area *a, int x, int y)
@@ -507,7 +507,7 @@ static void do_image(struct g_part *p, struct image_description *im)
 		im->link_num = (int)(link - p->data->links);
 		im->link_order = link->obj_order;
 		link->obj_order = safe_add(link->obj_order, 1);
-		if (link->img_alt) mem_free(link->img_alt);
+		free(link->img_alt);
 		link->img_alt = stracpy(im->alt);
 	}
 	io = insert_image(p, im);

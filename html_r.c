@@ -32,19 +32,19 @@ struct f_data *init_formatted(struct document_options *opt)
 void destroy_fc(struct form_control *fc)
 {
 	int i;
-	if (fc->action) mem_free(fc->action);
-	if (fc->target) mem_free(fc->target);
-	if (fc->form_name) mem_free(fc->form_name);
-	if (fc->onsubmit) mem_free(fc->onsubmit);
-	if (fc->name) mem_free(fc->name);
-	if (fc->alt) mem_free(fc->alt);
-	if (fc->default_value) mem_free(fc->default_value);
+	free(fc->action);
+	free(fc->target);
+	free(fc->form_name);
+	free(fc->onsubmit);
+	free(fc->name);
+	free(fc->alt);
+	free(fc->default_value);
 	for (i = 0; i < fc->nvalues; i++) {
-		if (fc->values[i]) mem_free(fc->values[i]);
-		if (fc->labels[i]) mem_free(fc->labels[i]);
+		free(fc->values[i]);
+		free(fc->labels[i]);
 	}
-	if (fc->values) mem_free(fc->values);
-	if (fc->labels) mem_free(fc->labels);
+	free(fc->values);
+	free(fc->labels);
 	if (fc->menu) free_menu(fc->menu);
 }
 
@@ -53,10 +53,10 @@ void free_frameset_desc(struct frameset_desc *fd)
 	int i;
 	for (i = 0; i < fd->n; i++) {
 		if (fd->f[i].subframe) free_frameset_desc(fd->f[i].subframe);
-		if (fd->f[i].name) mem_free(fd->f[i].name);
-		if (fd->f[i].url) mem_free(fd->f[i].url);
+		free(fd->f[i].name);
+		free(fd->f[i].url);
 	}
-	mem_free(fd);
+	free(fd);
 }
 
 struct frameset_desc *copy_frameset_desc(struct frameset_desc *fd)
@@ -85,7 +85,7 @@ void free_additional_files(struct additional_files **a)
 	}
 	foreach(struct additional_file, af, laf, (*a)->af) release_object(&af->rq);
 	free_list(struct additional_file, (*a)->af);
-	mem_free(*a);
+	free(*a);
 	*a = NULL;
 }
 
@@ -108,24 +108,26 @@ static void clear_formatted(struct f_data *scr)
 #endif
 	release_object(&scr->rq);
 	free_additional_files(&scr->af);
-	if (scr->title) mem_free(scr->title);
+	free(scr->title);
 	if (scr->frame_desc) {
 		free_frameset_desc(scr->frame_desc);
 	}
 	for (n = 0; n < scr->nlinks; n++) {
 		struct link *l = &scr->links[n];
-		if (l->where) mem_free(l->where);
-		if (l->target) mem_free(l->target);
-		if (l->where_img) mem_free(l->where_img);
-		if (l->img_alt) mem_free(l->img_alt);
-		if (l->pos) mem_free(l->pos);
+		free(l->where);
+		free(l->target);
+		free(l->where_img);
+		free(l->img_alt);
+		free(l->pos);
 	}
-	mem_free(scr->links);
-	if (!F) for (y = 0; y < scr->y; y++) mem_free(scr->data[y].d);
-	mem_free(scr->data);
-	if (scr->lines1) mem_free(scr->lines1);
-	if (scr->lines2) mem_free(scr->lines2);
-	if (scr->opt.framename) mem_free(scr->opt.framename);
+	free(scr->links);
+	if (!F)
+		for (y = 0; y < scr->y; y++)
+			free(scr->data[y].d);
+	free(scr->data);
+	free(scr->lines1);
+	free(scr->lines2);
+	free(scr->opt.framename);
 	foreach(struct form_control, fc, lfc, scr->forms) {
 		destroy_fc(fc);
 	}
@@ -134,12 +136,12 @@ static void clear_formatted(struct f_data *scr)
 	free_list(struct node, scr->nodes);
 #ifdef G
 	free_list(struct image_refresh, scr->image_refresh);
-	if (scr->srch_string) mem_free(scr->srch_string);
-	if (scr->last_search) mem_free(scr->last_search);
-	if (scr->search_positions) mem_free(scr->search_positions);
-	if (scr->search_lengths) mem_free(scr->search_lengths);
+	free(scr->srch_string);
+	free(scr->last_search);
+	free(scr->search_positions);
+	free(scr->search_lengths);
 #endif
-	if (scr->refresh) mem_free(scr->refresh);
+	free(scr->refresh);
 }
 
 void destroy_formatted(struct f_data *scr)
@@ -149,7 +151,7 @@ void destroy_formatted(struct f_data *scr)
 		return;
 	}
 	clear_formatted(scr);
-	mem_free(scr);
+	free(scr);
 }
 
 static inline int color_distance(struct rgb *c1, struct rgb *c2)
@@ -468,7 +470,7 @@ static inline void shift_chars(struct part *p, int y, int s)
 	memcpy(a, &POS(0, y), l * sizeof(chr));
 	set_hchars(p, 0, y, s, ' ', p->attribute);
 	copy_chars(p, s, y, l, a);
-	mem_free(a);
+	free(a);
 	move_links(p, 0, y, s, y);
 }
 
@@ -560,7 +562,7 @@ void html_tag(struct f_data *f, unsigned char *t, int x, int y)
 	strcpy(cast_char tag->name, cast_const_char tt);
 	add_to_list(f->tags, tag);
 	if (last_tag_for_newline == &f->tags) last_tag_for_newline = &tag->list_entry;
-	mem_free(tt);
+	free(tt);
 }
 
 unsigned char *last_link = NULL;
@@ -649,7 +651,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		}
 		utf_done:
 		if (!ll) {
-			mem_free(uni_c);
+			free(uni_c);
 			return;
 		}
 	} else
@@ -666,7 +668,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	end_format_change:
 	if (p->y < safe_add(p->cy, 1)) p->y = p->cy + 1;
 	if (nowrap && safe_add(p->cx, ll) > rm(par_format)) {
-		mem_free(uni_c);
+		free(uni_c);
 		return;
 	}
 	if (d_opt->cp == utf8_table && !(format_.attr & AT_GRAPHICS)) {
@@ -686,7 +688,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		}
 	p->xa = safe_add(p->xa, ll);
 	if (safe_add(p->xa - (c[l-1] == ' ' && par_format.align != AL_NO && par_format.align != AL_NO_BREAKABLE), safe_add(par_format.leftmargin, par_format.rightmargin)) > p->xmax) p->xmax = p->xa - (c[l-1] == ' ' && par_format.align != AL_NO && par_format.align != AL_NO_BREAKABLE) + par_format.leftmargin + par_format.rightmargin;
-	mem_free(uni_c);
+	free(uni_c);
 	return;
 
 	/* !!! WARNING: THE FOLLOWING CODE IS SHADOWED IN HTML_GR.C */
@@ -706,9 +708,9 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		goto set_link;
 		x:;
 	} else {
-		if (last_link) mem_free(last_link);
-		if (last_target) mem_free(last_target);
-		if (last_image) mem_free(last_image);
+		free(last_link);
+		free(last_target);
+		free(last_image);
 		last_link = last_target = last_image = NULL;
 		last_form = NULL;
 		last_js_event = NULL;
@@ -836,7 +838,7 @@ static void html_form_control(struct part *p, struct form_control *fc)
 	if (fc->type == FC_TEXT || fc->type == FC_PASSWORD || fc->type == FC_TEXTAREA) {
 		unsigned char *dv = convert_string(convert_table, fc->default_value, (int)strlen(cast_const_char fc->default_value), d_opt);
 		if (dv) {
-			mem_free(fc->default_value);
+			free(fc->default_value);
 			fc->default_value = dv;
 		}
 	}
@@ -882,7 +884,10 @@ struct frameset_desc *create_frameset(struct f_data *fda, struct frameset_param 
 	}
 	if (fp->parent) add_frameset_entry(fp->parent, fd, NULL, NULL, -1, -1, SCROLLING_AUTO);
 	else if (!fda->frame_desc) fda->frame_desc = fd;
-	     else mem_free(fd), fd = NULL;
+	else {
+		free(fd);
+		fd = NULL;
+	}
 	return fd;
 }
 
@@ -1016,9 +1021,9 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	last_tag_for_newline = data ? &data->tags : NULL;
 	margin = m;
 	empty_format = !data;
-	if (last_link) mem_free(last_link);
-	if (last_image) mem_free(last_image);
-	if (last_target) mem_free(last_target);
+	free(last_link);
+	free(last_image);
+	free(last_target);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
 	last_js_event = NULL;
@@ -1057,9 +1062,9 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	}
 	nobreak = 0;
 	line_breax = 1;
-	if (last_link) mem_free(last_link);
-	if (last_image) mem_free(last_image);
-	if (last_target) mem_free(last_target);
+	free(last_link);
+	free(last_image);
+	free(last_target);
 	while (&html_top != e) {
 		kill_html_stack_item(&html_top);
 		if (!&html_top || (void *)&html_top == (void *)&html_stack) {
@@ -1069,7 +1074,7 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	}
 	html_top.dontkill = 0;
 	kill_html_stack_item(&html_top);
-	mem_free(p->spaces);
+	free(p->spaces);
 	if (data) {
 		struct node *n = list_struct(data->nodes.next, struct node);
 		n->yw = ys - n->y + p->y;
@@ -1092,7 +1097,7 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 
 static void release_part(struct part *p)
 {
-	mem_free(p);
+	free(p);
 }
 
 static void push_base_format(unsigned char *url, struct document_options *opt, int frame, int implicit_pre_wrap)
@@ -1138,17 +1143,17 @@ struct conv_table *get_convert_table(unsigned char *head, int to, int def, int *
 	while (from == -1 && (a = parse_http_header(p, cast_uchar "Content-Type", &p))) {
 		if ((b = parse_header_param(a, cast_uchar "charset", 0))) {
 			from = get_cp_index(b);
-			mem_free(b);
+			free(b);
 		}
-		mem_free(a);
+		free(a);
 	}
 	if (from == -1 && (a = parse_http_header(head, cast_uchar "Content-Charset", NULL))) {
 		from = get_cp_index(a);
-		mem_free(a);
+		free(a);
 	}
 	if (from == -1 && (a = parse_http_header(head, cast_uchar "Charset", NULL))) {
 		from = get_cp_index(a);
-		mem_free(a);
+		free(a);
 	}
 	if (aa) {
 		*aa = from == -1;
@@ -1195,7 +1200,7 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	i = d_opt->plain; d_opt->plain = 0;
 	screen->title = convert_string(convert_table, t, (int)strlen(cast_const_char t), d_opt);
 	d_opt->plain = i;
-	mem_free(t);
+	free(t);
 	push_base_format(url, &screen->opt, frame, implicit_pre_wrap);
 	table_level = 0;
 	g_ctrl_num = 0;
@@ -1218,26 +1223,33 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 			g_x_extend_area(rp->root, w, h, AL_LEFT);
 			screen->root = &rp->root->go, rp->root = NULL;
 			g_release_part(rp);
-			mem_free(rp);
+			free(rp);
 			get_parents(screen, screen->root);
 		}
 #endif
 	}
-	mem_free(head);
-	if (bg) mem_free(bg);
-	if (bgcolor) mem_free(bgcolor);
+	free(head);
+	free(bg);
+	free(bgcolor);
 	if (!F) {
 		screen->x = 0;
 		for (i = screen->y - 1; i >= 0; i--) {
-			if (!screen->data[i].l) mem_free(screen->data[i].d), screen->y--;
-			else break;
+			if (!screen->data[i].l) {
+				free(screen->data[i].d);
+				screen->y--;
+			} else
+				break;
 		}
 		for (i = 0; i < screen->y; i++) if (screen->data[i].l > screen->x) screen->x = screen->data[i].l;
 	}
-	if (form.action) mem_free(form.action), form.action = NULL;
-	if (form.target) mem_free(form.target), form.target = NULL;
-	if (form.form_name) mem_free(form.form_name), form.form_name = NULL;
-	if (form.onsubmit) mem_free(form.onsubmit), form.onsubmit = NULL;
+	free(form.action);
+	free(form.target);
+	free(form.form_name);
+	free(form.onsubmit);
+	form.action = NULL;
+	form.target = NULL;
+	form.form_name = NULL;
+	form.onsubmit = NULL;
 	bg_col = find_nearest_color(&format_.bg, 8);
 	fg_col = find_nearest_color(&format_.fg, 16);
 	fg_col = fg_color(fg_col, bg_col);
@@ -1325,10 +1337,12 @@ static int sort_srch(struct f_data *f)
 	min = xmalloc(f->y * sizeof(int));
 	max = xmalloc(f->y * sizeof(int));
 	if (!f->slines1 || !f->slines2 || !min || !max) {
-		if (f->slines1) mem_free(f->slines1), f->slines1 = NULL;
-		if (f->slines2) mem_free(f->slines2), f->slines2 = NULL;
-		if (min) mem_free(min);
-		if (max) mem_free(max);
+		free(f->slines1);
+		free(f->slines2);
+		f->slines1 = NULL;
+		f->slines2 = NULL;
+		free(min);
+		free(max);
 		return -1;
 	}
 	for (i = 0; i < f->y; i++)
@@ -1342,8 +1356,8 @@ static int sort_srch(struct f_data *f)
 		else xe = safe_add(s->x, s->n);
 		if (xe > max[s->y]) max[s->y] = xe, f->slines2[s->y] = s->idx + s->co - 1;
 	}
-	mem_free(min);
-	mem_free(max);
+	free(min);
+	free(max);
 	return 0;
 }
 
@@ -1462,7 +1476,7 @@ int get_search_data(struct f_data *f)
 	if (!f->search_chr) return -1;
 	f->search_pos = xmalloc(n_pos * sizeof(struct search));
 	if (!f->search_pos) {
-		mem_free(f->search_chr);
+		free(f->search_chr);
 		f->search_chr = NULL;
 		return -1;
 	}
@@ -1471,9 +1485,9 @@ int get_search_data(struct f_data *f)
 	f->nsearch_chr = n_chr;
 	f->nsearch_pos = n_pos;
 	if (sort_srch(f)) {
-		mem_free(f->search_pos);
+		free(f->search_pos);
 		f->search_pos = NULL;
-		mem_free(f->search_chr);
+		free(f->search_chr);
 		f->search_chr = NULL;
 		f->nsearch_chr = f->nsearch_pos = 0;
 		return -1;

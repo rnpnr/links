@@ -50,7 +50,7 @@ static void get_align(unsigned char *attr, int *a)
 		if (!(casestrcmp(al, cast_uchar "center"))) *a = AL_CENTER;
 		if (!(casestrcmp(al, cast_uchar "justify"))) *a = AL_BLOCK;
 		if (!(casestrcmp(al, cast_uchar "char"))) *a = AL_RIGHT; /* NOT IMPLEMENTED */
-		mem_free(al);
+		free(al);
 	}
 }
 
@@ -62,7 +62,7 @@ static void get_valign(unsigned char *attr, int *a)
 		if (!(casestrcmp(al, cast_uchar "middle"))) *a = VAL_MIDDLE;
 		if (!(casestrcmp(al, cast_uchar "bottom"))) *a = VAL_BOTTOM;
 		if (!(casestrcmp(al, cast_uchar "baseline"))) *a = VAL_TOP; /* NOT IMPLEMENTED */
-		mem_free(al);
+		free(al);
 	}
 }
 
@@ -80,7 +80,7 @@ static void get_c_width(unsigned char *attr, int *w, int sh)
 			int p = get_width(attr, cast_uchar "width", sh);
 			if (p >= 0) *w = p;
 		}
-		mem_free(al);
+		free(al);
 	}
 }
 
@@ -219,33 +219,37 @@ static void free_table(struct table *t)
 	int i, j;
 	for (j = 0; j < t->y; j++) for (i = 0; i < t->x; i++) {
 		struct table_cell *c = CELL(t, i, j);
-		if (c->tag) mem_free(c->tag);
+		free(c->tag);
 #ifdef G
 		if (c->root) c->root->go.destruct(&c->root->go);
 		if (c->tag_object) c->tag_object->go.destruct(&c->tag_object->go);
-		if (c->brd) mem_free(c->brd);
+		free(c->brd);
 #endif
 	}
 #ifdef G
 	if (F) {
-		for (i = 0; i < t->nr_frame; i++) mem_free(t->r_frame[i]);
-		if (t->r_frame) mem_free(t->r_frame);
-		for (i = 0; i < t->nr_bg; i++) mem_free(t->r_bg[i]);
-		if (t->r_bg) mem_free(t->r_bg);
-		for (i = 0; i < t->nr_cells; i++) mem_free(t->r_cells[i]);
-		mem_free(t->r_cells), mem_free(t->w_cells);
+		for (i = 0; i < t->nr_frame; i++)
+			free(t->r_frame[i]);
+		free(t->r_frame);
+		for (i = 0; i < t->nr_bg; i++) 
+			free(t->r_bg[i]);
+		free(t->r_bg);
+		for (i = 0; i < t->nr_cells; i++) 
+			free(t->r_cells[i]);
+		free(t->r_cells);
+		free(t->w_cells);
 		free(t->frame_bg);
 	}
 #endif
-	if (t->bordercolor) mem_free(t->bordercolor);
-	if (t->min_c) mem_free(t->min_c);
-	if (t->max_c) mem_free(t->max_c);
-	if (t->w_c) mem_free(t->w_c);
-	mem_free(t->r_heights);
-	mem_free(t->cols);
-	mem_free(t->xcols);
-	mem_free(t->cells);
-	mem_free(t);
+	free(t->bordercolor);
+	free(t->min_c);
+	free(t->max_c);
+	free(t->w_c);
+	free(t->r_heights);
+	free(t->cols);
+	free(t->xcols);
+	free(t->cells);
+	free(t);
 }
 
 static void expand_cells(struct table *t, int x, int y)
@@ -309,7 +313,7 @@ static struct table_cell *new_cell(struct table *t, int x, int y)
 	for (i = 0; i < t->x; i++)
 		for (j = 0; j < t->y; j++)
 			memcpy(CELL(&nt, i, j), CELL(t, i, j), sizeof(struct table_cell));
-	mem_free(t->cells);
+	free(t->cells);
 	t->cells = nt.cells;
 	t->rx = nt.rx;
 	t->ry = nt.ry;
@@ -571,7 +575,7 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 		    0) {
 			cell->align = !par_format.implicit_pre_wrap ? AL_NO : AL_NO_BREAKABLE;
 		}
-		mem_free(a);
+		free(a);
 	}
 #ifdef G
 	sprintf(cast_char cell->bgcolor_str, "#%02x%02x%02x", cell->bgcolor.r & 0xff, cell->bgcolor.g & 0xff, cell->bgcolor.b & 0xff);
@@ -659,7 +663,7 @@ static void get_cell_width(struct table *t, struct table_cell *c, int w, int a, 
 		if (min) *min = p->x;
 		if (max) *max = p->xmax;
 		if (n_links) *n_links = p->link_num;
-		mem_free(p);
+		free(p);
 #ifdef G
 	} else {
 		struct g_part *gp;
@@ -667,7 +671,7 @@ static void get_cell_width(struct table *t, struct table_cell *c, int w, int a, 
 		if (min) *min = gp->x;
 		if (max) *max = gp->xmax;
 		if (n_links) *n_links = gp->link_num;
-		mem_free(gp);
+		free(gp);
 #endif
 	}
 	/*debug("get_cell_width: %d < %d", *min, *max);*/
@@ -984,9 +988,9 @@ static void distribute_widths(struct table *t, int width)
 		} else if (!wq) om++;
 	}
 	end2:
-	mem_free(mx);
-	mem_free(w);
-	if (u) mem_free(u);
+	free(mx);
+	free(w);
+	free(u);
 }
 
 #ifdef HTML_TABLE_2ND_PASS
@@ -1021,7 +1025,7 @@ static void check_table_widths(struct table *t)
 			if (!c->start) continue;
 			if (c->colspan + i > t->x) {
 				/*internal("colspan out of table");*/
-				mem_free(w);
+				free(w);
 				return;
 			}
 			if (c->colspan == s) {
@@ -1054,7 +1058,7 @@ static void check_table_widths(struct table *t)
 	}
 	if (ns > s) {
 		/*internal("new width(%d) is larger than previous(%d)", ns, s);*/
-		mem_free(w);
+		free(w);
 		return;
 	}
 	m = -1;
@@ -1066,12 +1070,12 @@ static void check_table_widths(struct table *t)
 	if (m != -1) {
 		w[mi] = safe_add(w[mi], s - ns);
 		if (w[mi] <= t->max_c[mi]) {
-			mem_free(t->w_c);
+			free(t->w_c);
 			t->w_c = w;
 			return;
 		}
 	}
-	mem_free(w);
+	free(w);
 }
 #endif
 
@@ -1109,7 +1113,7 @@ static void get_table_heights(struct table *t)
 			if (!F) {
 				if (!(p = format_html_part(cell->start, cell->end, cell->align, t->cellpd, xw, NULL, 2, 2, NULL, cell->link_num))) return;
 				cell->height = p->y;
-				mem_free(p);
+				free(p);
 #ifdef G
 			} else {
 				if (!(gp = g_format_html_part(cell->start, cell->end, cell->align, 0, xw, NULL, cell->link_num, NULL /* FIX: background image */, cell->bgcolor_str, t->gp->data))) return;
@@ -1119,7 +1123,7 @@ static void get_table_heights(struct table *t)
 				cell->height = gp->y;
 				cell->g_width = xw;
 				g_release_part(gp);
-				mem_free(gp);
+				free(gp);
 #endif
 			}
 				/*debug("%d, %d.",xw, cell->height);*/
@@ -1214,7 +1218,7 @@ static void display_complicated_table(struct table *t, int x, int y, int *yy)
 					xxpand_line(t->p, yp + yt, safe_add(xp, t->w_c[i]));
 				}
 				kill_html_stack_item(&html_top);
-				mem_free(p);
+				free(p);
 			}
 			cell->xpos = xp;
 			cell->ypos = yp;
@@ -1349,8 +1353,8 @@ static void display_table_frames(struct table *t, int x, int y)
 		if (j < t->y) cy = safe_add(cy, t->r_heights[j]);
 		/*for (cyy = cy1; cyy < cy; cyy++) xxpand_line(t->p, cyy, cx - 1);*/
 	}
-	mem_free(fh);
-	mem_free(fv);
+	free(fh);
+	free(fv);
 }
 
 #ifdef G
@@ -1417,23 +1421,22 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	if (align == AL_NO || align == AL_NO_BREAKABLE || align == AL_BLOCK) align = AL_LEFT;
 	if ((al = get_attr_val(attr, cast_uchar "summary"))) {
 		if (!strcmp(cast_const_char al, "diff")) {
-			mem_free(al);
+			free(al);
 			if ((al = get_attr_val(attr, cast_uchar "class"))) {
 				if (!strcmp(cast_const_char al, "diff")) {
 					format_.attr |= AT_FIXED;
 					par_format.align = AL_NO;
 				}
-				mem_free(al);
+				free(al);
 			}
-		} else {
-			mem_free(al);
-		}
+		} else
+			free(al);
 	}
 	if ((al = get_attr_val(attr, cast_uchar "align"))) {
 		if (!casestrcmp(al, cast_uchar "left")) align = AL_LEFT;
 		if (!casestrcmp(al, cast_uchar "center")) align = AL_CENTER;
 		if (!casestrcmp(al, cast_uchar "right")) align = AL_RIGHT;
-		mem_free(al);
+		free(al);
 	}
 	frame = F_BOX;
 	if ((al = get_attr_val(attr, cast_uchar "frame"))) {
@@ -1446,7 +1449,7 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 		if (!casestrcmp(al, cast_uchar "rhs")) frame = F_RHS;
 		if (!casestrcmp(al, cast_uchar "box")) frame = F_BOX;
 		if (!casestrcmp(al, cast_uchar "border")) frame = F_BOX;
-		mem_free(al);
+		free(al);
 	}
 	rules = border ? R_ALL : R_NONE;
 	if ((al = get_attr_val(attr, cast_uchar "rules"))) {
@@ -1455,7 +1458,7 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 		if (!casestrcmp(al, cast_uchar "rows")) rules = R_ROWS;
 		if (!casestrcmp(al, cast_uchar "cols")) rules = R_COLS;
 		if (!casestrcmp(al, cast_uchar "all")) rules = R_ALL;
-		mem_free(al);
+		free(al);
 	}
 	if (!border) frame = F_VOID;
 	wf = 0;
@@ -1470,7 +1473,7 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 		while (bad_html[i].s < bad_html[i].e && WHITECHAR(bad_html[i].e[-1])) bad_html[i].e--;
 		if (bad_html[i].s < bad_html[i].e) parse_html(bad_html[i].s, bad_html[i].e, put_chars_f, line_break_f, special_f, gf_val((void *)p, (void *)gp), NULL);
 	}
-	mem_free(bad_html);
+	free(bad_html);
 #ifdef G
 	if (F) {
 		t->gp = gp;
@@ -1698,7 +1701,7 @@ static void table_destruct(struct g_object *o_)
 {
 	struct g_object_table *o = get_struct(o_, struct g_object_table, go);
 	free_table(o->t);
-	mem_free(o);
+	free(o);
 }
 
 static void table_get_list(struct g_object *o_, void (*fn)(struct g_object *parent, struct g_object *child))
@@ -1868,8 +1871,8 @@ static void process_g_table(struct g_part *gp, struct table *t)
 		}
 	}
 
-	mem_free(fh);
-	mem_free(fv);
+	free(fh);
+	free(fv);
 
 	o = mem_calloc(sizeof(struct g_object_table));
 	o->go.mouse_event = table_mouse_event;

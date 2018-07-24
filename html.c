@@ -145,7 +145,7 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 		e++;
 		while (*e != uu) {
 			if (!*e) {
-				mem_free(a);
+				free(a);
 				return NULL;
 			}
 			if (!f) {
@@ -173,7 +173,7 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 			d_opt->cp = d_opt->real_cp;
 			a = convert_string(NULL, aa, (int)strlen(cast_const_char aa), d_opt);
 			d_opt->cp = c;
-			mem_free(aa);
+			free(aa);
 		}
 		while ((b = cast_uchar strchr(cast_const_char a, 1))) *b = ' ';
 		if (get_attr_val_nl != 2) {
@@ -191,7 +191,7 @@ int has_attr(unsigned char *e, unsigned char *name)
 {
 	unsigned char *a;
 	if (!(a = get_attr_val(e, name))) return 0;
-	mem_free(a);
+	free(a);
 	return 1;
 }
 
@@ -235,7 +235,7 @@ static unsigned char *get_url_val(unsigned char *e, unsigned char *name)
 		unsigned char *us = encode_utf_8(u);
 		add_to_str(&c, &l, us);
 	}
-	mem_free(a);
+	free(a);
 	return c;
 }
 
@@ -511,7 +511,7 @@ int get_color(unsigned char *a, unsigned char *c, struct rgb *rgb)
 	int r = -1;
 	if (d_opt->col >= 1) if ((at = get_attr_val(a, c))) {
 		r = decode_color(at, rgb);
-		mem_free(at);
+		free(at);
 	}
 	return r;
 }
@@ -538,15 +538,15 @@ void kill_html_stack_item(struct html_element *e)
 		return;
 	}
 	html_format_changed = 1;
-	if (e->attr.fontface) mem_free(e->attr.fontface);
-	if (e->attr.link) mem_free(e->attr.link);
-	if (e->attr.target) mem_free(e->attr.target);
-	if (e->attr.image) mem_free(e->attr.image);
-	if (e->attr.href_base) mem_free(e->attr.href_base);
-	if (e->attr.target_base) mem_free(e->attr.target_base);
-	if (e->attr.select) mem_free(e->attr.select);
+	free(e->attr.fontface);
+	free(e->attr.link);
+	free(e->attr.target);
+	free(e->attr.image);
+	free(e->attr.href_base);
+	free(e->attr.target_base);
+	free(e->attr.select);
 	del_from_list(e);
-	mem_free(e);
+	free(e);
 }
 
 #if defined(DEBUG) && 0
@@ -779,7 +779,7 @@ int get_num(unsigned char *a, unsigned char *n)
 		unsigned char *end;
 		unsigned long s = strtoul(cast_const_char al, (char **)(void *)&end, 10);
 		if (!*al || *end || s > 10000) s = -1;
-		mem_free(al);
+		free(al);
 		return (int)s;
 	}
 	return -1;
@@ -830,7 +830,7 @@ int get_width(unsigned char *a, unsigned char *n, int trunc)
 	unsigned char *w;
 	if (!(w = get_attr_val(a, n))) return -1;
 	r = parse_width(w, trunc);
-	mem_free(w);
+	free(w);
 	return r;
 }
 
@@ -863,8 +863,10 @@ static void put_link_line(unsigned char *prefix, unsigned char *linkname, unsign
 		return;
 	html_stack_dup();
 	ln_break(1);
-	if (format_.link) mem_free(format_.link), format_.link = NULL;
-	if (format_.target) mem_free(format_.target), format_.target = NULL;
+	free(format_.link);
+	format_.link = NULL;
+	free(format_.target);
+	format_.target = NULL;
 	format_.form = NULL;
 	put_chrs(prefix, (int)strlen(cast_const_char prefix));
 	html_format_changed = 1;
@@ -888,7 +890,7 @@ static void html_span(unsigned char *a)
 			par_format.align = AL_NO;
 		}
 
-		mem_free(al);
+		free(al);
 	}
 }
 
@@ -929,14 +931,14 @@ static void html_a(unsigned char *a)
 		unsigned char *all = al;
 		while (all[0] == ' ') all++;
 		while (all[0] && all[strlen(cast_const_char all) - 1] == ' ') all[strlen(cast_const_char all) - 1] = 0;
-		if (format_.link) mem_free(format_.link);
+		free(format_.link);
 		format_.link = join_urls(format_.href_base, all);
-		mem_free(al);
+		free(al);
 		if ((al = get_target(a))) {
-			if (format_.target) mem_free(format_.target);
+			free(format_.target);
 			format_.target = al;
 		} else {
-			if (format_.target) mem_free(format_.target);
+			free(format_.target);
 			format_.target = stracpy(format_.target_base);
 		}
 		/*format_.attr ^= AT_BOLD;*/
@@ -945,7 +947,7 @@ static void html_a(unsigned char *a)
 		kill_html_stack_item(&html_top);
 	if ((al = get_attr_val(a, cast_uchar "name"))) {
 		special_f(ff, SP_TAG, al);
-		mem_free(al);
+		free(al);
 	}
 }
 
@@ -959,7 +961,7 @@ static void html_a_special(unsigned char *a, unsigned char *next, unsigned char 
 	t = get_attr_val(a, cast_uchar "title");
 	if (!t) return;
 	put_chrs(t, (int)strlen(cast_const_char t));
-	mem_free(t);
+	free(t);
 }
 
 static void html_sub(unsigned char *a)
@@ -995,7 +997,7 @@ static void html_font(unsigned char *a)
 			if (format_.fontsize < 1) format_.fontsize = 1;
 			if (format_.fontsize > 7) format_.fontsize = 7;
 		}
-		mem_free(al);
+		free(al);
 	}
 	get_color(a, cast_uchar "color", &format_.fg);
 }
@@ -1004,7 +1006,7 @@ static unsigned char *get_url_val_nonempty(unsigned char *a, unsigned char *name
 {
 	unsigned char *v = get_url_val(a, name);
 	if (v && !*v) {
-		mem_free(v);
+		free(v);
 		v = NULL;
 	}
 	return v;
@@ -1021,17 +1023,18 @@ static void html_img(unsigned char *a)
 		unsigned char *u;
 		usemap = 1;
 		html_stack_dup();
-		if (format_.link) mem_free(format_.link);
-		if (format_.form) format_.form = NULL;
+		free(format_.link);
+		format_.form = NULL;
 		u = join_urls(*al == '#' ? top_href_base() : format_.href_base, al);
 		format_.link = stracpy(cast_uchar "MAP@");
 		add_to_strn(&format_.link, u);
 		format_.attr |= AT_BOLD;
-		mem_free(u);
-		mem_free(al);
+		free(u);
+		free(al);
 	}
 	ismap = format_.link && (F || !has_attr(a, cast_uchar "usemap")) && has_attr(a, cast_uchar "ismap");
-	if (format_.image) mem_free(format_.image), format_.image = NULL;
+	free(format_.image);
+	format_.image = NULL;
 	if (
 		(s = get_url_val_nonempty(a, cast_uchar "data-full")) ||
 		(s = get_url_val_nonempty(a, cast_uchar "data-normal")) ||
@@ -1053,7 +1056,7 @@ static void html_img(unsigned char *a)
 	}
 	if (!F || !d_opt->display_images) {
 		if ((!(al = get_attr_val(a, cast_uchar "alt")) && !(al = get_attr_val(a, cast_uchar "title"))) || !*al) {
-			if (al) mem_free(al);
+			free(al);
 			if (!d_opt->images && !format_.link) goto ret;
 			if (d_opt->image_names && s) {
 				unsigned char *ss;
@@ -1074,14 +1077,14 @@ static void html_img(unsigned char *a)
 				html_stack_dup();
 				h = stracpy(format_.link);
 				add_to_strn(&h, cast_uchar "?0,0");
-				mem_free(format_.link);
+				free(format_.link);
 				format_.link = h;
 			}
 			html_format_changed = 1;
 			put_chrs(al, (int)strlen(cast_const_char al));
 			if (ismap) kill_html_stack_item(&html_top);
 		}
-		mem_free(al);
+		free(al);
 #ifdef G
 	} else {
 		struct image_description i;
@@ -1096,7 +1099,7 @@ static void html_img(unsigned char *a)
 			if (!casestrcmp(al, cast_uchar "bottom")) aa = AL_BOTTOM;
 			if (!casestrcmp(al, cast_uchar "middle")) aa = AL_MIDDLE;
 			if (!casestrcmp(al, cast_uchar "top")) aa = AL_TOP;
-			mem_free(al);
+			free(al);
 		}
 
 		if (aa == AL_LEFT || aa == AL_RIGHT || aa == AL_CENTER) {
@@ -1111,7 +1114,7 @@ static void html_img(unsigned char *a)
 			html_stack_dup();
 			h = stracpy(format_.link);
 			add_to_strn(&h, cast_uchar "?0,0");
-			mem_free(format_.link);
+			free(format_.link);
 			format_.link = h;
 		}
 
@@ -1146,13 +1149,16 @@ static void html_img(unsigned char *a)
 		i.ismap = ismap;
 		if ((u = get_url_val(a, cast_uchar "usemap"))) {
 			i.usemap = join_urls(*u == '#' ? top_href_base() : format_.href_base, u);
-			mem_free(u);
+			free(u);
 		}
-		if (i.url) special_f(ff, SP_IMAGE, &i), mem_free(i.url);
-		if (i.usemap) mem_free(i.usemap);
-		if (i.name) mem_free(i.name);
-		if (i.alt) mem_free(i.alt);
-		if (i.src) mem_free(i.src);
+		if (i.url) {
+			special_f(ff, SP_IMAGE, &i);
+			free(i.url);
+		}
+		free(i.usemap);
+		free(i.name);
+		free(i.alt);
+		free(i.src);
 		line_breax = 0;
 		if (ismap) kill_html_stack_item(&html_top);
 		if (aa == AL_LEFT || aa == AL_RIGHT || aa == AL_CENTER) {
@@ -1164,11 +1170,12 @@ static void html_img(unsigned char *a)
 #endif
 	}
 	ret:
-	if (format_.image) mem_free(format_.image), format_.image = NULL;
+	free(format_.image);
+	format_.image = NULL;
 	html_format_changed = 1;
 	if (usemap) kill_html_stack_item(&html_top);
 	/*put_chrs(cast_uchar " ", 1);*/
-	if (orig_link) mem_free(orig_link);
+	free(orig_link);
 }
 
 static void html_obj(unsigned char *a, int obj)
@@ -1184,8 +1191,8 @@ static void html_obj(unsigned char *a, int obj)
 		if (url) {
 			unsigned char *ju = join_urls(format_.href_base, url);
 			type = get_content_type(NULL, ju);
-			mem_free(url);
-			mem_free(ju);
+			free(url);
+			free(ju);
 		}
 	}
 	if (type && known_image_type(type)) {
@@ -1195,10 +1202,13 @@ static void html_obj(unsigned char *a, int obj)
 	}
 	url = get_url_val(a, cast_uchar "src");
 	if (!url) url = get_url_val(a, cast_uchar "data");
-	if (url) put_link_line(cast_uchar "", !obj ? cast_uchar "[EMBED]" : cast_uchar "[OBJ]", url, cast_uchar ""), mem_free(url);
+	if (url) {
+		put_link_line(cast_uchar "", !obj ? cast_uchar "[EMBED]" : cast_uchar "[OBJ]", url, cast_uchar "");
+		free(url);
+	}
 	ret:
-	if (base) mem_free(format_.href_base), format_.href_base = old_base, mem_free(base);
-	if (type) mem_free(type);
+	if (base) free(format_.href_base), format_.href_base = old_base, free(base);
+	free(type);
 }
 
 static void html_embed(unsigned char *a)
@@ -1245,7 +1255,7 @@ static void html_script(unsigned char *a)
 	unsigned char *s;
 	s = get_url_val(a, cast_uchar "src");
 	special_f(ff, SP_SCRIPT, s);
-	if (s) mem_free(s);
+	free(s);
 	if (should_skip_script(a)) {
 		html_top.dontkill = 1;
 		html_top.invisible = INVISIBLE_SCRIPT;
@@ -1280,7 +1290,7 @@ static void html_linebrk(unsigned char *a)
 			if (!table_level && !F) par_format.leftmargin = par_format.rightmargin = 0;
 		}
 		if (!casestrcmp(al, cast_uchar "justify")) par_format.align = AL_BLOCK;
-		mem_free(al);
+		free(al);
 	}
 }
 
@@ -1368,7 +1378,7 @@ static void html_pre(unsigned char *a)
 	if ((cl = get_attr_val(a, cast_uchar "class"))) {
 		if (strstr(cast_const_char cl, "bz_comment"))	/* hack */
 			par_format.align = AL_NO_BREAKABLE;
-		mem_free(cl);
+		free(cl);
 	}
 }
 
@@ -1386,7 +1396,7 @@ static void html_div(unsigned char *a)
 			format_.attr |= AT_FIXED;
 			par_format.align = AL_NO_BREAKABLE;
 		}
-		mem_free(al);
+		free(al);
 	}
 	html_linebrk(a);
 }
@@ -1397,7 +1407,8 @@ static void html_hr(unsigned char *a)
 	int q = get_num(a, cast_uchar "size");
 	html_stack_dup();
 	par_format.align = AL_CENTER;
-	if (format_.link) mem_free(format_.link), format_.link = NULL;
+	free(format_.link);
+	format_.link = NULL;
 	format_.form = NULL;
 	html_linebrk(a);
 	if (par_format.align == AL_BLOCK) par_format.align = AL_CENTER;
@@ -1461,13 +1472,13 @@ static void html_base(unsigned char *a)
 {
 	unsigned char *al;
 	if ((al = get_url_val(a, cast_uchar "href"))) {
-		if (format_.href_base) mem_free(format_.href_base);
+		free(format_.href_base);
 		format_.href_base = join_urls(top_href_base(), al);
 		special_f(ff, SP_SET_BASE, format_.href_base);
-		mem_free(al);
+		free(al);
 	}
 	if ((al = get_target(a))) {
-		if (format_.target_base) mem_free(format_.target_base);
+		free(format_.target_base);
 		format_.target_base = al;
 	}
 }
@@ -1483,7 +1494,7 @@ static void html_ul(unsigned char *a)
 		if (!casestrcmp(al, cast_uchar "disc") ||
 		    !casestrcmp(al, cast_uchar "circle")) par_format.flags = P_O;
 		if (!casestrcmp(al, cast_uchar "square")) par_format.flags = P_PLUS;
-		mem_free(al);
+		free(al);
 	}
 	if ((par_format.leftmargin += 2 + (par_format.list_level > 1)) > par_format.width * 2 / 3 && !table_level)
 		par_format.leftmargin = par_format.width * 2 / 3;
@@ -1508,7 +1519,7 @@ static void html_ol(unsigned char *a)
 		if (!strcmp(cast_const_char al, "R")) par_format.flags = P_ROMAN;
 		if (!strcmp(cast_const_char al, "i")) par_format.flags = P_roman;
 		if (!strcmp(cast_const_char al, "I")) par_format.flags = P_ROMAN;
-		mem_free(al);
+		free(al);
 	}
 	if (!F) if ((par_format.leftmargin += (par_format.list_level > 1)) > par_format.width * 2 / 3 && !table_level)
 		par_format.leftmargin = par_format.width * 2 / 3;
@@ -1606,17 +1617,17 @@ static void get_html_form(unsigned char *a, struct form *form)
 			if ((ax = get_attr_val(a, cast_uchar "enctype"))) {
 				if (!casestrcmp(ax, cast_uchar "multipart/form-data"))
 					form->method = FM_POST_MP;
-				mem_free(ax);
+				free(ax);
 			}
 		}
-		mem_free(al);
+		free(al);
 	}
 	if ((al = get_url_val(a, cast_uchar "action"))) {
 		unsigned char *all = al;
 		while (all[0] == ' ') all++;
 		while (all[0] && all[strlen(cast_const_char all) - 1] == ' ') all[strlen(cast_const_char all) - 1] = 0;
 		form->action = join_urls(format_.href_base, all);
-		mem_free(al);
+		free(al);
 	} else {
 		if ((ch = cast_uchar strchr(cast_const_char(form->action = stracpy(format_.href_base)), POST_CHAR))) *ch = 0;
 		if (form->method == FM_GET && (ch = cast_uchar strchr(cast_const_char form->action, '?'))) *ch = 0;
@@ -1641,10 +1652,10 @@ static void find_form_for_input(unsigned char *i)
 {
 	unsigned char *s, *ss, *name, *attr, *lf, *la;
 	int namelen;
-	if (form.action) mem_free(form.action);
-	if (form.target) mem_free(form.target);
-	if (form.form_name) mem_free(form.form_name);
-	if (form.onsubmit) mem_free(form.onsubmit);
+	free(form.action);
+	free(form.target);
+	free(form.form_name);
+	free(form.onsubmit);
 	memset(&form, 0, sizeof(struct form));
 	if (!special_f(ff, SP_USED, NULL)) return;
 	if (last_form_tag && last_input_tag && i <= last_input_tag && i > last_form_tag) {
@@ -1699,11 +1710,11 @@ static void html_button(unsigned char *a)
 	else if (!casestrcmp(al, cast_uchar "reset")) fc->type = FC_RESET;
 	else if (!casestrcmp(al, cast_uchar "button")) fc->type = FC_BUTTON;
 	else {
-		mem_free(al);
-		mem_free(fc);
+		free(al);
+		free(fc);
 		return;
 	}
-	mem_free(al);
+	free(al);
 	xxx:
 	fc->form_num = last_form_tag ? (int)(last_form_tag - startf) : 0;
 	fc->ctrl_num = last_form_tag ? (int)(a - last_form_tag) : (int)(a - startf);
@@ -1795,7 +1806,7 @@ static void html_input(unsigned char *a)
 	else if (!casestrcmp(al, cast_uchar "image")) fc->type = FC_IMAGE;
 	else if (!casestrcmp(al, cast_uchar "button")) fc->type = FC_BUTTON;
 	else fc->type = FC_TEXT;
-	mem_free(al);
+	free(al);
 	xxx:
 	fc->form_num = last_form_tag ? (int)(last_form_tag - startf) : 0;
 	fc->ctrl_num = last_form_tag ? (int)(a - last_form_tag) : (int)(a - startf);
@@ -1850,10 +1861,11 @@ static void html_input(unsigned char *a)
 			break;
 		case FC_IMAGE:
 			if (!F || !d_opt->display_images) {
-				if (format_.image) mem_free(format_.image), format_.image = NULL;
+				free(format_.image);
+				format_.image = NULL;
 				if ((al = get_url_val(a, cast_uchar "src")) || (al = get_url_val(a, cast_uchar "dynsrc"))) {
 					format_.image = join_urls(format_.href_base, al);
-					mem_free(al);
+					free(al);
 				}
 				format_.attr |= AT_BOLD | AT_FIXED;
 				put_chrs(cast_uchar "[&nbsp;", 7);
@@ -1893,7 +1905,7 @@ static void html_select(unsigned char *a)
 	unsigned char *al;
 	if (!(al = get_attr_val(a, cast_uchar "name"))) return;
 	html_top.dontkill = 1;
-	if (format_.select) mem_free(format_.select);
+	free(format_.select);
 	format_.select = al;
 	format_.select_disabled = 2 * has_attr(a, cast_uchar "disabled");
 }
@@ -1985,7 +1997,10 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 	struct menu_item *top, *item, *nmenu = NULL; /* no uninitialized warnings */
 	if (name) {
 		clr_spaces(name, 1);
-		if (!name[0]) mem_free(name), name = stracpy(cast_uchar " ");
+		if (!name[0]) {
+			mem_free(name);
+			name = stracpy(cast_uchar " ");
+		}
 		if (name[0] == 1) name[0] = ' ';
 	}
 	if (name && data == -1) {
@@ -2014,7 +2029,8 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 		item++;
 		memset(item, 0, sizeof(struct menu_item));
 		/*item->text = cast_uchar "";*/
-	} else if (name) mem_free(name);
+	} else
+		free(name);
 	if (name && data == -1) {
 		if ((unsigned)menu_stack_size > MAXINT / sizeof(struct menu_item *) - 1) overalloc();
 		menu_stack = mem_realloc(menu_stack, (menu_stack_size + 1) * sizeof(struct menu_item *));
@@ -2034,10 +2050,10 @@ void free_menu(struct menu_item *m) /* Grrr. Recursion */
 {
 	struct menu_item *mm;
 	for (mm = m; mm->text; mm++) {
-		mem_free(mm->text);
+		free(mm->text);
 		if (mm->func == do_select_submenu) free_menu(mm->data);
 	}
-	mem_free(m);
+	free(m);
 }
 
 static struct menu_item *detach_menu(void)
@@ -2045,7 +2061,7 @@ static struct menu_item *detach_menu(void)
 	struct menu_item *i = NULL;
 	if (menu_stack) {
 		if (menu_stack_size) i = menu_stack[0];
-		mem_free(menu_stack);
+		free(menu_stack);
 	}
 	return i;
 }
@@ -2066,7 +2082,7 @@ static void menu_labels(struct menu_item *m, unsigned char *base, unsigned char 
 				add_to_strn(&bs, m->text);
 				add_to_strn(&bs, cast_uchar " ");
 				menu_labels(m->data, bs, lbls);
-				mem_free(bs);
+				free(bs);
 			}
 		} else {
 			if ((bs = stracpy(m->hotkey[1] ? (unsigned char *)"" : base))) add_to_strn(&bs, m->text);
@@ -2128,10 +2144,11 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		int i;
 		abort:
 		*end = html;
-		if (lbl) mem_free(lbl);
-		if (vlbl) mem_free(vlbl);
-		for (i = 0; i < order; i++) if (val[i]) mem_free(val[i]);
-		mem_free(val);
+		free(lbl);
+		free(vlbl);
+		for (i = 0; i < order; i++)
+			free(val[i]);
+		free(val);
 		destroy_menu();
 		*end = en;
 		return 0;
@@ -2142,7 +2159,10 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		while (l && WHITECHAR(s[0])) s++, l--;
 		while (l && WHITECHAR(s[l-1])) l--;
 		q = convert_string(ct, s, l, d_opt);
-		if (q) add_to_str(&lbl, &lbl_l, q), mem_free(q);
+		if (q) {
+			add_to_str(&lbl, &lbl_l, q);
+			free(q);
+		}
 		add_bytes_to_str(&vlbl, &vlbl_l, s, l);
 	}
 	if (html + 2 <= eof && (html[1] == '!' || html[1] == '?')) {
@@ -2157,8 +2177,12 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
 			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else mem_free(lbl), lbl = NULL;
-			mem_free(vlbl), vlbl = NULL;
+			else {
+				free(lbl);
+				lbl = NULL;
+			}
+			free(vlbl);
+			vlbl = NULL;
 		}
 		goto end_parse;
 	}
@@ -2166,8 +2190,12 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
 			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else mem_free(lbl), lbl = NULL;
-			mem_free(vlbl), vlbl = NULL;
+			else {
+				free(lbl);
+				lbl = NULL;
+			}
+			free(vlbl);
+			vlbl = NULL;
 		}
 		goto see;
 	}
@@ -2176,8 +2204,12 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
 			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else mem_free(lbl), lbl = NULL;
-			mem_free(vlbl), vlbl = NULL;
+			else {
+				free(lbl);
+				lbl = NULL;
+			}
+			free(vlbl);
+			vlbl = NULL;
 		}
 		if (has_attr(t_attr, cast_uchar "disabled")) goto see;
 		if (preselect == -1 && has_attr(t_attr, cast_uchar "selected")) preselect = order;
@@ -2189,7 +2221,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		val[order++] = v;
 		if ((vx = get_attr_val(t_attr, cast_uchar "label"))) {
 			new_menu_item(convert_string(ct, vx, (int)strlen(cast_const_char vx), d_opt), order - 1, 0);
-			mem_free(vx);
+			free(vx);
 		}
 		if (!v || !vx) {
 			lbl = init_str(), lbl_l = 0;
@@ -2202,8 +2234,12 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
 			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else mem_free(lbl), lbl = NULL;
-			mem_free(vlbl), vlbl = NULL;
+			else {
+				free(lbl);
+				lbl = NULL;
+			}
+			free(vlbl);
+			vlbl = NULL;
 		}
 		if (group) new_menu_item(NULL, -1, 0), group = 0;
 	}
@@ -2211,7 +2247,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		unsigned char *la;
 		if (!(la = get_attr_val(t_attr, cast_uchar "label"))) la = stracpy(cast_uchar "");
 		new_menu_item(convert_string(ct, la, (int)strlen(cast_const_char la), d_opt), -1, 0);
-		mem_free(la);
+		free(la);
 		group = 1;
 	}
 	goto see;
@@ -2317,7 +2353,7 @@ static void do_html_textarea(unsigned char *attr, unsigned char *html, unsigned 
 	if ((w = get_attr_val(attr, cast_uchar "wrap"))) {
 		if (!casestrcmp(w, cast_uchar "hard") || !casestrcmp(w, cast_uchar "physical")) fc->wrap = 2;
 		else if (!casestrcmp(w, cast_uchar "off")) fc->wrap = 0;
-		mem_free(w);
+		free(w);
 	}
 	if ((fc->maxlength = get_num(attr, cast_uchar "maxlength")) == -1) fc->maxlength = MAXINT / 4;
 	if (rows > 1) ln_break(1);
@@ -2348,9 +2384,9 @@ static void html_iframe(unsigned char *a)
 	if (!(name = get_attr_val(a, cast_uchar "name"))) name = stracpy(cast_uchar "");
 	if (*name) put_link_line(cast_uchar "IFrame: ", name, url, d_opt->framename);
 	else put_link_line(cast_uchar "", cast_uchar "IFrame", url, d_opt->framename);
-	mem_free(name);
+	free(name);
 	free_url_ret:
-	mem_free(url);
+	free(url);
 }
 
 static void html_noframes(unsigned char *a)
@@ -2365,11 +2401,13 @@ static void html_frame(unsigned char *a)
 		url = stracpy(cast_uchar "");
 	} else {
 		url = join_urls(format_.href_base, u2);
-		mem_free(u2);
+		free(u2);
 	}
 	name = get_attr_val(a, cast_uchar "name");
-	if (name && !name[0])
-		mem_free(name), name = NULL;
+	if (!name[0]) {
+		free(name);
+		name = NULL;
+	}
 	if (!name) {
 		name = get_attr_val(a, cast_uchar "src");
 		if (!name)
@@ -2390,12 +2428,12 @@ static void html_frame(unsigned char *a)
 				fp.scrolling = SCROLLING_NO;
 			else if (!casestrcmp(scroll, cast_uchar "yes"))
 				fp.scrolling = SCROLLING_YES;
-			mem_free(scroll);
+			free(scroll);
 		}
 		if (special_f(ff, SP_USED, NULL)) special_f(ff, SP_FRAME, &fp);
 	}
-	mem_free(name);
-	mem_free(url);
+	free(name);
+	free(url);
 }
 
 static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int *olp)
@@ -2479,7 +2517,7 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 			q = 0;
 			/*internal("parse_frame_widths: q > 0"); may happen when page contains too big values */
 		}
-		mem_free(oo);
+		free(oo);
 	}
 	for (i = 0; i < ol; i++) if (!o[i]) {
 		int j;
@@ -2513,11 +2551,11 @@ static void html_frameset(unsigned char *a)
 	if (fp.x && fp.y) {
 		html_top.frameset = special_f(ff, SP_FRAMESET, &fp);
 	}
-	mem_free(fp.xw);
-	mem_free(fp.yw);
+	free(fp.xw);
+	free(fp.yw);
 	free_cd:
-	mem_free(c);
-	mem_free(d);
+	free(c);
+	free(d);
 }
 
 /*static void html_frameset(unsigned char *a)
@@ -2553,9 +2591,9 @@ static void html_frameset(unsigned char *a)
 	}
 	fp->parent = html_top.frameset;
 	if (fp->n) html_top.frameset = special_f(ff, SP_FRAMESET, fp);
-	mem_free(fp);
+	free(fp);
 	f:
-	mem_free(c);
+	free(c);
 }*/
 
 static void html_meta(unsigned char *a)
@@ -2567,10 +2605,10 @@ static void html_meta(unsigned char *a)
 			if (host) {
 				if (strstr(cast_const_char host, "instagram."))
 					html_img(a);
-				mem_free(host);
+				free(host);
 			}
 		}
-		mem_free(prop);
+		free(prop);
 	}
 }
 
@@ -2579,10 +2617,10 @@ static void html_link(unsigned char *a)
 	unsigned char *name, *url, *title;
 	if ((name = get_attr_val(a, cast_uchar "type"))) {
 		if (casestrcmp(name, cast_uchar "text/html")) {
-			mem_free(name);
+			free(name);
 			return;
 		}
-		mem_free(name);
+		free(name);
 	}
 	if (!(url = get_url_val(a, cast_uchar "href"))) return;
 	if (!(name = get_attr_val(a, cast_uchar "rel")))
@@ -2593,7 +2631,7 @@ static void html_link(unsigned char *a)
 		if ((lang = get_attr_val(a, cast_uchar "hreflang"))) {
 			add_to_strn(&name, cast_uchar " ");
 			add_to_strn(&name, lang);
-			mem_free(lang);
+			free(lang);
 		}
 	}
 	if (!name) {
@@ -2626,26 +2664,26 @@ static void html_link(unsigned char *a)
 	    !casestrcmp(name, cast_uchar "preload")) {
 		unsigned char *pre_url = join_urls(format_.href_base, url);
 		if (!dmp) load_url(pre_url, format_.href_base, NULL, PRI_PRELOAD, NC_ALWAYS_CACHE, 0, 0, 0);
-		mem_free(pre_url);
+		free(pre_url);
 		goto skip;
 	}
 	if (!casestrcmp(name, cast_uchar "dns-prefetch")) {
 		unsigned char *pre_url, *host;
 		pre_url = join_urls(format_.href_base, url);
 		host = get_host_name(pre_url);
-		mem_free(pre_url);
-		mem_free(host);
+		free(pre_url);
+		free(host);
 		goto skip;
 	}
 	if ((title = get_attr_val(a, cast_uchar "title"))) {
 		if (*name) add_to_strn(&name, cast_uchar ": ");
 		add_to_strn(&name, title);
-		mem_free(title);
+		free(title);
 	}
 	put_link_line(cast_uchar "Link: ", name, url, format_.target_base);
 	skip:
-	mem_free(name);
-	mem_free(url);
+	free(name);
+	free(url);
 }
 
 struct element_info {
@@ -2767,7 +2805,7 @@ static void process_head(unsigned char *head)
 		if (!d_opt->auto_refresh) {
 			if ((p = parse_header_param(r, cast_uchar "URL", 0)) || (p = parse_header_param(r, cast_uchar "", 0))) {
 				put_link_line(cast_uchar "Refresh: ", p, p, d_opt->framename);
-				mem_free(p);
+				free(p);
 			}
 		} else {
 			rp.url = parse_header_param(r, cast_uchar "URL", 0);
@@ -2775,9 +2813,9 @@ static void process_head(unsigned char *head)
 			rp.time = atoi(cast_const_char r);
 			if (rp.time < 1) rp.time = 1;
 			special_f(ff, SP_REFRESH, &rp);
-			if (rp.url) mem_free(rp.url);
+			free(rp.url);
 		}
-		mem_free(r);
+		free(r);
 	}
 }
 
@@ -2961,7 +2999,7 @@ do {					\
 				ln_break(ei->linebreak);
 				if ((a = get_attr_val(attr, cast_uchar "id"))) {
 					special(f, SP_TAG, a);
-					mem_free(a);
+					free(a);
 				}
 				if ((a = get_attr_val(attr, cast_uchar "style"))) {
 					unsigned char *d, *s;
@@ -2971,14 +3009,14 @@ do {					\
 						if (aa) {
 							if (!casestrcmp(aa, cast_uchar "hidden"))
 								noskip = 1;
-							mem_free(aa);
+							free(aa);
 						}
 					}
 
 					for (d = s = a; *s; s++) if (*s > ' ') *d++ = *s;
 					*d = 0;
 					display_none |= !casecmp(a, cast_uchar "display:none", 12) && !noskip;
-					mem_free(a);
+					free(a);
 				}
 				if (display_none) {
 					if (ei->nopair == 1) goto set_lt;
@@ -3079,7 +3117,7 @@ do {					\
 		if (!inv) {
 			if ((a = get_attr_val(attr, cast_uchar "id"))) {
 				special(f, SP_TAG, a);
-				mem_free(a);
+				free(a);
 			}
 		}
 		goto set_lt;
@@ -3117,7 +3155,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	scan_http_equiv(s, eof, &hd, &hdl, NULL, NULL, NULL, NULL, NULL);
 	if (!gfx) ct = get_convert_table(hd, to, def, NULL, NULL, hdef);
 	else ct = convert_table;
-	mem_free(hd);
+	free(hd);
 	*menu = mem_calloc(sizeof(struct menu_item));
 	se:
 	while (s < eof && *s != '<') {
@@ -3125,7 +3163,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		s++;
 	}
 	if (s >= eof) {
-		mem_free(*menu);
+		free(*menu);
 		return -1;
 	}
 	if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
@@ -3137,10 +3175,10 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	if (tag && *tag) {
 		if (!(al = get_attr_val(attr, cast_uchar "name"))) goto se;
 		if (casestrcmp(al, tag)) {
-			mem_free(al);
+			free(al);
 			goto se;
 		}
-		mem_free(al);
+		free(al);
 	}
 	*ml = getml(NULL);
 	se2:
@@ -3150,7 +3188,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	}
 	if (s >= eof) {
 		freeml(*ml);
-		mem_free(*menu);
+		free(*menu);
 		return -1;
 	}
 	if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
@@ -3167,9 +3205,9 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		se4:
 		while (ss < eof && *ss != '<') ss++;
 		if (ss >= eof) {
-			mem_free(label);
+			free(label);
 			freeml(*ml);
-			mem_free(*menu);
+			free(*menu);
 			return -1;
 		}
 		add_bytes_to_str(&label, &lblen, s, ss - s);
@@ -3193,8 +3231,11 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		}
 	} else if (namelen == 4 && !casecmp(name, cast_uchar "AREA", 4)) {
 		unsigned char *l = get_attr_val(attr, cast_uchar "alt");
-		if (l) label = !gfx ? convert_string(ct, l, (int)strlen(cast_const_char l), d_opt) : stracpy(l), mem_free(l);
-		else label = NULL;
+		if (l) {
+			label = !gfx ? convert_string(ct, l, (int)strlen(cast_const_char l), d_opt) : stracpy(l);
+			free(l);
+		} else
+			label = NULL;
 	} else if (namelen == 4 && !casecmp(name, cast_uchar "/MAP", 4)) goto done;
 	else goto se2;
 	href = get_url_val(attr, cast_uchar "href");
@@ -3203,7 +3244,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	ld = mem_calloc(sizeof(struct link_def));
 	if (href) {
 		ld->link = join_urls(href_base, href);
-		mem_free(href);
+		free(href);
 	}
 	ld->target = target;
 
@@ -3220,25 +3261,52 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	scan_area_tag(attr, cast_uchar "onmousemove", &ld->onmousemove, ml);
 
 	if (label) clr_spaces(label, 1);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	ld->label = label;
 	if (!label) label = stracpy(ld->link);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) label = stracpy(ld->onclick);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label && !gfx) goto se2;
 	if (!label) label = stracpy(ld->onmousedown);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) label = stracpy(ld->onmouseup);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) label = stracpy(ld->ondblclick);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) label = stracpy(ld->onmouseover);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) label = stracpy(ld->onmouseout);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) label = stracpy(ld->onmousemove);
-	if (label && !*label) mem_free(label), label = NULL;
+	if (!*label) {
+		free(label);
+		label = NULL;
+	}
 	if (!label) goto se2;
 	add_to_ml(ml, label, NULL);
 
@@ -3326,13 +3394,17 @@ void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 		add_to_str(head, hdl, cast_uchar "Charset: ");
 		add_to_str(head, hdl, he);
 		add_to_str(head, hdl, cast_uchar "\r\n");
-		mem_free(he);
+		free(he);
 	}
 	if (!(he = get_attr_val(attr, cast_uchar "http-equiv"))) goto se;
 	c = get_attr_val(attr, cast_uchar "content");
 	add_to_str(head, hdl, he);
-	if (c) add_to_str(head, hdl, cast_uchar ": "), add_to_str(head, hdl, c), mem_free(c);
-	mem_free(he);
+	if (c) {
+		add_to_str(head, hdl, cast_uchar ": ");
+		add_to_str(head, hdl, c); 
+		free(c);
+	}
+	free(he);
 	add_to_str(head, hdl, cast_uchar "\r\n");
 	goto se;
 }
