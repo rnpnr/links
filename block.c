@@ -55,8 +55,8 @@ static void block_delete_item(struct list *data)
 	/*Destructor */
 	struct block *del = get_struct(data, struct block, head);
 	if (del->head.list_entry.next) del_from_list(&del->head);
-	mem_free(del->url);
-	mem_free(del);
+	free(del->url);
+	free(del);
 }
 
 static void block_copy_item(struct list *in, struct list *out)
@@ -65,7 +65,7 @@ static void block_copy_item(struct list *in, struct list *out)
 	struct block *item_in = get_struct(in, struct block, head);
 	struct block *item_out = get_struct(out, struct block, head);
 
-	mem_free(item_out->url);
+	free(item_out->url);
 	item_out->url = stracpy(item_in->url);
 }
 
@@ -82,7 +82,7 @@ static unsigned char *block_type_item(struct terminal *term, struct list *data, 
 
 	/*I have no idea what this does, but it os copied from working code in types.c*/
 	txt1 = convert(blocks_ld.codepage, term_charset(term), txt, NULL);
-	mem_free(txt);
+	free(txt);
 
 	return txt1;
 }
@@ -99,7 +99,7 @@ static void block_edit_abort(struct dialog_data *data)
 	struct block *item = (struct block *)data->dlg->udata;
 	struct dialog *dlg = data->dlg;
 
-	mem_free(dlg->udata2);
+	free(dlg->udata2);
 	if (item) block_delete_item(&item->head);
 }
 
@@ -117,7 +117,7 @@ static void block_edit_done(void *data)
 	url = (unsigned char *)&d->items[4];
 
 	txt = convert(term_charset(s->dlg->win->term), blocks_ld.codepage, url, NULL);
-	mem_free(item->url);
+	free(item->url);
 	item->url = txt;
 
 	s->fn(s->dlg, s->data, &item->head, &blocks_ld);
@@ -179,7 +179,7 @@ static void block_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	url = (unsigned char *)&d->items[4];
 	txt = convert(blocks_ld.codepage, term_charset(dlg->win->term), neww->url, NULL);
 	safe_strncpy(url, txt, MAX_STR_LEN);
-	mem_free(txt);
+	free(txt);
 
 	/* Create the dialog */
 	s = xmalloc(sizeof(struct assoc_ok_struct));
@@ -272,7 +272,7 @@ void *block_url_add(void *ses_, unsigned char *url)
 	new_list = block_new_item(0);
 	new_b = get_struct(new_list, struct block, head);
 
-	mem_free(new_b->url);
+	free(new_b->url);
 	new_b->url = stracpy(url);
 	new_b->head.type = 0;
 
@@ -347,10 +347,10 @@ void free_blocks(void)
 
 	foreach(struct list, b, lb, blocks.list_entry) {
 		struct block *bm = get_struct(b, struct block, head);
-		mem_free(bm->url);
+		free(bm->url);
 		lb = lb->prev;
 		del_from_list(b);
-		mem_free(bm);
+		free(bm);
 	}
 
 	free_history(block_search_histroy);

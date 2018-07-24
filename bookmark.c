@@ -88,11 +88,11 @@ static void free_bookmarks(void)
 
 	foreach(struct list, b, lb, bookmarks.list_entry) {
 		struct bookmark_list *bm = get_struct(b, struct bookmark_list, head);
-		mem_free(bm->title);
-		mem_free(bm->url);
+		free(bm->title);
+		free(bm->url);
 		lb = lb->prev;
 		del_from_list(b);
-		mem_free(bm);
+		free(bm);
 	}
 }
 
@@ -136,7 +136,7 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 		clr_white(zelena->title);
 	}
 
-	mem_free(txt);
+	free(txt);
 
 	return zelena;
 }
@@ -150,9 +150,9 @@ static void bookmark_copy_item(struct list *in, struct list *out)
 	item_out->head.type = item_in->head.type;
 	item_out->head.depth = item_in->head.depth;
 
-	mem_free(item_out->title);
+	free(item_out->title);
 	item_out->title = stracpy(item_in->title);
-	mem_free(item_out->url);
+	free(item_out->url);
 	item_out->url = stracpy(item_in->url);
 }
 
@@ -221,11 +221,11 @@ static void bookmark_edit_done(void *data)
 	title = (unsigned char *)&d->items[a];
 	url = title + MAX_STR_LEN;
 
-	mem_free(item->title);
+	free(item->title);
 	item->title = convert(term_charset(s->dlg->win->term), bookmark_ld.codepage, title, NULL);
 	clr_white(item->title);
 
-	mem_free(item->url);
+	free(item->url);
 	item->url = convert(term_charset(s->dlg->win->term), bookmark_ld.codepage, url, NULL);
 	clr_white(item->url);
 
@@ -240,7 +240,7 @@ static void bookmark_edit_abort(struct dialog_data *data)
 	struct bookmark_list *item = (struct bookmark_list *)data->dlg->udata;
 	struct dialog *dlg = data->dlg;
 
-	mem_free(dlg->udata2);
+	free(dlg->udata2);
 	if (item) bookmark_delete_item(&item->head);
 }
 
@@ -274,12 +274,12 @@ static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void 
 		txt = convert(bookmark_ld.codepage, term_charset(dlg->win->term), item->title, NULL);
 		clr_white(txt);
 		safe_strncpy(title, txt, MAX_STR_LEN);
-		mem_free(txt);
+		free(txt);
 
 		txt = convert(bookmark_ld.codepage, term_charset(dlg->win->term), item->url, NULL);
 		clr_white(txt);
 		safe_strncpy(url, txt, MAX_STR_LEN);
-		mem_free(txt);
+		free(txt);
 	}
 
 	switch (dlg_title)
@@ -354,8 +354,7 @@ static struct list *bookmark_new_item(void *data)
 	else
 		b->url = stracpy(cast_uchar "");
 
-	if (zelena)
-		mem_free(zelena);
+	free(zelena);
 
 	return &b->head;
 }
@@ -385,7 +384,7 @@ static unsigned char *bookmark_type_item(struct terminal *term, struct list *dat
 
 	txt1 = convert(bookmark_ld.codepage, term_charset(term), txt, NULL);
 	clr_white(txt1);
-	mem_free(txt);
+	free(txt);
 	return txt1;
 }
 
@@ -405,9 +404,9 @@ static void bookmark_delete_item(struct list *data)
 	struct bookmark_list *item = get_struct(data, struct bookmark_list, head);
 
 	if (item->head.list_entry.next) del_from_list(&item->head);
-	mem_free(item->url);
-	mem_free(item->title);
-	mem_free(item);
+	free(item->url);
+	free(item->title);
+	free(item);
 }
 
 static int substr_utf8(unsigned char *string, unsigned char *substr)
@@ -416,8 +415,8 @@ static int substr_utf8(unsigned char *string, unsigned char *substr)
 	string = unicode_upcase_string(string);
 	substr = unicode_upcase_string(substr);
 	r = !!strstr(cast_const_char string, cast_const_char substr);
-	mem_free(string);
-	mem_free(substr);
+	free(string);
+	free(substr);
 	return r;
 }
 
@@ -504,7 +503,7 @@ static void add_bookmark(unsigned char *title, unsigned char *url, int depth)
 	if (p->depth < b->head.depth) b->head.fotr = p;   /* directory b belongs into */
 	else b->head.fotr = p->fotr;
 
-	mem_free(dop);
+	free(dop);
 }
 
 /* Created pre-cooked bookmarks */
@@ -600,7 +599,7 @@ static void load_bookmarks(struct session *ses)
 			if (namelen != 2 || casecmp(name, cast_uchar "/a", 2)) continue;   /* ignore all other elements */
 			*s = 0;
 			add_bookmark(title, url, depth);
-			mem_free(url);
+			free(url);
 			status = 0;
 			continue;
 
@@ -613,9 +612,10 @@ static void load_bookmarks(struct session *ses)
 			continue;
 		}
 	}
-	if (status == 2) mem_free(url);
+	if (status == 2)
+		free(url);
 smitec:
-	mem_free(buf);
+	free(buf);
 	d_opt = &dd_opt;
 	bookmark_ld.modified = 0;
 
@@ -650,7 +650,7 @@ void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file, in
 
 	buf = read_config_file(new_bookmarks_file);
 	if (buf) {
-		mem_free(buf);
+		free(buf);
 		free_bookmarks();
 		safe_strncpy(bookmarks_file, new_bookmarks_file, MAX_STR_LEN);
 		bookmarks_codepage = new_bookmarks_codepage;
@@ -746,8 +746,8 @@ static void save_bookmarks(struct session *ses)
 			add_to_str(&data, &l, cast_uchar "    <DT><H3>");
 			add_to_str(&data, &l, txt1);
 			add_to_str(&data, &l, cast_uchar "</H3>\n<DL>\n");
-			mem_free(txt);
-			mem_free(txt1);
+			free(txt);
+			free(txt1);
 			depth++;
 		} else {
 			unsigned char *txt1, *txt2, *txt11;
@@ -761,9 +761,9 @@ static void save_bookmarks(struct session *ses)
 			add_to_str(&data, &l, cast_uchar "\">");
 			add_to_str(&data, &l, txt11);
 			add_to_str(&data, &l, cast_uchar "</A>\n");
-			mem_free(txt1);
-			mem_free(txt2);
-			mem_free(txt11);
+			free(txt1);
+			free(txt2);
+			free(txt11);
 		}
 	}
 	for (a = 0; a <depth; a++) add_to_str(&data, &l, cast_uchar "</DL>\n");
@@ -772,15 +772,14 @@ static void save_bookmarks(struct session *ses)
 	"</HTML>\n"
 	);
 	err = write_to_config_file(bookmarks_file, data, 1);
-	mem_free(data);
+	free(data);
 	if (!err) {
 		bookmark_ld.modified = 0;
-	} else {
+	} else
 		if (ses) {
 			unsigned char *f = stracpy(bookmarks_file);
 			msg_box(ses->term, getml(f, NULL), TEXT_(T_BOOKMARK_ERROR), AL_CENTER, TEXT_(T_UNABLE_TO_WRITE_TO_BOOKMARK_FILE), cast_uchar " ", f, cast_uchar ": ", get_err_msg(err), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		}
-	}
 
 	EINTRLOOP(rs, stat(cast_const_char bookmarks_file, &bookmarks_st));
 	if (rs)
