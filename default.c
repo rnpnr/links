@@ -25,7 +25,7 @@ static void get_system_name(void)
 			add_to_str(&str, &l, cast_uchar " ");
 			add_to_str(&str, &l, cast_uchar name.machine);
 			safe_strncpy(system_name, str, MAX_STR_LEN);
-			mem_free(str);
+			free(str);
 			return;
 		}
 	}
@@ -121,10 +121,10 @@ static int get_token_num(unsigned char **line)
 	if (!t) return -1;
 	l = strtolx(t, &end);
 	if (*end || end == t || l < 0 || l != (int)l) {
-		mem_free(t);
+		free(t);
 		return -1;
 	}
-	mem_free(t);
+	free(t);
 	return (int)l;
 }
 
@@ -166,13 +166,13 @@ static void parse_config_file(unsigned char *name, unsigned char *file, struct o
 				if ((e = options[i].rd_cfg(&options[i], o))) {
 					if (e[0]) fprintf(stderr, "Error parsing config file %s, line %d: %s\n", name, line, e), err = 1;
 				}
-				mem_free(o);
+				free(o);
 				goto f;
 			}
 		fprintf(stderr, "Unknown option in config file %s, line %d\n", name, line);
 		err = 1;
 		f:
-		if (tok) mem_free(tok);
+		free(tok);
 	}
 	if (err) fprintf(stderr, "\007"), portable_sleep(1000);
 }
@@ -212,7 +212,10 @@ unsigned char *read_config_file(unsigned char *name)
 		for (i = 0; i < r; i++) if (!cfg_buffer[i]) cfg_buffer[i] = ' ';
 		add_bytes_to_str(&s, &l, cfg_buffer, r);
 	}
-	if (r == -1) mem_free(s), s = NULL;
+	if (r == -1) {
+		free(s);
+		s = NULL;
+	}
 	EINTRLOOP(rs, close(h));
 	return s;
 }
@@ -246,7 +249,7 @@ try_new_count:
 		err = errno;
 		if (err == EEXIST && count < MAXINT) {
 			count++;
-			mem_free(tmp_name);
+			free(tmp_name);
 			goto try_new_count;
 		}
 		goto free_err;
@@ -273,7 +276,7 @@ try_new_count:
 		err = errno;
 		goto unlink_err;
 	}
-	mem_free(tmp_name);
+	free(tmp_name);
 	if (do_sync) {
 		unsigned char *e, *le;
 		tmp_name = stracpy(name);
@@ -288,7 +291,7 @@ try_new_count:
 			EINTRLOOP(rs, fsync(h));
 			EINTRLOOP(rs, close(h));
 		}
-		mem_free(tmp_name);
+		free(tmp_name);
 	}
 
 	return 0;
@@ -298,7 +301,7 @@ try_new_count:
 	unlink_err:
 	EINTRLOOP(rs, unlink(cast_const_char tmp_name));
 	free_err:
-	mem_free(tmp_name);
+	free(tmp_name);
 	return get_error_from_errno(err);
 }
 
@@ -323,7 +326,7 @@ static unsigned char *get_home(int *n)
 		int i;
 		home = stracpy(path_to_exe);
 		if (!home) {
-			if (config_dir) mem_free(config_dir);
+			free(config_dir);
 			return NULL;
 		}
 		for (i = (int)strlen(cast_const_char home) - 1; i >= 0; i--) if (dir_sep(home[i])) {
@@ -345,7 +348,7 @@ static unsigned char *get_home(int *n)
 		} else {
 			fprintf(stderr, "CONFIG_DIR set to %s. But directory %s doesn't exist.\n\007", config_dir, home_links);
 			portable_sleep(3000);
-			mem_free(home_links);
+			free(home_links);
 			home_links = stracpy(home);
 			goto add_dot_links;
 		}
@@ -367,7 +370,7 @@ static unsigned char *get_home(int *n)
 	EINTRLOOP(rs, mkdir(cast_const_char home_links, 0700));
 	if (!rs) goto home_creat;
 	first_failed:
-	mem_free(home_links);
+	free(home_links);
 	home_links = stracpy(home);
 	add_to_strn(&home_links, cast_uchar "links");
 	EINTRLOOP(rs, stat(cast_const_char home_links, &st));
@@ -380,9 +383,9 @@ static unsigned char *get_home(int *n)
 	EINTRLOOP(rs, mkdir(cast_const_char home_links, 0700));
 	if (!rs) goto home_creat;
 	failed:
-	mem_free(home_links);
-	mem_free(home);
-	if (config_dir) mem_free(config_dir);
+	free(home_links);
+	free(home);
+	free(config_dir);
 	return NULL;
 
 	home_ok:
@@ -392,8 +395,8 @@ static unsigned char *get_home(int *n)
 		EINTRLOOP(rs, chmod(cast_const_char home_links, 0700));
 	}
 	add_to_strn(&home_links, cast_uchar "/");
-	mem_free(home);
-	if (config_dir) mem_free(config_dir);
+	free(home);
+	free(config_dir);
 	return home_links;
 }
 
@@ -418,19 +421,19 @@ static int write_config_data(unsigned char *prefix, unsigned char *name, struct 
 	if (!(c = create_config_string(o))) return -1;
 	config_file = stracpy(prefix);
 	if (!config_file) {
-		mem_free(c);
+		free(c);
 		if (term) msg_box(term, NULL, TEXT_(T_CONFIG_ERROR), AL_CENTER, TEXT_(T_UNABLE_TO_WRITE_TO_CONFIG_FILE), cast_uchar ": ", TEXT_(T_HOME_DIRECTORY_INACCESSIBLE), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return -1;
 	}
 	add_to_strn(&config_file, name);
 	if ((err = write_to_config_file(config_file, c, 1))) {
 		if (term) msg_box(term, NULL, TEXT_(T_CONFIG_ERROR), AL_CENTER, TEXT_(T_UNABLE_TO_WRITE_TO_CONFIG_FILE), cast_uchar ": ", get_err_msg(err), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
-		mem_free(c);
-		mem_free(config_file);
+		free(c);
+		free(config_file);
 		return -1;
 	}
-	mem_free(c);
-	mem_free(config_file);
+	free(c);
+	free(config_file);
 	return 0;
 }
 
@@ -460,15 +463,15 @@ static unsigned char *num_rd(struct option *o, unsigned char *c)
 	if (!tok) return cast_uchar "Missing argument";
 	l = strtolx(tok, &end);
 	if (*end) {
-		mem_free(tok);
+		free(tok);
 		return cast_uchar "Number expected";
 	}
 	if (l < o->min || l > o->max || l != (long)(int)l) {
-		mem_free(tok);
+		free(tok);
 		return cast_uchar "Out of range";
 	}
 	*(int *)o->ptr = (int)l;
-	mem_free(tok);
+	free(tok);
 	return NULL;
 }
 
@@ -487,22 +490,22 @@ static unsigned char *dbl_rd(struct option *o, unsigned char *c)
 	if (!tok) return cast_uchar "Missing argument";
 
 	if (strlen(cast_const_char tok) >= 1000) {
-		mem_free(tok);
+		free(tok);
 		return cast_uchar "Number is too long";
 	}
 
 	d = strtod(cast_const_char tok, (char **)(void *)&end);
 
 	if (*end) {
-		mem_free(tok);
+		free(tok);
 		return cast_uchar "Number expected";
 	}
 	if (d < 0 || d > o->max || 100*d < o->min || 100*d > o->max) {
-		mem_free(tok);
+		free(tok);
 		return cast_uchar "Out of range";
 	}
 	*(double *)o->ptr = d;
-	mem_free(tok);
+	free(tok);
 	return NULL;
 }
 
@@ -522,7 +525,7 @@ static unsigned char *str_rd(struct option *o, unsigned char *c)
 	if (!tok) return NULL;
 	if (strlen(cast_const_char tok) + 1 > (size_t)o->max) e = cast_uchar "String too long";
 	else strcpy(cast_char o->ptr, cast_const_char tok);
-	mem_free(tok);
+	free(tok);
 	return e;
 }
 
@@ -534,7 +537,7 @@ static void str_wr(struct option *o, unsigned char **s, int *l)
 		int l1 = 0;
 		add_bytes_to_str(&s1, &l1, o->ptr, o->max - 1);
 		add_quoted_to_str(s, l, s1);
-		mem_free(s1);
+		free(s1);
 	}
 	else add_quoted_to_str(s, l, o->ptr);
 }
@@ -547,7 +550,7 @@ static unsigned char *cp_rd(struct option *o, unsigned char *c)
 	if (!tok) return cast_uchar "Missing argument";
 	if ((i = get_cp_index(tok)) == -1) e = cast_uchar "Unknown codepage";
 	else *(int *)o->ptr = i;
-	mem_free(tok);
+	free(tok);
 	return e;
 }
 
@@ -580,7 +583,7 @@ static unsigned char *type_rd(struct option *o, unsigned char *c)
 	if (!(neww.prog = get_token(&c))) goto err;
 	if (!(w = get_token(&c))) goto err;
 	if (getnum(w, &n, 0, 128)) goto err_f;
-	mem_free(w);
+	free(w);
 	neww.cons = !!(n & 1);
 	neww.xwin = !!(n & 2);
 	neww.ask = !!(n & 4);
@@ -590,16 +593,16 @@ static unsigned char *type_rd(struct option *o, unsigned char *c)
 	neww.accept_ftp = !!(n & 64);
 	if (!(w = get_token(&c))) goto err;
 	if (getnum(w, &neww.system, 0, 256)) goto err_f;
-	mem_free(w);
+	free(w);
 	update_assoc(&neww);
 	err = NULL;
 	err:
-	if (neww.label) mem_free(neww.label);
-	if (neww.ct) mem_free(neww.ct);
-	if (neww.prog) mem_free(neww.prog);
+	free(neww.label);
+	free(neww.ct);
+	free(neww.prog);
 	return err;
 	err_f:
-	mem_free(w);
+	free(w);
 	goto err;
 }
 
@@ -613,7 +616,7 @@ static unsigned char *block_rd(struct option *o, unsigned char *c)
 
 	block_url_add(NULL, url);
 
-	mem_free(url);
+	free(url);
 
 	return NULL;
 }
@@ -658,8 +661,8 @@ static unsigned char *ext_rd(struct option *o, unsigned char *c)
 	update_ext(&neww);
 	err = NULL;
 	err:
-	if (neww.ext) mem_free(neww.ext);
-	if (neww.ct) mem_free(neww.ct);
+	free(neww.ext);
+	free(neww.ct);
 	return err;
 }
 
@@ -683,30 +686,30 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 	int i, l;
 	if (!(w = get_token(&c))) goto err;
 	ts = new_term_spec(w);
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '4') goto err_f;
 	ts->mode = w[0] - '0';
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '3') goto err_f;
 	ts->m11_hack = (w[0] - '0') & 1;
 	ts->braille = !!((w[0] - '0') & 2);
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '7') goto err_f;
 	ts->col = (w[0] - '0') & 1;
 	ts->restrict_852 = !!((w[0] - '0') & 2);
 	ts->block_cursor = !!((w[0] - '0') & 4);
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
-	if (!casestrcmp(w, cast_uchar "default")) {
+	if (!casestrcmp(w, cast_uchar "default"))
 		i = -1;
-	} else {
-		if ((i = get_cp_index(w)) == -1) goto err_f;
-	}
+	else
+		if ((i = get_cp_index(w)) == -1)
+			goto err_f;
 	ts->character_set = i;
-	mem_free(w);
+	free(w);
 	l = get_token_num(&c);
 	if (l < 0) goto ret;
 	if (l > 999) goto err;
@@ -726,7 +729,7 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 	ret:
 	return NULL;
 	err_f:
-	mem_free(w);
+	free(w);
 	err:
 	return cast_uchar "Error reading terminal specification";
 }
@@ -738,34 +741,34 @@ static unsigned char *term2_rd(struct option *o, unsigned char *c)
 	int i;
 	if (!(w = get_token(&c))) goto err;
 	ts = new_term_spec(w);
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '3') goto err_f;
 	ts->mode = w[0] - '0';
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '1') goto err_f;
 	ts->m11_hack = w[0] - '0';
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '1') goto err_f;
 	ts->restrict_852 = w[0] - '0';
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '1') goto err_f;
 	ts->col = w[0] - '0';
-	mem_free(w);
+	free(w);
 	if (!(w = get_token(&c))) goto err;
-	if (!casestrcmp(w, cast_uchar "default")) {
+	if (!casestrcmp(w, cast_uchar "default"))
 		i = -1;
-	} else {
-		if ((i = get_cp_index(w)) == -1) goto err_f;
-	}
+	else
+		if ((i = get_cp_index(w)) == -1)
+			goto err_f;
 	ts->character_set = i;
-	mem_free(w);
+	free(w);
 	return NULL;
 	err_f:
-	mem_free(w);
+	free(w);
 	err:
 	return cast_uchar "Error reading terminal specification";
 }
@@ -825,38 +828,38 @@ static unsigned char *dp_rd(struct option *o, unsigned char *c)
 	struct driver_param *dp;
 	if (!(n = get_token(&c))) goto err;
 	if (!(param = get_token(&c))) {
-		mem_free(n);
+		free(n);
 		goto err;
 	}
 	if (!(shell = get_token(&c))){
-		mem_free(n);
-		mem_free(param);
+		free(n);
+		free(param);
 		goto err;
 	}
 	if (!(cp = get_token(&c))) {
-		mem_free(n);
-		mem_free(param);
-		mem_free(shell);
+		free(n);
+		free(param);
+		free(shell);
 		goto err;
 	}
-	if (!casestrcmp(cp, cast_uchar "default")) {
+	if (!casestrcmp(cp, cast_uchar "default"))
 		cc = -1;
-	} else if ((cc = get_cp_index(cp)) == -1) {
-		mem_free(n);
-		mem_free(param);
-		mem_free(shell);
-		mem_free(cp);
+	else if ((cc = get_cp_index(cp)) == -1) {
+		free(n);
+		free(param);
+		free(shell);
+		free(cp);
 		goto err;
 	}
 	dp = get_driver_param(n);
 	dp->kbd_codepage = cc;
-	if (dp->param) mem_free(dp->param);
+	free(dp->param);
 	dp->param = param;
-	if (dp->shell) mem_free(dp->shell);
+	free(dp->shell);
 	dp->shell = shell;
 	dp->nosave = 0;
-	mem_free(cp);
-	mem_free(n);
+	free(cp);
+	free(n);
 	return NULL;
 	err:
 	return cast_uchar "Error reading driver mode specification";
@@ -909,7 +912,7 @@ static unsigned char *gen_cmd(struct option *o, unsigned char ***argv, int *argc
 	l = 0;
 	add_quoted_to_str(&e, &l, **argv);
 	r = o->rd_cfg(o, e);
-	mem_free(e);
+	free(e);
 	if (r) return r;
 	(*argv)++; (*argc)--;
 	return NULL;
@@ -922,12 +925,12 @@ static unsigned char *x_proxy_cmd(struct option *o, unsigned char ***argv, int *
 	if (!*argc) return cast_uchar "Parameter expected";
 	result = xmalloc(MAX_STR_LEN);
 	if (save(get_commandline_charset(), result, **argv)) {
-		mem_free(result);
+		free(result);
 		return err;
 	}
 	pass_argv = &result;
 	ret = gen_cmd(o, &pass_argv, argc);
-	mem_free(result);
+	free(result);
 	if (ret) return ret;
 	(*argv)++;
 	return NULL;
@@ -955,9 +958,9 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 	h2 = convert(get_commandline_charset(), utf8_table, h, NULL);
 	h3 = idn_encode_host(h2, (int)strlen(cast_const_char h2), cast_uchar ".", 0);
 	if (!h3) h3 = stracpy(h2);
-	mem_free(h2);
+	free(h2);
 	do_real_lookup(h3, ipv6_options.addr_preference, &addr);
-	mem_free(h3);
+	free(h3);
 	if (!addr.n) {
 #if !defined(USE_GETADDRINFO)
 		herror("error");
@@ -1481,11 +1484,11 @@ void end_config(void)
 	struct driver_param *dp;
 	struct list_head *ldp;
 	foreach(struct driver_param, dp, ldp, driver_params) {
-		if (dp->param) mem_free(dp->param);
-		if (dp->shell) mem_free(dp->shell);
+		free(dp->param);
+		free(dp->shell);
 	}
 	free_list(struct driver_param, driver_params);
-	if (links_home) mem_free(links_home);
+	free(links_home);
 }
 
 int ggr = 0;
@@ -1749,18 +1752,18 @@ static void load_config_file(unsigned char *prefix, unsigned char *name)
 	if (!config_file) return;
 	add_to_strn(&config_file, name);
 	if ((c = read_config_file(config_file))) goto ok;
-	mem_free(config_file);
+	free(config_file);
 	config_file = stracpy(prefix);
 	if (!config_file) return;
 	add_to_strn(&config_file, cast_uchar ".");
 	add_to_strn(&config_file, name);
 	if ((c = read_config_file(config_file))) goto ok;
-	mem_free(config_file);
+	free(config_file);
 	return;
 	ok:
 	parse_config_file(config_file, c, all_options);
-	mem_free(c);
-	mem_free(config_file);
+	free(c);
+	free(config_file);
 }
 
 void load_config(void)
@@ -1797,7 +1800,7 @@ void load_url_history(void)
 	history_file = stracpy(links_home);
 	add_to_strn(&history_file, cast_uchar "links.his");
 	hs = read_config_file(history_file);
-	mem_free(history_file);
+	free(history_file);
 	if (!hs) return;
 	for (hsp = hs; *hsp; ) {
 		unsigned char *hsl, *hsc;
@@ -1805,11 +1808,11 @@ void load_url_history(void)
 			;
 		hsc = memacpy(hsp, hsl - hsp);
 		add_to_history(NULL, &goto_url_history, hsc);
-		mem_free(hsc);
+		free(hsc);
 		hsp = hsl;
 		while (*hsp == 10 || *hsp == 13) hsp++;
 	}
-	mem_free(hs);
+	free(hs);
 }
 
 void save_url_history(void)
@@ -1835,8 +1838,8 @@ void save_url_history(void)
 		}
 	}
 	write_to_config_file(history_file, hs, 0);
-	mem_free(history_file);
-	mem_free(hs);
+	free(history_file);
+	free(hs);
 	return;
 }
 

@@ -62,18 +62,18 @@ void data_func(struct connection *c)
 				was_charset = 1;
 			}
 		}
-		mem_free(arg);
+		free(arg);
 	}
 
 	if (*flags != ',') {
-		mem_free(mime);
+		free(mime);
 		goto bad_url;
 	}
 	data = flags + 1;
 
 	if (!c->cache) {
 		if (get_connection_cache_entry(c)) {
-			mem_free(mime);
+			free(mime);
 			setcstate(c, S_OUT_OF_MEM);
 			abort_connection(c);
 			return;
@@ -81,14 +81,14 @@ void data_func(struct connection *c)
 		c->cache->refcount--;
 	}
 	e = c->cache;
-	if (e->head) mem_free(e->head);
+	free(e->head);
 	e->head = stracpy(cast_uchar "");
 	if (*mime) {
 		add_to_strn(&e->head, cast_uchar "\r\nContent-type: ");
 		add_to_strn(&e->head, mime);
 		add_to_strn(&e->head, cast_uchar "\r\n");
 	}
-	mem_free(mime);
+	free(mime);
 
 	str = init_str();
 	strl = 0;
@@ -104,9 +104,9 @@ void data_func(struct connection *c)
 		base64_decode(&b64, &b64l, str, strl);
 
 		r = add_fragment(e, 0, b64, b64l);
-		mem_free(b64);
+		free(b64);
 	}
-	mem_free(str);
+	free(str);
 	if (r < 0) {
 		setcstate(c, r);
 		abort_connection(c);

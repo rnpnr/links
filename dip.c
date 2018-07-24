@@ -288,7 +288,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 			outptr+=ox;
 			inptr++;
 		}
-		mem_free(in);
+		free(in);
 	}else{
 		total=(ix-1)*(ox-1);
 		if ((unsigned)y > MAXINT / sizeof(*col_buf)) overalloc();
@@ -309,8 +309,8 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 			inptr++;
 		}
 		if (out_pos>total){
-			mem_free(in);
-			mem_free(col_buf);
+			free(in);
+			free(col_buf);
 			return;
 		}
 		goto again;
@@ -347,7 +347,7 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
-		mem_free(in);
+		free(in);
 		return;
 	}
 	if (ix==1){
@@ -357,7 +357,7 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 			out[1]=inp[1];
 			out[2]=inp[2];
 		}
-		mem_free(in);
+		free(in);
 		return;
 	}
 
@@ -390,10 +390,11 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 			emit_and_bias_col_color(thread_col_buf, out + out_idx * 3, oskip, y, ox - 1);
 		}
 	}
-	mem_free(in);
-	if (col_buf) mem_free(col_buf);
+	free(in);
+	if (col_buf) 
+		free(col_buf);
 	else {
-		mem_free(out);
+		free(out);
 		*outa = NULL;
 	}
 }
@@ -445,8 +446,8 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 			outptr++;
 	}
 	if (out_pos==total) {
-		mem_free(in);
-		mem_free(col_buf);
+		free(in);
+		free(col_buf);
 		return;
 	}
 	goto again;
@@ -484,7 +485,7 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
-		mem_free(in);
+		free(in);
 		return;
 	}
 
@@ -520,10 +521,11 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 			emit_and_bias_col_color(thread_col_buf, out + out_idx * 3, oskip, y, ix);
 		}
 	}
-	mem_free(in);
-	if (col_buf) mem_free(col_buf);
+	free(in);
+	if (col_buf)
+		free(col_buf);
 	else {
-		mem_free(out);
+		free(out);
 		*outa = NULL;
 	}
 }
@@ -547,7 +549,7 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 		*out=outptr;
 		for(;oy;oy--,outptr+=x)
 			memcpy(outptr,in,x);
-		mem_free(in);
+		free(in);
 	}
 	else if (iy==oy){
 		*out=in;
@@ -576,8 +578,8 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 			inptr+=x;
 		}
 		if (out_pos>total){
-			mem_free(in);
-			mem_free(row_buf);
+			free(in);
+			free(row_buf);
 			return;
 		}
 		goto again;
@@ -608,7 +610,7 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
-		mem_free(in);
+		free(in);
 		return;
 	}
 	if (iy==1){
@@ -616,7 +618,7 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 			memcpy(out,in,3*x*sizeof(*out));
 			out+=3*x;
 		}
-		mem_free(in);
+		free(in);
 		return;
 	}
 
@@ -649,10 +651,11 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 			emit_and_bias_row_color(thread_row_buf, out + out_idx * 3 * x, x, oy - 1);
 		}
 	}
-	mem_free(in);
-	if (row_buf) mem_free(row_buf);
+	free(in);
+	if (row_buf)
+		free(row_buf);
 	else {
-		mem_free(out);
+		free(out);
 		*outa = NULL;
 	}
 }
@@ -706,8 +709,8 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 			outptr+=x;
 	}
 	if (out_pos==total){
-		mem_free(in);
-		mem_free(row_buf);
+		free(in);
+		free(row_buf);
 		return;
 	}
 	goto again;
@@ -743,7 +746,7 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
-		mem_free(in);
+		free(in);
 		return;
 	}
 	if ((unsigned)x > (MAXINT) / 3 / sizeof(*row_buf))
@@ -778,10 +781,11 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 			emit_and_bias_row_color(thread_row_buf, out + out_idx * 3 * x, x, iy);
 		}
 	}
-	mem_free(in);
-	if (row_buf) mem_free(row_buf);
+	free(in);
+	if (row_buf) 
+		free(row_buf);
 	else {
-		mem_free(out);
+		free(out);
 		*outa = NULL;
 	}
 }
@@ -797,7 +801,7 @@ static void scale_gray(unsigned char *in, int ix, int iy,
 	unsigned char *intermediate_buffer;
 
 	if (!ix||!iy){
-		if (in) mem_free(in);
+		free(in);
 		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
 		if ((unsigned)ox * (unsigned)oy > MAXINT) overalloc();
 		*out=mem_calloc(ox*oy);
@@ -898,7 +902,7 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 	int ox0=ox;
 
 	if (!ix||!iy){
-		if (in) mem_free(in);
+		free(in);
 		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
 		if ((unsigned)ox * (unsigned)oy > MAXINT / 3 / sizeof(**out)) overalloc();
 		*out=mem_calloc_mayfail(ox*oy*sizeof(**out)*3);
@@ -1442,7 +1446,7 @@ void *my_png_alloc(png_structp png_ptr, png_size_t size)
 }
 void my_png_free(png_structp png_ptr, void *ptr)
 {
-	if (ptr) mem_free(ptr);
+	free(ptr);
 }
 #endif
 
@@ -1541,7 +1545,7 @@ const unsigned char *png_data, int png_length)
 	}
 	png_read_end(png_ptr, NULL);
 	png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-	mem_free(ptrs);
+	free(ptrs);
 	return;
 }
 
@@ -1602,7 +1606,7 @@ const unsigned char *png_data, int png_length, struct style *style)
 		}
 		i2ptr+=2;
 	}
-	mem_free(interm2);
+	free(interm2);
 }
 
 static struct font_cache_entry *locked_color_entry = NULL;
@@ -1661,11 +1665,11 @@ ATTR_NOINLINE static struct font_cache_entry *supply_color_cache_entry(struct st
 	else
 		(*round_fn)(primary_data,&(neww->bitmap));
 	skip_dither:
-	mem_free(primary_data);
+	free(primary_data);
 	drv->register_bitmap(&(neww->bitmap));
 
-	mem_free(found->bitmap.data);
-	mem_free(found);
+	free(found->bitmap.data);
+	free(found);
 
 	bytes_consumed=neww->bitmap.x*neww->bitmap.y*(drv->depth&7);
 	/* Number of bytes per pixel in passed bitmaps */
@@ -1683,7 +1687,7 @@ static int destroy_font_cache_bottom(void)
 	if (!bottom) return 0;
 	if (bottom == locked_color_entry) return 0;
 	drv->unregister_bitmap(&(bottom->bitmap));
-	mem_free(bottom);
+	free(bottom);
 	lru_destroy_bottom(&font_cache);
 	return 1;
 }
@@ -2088,7 +2092,7 @@ static int fill_style_table(int * table, unsigned char *name)
 				*table++=f;
 		}
 	}
-	mem_free(family);
+	free(family);
 	return monospaced;
 }
 
@@ -2179,8 +2183,8 @@ struct style *g_clone_style(struct style *st)
 void g_free_style(struct style *st)
 {
 	if (--st->refcount) return;
-	mem_free(st->table);
-	mem_free(st);
+	free(st->table);
+	free(st);
 }
 
 long gamma_cache_color;
@@ -2227,7 +2231,7 @@ void get_links_icon(unsigned char **data, int *width, int *height, int *skip, in
 	tmp1 = xmalloc(6 * b.y * b.x);
 	agx_24_to_48(tmp1,links_icon,b.x*b.y,g,g,g);
 	dither(tmp1, &b);
-	mem_free(tmp1);
+	free(tmp1);
 }
 
 static inline void qb_palette(unsigned r_max, unsigned g_max, unsigned b_max, unsigned r, unsigned g, unsigned b, unsigned scale, unsigned rgb[3])

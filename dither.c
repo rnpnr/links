@@ -784,7 +784,7 @@ void dither(unsigned short *in, struct bitmap *out)
 	if ((unsigned)out->x > MAXINT / 3 / sizeof(*dregs)) overalloc();
 	dregs=mem_calloc(out->x*3*sizeof(*dregs));
 	(*dither_fn_internal)(in, out, dregs);
-	mem_free(dregs);
+	free(dregs);
 }
 
 /* For functions that do dithering.
@@ -841,9 +841,9 @@ static void compress_tables(void)
 		bt[i] = blue_table[i << 8];
 		/*fprintf(stderr, "8: %03d: %08x %08x %08x\n", i, rt[i], gt[i], bt[i]);*/
 	}
-	mem_free(red_table);
-	mem_free(green_table);
-	mem_free(blue_table);
+	free(red_table);
+	free(green_table);
+	free(blue_table);
 	red_table = rt;
 	green_table = gt;
 	blue_table = bt;
