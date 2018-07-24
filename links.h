@@ -273,7 +273,6 @@ static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 #define safe_add(x, y)	safe_add_function(x, y, (unsigned char *)__FILE__, __LINE__)
 
 void *mem_calloc_(size_t size, int mayfail);
-void mem_free(void *p);
 void *mem_realloc_(void *p, size_t size, int mayfail);
 
 #define mem_calloc(x)			mem_calloc_(x, 0)
@@ -284,7 +283,6 @@ void *mem_realloc_(void *p, size_t size, int mayfail);
 
 
 static inline void *debug_mem_calloc(unsigned char *f, int l, size_t s, int mayfail) { return mem_calloc_(s, mayfail); }
-static inline void debug_mem_free(unsigned char *f, int l, void *p) { mem_free(p); }
 static inline void *debug_mem_realloc(unsigned char *f, int l, void *p, size_t s, int mayfail) { return mem_realloc_(p, s, mayfail); }
 static inline unsigned char *get_mem_comment(void *p){return (unsigned char *)"";}
 
@@ -324,7 +322,7 @@ struct list_head {
 #define foreach(struc, e, h, l)			foreachfrom(struc, e, h, l, (l).next)
 #define foreachbackfrom(struc, e, h, l, s)	for ((h) = (s); verify_list_entry(h), (h) == &(l) ? 0 : ((e) = list_struct(h, struc), 1); (h) = (h)->prev)
 #define foreachback(struc, e, h, l)		foreachbackfrom(struc, e, h, l, (l).prev)
-#define free_list(struc, l)			do { while (!list_empty(l)) { struc *a__ = list_struct((l).next, struc); del_from_list(a__); mem_free(a__); } } while (0)
+#define free_list(struc, l)			do { while (!list_empty(l)) { struc *a__ = list_struct((l).next, struc); del_from_list(a__); free(a__); } } while (0)
 
 static inline unsigned long list_size(struct list_head *l)
 {

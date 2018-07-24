@@ -25,7 +25,6 @@ void *do_not_optimize_here(void *p)
 
 #define heap_malloc	malloc
 #define heap_realloc	realloc
-#define heap_free	free
 #define heap_calloc(x) calloc(1, (x))
 void init_heap(void)
 {
@@ -121,13 +120,6 @@ void *mem_calloc_(size_t size, int mayfail)
 	return p;
 }
 
-void mem_free(void *p)
-{
-	if (!p)
-		return;
-	heap_free(p);
-}
-
 void *mem_realloc_(void *p, size_t size, int mayfail)
 {
 	void *np;
@@ -135,7 +127,7 @@ void *mem_realloc_(void *p, size_t size, int mayfail)
 		return xmalloc(size);
 	debug_test_free(NULL, 0);
 	if (!size) {
-		mem_free(p);
+		free(p);
 		return NULL;
 	}
 	retry:
