@@ -137,10 +137,10 @@ static int check_http_server_bugs(unsigned char *url, struct http_connection_inf
 	if (!(server = parse_http_header(head, cast_uchar "Server", NULL))) return 0;
 	bugs = 0;
 	for (i = 0; buggy_servers[i].name; i++) if (strstr(cast_const_char server, cast_const_char buggy_servers[i].name)) bugs |= buggy_servers[i].bugs;
-	mem_free(server);
+	free(server);
 	if (bugs && (server = get_host_name(url))) {
 		add_blacklist_entry(server, bugs);
-		mem_free(server);
+		free(server);
 		return bugs & ~BL_NO_RANGE;
 	}
 	return 0;
@@ -228,13 +228,13 @@ static void http_send_header(struct connection *c)
 	hdr = init_str();
 	if (!host) {
 		http_bad_url:
-		mem_free(hdr);
+		free(hdr);
 		http_end_request(c, 0, 1, S_BAD_URL);
 		return;
 	}
 	if (!info->https_forward && (h = get_host_name(host))) {
 		info->bl_flags = get_blacklist_flags(h);
-		mem_free(h);
+		free(h);
 	}
 	if (info->bl_flags & BL_HTTP10) http10 = 1;
 	info->http10 = http10;
@@ -248,12 +248,12 @@ static void http_send_header(struct connection *c)
 		h = get_host_name(host);
 		if (!h) goto http_bad_url;
 		add_to_str(&hdr, &l, h);
-		mem_free(h);
+		free(h);
 		h = get_port_str(host);
 		if (!h) h = stracpy(cast_uchar "443");
 		add_chr_to_str(&hdr, &l, ':');
 		add_to_str(&hdr, &l, h);
-		mem_free(h);
+		free(h);
 		goto added_connect;
 	} else if (!post)
 		add_to_str(&hdr, &l, cast_uchar "GET ");
@@ -282,7 +282,8 @@ static void http_send_header(struct connection *c)
 		add_to_str(&u2, &u2_len, u_host + u_host_len);
 	}
 	add_url_to_str(&hdr, &l, u2);
-	if (u2 != u) mem_free(u2);
+	if (u2 != u)
+		free(u2);
 	added_connect:
 	if (!http10) add_to_str(&hdr, &l, cast_uchar " HTTP/1.1\r\n");
 	else add_to_str(&hdr, &l, cast_uchar " HTTP/1.0\r\n");
@@ -299,11 +300,11 @@ static void http_send_header(struct connection *c)
 			}
 		}
 		add_to_str(&hdr, &l, h);
-		mem_free(h);
+		free(h);
 		if ((h = get_port_str(host))) {
 			add_chr_to_str(&hdr, &l, ':');
 			add_to_str(&hdr, &l, h);
-			mem_free(h);
+			free(h);
 		}
 		add_to_str(&hdr, &l, cast_uchar "\r\n");
 	}
@@ -341,7 +342,7 @@ static void http_send_header(struct connection *c)
 		}
 	}
 	write_to_socket(c, c->sock1, hdr, l, http_get_header);
-	mem_free(hdr);
+	free(hdr);
 	setcstate(c, S_SENT);
 }
 
@@ -351,14 +352,14 @@ static void test_restart(struct connection *c)
 	if (c->cache && c->from) {
 		unsigned char *d;
 		if ((d = parse_http_header(c->cache->head, cast_uchar "Content-Encoding", NULL))) {
-			mem_free(d);
+			free(d);
 			c->from = 0;
 			c->no_compress = 1;
 			if (c->tries >= 1) {
 				unsigned char *h;
 				if ((h = get_host_name(c->url))) {
 					add_blacklist_entry(h, BL_NO_COMPRESSION);
-					mem_free(h);
+					free(h);
 				}
 			}
 		}
@@ -428,9 +429,9 @@ static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigne
 						unsigned char *c = get_url_data(url);
 						if (c && !strncmp(cast_const_char c, "recaptcha/api/", 14)) brk = 0;
 					}
-					mem_free(j);
+					free(j);
 				}
-				mem_free(h);
+				free(h);
 			}
 			if (brk) break;
 		}
@@ -448,7 +449,7 @@ static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigne
 			add_to_str(hdr, l, cast_uchar "Referer: ");
 			add_url_to_str(hdr, l, ref);
 			add_to_str(hdr, l, cast_uchar "\r\n");
-			mem_free(ref);
+			free(ref);
 			break;
 		}
 	}
@@ -537,10 +538,10 @@ static void add_accept_charset(unsigned char **hdr, int *l, struct http_connecti
 		if (aclen) add_to_str(&ac, &aclen, cast_uchar "\r\n");
 		if (!(accept_charset = cast_uchar strdup(cast_const_char ac))) {
 			add_to_str(hdr, l, ac);
-			mem_free(ac);
+			free(ac);
 			return;
 		}
-		mem_free(ac);
+		free(ac);
 	}
 	add_to_str(hdr, l, accept_charset);
 }
@@ -579,7 +580,7 @@ static void add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 			add_to_str(hdr, l, cast_uchar "If-Modified-Since: ");
 			add_to_str(hdr, l, m);
 			add_to_str(hdr, l, cast_uchar "\r\n");
-			mem_free(m);
+			free(m);
 		}
 		skip_ifmod:;
 	}
@@ -611,7 +612,7 @@ static void add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *ur
 	unsigned char *h;
 	if ((h = get_auth_string(url, 1))) {
 		add_to_str(hdr, l, h);
-		mem_free(h);
+		free(h);
 	}
 }
 
@@ -620,7 +621,7 @@ static void add_auth_string(unsigned char **hdr, int *l, unsigned char *url)
 	unsigned char *h;
 	if ((h = get_auth_string(url, 0))) {
 		add_to_str(hdr, l, h);
-		mem_free(h);
+		free(h);
 	}
 }
 
@@ -653,11 +654,11 @@ static void add_extra_options(unsigned char **hdr, int *l)
 				unsigned char *v = NULL; /* against warning */
 				unsigned char *cc = memacpy(s, c - s);
 				unsigned char *x = parse_http_header(*hdr, cc, &v);
-				mem_free(cc);
+				free(cc);
 				if (x) {
 					unsigned char *new_hdr;
 					int new_l;
-					mem_free(x);
+					free(x);
 					new_hdr = init_str();
 					new_l = 0;
 					add_bytes_to_str(&new_hdr, &new_l, *hdr, v - *hdr);
@@ -665,7 +666,7 @@ static void add_extra_options(unsigned char **hdr, int *l)
 						;
 					add_to_str(&new_hdr, &new_l, c);
 					add_to_str(&new_hdr, &new_l, v + strcspn(cast_const_char v, "\r\n"));
-					mem_free(*hdr);
+					free(*hdr);
 					*hdr = new_hdr;
 					*l = new_l;
 					goto already_added;
@@ -674,7 +675,7 @@ static void add_extra_options(unsigned char **hdr, int *l)
 			add_to_str(hdr, l, s);
 			add_to_str(hdr, l, cast_uchar "\r\n");
 			already_added:
-			mem_free(s);
+			free(s);
 		}
 		if (!*q) break;
 		p = q + 1;
@@ -845,7 +846,7 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 				add_blacklist_entry(hs, BL_NO_CHARSET);
 				c->tries = -1;
 			}
-			mem_free(hs);
+			free(hs);
 		}
 		setcstate(c, S_CANT_READ);
 		retry_connection(c);
@@ -870,38 +871,38 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 		head = stracpy(cast_uchar "HTTP/0.9 200 OK\r\nContent-Type: text/html\r\n\r\n");
 	}
 	if (get_http_code(head, &h, &version) || h == 101) {
-		mem_free(head);
+		free(head);
 		setcstate(c, S_HTTP_ERROR);
 		abort_connection(c);
 		return;
 	}
 	if (check_http_server_bugs(host, c->info, head) && is_connection_restartable(c)) {
-		mem_free(head);
+		free(head);
 		setcstate(c, S_RESTART);
 		retry_connection(c);
 		return;
 	}
 	if (h == 100) {
-		mem_free(head);
+		free(head);
 		state = S_PROC;
 		goto again;
 	}
 	if (h < 200) {
-		mem_free(head);
+		free(head);
 		setcstate(c, S_HTTP_ERROR);
 		abort_connection(c);
 		return;
 	}
 	if (info->https_forward && h >= 200 && h < 300) {
-		mem_free(head);
-		mem_free(c->info);
+		free(head);
+		free(c->info);
 		c->info = 0;
 		c->ssl = DUMMY;
 		continue_connection(c, &c->sock1, http_send_header);
 		return;
 	}
 	if (info->https_forward && h != 407) {
-		mem_free(head);
+		free(head);
 		setcstate(c, S_HTTPS_FWD_ERROR);
 		abort_connection(c);
 		return;
@@ -912,30 +913,30 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 		while ((cookie = parse_http_header(ch, cast_uchar "Set-Cookie", &ch))) {
 			unsigned char *host = remove_proxy_prefix(c->url);
 			set_cookie(NULL, host, cookie);
-			mem_free(cookie);
+			free(cookie);
 		}
 	}
 	if (h == 204) {
-		mem_free(head);
+		free(head);
 		http_end_request(c, 0, 0, S_HTTP_204);
 		return;
 	}
 	if (h == 304) {
-		mem_free(head);
+		free(head);
 		http_end_request(c, 1, 0, S__OK);
 		return;
 	}
 	if (h == 416 && c->from) {
-		mem_free(head);
+		free(head);
 		http_end_request(c, 0, 1, S__OK);
 		return;
 	}
 	if (h == 431) {
 		unsigned char *hs;
 		if (!(info->bl_flags & BL_NO_CHARSET) && (hs = get_host_name(host))) {
-			mem_free(head);
+			free(head);
 			add_blacklist_entry(hs, BL_NO_CHARSET);
-			mem_free(hs);
+			free(hs);
 			c->tries = -1;
 			setcstate(c, S_RESTART);
 			retry_connection(c);
@@ -948,17 +949,17 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 			unsigned char *h;
 			if ((h = get_host_name(host))) {
 				add_blacklist_entry(h, BL_NO_BZIP2);
-				mem_free(h);
+				free(h);
 			}
 		}
-		mem_free(head);
+		free(head);
 		setcstate(c, S_RESTART);
 		retry_connection(c);
 		return;
 	}
 	if (!c->cache) {
 		if (get_connection_cache_entry(c)) {
-			mem_free(head);
+			free(head);
 			setcstate(c, S_OUT_OF_MEM);
 			abort_connection(c);
 			return;
@@ -968,16 +969,16 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 	e = c->cache;
 	previous_http_code = e->http_code;
 	e->http_code = h;
-	if (e->head) mem_free(e->head);
+	if (e->head) free(e->head);
 	e->head = head;
 	if ((d = parse_http_header(head, cast_uchar "Expires", NULL))) {
 		time_t t = parse_http_date(d);
 		if (t && e->expire_time != 1) e->expire_time = t;
-		mem_free(d);
+		free(d);
 	}
 	if ((d = parse_http_header(head, cast_uchar "Pragma", NULL))) {
 		if (!casecmp(d, cast_uchar "no-cache", 8)) e->expire_time = 1;
-		mem_free(d);
+		free(d);
 	}
 	if ((d = parse_http_header(head, cast_uchar "Cache-Control", NULL))) {
 		unsigned char *f = d;
@@ -996,13 +997,14 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 			}
 			while (*f && *f != ',') f++;
 		}
-		mem_free(d);
+		free(d);
 	}
 	if (c->ssl) {
-		if (e->ssl_info) mem_free(e->ssl_info);
+		free(e->ssl_info);
 		e->ssl_info = get_cipher_string(c->ssl);
 	}
-	if (e->redirect) mem_free(e->redirect), e->redirect = NULL;
+	free(e->redirect);
+	e->redirect = NULL;
 	if ((h == 302 || h == 303 || h == 307 || h == 511) && !e->expire_time) e->expire_time = 1;
 	if (h == 301 || h == 302 || h == 303 || h == 307) {
 		if ((d = parse_http_header(e->head, cast_uchar "Location", NULL))) {
@@ -1020,11 +1022,11 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 					ins = d + ins_off;
 					memmove(ins + strlen(cast_const_char newuser), ins, strlen(cast_const_char ins) + 1);
 					memcpy(ins, newuser, strlen(cast_const_char newuser));
-					mem_free(newpassword);
+					free(newpassword);
 				}
-				mem_free(newuser);
+				free(newuser);
 			}
-			if (e->redirect) mem_free(e->redirect);
+			free(e->redirect);
 			e->redirect = d;
 			e->redirect_get = h == 303;
 		}
@@ -1035,7 +1037,7 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 	info->version = version;
 	if ((d = parse_http_header(e->head, cast_uchar "Connection", NULL)) || (d = parse_http_header(e->head, cast_uchar "Proxy-Connection", NULL))) {
 		if (!casestrcmp(d, cast_uchar "close")) info->close = 1;
-		mem_free(d);
+		free(d);
 	} else if (version < 11) info->close = 1;
 	cf = c->from;
 	c->from = 0;
@@ -1047,7 +1049,7 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 				if (f >= 0 && (off_t)f >= 0 && (off_t)f == f) c->from = f;
 			}
 		}
-		mem_free(d);
+		free(d);
 	} else if (h == 206) {
 /* Hmm ... some servers send 206 partial but don't send Content-Range */
 		c->from = cf;
@@ -1065,11 +1067,11 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 			if (!info->close || version >= 11) info->length = l;
 			if (c->from + l >= 0) c->est_length = c->from + l;
 		}
-		mem_free(d);
+		free(d);
 	}
 	if ((d = parse_http_header(e->head, cast_uchar "Accept-Ranges", NULL))) {
 		if (!casestrcmp(d, cast_uchar "none") && !c->unrestartable) c->unrestartable = 1;
-		mem_free(d);
+		free(d);
 	} else {
 		if (!c->unrestartable && !c->from) c->unrestartable = 1;
 	}
@@ -1079,7 +1081,7 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 			info->length = -2;
 			info->chunk_remaining = -1;
 		}
-		mem_free(d);
+		free(d);
 	}
 	if (!info->close && info->length == -1) info->close = 1;
 	if ((d = parse_http_header(e->head, cast_uchar "Last-Modified", NULL))) {
@@ -1087,14 +1089,15 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 			delete_entry_content(e);
 			if (c->from) {
 				c->from = 0;
-				mem_free(d);
+				free(d);
 				setcstate(c, S_MODIFIED);
 				retry_connection(c);
 				return;
 			}
 		}
 		if (!e->last_modified) e->last_modified = d;
-		else mem_free(d);
+		else
+			free(d);
 	}
 	if (!e->last_modified && (d = parse_http_header(e->head, cast_uchar "Date", NULL)))
 		e->last_modified = d;
@@ -1109,7 +1112,7 @@ static void http_got_header(struct connection *c, struct read_buffer *rb)
 	 *	  authentication message).
 	 */
 	if ((d = parse_http_header(e->head, cast_uchar "Content-Encoding", NULL))) {
-		mem_free(d);
+		free(d);
 		truncate_entry(e, c->from, 0);
 	} else if (previous_http_code == 401 || previous_http_code == 407) {
 		truncate_entry(e, c->from, 0);

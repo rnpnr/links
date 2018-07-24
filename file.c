@@ -247,11 +247,11 @@ void file_func(struct connection *c)
 	}
 	EINTRLOOP(rs, stat(cast_const_char name, &stt));
 	if (rs) {
-		mem_free(name);
+		free(name);
 		setcstate(c, get_error_from_errno(errno)); abort_connection(c); return;
 	}
 	if (!S_ISDIR(stt.st_mode) && !S_ISREG(stt.st_mode)) {
-		mem_free(name);
+		free(name);
 		setcstate(c, S_FILE_TYPE); abort_connection(c); return;
 	}
 	h = c_open(name, O_RDONLY | O_NOCTTY);
@@ -259,7 +259,7 @@ void file_func(struct connection *c)
 		int er = errno;
 		d = c_opendir(name);
 		if (d) goto dir;
-		mem_free(name);
+		free(name);
 		setcstate(c, get_error_from_errno(er));
 		abort_connection(c);
 		return;
@@ -274,7 +274,7 @@ void file_func(struct connection *c)
 		er = errno;
 		EINTRLOOP(rs, close(h));
 		if (!d) {
-			mem_free(name);
+			free(name);
 			setcstate(c, get_error_from_errno(er)); abort_connection(c); return;
 		}
 		dir:
@@ -283,18 +283,18 @@ void file_func(struct connection *c)
 		if (name[0] && !dir_sep(name[strlen(cast_const_char name) - 1])) {
 			if (!c->cache) {
 				if (get_connection_cache_entry(c)) {
-					mem_free(name);
+					free(name);
 					closedir(d);
 					setcstate(c, S_OUT_OF_MEM); abort_connection(c); return;
 				}
 				c->cache->refcount--;
 			}
 			e = c->cache;
-			if (e->redirect) mem_free(e->redirect);
+			free(e->redirect);
 			e->redirect = stracpy(c->url);
 			e->redirect_get = 1;
 			add_to_strn(&e->redirect, cast_uchar "/");
-			mem_free(name);
+			free(name);
 			closedir(d);
 			goto end;
 		}
@@ -340,7 +340,7 @@ void file_func(struct connection *c)
 #endif
 			if (rs) stp = NULL;
 			else stp = &stt;
-			mem_free(n);
+			free(n);
 			stat_mode(p, &l, stp);
 			stat_links(p, &l, stp);
 			stat_user(p, &l, stp, 0);
@@ -360,7 +360,7 @@ void file_func(struct connection *c)
 				unsigned char *n = stracpy(name);
 				add_to_strn(&n, dir[i].f);
 				do {
-					if (buf) mem_free(buf);
+					free(buf);
 					size += ALLOC_GR;
 					if ((unsigned)size > MAXINT) overalloc();
 					buf = xmalloc(size);
@@ -371,9 +371,9 @@ void file_func(struct connection *c)
 				lnk = buf;
 				goto xxx;
 				yyy:
-				mem_free(buf);
+				free(buf);
 				xxx:
-				mem_free(n);
+				free(n);
 			}
 #endif
 			/*add_to_str(&file, &fl, cast_uchar "   ");*/
@@ -387,7 +387,7 @@ void file_func(struct connection *c)
 				add_to_strn(&n, dir[i].f);
 				EINTRLOOP(rs, stat(cast_const_char n, &st));
 				if (!rs) if (S_ISDIR(st.st_mode)) add_to_str(&file, &fl, cast_uchar "/");
-				mem_free(n);
+				free(n);
 			}
 			add_to_str(&file, &fl, cast_uchar "\">");
 			/*if (dir[i].s[0] == 'd') add_to_str(&file, &fl, cast_uchar "<font color=\"yellow\">");*/
@@ -399,17 +399,20 @@ void file_func(struct connection *c)
 			if (lnk) {
 				add_to_str(&file, &fl, cast_uchar " -> ");
 				add_to_str(&file, &fl, lnk);
-				mem_free(lnk);
+				free(lnk);
 			}
 			add_to_str(&file, &fl, cast_uchar "\n");
 		}
-		mem_free(name);
-		for (i = 0; i < dirl; i++) mem_free(dir[i].s), mem_free(dir[i].f);
-		mem_free(dir);
+		free(name);
+		for (i = 0; i < dirl; i++) {
+			free(dir[i].s);
+			free(dir[i].f);
+		}
+		free(dir);
 		add_to_str(&file, &fl, cast_uchar "</pre></body></html>\n");
 		head = stracpy(cast_uchar "\r\nContent-Type: text/html\r\n");
 	} else {
-		mem_free(name);
+		free(name);
 		if (
 #ifndef __WATCOMC__
 		    stt.st_size < 0 ||
@@ -430,7 +433,7 @@ void file_func(struct connection *c)
 		if ((r = hard_read(h, file, (int)stt.st_size))
 			!= stt.st_size
 			) {
-			mem_free(file);
+			free(file);
 			EINTRLOOP(rs, close(h));
 			setcstate(c, r == -1 ? get_error_from_errno(errno) : S_FILE_ERROR);
 			abort_connection(c); return;
@@ -441,23 +444,23 @@ void file_func(struct connection *c)
 	}
 	if (!c->cache) {
 		if (get_connection_cache_entry(c)) {
-			mem_free(file);
-			mem_free(head);
+			free(file);
+			free(head);
 			setcstate(c, S_OUT_OF_MEM); abort_connection(c); return;
 		}
 		c->cache->refcount--;
 	}
 	e = c->cache;
-	if (e->head) mem_free(e->head);
+	free(e->head);
 	e->head = head;
 	if ((r = add_fragment(e, 0, file, fl)) < 0) {
-		mem_free(file);
+		free(file);
 		setcstate(c, r);
 		abort_connection(c);
 		return;
 	}
 	truncate_entry(e, fl, 1);
-	mem_free(file);
+	free(file);
 	end:
 	c->cache->incomplete = 0;
 	setcstate(c, S__OK);

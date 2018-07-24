@@ -1998,7 +1998,7 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 	if (name) {
 		clr_spaces(name, 1);
 		if (!name[0]) {
-			mem_free(name);
+			free(name);
 			name = stracpy(cast_uchar " ");
 		}
 		if (name[0] == 1) name[0] = ' ';

@@ -56,8 +56,9 @@ void gif_destroy_decoder(struct cached_image *cimg)
 {
 	struct gif_decoder *deco=cimg->decoder;
 
-	if ((cimg->state==12||cimg->state==14)&&cimg->strip_optimized) mem_free(deco->actual_line);
-	if (deco->color_map) mem_free(deco->color_map);
+	if ((cimg->state == 12 || cimg->state == 14) && cimg->strip_optimized)
+		free(deco->actual_line);
+	free(deco->color_map);
 }
 
 /* colors: number of triplets (color entries) */
@@ -65,7 +66,7 @@ static void alloc_color_map(int colors)
 {
  struct gif_decoder* deco=global_cimg->decoder;
 
- if (deco->color_map) mem_free(deco->color_map);
+	free(deco->color_map);
  if ((unsigned)colors > MAXINT / 3 / sizeof(*(deco->color_map))) overalloc();
  deco->color_map = xmalloc(colors * 3 * sizeof(*(deco->color_map)));
 }

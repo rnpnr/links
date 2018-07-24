@@ -44,8 +44,13 @@ static unsigned char *init_graphics_driver(struct graphics_driver *gd, unsigned 
 	if (dp->shell) safe_strncpy(gd->shell, dp->shell, MAX_STR_LEN);
 	drv = gd;
 	r = gd->init_driver(p,display);
-	if (r) mem_free(gd->shell), gd->shell = NULL, drv = NULL;
-	else F = 1;
+	if (r) {
+		free(gd->shell);
+		gd->shell = NULL;
+		drv = NULL;
+	}
+	else
+		F = 1;
 	return r;
 }
 
@@ -69,7 +74,7 @@ unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsign
 			unsigned char *r;
 			if ((!driver || !*driver) && (*gd)->flags & GD_NOAUTO) continue;
 			if (!(r = init_graphics_driver(*gd, param, display))) {
-				mem_free(s);
+				free(s);
 				return NULL;
 			}
 			if (!l) {
@@ -79,7 +84,7 @@ unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsign
 			add_to_str(&s, &l, (*gd)->name);
 			add_to_str(&s, &l, cast_uchar ":\n");
 			add_to_str(&s, &l, r);
-			mem_free(r);
+			free(r);
 		}
 	}
 	if (!l) {
@@ -94,9 +99,8 @@ unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsign
 
 void shutdown_graphics(void)
 {
-	if (drv)
-	{
-		if (drv->shell) mem_free(drv->shell);
+	if (drv) {
+		free(drv->shell);
 		drv->shutdown_driver();
 		drv = NULL;
 		F = 0;
@@ -108,9 +112,9 @@ void update_driver_param(void)
 	if (drv) {
 		struct driver_param *dp = get_driver_param(drv->name);
 		dp->kbd_codepage = drv->kbd_codepage;
-		if (dp->param) mem_free(dp->param);
-		dp->param=stracpy(drv->get_driver_param());
-		if (dp->shell) mem_free(dp->shell);
+		free(dp->param);
+		dp->param = stracpy(drv->get_driver_param());
+		free(dp->shell);
 		dp->shell = stracpy(drv->shell);
 		dp->nosave = 0;
 	}

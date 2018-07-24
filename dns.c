@@ -343,7 +343,7 @@ static int find_in_dns_cache(unsigned char *name, struct dnsentry **dnsentry)
 static void free_dns_entry(struct dnsentry *dnsentry)
 {
 	del_from_list(dnsentry);
-	mem_free(dnsentry);
+	free(dnsentry);
 }
 
 static void end_dns_lookup(struct dnsquery *q, int a)
