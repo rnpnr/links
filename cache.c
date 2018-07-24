@@ -28,26 +28,6 @@ static void cache_add_to_tree(struct cache_entry *e)
 
 	if (!e->url[0]) return;
 
-#if !defined(__GLIBC__)
-	if (!cache_root) {
-		/*
-		 * Some implementations misbehave when deleting the last
-		 * element. They leak memory or return NULL from tdelete.
-		 * To guard against misbehavior, we insert one static element
-		 * and never delete it.
-		 * Glibc doesn't have this bug.
-		 */
-		static unsigned char empty = 0;
-retry_static:
-		p = tsearch(&empty, &cache_root, ce_compare);
-		if (!p) {
-			out_of_memory(0, cast_uchar "tsearch static", 0);
-			goto retry_static;
-		}
-		if ((unsigned char *)*p != &empty) internal("cache_add_to_tree: static entry not added: %p, %p", *p, &empty);
-	}
-#endif
-
 retry:
 	p = tsearch(e->url, &cache_root, ce_compare);
 	if (!p) {
