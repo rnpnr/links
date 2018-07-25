@@ -1358,7 +1358,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			r->ld=ld;
 			r->dlg=dlg;
 
-			input_field(ses->term, getml(r,NULL), TEXT_(T_SEARCH), TEXT_(T_SEARCH_FOR_TEXT), r, ld->search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), list_search_for, TEXT_(T_CANCEL), NULL);
+			input_field(ses->term, getml(r,NULL), TEXT_(T_SEARCH), TEXT_(T_SEARCH_FOR_TEXT), r, ld->search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), list_search_for, TEXT_(T_CANCEL), input_field_null);
 			return EVENT_PROCESSED;
 		}
 		if (ev->x=='?') /* search back */
@@ -1369,7 +1369,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			r->ld=ld;
 			r->dlg=dlg;
 
-			input_field(ses->term, getml(r,NULL), TEXT_(T_SEARCH_BACK), TEXT_(T_SEARCH_FOR_TEXT), r, ld->search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), list_search_for_back, TEXT_(T_CANCEL), NULL);
+			input_field(ses->term, getml(r,NULL), TEXT_(T_SEARCH_BACK), TEXT_(T_SEARCH_FOR_TEXT), r, ld->search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), list_search_for_back, TEXT_(T_CANCEL), input_field_null);
 			return EVENT_PROCESSED;
 		}
 		if (ev->x=='n') /* find next */

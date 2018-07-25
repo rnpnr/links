@@ -293,7 +293,7 @@ void block_url_query(struct session *ses, unsigned char *u)
 	if (test_list_window_in_use(&blocks_ld, ses->term))
 		return;
 
-	input_field(ses->term, NULL, TEXT_(T_BLOCK_URL), TEXT_(T_BLOCK_ADD), ses, 0, MAX_INPUT_URL_LEN, u, 0, 0, NULL, 2, TEXT_(T_OK), block_url_add, TEXT_(T_CANCEL), NULL);
+	input_field(ses->term, NULL, TEXT_(T_BLOCK_URL), TEXT_(T_BLOCK_ADD), ses, 0, MAX_INPUT_URL_LEN, u, 0, 0, NULL, 2, TEXT_(T_OK), block_url_add, TEXT_(T_CANCEL), input_field_null);
 
 }
 

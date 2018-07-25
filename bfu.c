@@ -2370,6 +2370,10 @@ static void input_field_fn(struct dialog_data *dlg)
 	dlg_format_buttons(dlg, term, dlg->items + 1, dlg->n - 1, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
 
+void input_field_null(void)
+{
+}
+
 /* coverity[+free : arg-1] */
 void input_field(struct terminal *term, struct memory_list *ml, unsigned char *title, unsigned char *text, void *data, struct history *history, int l, unsigned char *def, int min, int max, int (*check)(struct dialog_data *, struct dialog_item_data *), int n, ...)
 {

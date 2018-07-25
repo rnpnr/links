@@ -3174,12 +3174,12 @@ struct history goto_url_history = { 0, { &goto_url_history.items, &goto_url_hist
 
 void dialog_goto_url(struct session *ses, unsigned char *url)
 {
-	input_field(ses->term, NULL, TEXT_(T_GOTO_URL), TEXT_(T_ENTER_URL), ses, &goto_url_history, MAX_INPUT_URL_LEN, url, 0, 0, NULL, 2, TEXT_(T_OK), goto_url, TEXT_(T_CANCEL), NULL);
+	input_field(ses->term, NULL, TEXT_(T_GOTO_URL), TEXT_(T_ENTER_URL), ses, &goto_url_history, MAX_INPUT_URL_LEN, url, 0, 0, NULL, 2, TEXT_(T_OK), goto_url, TEXT_(T_CANCEL), input_field_null);
 }
 
 void dialog_save_url(struct session *ses)
 {
-	input_field(ses->term, NULL, TEXT_(T_SAVE_URL), TEXT_(T_ENTER_URL), ses, &goto_url_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), save_url, TEXT_(T_CANCEL), NULL);
+	input_field(ses->term, NULL, TEXT_(T_SAVE_URL), TEXT_(T_ENTER_URL), ses, &goto_url_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), save_url, TEXT_(T_CANCEL), input_field_null);
 }
 
 
@@ -3381,7 +3381,7 @@ void search_back_dlg(struct session *ses, struct f_data_c *f, int a)
 		msg_box(ses->term, NULL, TEXT_(T_SEARCH), AL_LEFT, TEXT_(T_YOU_ARE_NOWHERE), MSG_BOX_END, NULL, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
 		return;
 	}
-	input_field(ses->term, NULL, TEXT_(T_SEARCH_BACK), TEXT_(T_SEARCH_FOR_TEXT), ses, &search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), search_for_back, TEXT_(T_CANCEL), NULL);
+	input_field(ses->term, NULL, TEXT_(T_SEARCH_BACK), TEXT_(T_SEARCH_FOR_TEXT), ses, &search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), search_for_back, TEXT_(T_CANCEL), input_field_null);
 }
 
 void search_dlg(struct session *ses, struct f_data_c *f, int a)
@@ -3390,7 +3390,7 @@ void search_dlg(struct session *ses, struct f_data_c *f, int a)
 		msg_box(ses->term, NULL, TEXT_(T_SEARCH_FOR_TEXT), AL_LEFT, TEXT_(T_YOU_ARE_NOWHERE), MSG_BOX_END, NULL, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
 		return;
 	}
-	input_field(ses->term, NULL, TEXT_(T_SEARCH), TEXT_(T_SEARCH_FOR_TEXT), ses, &search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), search_for, TEXT_(T_CANCEL), NULL);
+	input_field(ses->term, NULL, TEXT_(T_SEARCH), TEXT_(T_SEARCH_FOR_TEXT), ses, &search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), search_for, TEXT_(T_CANCEL), input_field_null);
 }
 
 void free_history_lists(void)
