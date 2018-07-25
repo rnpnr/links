@@ -272,8 +272,6 @@ static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 void *mem_calloc_(size_t size, int mayfail);
 #define mem_calloc(x)			mem_calloc_(x, 0)
 #define mem_calloc_mayfail(x)		mem_calloc_(x, 1)
-static inline void *debug_mem_calloc(unsigned char *f, int l, size_t s, int mayfail) { return mem_calloc_(s, mayfail); }
-static inline unsigned char *get_mem_comment(void *p){return (unsigned char *)"";}
 
 unsigned char *memacpy(const unsigned char *src, size_t len);
 unsigned char *stracpy(const unsigned char *src);
@@ -351,7 +349,7 @@ static inline unsigned char *init_str_x(unsigned char *file, int line)
 {
 	unsigned char *p;
 
-	p=(unsigned char *)debug_mem_calloc(file, line, 1L, 0);
+	p = mem_calloc_(1L, 0);
 	return p;
 }
 
@@ -397,7 +395,10 @@ static inline int xstrcmp(const unsigned char *s1, const unsigned char *s2)
 
 static inline int cmpbeg(const unsigned char *str, const unsigned char *b)
 {
-	while (*str && upcase(*str) == upcase(*b)) str++, b++;
+	while (*str && upcase(*str) == upcase(*b)) {
+		str++;
+		b++;
+	}
 	return !!*b;
 }
 
@@ -1686,7 +1687,10 @@ void exclude_rect_from_set(struct rect_set **, struct rect *);
 static inline void exclude_from_set(struct rect_set **s, int x1, int y1, int x2, int y2)
 {
 	struct rect r;
-	r.x1 = x1, r.x2 = x2, r.y1 = y1, r.y2 = y2;
+	r.x1 = x1;
+	r.x2 = x2;
+	r.y1 = y1;
+	r.y2 = y2;
 	exclude_rect_from_set(s, &r);
 }
 
