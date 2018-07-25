@@ -12,9 +12,6 @@ int snprint(unsigned char *s, int n, my_uintptr_t num)
 	while (n-- > 1 && q) {
 		*(s++) = (unsigned char)(num / q + '0');
 		num %= q;
-#ifdef __DECC_VER
-		do_not_optimize_here(&q);	/* compiler bug */
-#endif
 		q /= 10;
 	}
 	*s = 0;
@@ -29,9 +26,6 @@ int snzprint(unsigned char *s, int n, off_t num)
 	while (n-- > 1 && q) {
 		*(s++) = (unsigned char)(num / q + '0');
 		num %= q;
-#ifdef __DECC_VER
-		do_not_optimize_here(&q);	/* compiler bug */
-#endif
 		q /= 10;
 	}
 	*s = 0;
