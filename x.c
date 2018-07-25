@@ -574,11 +574,13 @@ static void x_add_to_table(struct graphics_device* gd)
 	if (!c)
 		x_hash_table[a].pointer = xmalloc(sizeof(struct graphics_device *));
 	else {
-		if ((unsigned)c > MAXINT / sizeof(struct graphics_device *) - 1) overalloc();
-		x_hash_table[a].pointer=mem_realloc(x_hash_table[a].pointer,(c+1)*sizeof(struct graphics_device *));
+		if ((unsigned)c > MAXINT / sizeof(struct graphics_device *) - 1)
+			overalloc();
+		x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer,
+						(c + 1) * sizeof(struct graphics_device *));
 	}
 
-	x_hash_table[a].pointer[c]=gd;
+	x_hash_table[a].pointer[c] = gd;
 	x_hash_table[a].count++;
 }
 
@@ -594,7 +596,8 @@ static void x_remove_from_table(Window *win)
 		{
 			memmove(x_hash_table[a].pointer+b,x_hash_table[a].pointer+b+1,(x_hash_table[a].count-b-1)*sizeof(struct graphics_device *));
 			x_hash_table[a].count--;
-			x_hash_table[a].pointer=mem_realloc(x_hash_table[a].pointer,x_hash_table[a].count*sizeof(struct graphics_device*));
+			x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer,
+							x_hash_table[a].count * sizeof(struct graphics_device *));
 		}
 }
 

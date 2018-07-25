@@ -218,13 +218,12 @@ void jpeg_restart(struct cached_image *cimg, unsigned char *data, int length)
 		 * allocate more space */
 		memmove(deco->jdata,global_cinfo->src->next_input_byte,
 			global_cinfo->src->bytes_in_buffer);
-		deco->jdata=mem_realloc(
-			deco->jdata, global_cinfo->src->bytes_in_buffer+length);
-	}else{
+		deco->jdata = xrealloc(deco->jdata,
+				global_cinfo->src->bytes_in_buffer+length);
+	} else
 		/* If there is no decoder buffer we'll have to allocate
 		 * space for a new buffer */
-		deco->jdata = xmalloc(global_cinfo->src->bytes_in_buffer+length);
-	}
+		deco->jdata = xmalloc(global_cinfo->src->bytes_in_buffer + length);
 
 	/* Copy the data iself into the decoder buffer */
 	memcpy(deco->jdata+global_cinfo->src->bytes_in_buffer

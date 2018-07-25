@@ -326,8 +326,9 @@ void file_func(struct connection *c)
 				if (strspn(cast_const_char n, dir_sep('\\') ? "/\\" : "/") == strlen(cast_const_char n))
 					continue;
 			}
-			if ((unsigned)dirl > MAXINT / sizeof(struct dirs) - 1) overalloc();
-			dir = mem_realloc(dir, (dirl + 1) * sizeof(struct dirs));
+			if ((unsigned)dirl > MAXINT / sizeof(struct dirs) - 1)
+				overalloc();
+			dir = xrealloc(dir, (dirl + 1) * sizeof(struct dirs));
 			dir[dirl].f = stracpy(cast_uchar de->d_name);
 			*(p = &dir[dirl++].s) = init_str();
 			l = 0;

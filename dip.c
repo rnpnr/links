@@ -885,7 +885,7 @@ static void decimate_3(unsigned short **data0, int x, int y)
 			}
 		}
 	}
-	*data0=mem_realloc(*data0,futuresize);
+	*data0 = xrealloc(*data0, futuresize);
 }
 
 /* Scales color 48-bits-per-pixel bitmap. Both enlarges and diminishes. Uses

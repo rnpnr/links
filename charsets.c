@@ -389,8 +389,9 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 			put_c:
 			buffer[bp++] = c[pp++];
 			if (!(bp & (ALLOC_GR - 1))) {
-				if ((unsigned)bp > MAXINT - ALLOC_GR) overalloc();
-				buffer = mem_realloc(buffer, bp + ALLOC_GR);
+				if ((unsigned)bp > MAXINT - ALLOC_GR)
+					overalloc();
+				buffer = xrealloc(buffer, bp + ALLOC_GR);
 			}
 			continue;
 		}
@@ -416,20 +417,23 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1, dopt->cp))) goto put_c;
 			pp = i + (i < l && c[i] == ';');
 		}
-		if (!e[0]) continue;
+		if (!e[0])
+			continue;
 		if (!e[1]) {
 			buffer[bp++] = e[0];
 			if (!(bp & (ALLOC_GR - 1))) {
-				if ((unsigned)bp > MAXINT - ALLOC_GR) overalloc();
-				buffer = mem_realloc(buffer, bp + ALLOC_GR);
+				if ((unsigned)bp > MAXINT - ALLOC_GR)
+					overalloc();
+				buffer = xrealloc(buffer, bp + ALLOC_GR);
 			}
 			continue;
 		}
 		while (*e) {
 			buffer[bp++] = *(e++);
 			if (!(bp & (ALLOC_GR - 1))) {
-				if ((unsigned)bp > MAXINT - ALLOC_GR) overalloc();
-				buffer = mem_realloc(buffer, bp + ALLOC_GR);
+				if ((unsigned)bp > MAXINT - ALLOC_GR)
+					overalloc();
+				buffer = xrealloc(buffer, bp + ALLOC_GR);
 			}
 		}
 	}

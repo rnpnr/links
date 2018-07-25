@@ -201,8 +201,9 @@ static struct line_info *format_text_uncached(unsigned char *text, int width, in
 			sk = 1;
 			put:
 			if (!(lnn & (ALLOC_GR-1))) {
-				if ((unsigned)lnn > MAXINT / sizeof(struct line_info) - ALLOC_GR) overalloc();
-				ln = mem_realloc(ln, (lnn + ALLOC_GR) * sizeof(struct line_info));
+				if ((unsigned)lnn > MAXINT / sizeof(struct line_info) - ALLOC_GR)
+					overalloc();
+				ln = xrealloc(ln, (lnn + ALLOC_GR) * sizeof(struct line_info));
 			}
 			ln[lnn].st = b;
 			ln[lnn++].en = text;
@@ -552,8 +553,10 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 					set_color(t, x, y, co);*/
 					if (!(len & (ALLOC_GR - 1))) {
 						struct point *points2;
-						if ((unsigned)len > MAXINT / sizeof(struct point) - ALLOC_GR) goto ret;
-						points2 = mem_realloc_mayfail(points, sizeof(struct point) * (len + ALLOC_GR));
+						if ((unsigned)len > MAXINT / sizeof(struct point) - ALLOC_GR)
+							goto ret;
+						points2 = xrealloc(points,
+								sizeof(struct point) * (len + ALLOC_GR));
 						if (!points2) goto ret;
 						points = points2;
 					}
@@ -673,10 +676,12 @@ struct form_state *find_form_state(struct f_data_c *f, struct form_control *form
 	struct view_state *vs = f->vs;
 	struct form_state *fs;
 	int n = form->g_ctrl_num;
-	if (n < vs->form_info_len) fs = &vs->form_info[n];
+	if (n < vs->form_info_len)
+		fs = &vs->form_info[n];
 	else {
-		if ((unsigned)n > MAXINT / sizeof(struct form_state) - 1) overalloc();
-		fs = mem_realloc(vs->form_info, (n + 1) * sizeof(struct form_state));
+		if ((unsigned)n > MAXINT / sizeof(struct form_state) - 1)
+			overalloc();
+		fs = xrealloc(vs->form_info, (n + 1) * sizeof(struct form_state));
 		vs->form_info = fs;
 		memset(fs + vs->form_info_len, 0, (n + 1 - vs->form_info_len) * sizeof(struct form_state));
 		vs->form_info_len = n + 1;
@@ -1880,8 +1885,10 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 		bnd:
 		add_to_str(data, len, cast_uchar "--");
 		if (!(nbound_ptrs & (ALLOC_GR-1))) {
-			if ((unsigned)nbound_ptrs > MAXINT / sizeof(int) - ALLOC_GR) overalloc();
-			bound_ptrs = mem_realloc(bound_ptrs, (nbound_ptrs + ALLOC_GR) * sizeof(int));
+			if ((unsigned)nbound_ptrs > MAXINT / sizeof(int) - ALLOC_GR)
+				overalloc();
+			bound_ptrs = xrealloc(bound_ptrs,
+					(nbound_ptrs + ALLOC_GR) * sizeof(int));
 		}
 		bound_ptrs[nbound_ptrs++] = *len;
 		add_bytes_to_str(data, len, bound, BL);
@@ -2103,8 +2110,9 @@ static struct menu_item *clone_select_menu(struct menu_item *m)
 	struct menu_item *n = NULL;
 	int i = 0;
 	do {
-		if ((unsigned)i > MAXINT / sizeof(struct menu_item) - 1) overalloc();
-		n = mem_realloc(n, (i + 1) * sizeof(struct menu_item));
+		if ((unsigned)i > MAXINT / sizeof(struct menu_item) - 1)
+			overalloc();
+		n = xrealloc(n, (i + 1) * sizeof(struct menu_item));
 		n[i].text = stracpy(m->text);
 		n[i].rtext = stracpy(m->rtext);
 		n[i].hotkey = stracpy(m->hotkey);
@@ -2404,7 +2412,8 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				unsigned char a_[2];
 				unsigned char *nw;
 				int ll;
-				v = fs->value = mem_realloc(fs->value, strlen(cast_const_char fs->value) + 12);
+				v = fs->value = xrealloc(fs->value,
+							strlen(cast_const_char fs->value) + 12);
 				if (f->f_data->opt.cp != utf8_table) {
 					nw = a_;
 					a_[0] = (unsigned char)ev->x;
@@ -2419,10 +2428,15 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				fs->state += ll;
 			}
 			goto done;
-		} else if (!(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT)) && ev->x == KBD_ENTER && form->type == FC_TEXTAREA && (!ses->term->spec->braille || f->vs->brl_in_field)) {
-			if (!form->ro && strlen(cast_const_char fs->value) < (size_t)form->maxlength) {
+		} else if (!(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT))
+		&& ev->x == KBD_ENTER
+		&& form->type == FC_TEXTAREA
+		&& (!ses->term->spec->braille || f->vs->brl_in_field)) {
+			if (!form->ro
+			&& strlen(cast_const_char fs->value) < (size_t)form->maxlength) {
 				unsigned char *v;
-				v = mem_realloc(fs->value, strlen(cast_const_char fs->value) + 2);
+				v = xrealloc(fs->value,
+					strlen(cast_const_char fs->value) + 2);
 				fs->value = v;
 				memmove(v + fs->state + 1, v + fs->state, strlen(cast_const_char(v + fs->state)) + 1);
 				v[fs->state++] = '\n';
@@ -2533,16 +2547,17 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			}
 			if (!form->ro && cp_len(term_charset(ses->term), fs->value) + cp_len(term_charset(ses->term), clipboard) <= form->maxlength) {
 				unsigned char *v;
-				v = mem_realloc(fs->value, strlen(cast_const_char fs->value) + strlen(cast_const_char clipboard) +1);
+				v = xrealloc(fs->value,
+					strlen(cast_const_char fs->value) + strlen(cast_const_char clipboard) +1);
 				fs->value = v;
 				memmove(v + fs->state + strlen(cast_const_char clipboard), v + fs->state, strlen(cast_const_char v) - fs->state + 1);
 				memcpy(v + fs->state, clipboard, strlen(cast_const_char clipboard));
 				fs->state += (int)strlen(cast_const_char clipboard);
 			}
 			free(clipboard);
-		} else if (ev->x == KBD_ENTER) {
+		} else if (ev->x == KBD_ENTER)
 			x = 0;
-		} else if (ev->x == KBD_BS) {
+		else if (ev->x == KBD_BS) {
 			set_br_pos(f, l);
 			if (!form->ro && fs->state) {
 				int ll = 1;

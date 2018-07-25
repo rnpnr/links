@@ -332,8 +332,9 @@ static void new_columns(struct table *t, int span, int width, int align, int val
 			if ((unsigned)n > MAXINT / 2) overalloc();
 			n *= 2;
 		}
-		if ((unsigned)n > MAXINT / sizeof(struct table_column)) overalloc();
-		nc = mem_realloc(t->cols, n * sizeof(struct table_column));
+		if ((unsigned)n > MAXINT / sizeof(struct table_column))
+			overalloc();
+		nc = xrealloc(t->cols, n * sizeof(struct table_column));
 		t->rc = n;
 		t->cols = nc;
 	}
@@ -356,9 +357,11 @@ static void set_td_width(struct table *t, int x, int width, int f)
 			if ((unsigned)n > MAXINT / 2) overalloc();
 			n *= 2;
 		}
-		if ((unsigned)n > MAXINT / sizeof(int)) overalloc();
-		nc = mem_realloc(t->xcols, n * sizeof(int));
-		for (i = t->xc; i < n; i++) nc[i] = W_AUTO;
+		if ((unsigned)n > MAXINT / sizeof(int))
+			overalloc();
+		nc = xrealloc(t->xcols, n * sizeof(int));
+		for (i = t->xc; i < n; i++)
+			nc[i] = W_AUTO;
 		t->xc = n;
 		t->xcols = nc;
 	}
@@ -432,8 +435,10 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	html = en;
 	if (bad_html && !p && !lbhp) {
 		if (!(*bhp & (ALLOC_GR-1))) {
-			if ((unsigned)*bhp > MAXINT / sizeof(struct s_e) - ALLOC_GR) overalloc();
-			*bad_html = mem_realloc(*bad_html, (*bhp + ALLOC_GR) * sizeof(struct s_e));
+			if ((unsigned)*bhp > MAXINT / sizeof(struct s_e) - ALLOC_GR)
+				overalloc();
+			*bad_html = xrealloc(*bad_html,
+					(*bhp + ALLOC_GR) * sizeof(struct s_e));
 		}
 		lbhp = (*bad_html)[(*bhp)++].s = html;
 	}
@@ -1589,9 +1594,12 @@ static void add_to_rect_sets(struct rect_set ***s, int *n, struct rect *r)
 	for (i = r->y1 >> RECT_BOUND_BITS; i <= (r->y2 - 1) >> RECT_BOUND_BITS; i++) {
 		if (i >= *n) {
 			struct rect_set **ns;
-			if ((unsigned)i > MAXINT / sizeof(struct rect_set *) - 1) overalloc();
-			ns = mem_realloc(*s, (i + 1) * sizeof(struct rect_set *));
-			for (j = *n; j < i + 1; j++) ns[j] = init_rect_set();
+			if ((unsigned)i > MAXINT / sizeof(struct rect_set *) - 1)
+				overalloc();
+			ns = xrealloc(*s,
+				(i + 1) * sizeof(struct rect_set *));
+			for (j = *n; j < i + 1; j++)
+				ns[j] = init_rect_set();
 			*s = ns;
 			*n = i + 1;
 		}
@@ -1608,10 +1616,12 @@ static void add_to_cell_sets(struct table_cell ****s, int **nn, int *n, struct r
 		if (i >= *n) {
 			struct table_cell ***ns;
 			int *nnn;
-			if ((unsigned)i > MAXINT / sizeof(struct table_cell ***) - 1) overalloc();
-			if ((unsigned)i > MAXINT / sizeof(int *) - 1) overalloc();
-			ns = mem_realloc(*s, (i + 1) * sizeof(struct table_cell **));
-			nnn = mem_realloc(*nn, (i + 1) * sizeof(int));
+			if ((unsigned)i > MAXINT / sizeof(struct table_cell ***) - 1
+			|| (unsigned)i > MAXINT / sizeof(int *) - 1)
+				overalloc();
+			ns = xrealloc(*s,
+				(i + 1) * sizeof(struct table_cell **));
+			nnn = xrealloc(*nn, (i + 1) * sizeof(int));
 			for (j = *n; j < i + 1; j++) {
 				ns[j] = NULL;
 				nnn[j] = 0;
@@ -1622,8 +1632,10 @@ static void add_to_cell_sets(struct table_cell ****s, int **nn, int *n, struct r
 		}
 		{
 			struct table_cell **nc;
-			if ((unsigned)(*nn)[i]  > MAXINT / sizeof(struct table_cell *) - 1) overalloc();
-			nc = mem_realloc((*s)[i], ((*nn)[i] + 1) * sizeof(struct table_cell *));
+			if ((unsigned)(*nn)[i]  > MAXINT / sizeof(struct table_cell *) - 1)
+				overalloc();
+			nc = xrealloc((*s)[i],
+				((*nn)[i] + 1) * sizeof(struct table_cell *));
 			nc[(*nn)[i]] = c;
 			(*s)[i] = nc;
 			(*nn)[i]++;

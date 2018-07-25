@@ -190,7 +190,9 @@ void flush_pending_line_to_obj(struct g_part *p, int minheight)
 	if (!(a->n_lines & (a->n_lines + 1))) {
 		if ((unsigned)a->n_lines > ((MAXINT - sizeof(struct g_object_area)) / sizeof(struct g_object_text *) - 1) / 2)
 			overalloc();
-		a = mem_realloc(a, sizeof(struct g_object_area) + sizeof(struct g_object_text *) * (a->n_lines * 2 + 1));
+		a = xrealloc(a, sizeof(struct g_object_area)
+				+ sizeof(struct g_object_text *)
+				* (a->n_lines * 2 + 1));
 		p->root = a;
 	}
 	a->lines[a->n_lines++] = l;
@@ -229,7 +231,9 @@ void add_object_to_line(struct g_part *pp, struct g_object_line **lp, struct g_o
 		(*lp)->n_entries++;
 		if ((unsigned)(*lp)->n_entries > (MAXINT - sizeof(struct g_object_line)) / sizeof(struct g_object *))
 			overalloc();
-		l = mem_realloc(*lp, sizeof(struct g_object_line) + sizeof(struct g_object *) * (*lp)->n_entries);
+		l = xrealloc(*lp, sizeof(struct g_object_line)
+				+ sizeof(struct g_object *)
+				* (*lp)->n_entries);
 		*lp = l;
 	}
 	l->entries[l->n_entries - 1] = go;
@@ -549,7 +553,9 @@ static void do_image(struct g_part *p, struct image_description *im)
 					continue;
 				if ((unsigned)map->n_areas > (MAXINT - sizeof(struct image_map)) / sizeof(struct map_area) - 1)
 					overalloc();
-				map = mem_realloc(map, sizeof(struct image_map) + (map->n_areas + 1) * sizeof(struct map_area));
+				map = xrealloc(map, sizeof(struct image_map)
+						+ (map->n_areas + 1)
+						* sizeof(struct map_area));
 				a = &map->area[map->n_areas++];
 				a->shape = shape;
 				a->coords = NULL;
@@ -576,7 +582,8 @@ static void do_image(struct g_part *p, struct image_description *im)
 						num = num * d_opt->image_scale / 100;
 					if ((unsigned)a->ncoords > MAXINT / sizeof(int) - 1)
 						overalloc();
-					a->coords = mem_realloc(a->coords, (a->ncoords + 1) * sizeof(int));
+					a->coords = xrealloc(a->coords,
+							(a->ncoords + 1) * sizeof(int));
 					a->coords[a->ncoords++] = num;
 					goto next_coord;
 				}
@@ -842,7 +849,8 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 		if ((unsigned)l > MAXINT
 		|| (unsigned)ptl + (unsigned)l > MAXINT - ALLOC_GR)
 			overalloc();
-		t = mem_realloc(p->text, sizeof(struct g_object_text) + ((ptl + l + ALLOC_GR - 1) & ~(ALLOC_GR - 1)));
+		t = xrealloc(p->text, sizeof(struct g_object_text)
+				+ ((ptl + l + ALLOC_GR - 1) & ~(ALLOC_GR - 1)));
 		if (p->w.last_wrap >= p->text->text && p->w.last_wrap < p->text->text + p->pending_text_len)
 			p->w.last_wrap = p->w.last_wrap + ((unsigned char *)t - (unsigned char *)p->text);
 		if (p->w.last_wrap_obj == &p->text->goti.go)

@@ -42,8 +42,9 @@ void add_to_strn(unsigned char **s, unsigned char *a)
 {
 	unsigned char *p;
 	size_t l1 = strlen(cast_const_char *s), l2 = strlen(cast_const_char a);
-	if (((l1 | l2) | (l1 + l2 + 1)) > MAXINT) overalloc();
-	p = (unsigned char *)mem_realloc(*s, l1 + l2 + 1);
+	if (((l1 | l2) | (l1 + l2 + 1)) > MAXINT)
+		overalloc();
+	p = xrealloc(*s, l1 + l2 + 1);
 	strcat(cast_char p, cast_const_char a);
 	*s = p;
 }
@@ -51,8 +52,9 @@ void add_to_strn(unsigned char **s, unsigned char *a)
 void extend_str(unsigned char **s, int n)
 {
 	size_t l = strlen(cast_const_char *s);
-	if (((l | n) | (l + n + 1)) > MAXINT) overalloc();
-	*s = (unsigned char *)mem_realloc(*s, l + n + 1);
+	if (((l | n) | (l + n + 1)) > MAXINT)
+		overalloc();
+	*s = xrealloc(*s, l + n + 1);
 }
 
 void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
@@ -81,7 +83,7 @@ void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 			new_length |= new_length >> 16;
 			new_length++;
 		}
-		p = (unsigned char *)mem_realloc(p, new_length);
+		p = xrealloc(p, new_length);
 		*s = p;
 	}
 	p[*l] = 0;

@@ -96,12 +96,16 @@ static void set_margin(struct terminal *term)
 static void alloc_term_screen(struct terminal *term)
 {
 	chr *s, *t;
-	if (term->x < 0) term->x = 1;
-	if (term->y < 0) term->y = 1;
-	if (term->x && (unsigned)term->x * (unsigned)term->y / (unsigned)term->x != (unsigned)term->y) overalloc();
-	if ((unsigned)term->x * (unsigned)term->y > MAXINT / sizeof(*term->screen)) overalloc();
-	s = mem_realloc(term->screen, term->x * term->y * sizeof(*term->screen));
-	t = mem_realloc(term->last_screen, term->x * term->y * sizeof(*term->screen));
+	if (term->x < 0)
+		term->x = 1;
+	if (term->y < 0)
+		term->y = 1;
+	if ((term->x && (unsigned)term->x * (unsigned)term->y / (unsigned)term->x != (unsigned)term->y)
+	|| (unsigned)term->x * (unsigned)term->y > MAXINT / sizeof(*term->screen))
+		overalloc();
+	s = xrealloc(term->screen, term->x * term->y * sizeof(*term->screen));
+	t = xrealloc(term->last_screen,
+		term->x * term->y * sizeof(*term->screen));
 	memset(t, -1, term->x * term->y * sizeof(*term->screen));
 	term->last_screen = t;
 	memset(s, 0, term->x * term->y * sizeof(*term->screen));
@@ -250,8 +254,10 @@ void add_to_rect_set(struct rect_set **s, struct rect *r)
 		if (i >= ss->m) ss->m = i + 1;
 		return;
 	}
-	if ((unsigned)ss->rl > (MAXINT - sizeof(struct rect_set)) / sizeof(struct rect) - R_GR) overalloc();
-	ss = mem_realloc(ss, sizeof(struct rect_set) + sizeof(struct rect) * (ss->rl + R_GR));
+	if ((unsigned)ss->rl > (MAXINT - sizeof(struct rect_set)) / sizeof(struct rect) - R_GR)
+		overalloc();
+	ss = xrealloc(ss,
+		sizeof(struct rect_set) + sizeof(struct rect) * (ss->rl + R_GR));
 	memset(&(*s = ss)->r[i = (ss->rl += R_GR) - R_GR], 0, sizeof(struct rect) * R_GR);
 	goto x;
 }
@@ -786,8 +792,9 @@ static void in_term(void *term_)
 	struct links_event *ev;
 	int r;
 	unsigned char *iq;
-	if ((unsigned)term->qlen + ALLOC_GR > MAXINT) overalloc();
-	iq = mem_realloc(term->input_queue, term->qlen + ALLOC_GR);
+	if ((unsigned)term->qlen + ALLOC_GR > MAXINT)
+		overalloc();
+	iq = xrealloc(term->input_queue, term->qlen + ALLOC_GR);
 	term->input_queue = iq;
 	EINTRLOOP(r, (int)read(term->fdin, iq + term->qlen, ALLOC_GR));
 	if (r <= 0) {

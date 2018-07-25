@@ -39,6 +39,15 @@ xmalloc(size_t len)
 	return p;
 }
 
+void *
+xrealloc(void *p, size_t len)
+{
+	if (!(p = realloc(p, len)))
+		die("realloc: %s\n", strerror(errno));
+
+	return p;
+}
+
 static void sig_intr(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;

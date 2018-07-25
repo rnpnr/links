@@ -46,8 +46,10 @@ void add_to_ml(struct memory_list **ml, ...)
 		if (n == MAXINT) overalloc();
 		n++;
 	}
-	if ((unsigned)n + (unsigned)((*ml)->n) > (MAXINT - sizeof(struct memory_list)) / sizeof(void *)) overalloc();
-	nml = mem_realloc(*ml, sizeof(struct memory_list) + (n + (*ml)->n) * sizeof(void *));
+	if ((unsigned)n + (unsigned)((*ml)->n) > (MAXINT - sizeof(struct memory_list)) / sizeof(void *))
+		overalloc();
+	nml = xrealloc(*ml, sizeof(struct memory_list)
+			+ (n + (*ml)->n) * sizeof(void *));
 	va_end(ap);
 	va_start(ap, ml);
 	while ((q = va_arg(ap, void *))) nml->p[nml->n++] = q;
@@ -811,8 +813,9 @@ void add_to_menu(struct menu_item **mi, unsigned char *text, unsigned char *rtex
 	} else {
 		for (n = 0; (*mi)[n].text; n++) if (n == MAXINT) overalloc();
 	}
-	if (((unsigned)n + 2) > MAXINT / sizeof(struct menu_item)) overalloc();
-	mii = mem_realloc(*mi, (n + 2) * sizeof(struct menu_item));
+	if (((unsigned)n + 2) > MAXINT / sizeof(struct menu_item))
+		overalloc();
+	mii = xrealloc(*mi, (n + 2) * sizeof(struct menu_item));
 	*mi = mii;
 	memcpy(mii + n + 1, mii + n, sizeof(struct menu_item));
 	mii[n].text = text;
@@ -1204,8 +1207,11 @@ static void do_tab_compl(struct terminal *term, struct list_head *history, struc
 		unsigned char *s = dlg_get_history_string(term, hi, MAXINT);
 		if (!strncmp(cast_const_char cdata, cast_const_char s, l)) {
 			if (!(n & (ALLOC_GR - 1))) {
-				if ((unsigned)n > MAXINT / sizeof(struct menu_item) - ALLOC_GR - 1) overalloc();
-				items = mem_realloc(items, (n + ALLOC_GR + 1) * sizeof(struct menu_item));
+				if ((unsigned)n > MAXINT / sizeof(struct menu_item) - ALLOC_GR - 1)
+					overalloc();
+				items = xrealloc(items,
+						(n + ALLOC_GR + 1)
+						* sizeof(struct menu_item));
 			}
 			items[n].text = s;
 			items[n].rtext = cast_uchar "";
@@ -2233,8 +2239,9 @@ void msg_box(struct terminal *term, struct memory_list *ml, unsigned char *title
 	do {
 		text = va_arg(ap, unsigned char *);
 		udatan++;
-		if ((unsigned)udatan > MAXINT / sizeof(unsigned char *)) overalloc();
-		udata = mem_realloc(udata, udatan * sizeof(unsigned char *));
+		if ((unsigned)udatan > MAXINT / sizeof(unsigned char *))
+			overalloc();
+		udata = xrealloc(udata, udatan * sizeof(unsigned char *));
 		udata[udatan - 1] = text;
 	} while (text);
 	udata2 = va_arg(ap, void *);

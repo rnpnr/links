@@ -826,19 +826,23 @@ struct open_in_new *get_open_in_new(int environment)
 	int i;
 	struct open_in_new *oin = NULL;
 	int noin = 0;
-	if (anonymous) return NULL;
-	if (environment & ENV_G) environment = ENV_G;
-	for (i = 0; i < (int)array_elements(oinw); i++) if ((environment & oinw[i].env) == oinw[i].env) {
-		if ((unsigned)noin > MAXINT / sizeof(struct open_in_new) - 2) overalloc();
-		oin = mem_realloc(oin, (noin + 2) * sizeof(struct open_in_new));
-		oin[noin].text = oinw[i].text;
-		oin[noin].hk = oinw[i].hk;
-		oin[noin].open_window_fn = &oinw[i].open_window_fn;
-		noin++;
-		oin[noin].text = NULL;
-		oin[noin].hk = NULL;
-		oin[noin].open_window_fn = NULL;
-	}
+	if (anonymous)
+		return NULL;
+	if (environment & ENV_G)
+		environment = ENV_G;
+	for (i = 0; i < (int)array_elements(oinw); i++)
+		if ((environment & oinw[i].env) == oinw[i].env) {
+			if ((unsigned)noin > MAXINT / sizeof(struct open_in_new) - 2)
+				overalloc();
+			oin = xrealloc(oin, (noin + 2) * sizeof(struct open_in_new));
+			oin[noin].text = oinw[i].text;
+			oin[noin].hk = oinw[i].hk;
+			oin[noin].open_window_fn = &oinw[i].open_window_fn;
+			noin++;
+			oin[noin].text = NULL;
+			oin[noin].hk = NULL;
+			oin[noin].open_window_fn = NULL;
+		}
 	return oin;
 }
 

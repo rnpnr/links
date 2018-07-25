@@ -521,11 +521,15 @@ static void g_get_search(struct f_data *f, unsigned char *s)
 			}
 		}
 		len = compare_case_utf8(f->srch_string + i, s);
-		if (!len) continue;
+		if (!len)
+			continue;
 		if (!(f->n_search_positions & (ALLOC_GR - 1))) {
-			if ((unsigned)f->n_search_positions > MAXINT / sizeof(int) - ALLOC_GR) overalloc();
-			f->search_positions = mem_realloc(f->search_positions, (f->n_search_positions + ALLOC_GR) * sizeof(int));
-			f->search_lengths = mem_realloc(f->search_lengths, (f->n_search_positions + ALLOC_GR) * sizeof(int));
+			if ((unsigned)f->n_search_positions > MAXINT / sizeof(int) - ALLOC_GR)
+				overalloc();
+			f->search_positions = xrealloc(f->search_positions,
+						(f->n_search_positions + ALLOC_GR) * sizeof(int));
+			f->search_lengths = xrealloc(f->search_lengths,
+						(f->n_search_positions + ALLOC_GR) * sizeof(int));
 		}
 		f->search_positions[f->n_search_positions] = i;
 		f->search_lengths[f->n_search_positions] = len;

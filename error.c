@@ -23,8 +23,6 @@ void *do_not_optimize_here(void *p)
 	return p;
 }
 
-#define heap_malloc	malloc
-#define heap_realloc	realloc
 #define heap_calloc(x) calloc(1, (x))
 void init_heap(void)
 {
@@ -118,24 +116,6 @@ void *mem_calloc_(size_t size, int mayfail)
 		return NULL;
 	}
 	return p;
-}
-
-void *mem_realloc_(void *p, size_t size, int mayfail)
-{
-	void *np;
-	if (!p)
-		return xmalloc(size);
-	debug_test_free(NULL, 0);
-	if (!size) {
-		free(p);
-		return NULL;
-	}
-	retry:
-	if (!(np = heap_realloc(p, size))) {
-		if (out_of_memory_fl(0, !mayfail ? cast_uchar "realloc" : NULL, size, NULL, 0)) goto retry;
-		return NULL;
-	}
-	return np;
 }
 
 unsigned char *memacpy(const unsigned char *src, size_t len)

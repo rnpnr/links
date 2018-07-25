@@ -553,8 +553,9 @@ void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func
 			return;
 		}
 	if (fd >= n_threads) {
-		if ((unsigned)fd > (unsigned)MAXINT / sizeof(struct thread) - 1) overalloc();
-		threads = mem_realloc(threads, (fd + 1) * sizeof(struct thread));
+		if ((unsigned)fd > (unsigned)MAXINT / sizeof(struct thread) - 1)
+			overalloc();
+		threads = xrealloc(threads, (fd + 1) * sizeof(struct thread));
 		memset(threads + n_threads, 0, (fd + 1 - n_threads) * sizeof(struct thread));
 		n_threads = fd + 1;
 	}

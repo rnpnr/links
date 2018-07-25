@@ -262,7 +262,9 @@ have_f:
 	while (f->list_entry.next != &e->frag && f->offset + f->length > list_struct(f->list_entry.next, struct fragment)->offset) {
 		struct fragment *next = list_struct(f->list_entry.next, struct fragment);
 		if (f->offset + f->length < next->offset + next->length) {
-			f = mem_realloc(f, sizeof(struct fragment) + (size_t)(next->offset - f->offset + next->length));
+			f = xrealloc(f, sizeof(struct fragment)
+					+ (size_t)(next->offset - f->offset
+					+ next->length));
 			fix_list_after_realloc(f);
 			if (memcmp(f->data + next->offset - f->offset, next->data, (size_t)(f->offset + f->length - next->offset))) trunc = 1;
 			memcpy(f->data + f->length, next->data + f->offset + f->length - next->offset, (size_t)(next->offset + next->length - f->offset - f->length));
@@ -304,7 +306,8 @@ int defrag_entry(struct cache_entry *e)
 			}
 	if (g == f->list_entry.next) {
 		if (f->length != f->real_length) {
-			f = mem_realloc_mayfail(f, sizeof(struct fragment) + (size_t)f->length);
+			f = xrealloc(f, sizeof(struct fragment)
+					+ (size_t)f->length);
 			if (f) {
 				f->real_length = f->length;
 				fix_list_after_realloc(f);
@@ -354,7 +357,8 @@ void truncate_entry(struct cache_entry *e, off_t off, int final)
 			sf(-(f->offset + f->length - off));
 			f->length = off - f->offset;
 			if (final) {
-				g = mem_realloc_mayfail(f, sizeof(struct fragment) + (size_t)f->length);
+				g = xrealloc(f, sizeof(struct fragment)
+						+ (size_t)f->length);
 				if (g) {
 					f = g;
 					fix_list_after_realloc(f);
@@ -404,7 +408,8 @@ void trim_cache_entry(struct cache_entry *e)
 	struct list_head *lf;
 	foreach(struct fragment, f, lf, e->frag) {
 		if (f->length != f->real_length) {
-			nf = mem_realloc_mayfail(f, sizeof(struct fragment) + (size_t)f->length);
+			nf = xrealloc(f, sizeof(struct fragment)
+					+ (size_t)f->length);
 			if (nf) {
 				f = nf;
 				fix_list_after_realloc(f);

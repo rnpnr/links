@@ -946,8 +946,9 @@ static void read_select(void *c_)
 	set_handlers(rb->sock, NULL, NULL, NULL);
 
 read_more:
-	if ((unsigned)rb->len > MAXINT - sizeof(struct read_buffer) - READ_SIZE) overalloc();
-	rb = mem_realloc(rb, sizeof(struct read_buffer) + rb->len + READ_SIZE);
+	if ((unsigned)rb->len > MAXINT - sizeof(struct read_buffer) - READ_SIZE)
+		overalloc();
+	rb = xrealloc(rb, sizeof(struct read_buffer) + rb->len + READ_SIZE);
 	c->buffer = rb;
 
 	if (c->ssl) {

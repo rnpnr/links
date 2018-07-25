@@ -105,8 +105,9 @@ retry:
 		}
 	}
 	if (w < len) {
-		if ((unsigned)itrm->eqlen + (unsigned)(len - w) > MAXINT) overalloc();
-		itrm->ev_queue = mem_realloc(itrm->ev_queue, itrm->eqlen + len - w);
+		if ((unsigned)itrm->eqlen + (unsigned)(len - w) > MAXINT)
+			overalloc();
+		itrm->ev_queue = xrealloc(itrm->ev_queue, itrm->eqlen + len - w);
 		memcpy(itrm->ev_queue + itrm->eqlen, data + w, len - w);
 		itrm->eqlen += len - w;
 		set_handlers(itrm->sock_out, get_handler(itrm->sock_out, H_READ), write_ev_queue, itrm);

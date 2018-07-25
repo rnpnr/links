@@ -31,7 +31,7 @@ static int decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize
 		if (add > 1) add >>= 1;
 		else overalloc();
 	}
-	pp = mem_realloc_mayfail(*p, size + add);
+	pp = xrealloc(*p, size + add);
 	if (!pp) {
 		*addsize = 0;
 		return -1;
@@ -248,7 +248,7 @@ static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, 
 	ce->decompressed = p;
 	ce->decompressed_len = (unsigned char *)z.next_out - (unsigned char *)p;
 	decompressed_cache_size += ce->decompressed_len;
-	ce->decompressed = mem_realloc(ce->decompressed, ce->decompressed_len);
+	ce->decompressed = xrealloc(ce->decompressed, ce->decompressed_len);
 	return 0;
 }
 

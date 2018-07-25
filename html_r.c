@@ -244,16 +244,12 @@ static void xpand_lines(struct part *p, int y)
 		if ((y ^ p->data->y) > p->data->y) {
 			unsigned s;
 			for (s = 1; s < (unsigned)y; s = s * 2 + 1) {
-				if (s > MAXINT / sizeof(struct line)) overalloc();
+				if (s > MAXINT / sizeof(struct line))
+					overalloc();
 			}
-			p->data->data = mem_realloc(p->data->data, s * sizeof(struct line));
+			p->data->data = xrealloc(p->data->data,
+						s * sizeof(struct line));
 		}
-		/*
-#define YALIGN(y) (((y)+0x3ff)&~0x3ff)
-		if (YALIGN(y + 1) > YALIGN(p->data->y)) {
-			if (YALIGN((unsigned)y + 1) > MAXINT / sizeof(struct line)) overalloc();
-			p->data->data = mem_realloc(p->data->data, YALIGN(y+1)*sizeof(struct line));
-		}*/
 		for (i = p->data->y; i < y; i++) {
 			p->data->data[i].l = 0;
 			p->data->data[i].allocated = 0;
@@ -281,8 +277,9 @@ static void xpand_line(struct part *p, int y, int x)
 		if (x >= ln->allocated) {
 			if (x >= 0x4000) ln->allocated = safe_add(x, x);
 			else ln->allocated = safe_add(x, 0x10) & ~0xf;
-			if ((unsigned)ln->allocated > MAXINT / sizeof(chr)) overalloc();
-			ln->d = mem_realloc(ln->d, ln->allocated*sizeof(chr));
+			if ((unsigned)ln->allocated > MAXINT / sizeof(chr))
+				overalloc();
+			ln->d = xrealloc(ln->d, ln->allocated*sizeof(chr));
 		}
 		for (i = ln->l; i <= x; i++) {
 			ln->d[i].at = p->attribute;
@@ -295,8 +292,9 @@ static void xpand_line(struct part *p, int y, int x)
 static void r_xpand_spaces(struct part *p, int l)
 {
 	unsigned char *c;
-	if ((unsigned)l >= MAXINT) overalloc();
-	c = mem_realloc(p->spaces, l + 1);
+	if ((unsigned)l >= MAXINT)
+		overalloc();
+	c = xrealloc(p->spaces, l + 1);
 	memset(c + p->spl, 0, l - p->spl + 1);
 	p->spl = l + 1;
 	p->spaces = c;
@@ -531,10 +529,13 @@ static void align_line(struct part *p, int y)
 
 struct link *new_link(struct f_data *f)
 {
-	if (!f) return NULL;
+	if (!f)
+		return NULL;
 	if (!(f->nlinks & (ALLOC_GR - 1))) {
-		if ((unsigned)f->nlinks > MAXINT / sizeof(struct link) - ALLOC_GR) overalloc();
-		f->links = mem_realloc(f->links, (f->nlinks + ALLOC_GR) * sizeof(struct link));
+		if ((unsigned)f->nlinks > MAXINT / sizeof(struct link) - ALLOC_GR)
+			overalloc();
+		f->links = xrealloc(f->links,
+				(f->nlinks + ALLOC_GR) * sizeof(struct link));
 	}
 	memset(&f->links[f->nlinks], 0, sizeof(struct link));
 #ifdef G
@@ -774,8 +775,9 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		link->sel_color = get_attribute(fg, bg);
 		link->n = 0;
 		set_link:
-		if ((unsigned)link->n + (unsigned)ll > MAXINT / sizeof(struct point)) overalloc();
-		pt = mem_realloc(link->pos, (link->n + ll) * sizeof(struct point));
+		if ((unsigned)link->n + (unsigned)ll > MAXINT / sizeof(struct point))
+			overalloc();
+		pt = xrealloc(link->pos, (link->n + ll) * sizeof(struct point));
 		link->pos = pt;
 		for (i = 0; i < ll; i++) pt[link->n + i].x = X(p->cx) + i,
 					 pt[link->n + i].y = Y(p->cy);

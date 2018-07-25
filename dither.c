@@ -761,19 +761,19 @@ static void make_16_table(int *table, int bits, int pos, float_double gamma, int
 
 static void make_red_table(int bits, int pos, int dump_t2c, int be)
 {
-	red_table = mem_realloc(red_table, 65536 * sizeof(*red_table));
+	red_table = xrealloc(red_table, 65536 * sizeof(*red_table));
 	make_16_table(red_table,bits,pos,(float_double)display_red_gamma,dump_t2c, be);
 }
 
 static void make_green_table(int bits, int pos, int dump_t2c, int be)
 {
-	green_table = mem_realloc(green_table, 65536 * sizeof(*green_table));
+	green_table = xrealloc(green_table, 65536 * sizeof(*green_table));
 	make_16_table(green_table,bits,pos,(float_double)display_green_gamma,dump_t2c, be);
 }
 
 static void make_blue_table(int bits, int pos,int dump_t2c, int be)
 {
-	blue_table = mem_realloc(blue_table, 65536 * sizeof(*blue_table));
+	blue_table = xrealloc(blue_table, 65536 * sizeof(*blue_table));
 	make_16_table(blue_table,bits,pos,(float_double)display_blue_gamma, dump_t2c, be);
 }
 
