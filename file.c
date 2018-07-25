@@ -414,11 +414,7 @@ void file_func(struct connection *c)
 		head = stracpy(cast_uchar "\r\nContent-Type: text/html\r\n");
 	} else {
 		free(name);
-		if (
-#ifndef __WATCOMC__
-		    stt.st_size < 0 ||
-#endif
-		    stt.st_size > MAXINT) {
+		if (stt.st_size < 0 || stt.st_size > MAXINT) {
 			EINTRLOOP(rs, close(h));
 			setcstate(c, S_LARGE_FILE); abort_connection(c);
 			return;
@@ -431,9 +427,7 @@ void file_func(struct connection *c)
 			setcstate(c, S_OUT_OF_MEM);
 			abort_connection(c); return;
 		}
-		if ((r = hard_read(h, file, (int)stt.st_size))
-			!= stt.st_size
-			) {
+		if ((r = hard_read(h, file, (int)stt.st_size)) != stt.st_size) {
 			free(file);
 			EINTRLOOP(rs, close(h));
 			setcstate(c, r == -1 ? get_error_from_errno(errno) : S_FILE_ERROR);

@@ -508,17 +508,18 @@ static void empty_window_handler(struct window *win, struct links_event *ev, int
 	int x, y;
 	void (*fn)(void *) = ewd->fn;
 	void *data = ewd->data;
-	if (ewd->b) return;
+	if (ewd->b)
+		return;
 	switch ((int)ev->ev) {
-		case EV_INIT:
-		case EV_RESIZE:
-		case EV_REDRAW:
-			get_parent_ptr(win, &x, &y);
-			set_window_ptr(win, x, y);
-			return;
-		case EV_ABORT:
-			fn(data);
-			return;
+	case EV_INIT:
+	case EV_RESIZE:
+	case EV_REDRAW:
+		get_parent_ptr(win, &x, &y);
+		set_window_ptr(win, x, y);
+		return;
+	case EV_ABORT:
+		fn(data);
+		return;
 	}
 	ewd->b = 1;
 	ln = win->list_entry.next;
@@ -1022,10 +1023,9 @@ static void redraw_screen(struct terminal *term)
 					memcpy(&term->last_screen[p], &term->screen[p], sizeof(chr));
 				continue;
 			}
-			/*if ((term->screen[p].at & 0x38) == (term->last_screen[p].at & 0x38) && (term->screen[p].ch == 0 || term->screen[p].ch == 1 || term->screen[p].ch == ' ') && (term->last_screen[p].ch == 0 || term->last_screen[p].ch == 1 || term->last_screen[p].ch == ' ') && (x != term->cx || y != term->cy)) continue;*/
-			/*fprintf(stderr, "%d.%d : %d-%d -> %d-%d\n", x, y, term->last_screen[p].ch, term->last_screen[p].at, term->screen[p].ch, term->screen[p].at);*/
 			memcpy(&term->last_screen[p], &term->screen[p], sizeof(chr));
-			if (cx == x && cy == y) goto pc;/*PRINT_CHAR(p)*/
+			if (cx == x && cy == y)
+				goto pc;
 			else if (cy == y && x - cx < 10 && x - cx > 0) {
 				for (i = x - cx; i >= 0; i--) {
 					ppc:

@@ -42,11 +42,16 @@ static int get_prot_info(unsigned char *prot, int *port, void (**func)(struct co
 	int i;
 	for (i = 0; protocols[i].prot; i++)
 		if (!casestrcmp(cast_uchar protocols[i].prot, prot)) {
-			if (port) *port = protocols[i].port;
-			if (func) *func = protocols[i].func;
-			if (nc_func) *nc_func = protocols[i].nc_func;
-			if (allow_post) *allow_post = protocols[i].allow_post;
-			if (bypasses_socks) *bypasses_socks = protocols[i].bypasses_socks;
+			if (port)
+				*port = protocols[i].port;
+			if (func)
+				*func = protocols[i].func;
+			if (nc_func)
+				*nc_func = protocols[i].nc_func;
+			if (allow_post)
+				*allow_post = protocols[i].allow_post;
+			if (bypasses_socks)
+				*bypasses_socks = protocols[i].bypasses_socks;
 			return 0;
 		}
 	return -1;
@@ -57,28 +62,46 @@ int parse_url(unsigned char *url, int *prlen, unsigned char **user, int *uslen, 
 	unsigned char *p, *q;
 	unsigned char p_c[2];
 	int a;
-	if (prlen) *prlen = 0;
-	if (user) *user = NULL;
-	if (uslen) *uslen = 0;
-	if (pass) *pass = NULL;
-	if (palen) *palen = 0;
-	if (host) *host = NULL;
-	if (holen) *holen = 0;
-	if (port) *port = NULL;
-	if (polen) *polen = 0;
-	if (data) *data = NULL;
-	if (dalen) *dalen = 0;
-	if (post) *post = NULL;
-	if (!url || !(p = cast_uchar strchr(cast_const_char url, ':'))) return -1;
-	if (prlen) *prlen = (int)(p - url);
-	if ((a = check_protocol(url, (int)(p - url))) == -1) return -1;
+	if (prlen)
+		*prlen = 0;
+	if (user)
+		*user = NULL;
+	if (uslen)
+		*uslen = 0;
+	if (pass)
+		*pass = NULL;
+	if (palen)
+		*palen = 0;
+	if (host)
+		*host = NULL;
+	if (holen)
+		*holen = 0;
+	if (port)
+		*port = NULL;
+	if (polen)
+		*polen = 0;
+	if (data)
+		*data = NULL;
+	if (dalen)
+		*dalen = 0;
+	if (post)
+		*post = NULL;
+	if (!url || !(p = cast_uchar strchr(cast_const_char url, ':')))
+		return -1;
+	if (prlen)
+		*prlen = (int)(p - url);
+	if ((a = check_protocol(url, (int)(p - url))) == -1)
+		return -1;
 	if (p[1] != '/' || p[2] != '/') {
-		if (protocols[a].need_slashes) return -1;
+		if (protocols[a].need_slashes)
+			return -1;
 		p -= 2;
 	}
 	if (protocols[a].free_syntax) {
-		if (data) *data = p + 3;
-		if (dalen) *dalen = (int)strlen(cast_const_char(p + 3));
+		if (data)
+			*data = p + 3;
+		if (dalen)
+			*dalen = (int)strlen(cast_const_char(p + 3));
 		return 0;
 	}
 	p += 3;
@@ -90,13 +113,19 @@ int parse_url(unsigned char *url, int *prlen, unsigned char **user, int *uslen, 
 			q = q + 1 + strcspn(cast_const_char(q + 1), "@");
 		pp = cast_uchar strchr(cast_const_char p, ':');
 		if (!pp || pp > q) {
-			if (user) *user = p;
-			if (uslen) *uslen = (int)(q - p);
+			if (user)
+				*user = p;
+			if (uslen)
+				*uslen = (int)(q - p);
 		} else {
-			if (user) *user = p;
-			if (uslen) *uslen = (int)(pp - p);
-			if (pass) *pass = pp + 1;
-			if (palen) *palen = (int)(q - pp - 1);
+			if (user)
+				*user = p;
+			if (uslen)
+				*uslen = (int)(pp - p);
+			if (pass)
+				*pass = pp + 1;
+			if (palen)
+				*palen = (int)(q - pp - 1);
 		}
 		p = q + 1;
 	}

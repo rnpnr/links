@@ -322,7 +322,11 @@ static void objreq_end(struct status *stat, void *data)
 	set_ce_internal(rq);
 
 	if (stat->state < 0) {
-		if (!stat->ce && rq->state == O_WAITING && (stat->state == S_INVALID_CERTIFICATE || stat->state == S_DOWNGRADED_METHOD || stat->state == S_INSECURE_CIPHER) && ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
+		if (!stat->ce && rq->state == O_WAITING
+		&& (stat->state == S_INVALID_CERTIFICATE
+		|| stat->state == S_DOWNGRADED_METHOD
+		|| stat->state == S_INSECURE_CIPHER)
+		&& ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
 			if (!cert_window(rq)) {
 				rq->hold = HOLD_CERT;
 				rq->redirect_cnt = 0;
@@ -339,9 +343,16 @@ static void objreq_end(struct status *stat, void *data)
 					free(rq->goto_position);
 					rq->goto_position = pos;
 				}
-				if (!http_options.bug_302_redirect && !stat->ce->redirect_get && (p = cast_uchar strchr(cast_const_char u, POST_CHAR))) add_to_strn(&u, p);
+				if (!http_options.bug_302_redirect
+				&& !stat->ce->redirect_get
+				&& (p = cast_uchar strchr(cast_const_char u, POST_CHAR)))
+					add_to_strn(&u, p);
 				cache = rq->cache;
-				if (cache < NC_RELOAD && (!strcmp(cast_const_char u, cast_const_char rq->url) || !strcmp(cast_const_char u, cast_const_char rq->orig_url) || rq->redirect_cnt >= MAX_CACHED_REDIRECTS)) cache = NC_RELOAD;
+				if (cache < NC_RELOAD
+				&& (!strcmp(cast_const_char u, cast_const_char rq->url)
+				|| !strcmp(cast_const_char u, cast_const_char rq->orig_url)
+				|| rq->redirect_cnt >= MAX_CACHED_REDIRECTS))
+					cache = NC_RELOAD;
 				allow_flags = get_allow_flags(rq->url);
 				free(rq->url);
 				rq->url = u;
@@ -352,15 +363,22 @@ static void objreq_end(struct status *stat, void *data)
 				rq->stat.state = S_CYCLIC_REDIRECT;
 			}
 		}
-		if (stat->ce && rq->state == O_WAITING && (stat->ce->http_code == 401 || stat->ce->http_code == 407)) {
-			unsigned char *realm = get_auth_realm(rq->url, stat->ce->head, stat->ce->http_code == 407);
+		if (stat->ce && rq->state == O_WAITING
+		&& (stat->ce->http_code == 401 || stat->ce->http_code == 407)) {
+			unsigned char *realm = get_auth_realm(rq->url,
+							stat->ce->head,
+							stat->ce->http_code == 407);
 			unsigned char *user;
-			if (!realm) goto xx;
-			if (stat->ce->http_code == 401 && !find_auth(rq->url, realm)) {
+			if (!realm)
+				goto xx;
+			if (stat->ce->http_code == 401
+			&& !find_auth(rq->url, realm)) {
 				free(realm);
-				if (rq->redirect_cnt++ >= MAX_REDIRECTS) goto maxrd;
+				if (rq->redirect_cnt++ >= MAX_REDIRECTS)
+					goto maxrd;
 				change_connection(stat, NULL, PRI_CANCEL);
-				load_url(rq->url, rq->prev_url, &rq->stat, rq->pri, NC_RELOAD, 0, 0, 0);
+				load_url(rq->url, rq->prev_url, &rq->stat,
+					rq->pri, NC_RELOAD, 0, 0, 0);
 				return;
 			}
 			user = get_user_name(rq->url);
@@ -380,16 +398,21 @@ static void objreq_end(struct status *stat, void *data)
 			goto xx;
 		}
 	}
-	if ((stat->state < 0 || stat->state == S_TRANS) && stat->ce && !stat->ce->redirect && stat->ce->http_code != 401 && stat->ce->http_code != 407) {
+	if ((stat->state < 0 || stat->state == S_TRANS)
+	&& stat->ce && !stat->ce->redirect
+	&& stat->ce->http_code != 401
+	&& stat->ce->http_code != 407) {
 		rq->state = O_LOADING;
 		if (0) {
 			xx:
 			rq->state = O_OK;
 		}
-		if (!rq->ce) (rq->ce = stat->ce)->refcount++;
+		if (!rq->ce)
+			(rq->ce = stat->ce)->refcount++;
 	}
 	tm:
-	if (rq->timer != NULL) kill_timer(rq->timer);
+	if (rq->timer != NULL)
+		kill_timer(rq->timer);
 	rq->timer = install_timer(0, object_timer, rq);
 }
 
@@ -403,17 +426,22 @@ static void object_timer(void *rq_)
 	set_ce_internal(rq);
 
 	last = rq->last_bytes;
-	if (rq->ce) rq->last_bytes = rq->ce->length;
-	if (rq->stat.state < 0 && !rq->hold && (!rq->ce_internal || !rq->ce_internal->redirect || rq->stat.state == S_CYCLIC_REDIRECT)) {
+	if (rq->ce)
+		rq->last_bytes = rq->ce->length;
+	if (rq->stat.state < 0 && !rq->hold
+	&& (!rq->ce_internal || !rq->ce_internal->redirect
+	|| rq->stat.state == S_CYCLIC_REDIRECT)) {
 		if (rq->ce_internal && rq->stat.state != S_CYCLIC_REDIRECT) {
 			rq->state = rq->stat.state != S__OK ? O_INCOMPLETE : O_OK;
-		} else rq->state = O_FAILED;
+		} else
+			rq->state = O_FAILED;
 	}
 	if (rq->stat.state != S_TRANS) {
 		if (rq->stat.state >= 0)
 			rq->timer = install_timer(STAT_UPDATE_MAX, object_timer, rq);
 		rq->last_update = get_time() - STAT_UPDATE_MAX;
-		if (rq->upcall) rq->upcall(rq, rq->data);
+		if (rq->upcall)
+			rq->upcall(rq, rq->data);
 	} else {
 		uttime ct = get_time();
 		uttime t = ct - rq->last_update;
@@ -430,11 +458,15 @@ void release_object_get_stat(struct object_request **rqq, struct status *news, i
 	struct object_request *rq = *rqq;
 	if (!rq) return;
 	*rqq = NULL;
-	if (--rq->refcount) return;
+	if (--rq->refcount)
+		return;
 	change_connection(&rq->stat, news, pri);
-	if (rq->timer != NULL) kill_timer(rq->timer);
-	if (rq->ce_internal) rq->ce_internal->refcount--;
-	if (rq->ce) rq->ce->refcount--;
+	if (rq->timer != NULL)
+		kill_timer(rq->timer);
+	if (rq->ce_internal)
+		rq->ce_internal->refcount--;
+	if (rq->ce)
+		rq->ce->refcount--;
 	free(rq->orig_url);
 	free(rq->url);
 	free(rq->prev_url);

@@ -100,7 +100,8 @@ static void block_edit_abort(struct dialog_data *data)
 	struct dialog *dlg = data->dlg;
 
 	free(dlg->udata2);
-	if (item) block_delete_item(&item->head);
+	if (item)
+		block_delete_item(&item->head);
 }
 
 /* Puts url into the block list */
@@ -135,15 +136,19 @@ static void block_edit_item_fn(struct dialog_data *dlg)
 	unsigned char *text = TEXT_(T_ENTER_URL);
 
 
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
+	if (dlg->win->term->spec->braille)
+		y += gf_val(1, G_BFU_FONT_SIZE);
 	max_text_width(term, text, &max, AL_LEFT);
 	min_text_width(term, text, &min, AL_LEFT);
 	max_buttons_width(term, dlg->items + 1, 2, &max);
 	min_buttons_width(term, dlg->items + 1, 2, &min);
-	if (max < dlg->dlg->items->dlen) max = dlg->dlg->items->dlen;
+	if (max < dlg->dlg->items->dlen)
+		max = dlg->dlg->items->dlen;
 	w = term->x * 9 / 10 - 2 * DIALOG_LB;
-	if (w > max) w = max;
-	if (w < min) w = min;
+	if (w > max)
+		w = max;
+	if (w < min)
+		w = min;
 	rw = w;
 	dlg_format_text_and_field(dlg, NULL, text, dlg->items, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += LL;
@@ -154,7 +159,8 @@ static void block_edit_item_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
+	if (dlg->win->term->spec->braille)
+		y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, text, dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += LL;
 	dlg_format_buttons(dlg, term, dlg->items + 1, 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
@@ -172,8 +178,10 @@ static void block_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	unsigned char *url, *txt;
 
 	/*Allocate space for dialog, 4 items followed by 1 string*/
-	d = xmalloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item) + 1 * MAX_STR_LEN);
-	memset(d, 0, sizeof(struct dialog) + 4 * sizeof(struct dialog_item) + 1 * MAX_STR_LEN);
+	d = xmalloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item)
+			+ 1 * MAX_STR_LEN);
+	memset(d, 0, sizeof(struct dialog) + 4 * sizeof(struct dialog_item)
+			+ 1 * MAX_STR_LEN);
 
 	/*Set up this string */
 	url = (unsigned char *)&d->items[4];
@@ -189,16 +197,16 @@ static void block_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	s->dlg = dlg;
 
 	switch (dlg_title) {
-		case TITLE_EDIT:
-			d->title = TEXT_(T_BLOCK_EDIT);
-			break;
+	case TITLE_EDIT:
+		d->title = TEXT_(T_BLOCK_EDIT);
+		break;
 
-		case TITLE_ADD:
-			d->title = TEXT_(T_BLOCK_ADD);
-			break;
+	case TITLE_ADD:
+		d->title = TEXT_(T_BLOCK_ADD);
+		break;
 
-		default:
-			internal("Unsupported dialog title.\n");
+	default:
+		internal("Unsupported dialog title.\n");
 	}
 
 	d->udata = neww;
@@ -300,19 +308,23 @@ static unsigned char *find_first_match(unsigned char *s, unsigned char *p, unsig
 		}
 	}
 	*ii = i;
-	if (!p[i] || p[i] == '*') return s;
+	if (!p[i] || p[i] == '*')
+		return s;
 	return NULL;
 }
 
 static int simple_glob_match(unsigned char *s, unsigned char *p)
 {
 	unsigned i;
-	if (find_first_match(s, p, &i) != s) return 0;
-	if (!p[i]) return !s[i];
+	if (find_first_match(s, p, &i) != s)
+		return 0;
+	if (!p[i])
+		return !s[i];
 	while (1) {
 		s += i;
 		p += i + 1;
-		if (!(s = find_first_match(s, p, &i))) return 0;
+		if (!(s = find_first_match(s, p, &i)))
+			return 0;
 		if (!p[i]) {
 			s += strlen(cast_const_char s) - i;
 			return !!find_first_match(s, p, &i);

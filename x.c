@@ -189,8 +189,7 @@ static unsigned char process_events_in_progress=0;
 
 static inline void X_SCHEDULE_PROCESS_EVENTS(void)
 {
-	if (!process_events_in_progress)
-	{
+	if (!process_events_in_progress) {
 		register_bottom_half(x_process_events, NULL);
 		process_events_in_progress = 1;
 	}
@@ -209,10 +208,9 @@ static void x_do_flush(void *ignore)
 
 static inline void X_FLUSH(void)
 {
-	if (!flush_in_progress)
-	{
+	if (!flush_in_progress) {
 		register_bottom_half(x_do_flush, NULL);
-		flush_in_progress=1;
+		flush_in_progress = 1;
 	}
 }
 
@@ -245,8 +243,10 @@ static int x_test_for_failure(void)
 /* suppose l<h */
 static void x_clip_number(int *n,int l,int h)
 {
-	if ((*n)<l)*n=l;
-	if ((*n)>h)*n=h;
+	if ((*n) < l)
+		*n=l;
+	if ((*n) > h)
+		*n=h;
 }
 
 
@@ -320,8 +320,13 @@ static unsigned char *x_query_palette(void)
 
 static inline int trans_key(unsigned char * str, int table)
 {
-	if (table==utf8_table){int a; GET_UTF_8(str,a);return a;}
-	if (*str<128)return *str;
+	if (table == utf8_table) {
+		int a;
+		GET_UTF_8(str,a);
+		return a;
+	}
+	if (*str < 128)
+		return *str;
 	return cp2u(*str,table);
 }
 

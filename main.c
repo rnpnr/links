@@ -255,9 +255,9 @@ void gfx_connection(int h)
 		goto err_close_free;
 	term = init_gfx_term(win_func, cwd, info, info_len);
 	if (term) {
-		if (hold_conn) {
+		if (hold_conn)
 			term->handle_to_close = h;
-		} else {
+		else {
 			hard_write(h, cast_uchar "x", 1);
 			EINTRLOOP(r, close(h));
 		}
