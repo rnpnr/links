@@ -343,9 +343,7 @@ int snzprint(unsigned char *s, int n, off_t num);
 void add_to_strn(unsigned char **s, unsigned char *a);
 void extend_str(unsigned char **s, int n);
 
-#define init_str() init_str_x((unsigned char *)__FILE__, __LINE__)
-
-static inline unsigned char *init_str_x(unsigned char *file, int line)
+static inline unsigned char *init_str()
 {
 	unsigned char *p;
 
