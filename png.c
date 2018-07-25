@@ -6,10 +6,6 @@
 #ifdef G
 #include "links.h"
 
-#ifdef REPACK_16
-#undef REPACK_16
-#endif /* #ifdef REPACK_16 */
-
 /* Decoder structs */
 
 struct png_decoder{
@@ -57,13 +53,11 @@ static void png_info_callback(png_structp png_ptr, png_infop info_ptr)
 		color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
 		png_set_gray_to_rgb(png_ptr);
 	if (bit_depth==16){
-#ifndef REPACK_16
 		/* We use native endianity only if unsigned short is 2-byte
 		 * because otherwise we have to reassemble the buffer so we
 		 * will leave in the libpng-native big endian.
 		 */
 		png_set_swap(png_ptr);
-#endif /* #ifndef REPACK_16 */
 		bytes_per_pixel*=(int)sizeof(unsigned short);
 	}
 	png_set_interlace_handling(png_ptr);
@@ -96,67 +90,12 @@ static void png_info_callback(png_structp png_ptr, png_infop info_ptr)
 		img_my_png_error(png_ptr, "bad image size");
 }
 
-#ifdef REPACK_16
-/* Converts unsigned shorts to doublechars (in big endian) */
-static void a2char_from_unsigned_short(unsigned char *chr, unsigned short *shrt, int len)
-{
-	unsigned short s;
-
-	for (;len;len--,shrt++,chr+=2){
-		s=*shrt;
-		*chr=s>>8;
-		chr[1]=s;
-	}
-}
-
-/* Converts doublechars (in big endian) to unsigned shorts */
-static void unsigned_short_from_2char(unsigned short *shrt, unsigned char *chr, int len)
-{
-	unsigned short s;
-
-	for (;len;len--,shrt++,chr+=2){
-		s=((*chr)<<8)|chr[1];
-		*shrt=s;
-	}
-}
-#endif
-
-static void png_row_callback(png_structp png_ptr, png_bytep new_row, png_uint_32
-	row_num, int pass)
+static void
+png_row_callback(png_structp png_ptr, png_bytep new_row, png_uint_32 row_num, int pass)
 {
 	struct cached_image *cimg;
-#ifdef REPACK_16
-	unsigned char *tmp;
-	int channels;
-#endif /* #ifdef REPACK_16 */
 
 	cimg=global_cimg;
-#ifdef REPACK_16
-	if (cimg->buffer_bytes_per_pixel>4)
-	{
-		channels=cimg->buffer_bytes_per_pixel/sizeof(unsigned
-			short);
-		if (PNG_INTERLACE_NONE==png_get_interlace_type(png_ptr,
-			((struct png_decoder *)cimg->decoder)->info_ptr))
-		{
-			unsigned_short_from_2char((unsigned short *)(cimg->buffer+cimg
-				->buffer_bytes_per_pixel *cimg->width
-				*row_num), new_row, cimg->width
-				*channels);
-		}else{
-			if ((unsigned)cimg->width > (unsigned)MAXINT / 2 / channels) overalloc();
-			tmp = xmalloc(cimg->width*2*channels);
-			a2char_from_unsigned_short(tmp, (unsigned short *)(cimg->buffer
-				+cimg->buffer_bytes_per_pixel
-				*cimg->width*row_num), cimg->width*channels);
-			png_progressive_combine_row(png_ptr, tmp, new_row);
-			unsigned_short_from_2char((unsigned short *)(cimg->buffer
-				+cimg->buffer_bytes_per_pixel
-				*cimg->width*row_num), tmp, cimg->width*channels);
-			free(tmp);
-		}
-	}else
-#endif /* #ifdef REPACK_16 */
 	{
 		png_progressive_combine_row(png_ptr,
 			cimg->buffer+cimg->buffer_bytes_per_pixel
