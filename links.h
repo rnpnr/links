@@ -420,7 +420,6 @@ struct open_in_new {
 };
 
 void close_fork_tty(void);
-int get_system_env(void);
 int is_twterm(void);
 int is_screen(void);
 int is_xterm(void);
@@ -447,11 +446,8 @@ void setcooked(int ctl);
 #endif
 void want_draw(void);
 void done_draw(void);
-void terminate_osdep(void);
 void save_gpm_signals(void);
 void restore_gpm_signals(void);
-void *handle_mouse(int, void (*)(void *, unsigned char *, int), void *);
-void unhandle_mouse(void *);
 void add_gpm_version(unsigned char **s, int *l);
 int start_thread(void (*)(void *, int), void *, int, int);
 unsigned char *get_clipboard_text(struct terminal *);
@@ -470,21 +466,15 @@ void do_signal(int sig, void (*handler)(int));
 uttime get_time(void);
 uttime get_absolute_time(void);
 void ignore_signals(void);
-void block_stdin(void);
-void unblock_stdin(void);
 void init_os(void);
-void init_os_terminal(void);
 void get_path_to_exe(void);
 int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);
 unsigned char *os_fixup_external_program(unsigned char *);
 int exe(unsigned char *, int);
-int resize_window(int, int);
-int can_resize_window(struct terminal *);
 int can_open_os_shell(int);
 unsigned char *links_xterm(void);
 struct open_in_new *get_open_in_new(int);
-void set_highpri(void);
 
 void os_free_clipboard(void);
 

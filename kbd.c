@@ -325,7 +325,7 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 	ev.y = y;
 	handle_terminal_resize(ctl_in, resize_terminal);
 	queue_event(itrm, (unsigned char *)&ev, sizeof(struct links_event));
-	xwin = is_xterm() * ENV_XWIN + is_twterm() * ENV_TWIN + is_screen() * ENV_SCREEN + get_system_env();
+	xwin = is_xterm() * ENV_XWIN + is_twterm() * ENV_TWIN + is_screen() * ENV_SCREEN;
 	itrm->flags = 0;
 	if (!(ts = cast_uchar getenv("TERM"))) ts = cast_uchar "";
 	if ((xwin & ENV_TWIN) && !strcmp(cast_const_char ts, "linux")) itrm->flags |= USE_TWIN_MOUSE;
@@ -357,7 +357,7 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 	itrm->orig_title = get_window_title();
 	set_window_title(cast_uchar "Links");
 	send_init_sequence(std_out, itrm->flags);
-	itrm->mouse_h = handle_mouse(0, mouse_queue_event, itrm);
+	itrm->mouse_h = NULL;
 }
 
 static void unblock_itrm_x(void *h)
@@ -377,8 +377,7 @@ int unblock_itrm(int fd)
 	send_init_sequence(itrm->std_out, itrm->flags);
 	set_handlers(itrm->std_in, in_kbd, NULL, itrm);
 	handle_terminal_resize(itrm->ctl_in, resize_terminal);
-	unblock_stdin();
-	itrm->mouse_h = handle_mouse(0, mouse_queue_event, itrm);
+	itrm->mouse_h = NULL;
 	resize_terminal();
 	return 0;
 }
@@ -389,9 +388,8 @@ void block_itrm(int fd)
 	if (!itrm) return;
 	if (itrm->blocked) return;
 	itrm->blocked = fd + 1;
-	block_stdin();
 	unhandle_terminal_resize(itrm->ctl_in);
-	if (itrm->mouse_h) unhandle_mouse(itrm->mouse_h), itrm->mouse_h = NULL;
+	itrm->mouse_h = NULL;
 	send_term_sequence(itrm->std_out, itrm->flags);
 	setcooked(itrm->ctl_in);
 	set_handlers(itrm->std_in, NULL, NULL, itrm);
@@ -404,7 +402,6 @@ static void free_trm(struct itrm *itrm)
 	free(itrm->orig_title);
 	itrm->orig_title = NULL;
 	unhandle_terminal_resize(itrm->ctl_in);
-	if (itrm->mouse_h) unhandle_mouse(itrm->mouse_h);
 	send_term_sequence(itrm->std_out, itrm->flags);
 	setcooked(itrm->ctl_in);
 	set_handlers(itrm->std_in, NULL, NULL, NULL);
@@ -434,7 +431,6 @@ static void resize_terminal_x(unsigned char *text)
 	*p++ = 0;
 	x = atoi(cast_const_char text);
 	y = atoi(cast_const_char p);
-	resize_window(x, y);
 	resize_terminal();
 }
 

@@ -374,9 +374,6 @@ static void init(void)
 		goto ttt;
 	}
 	fixup_g();
-	if (!dmp && !ggr) {
-		init_os_terminal();
-	}
 	if ((dds.assume_cp = get_cp_index(cast_uchar "ISO-8859-1")) == -1) dds.assume_cp = 0;
 	load_config();
 	if (proxies.only_proxies)
@@ -519,7 +516,6 @@ static void terminate_all_subsystems(void)
 	os_free_clipboard();
 	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer), fg_poll_timer = NULL;
 	terminate_select();
-	terminate_osdep();
 }
 
 int

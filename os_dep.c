@@ -9,9 +9,7 @@
 
 #ifdef HAVE_PTHREADS
 #include <pthread.h>
-#endif
 
-#if defined(HAVE_PTHREADS)
 static pthread_mutex_t pth_mutex;
 static void fd_lock(void);
 static void fd_unlock(void);
@@ -26,14 +24,6 @@ static void fd_init(void)
 
 void init_os(void)
 {
-	/* Disable per-thread heap */
-#if defined(HAVE_MALLOPT) && defined(M_ARENA_TEST)
-	mallopt(M_ARENA_TEST, 1);
-#endif
-#if defined(HAVE_MALLOPT) && defined(M_ARENA_MAX)
-	mallopt(M_ARENA_MAX, 1);
-#endif
-
 #if defined(HAVE_PTHREADS)
 	{
 		int r;
@@ -355,24 +345,6 @@ int open_prealloc(unsigned char *name, int flags, int mode, off_t siz)
 	}
 	new_fd_bin(h);
 	fd_unlock();
-#if defined(HAVE_FALLOCATE)
-#if defined(FALLOC_FL_KEEP_SIZE)
-	EINTRLOOP(rs, fallocate(h, FALLOC_FL_KEEP_SIZE, 0, siz));
-#else
-	EINTRLOOP(rs, fallocate(h, 0, 0, siz));
-#endif
-	if (!rs) return h;
-#endif
-#if defined(HAVE_POSIX_FALLOCATE)
-	/* posix_fallocate may fall back to overwriting the file with zeros,
-	   so don't use it on too big files */
-	if (siz > 134217728)
-		return h;
-	do {
-		rs = posix_fallocate(h, 0, siz);
-	} while (rs == EINTR);
-	if (!rs) return h;
-#endif
 	return h;
 }
 
@@ -439,10 +411,6 @@ void close_fork_tty(void)
 void get_path_to_exe(void)
 {
 	path_to_exe = g_argv[0];
-}
-
-void init_os_terminal(void)
-{
 }
 
 unsigned char *os_conv_to_external_path(unsigned char *file, unsigned char *prog)
@@ -529,11 +497,6 @@ unsigned char *get_window_title(void)
 	return NULL;
 }
 
-int resize_window(int x, int y)
-{
-	return -1;
-}
-
 /* Threads */
 
 #if defined(HAVE_PTHREADS)
@@ -557,13 +520,6 @@ static void bgt(void *t_)
 }
 
 #endif
-
-void terminate_osdep(void)
-{
-}
-
-void block_stdin(void) {}
-void unblock_stdin(void) {}
 
 #if defined(HAVE_PTHREADS)
 
@@ -729,14 +685,6 @@ int get_input_handle(void)
 #endif /* defined(HAVE_BEGINTHREAD) && defined(HAVE__READ_KBD) */
 
 
-void *handle_mouse(int cons, void (*fn)(void *, unsigned char *, int), void *data) { return NULL; }
-void unhandle_mouse(void *data) { }
-
-int get_system_env(void)
-{
-	return 0;
-}
-
 static void exec_new_links(struct terminal *term, unsigned char *xterm, unsigned char *exe, unsigned char *param)
 {
 	unsigned char *str;
@@ -846,21 +794,12 @@ struct open_in_new *get_open_in_new(int environment)
 	return oin;
 }
 
-int can_resize_window(struct terminal *term)
-{
-	return 0;
-}
-
 int can_open_os_shell(int environment)
 {
 #ifdef G
 	if (F && drv->flags & GD_NO_OS_SHELL) return 0;
 #endif
 	return 1;
-}
-
-void set_highpri(void)
-{
 }
 
 void os_seed_random(unsigned char **pool, int *pool_size)

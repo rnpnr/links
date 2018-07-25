@@ -2968,17 +2968,6 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 		e++;
 		x = 0;
 	}
-	if (can_resize_window(term)) {
-		e->text = TEXT_(T_RESIZE_TERMINAL);
-		e->rtext = cast_uchar "";
-		e->hotkey = TEXT_(T_HK_RESIZE_TERMINAL);
-		e->func = dlg_resize_terminal;
-		e->data = NULL;
-		e->in_m = 0;
-		e->free_i = 0;
-		e++;
-		x = 0;
-	}
 	memcpy(e, file_menu3 + x, sizeof(file_menu3) - x * sizeof(struct menu_item));
 	e += sizeof(file_menu3) / sizeof(struct menu_item);
 	do_menu(term, file_menu, ses);
