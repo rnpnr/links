@@ -114,13 +114,6 @@ retry:
 	}
 }
 
-static void mouse_queue_event(void *itrm_, unsigned char *data, int len)
-{
-	struct itrm *itrm = (struct itrm *)itrm_;
-	if (itrm->blocked) return;
-	queue_event(itrm, data, len);
-}
-
 void kbd_ctrl_c(void)
 {
 	struct links_event ev = { EV_KBD, KBD_CTRL_C, 0, 0 };
@@ -425,12 +418,9 @@ void fatal_tty_exit(void)
 
 static void resize_terminal_x(unsigned char *text)
 {
-	int x, y;
 	unsigned char *p;
 	if (!(p = cast_uchar strchr(cast_const_char text, ','))) return;
 	*p++ = 0;
-	x = atoi(cast_const_char text);
-	y = atoi(cast_const_char p);
 	resize_terminal();
 }
 

@@ -2788,59 +2788,6 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static unsigned char * const resize_texts[] = { TEXT_(T_COLUMNS), TEXT_(T_ROWS) };
-
-static unsigned char x_str[4];
-static unsigned char y_str[4];
-
-static void do_resize_terminal(void *term_)
-{
-	struct terminal *term = (struct terminal *)term_;
-	unsigned char str[8];
-	strcpy(cast_char str, cast_const_char x_str);
-	strcat(cast_char str, ",");
-	strcat(cast_char str, cast_const_char y_str);
-	do_terminal_function(term, TERM_FN_RESIZE, str);
-}
-
-static void dlg_resize_terminal(struct terminal *term, void *xxx, void *ses_)
-{
-	struct dialog *d;
-	unsigned x = (unsigned)term->x > 999 ? 999 : term->x;
-	unsigned y = (unsigned)term->y > 999 ? 999 : term->y;
-	sprintf(cast_char x_str, "%u", x);
-	sprintf(cast_char y_str, "%u", y);
-	d = mem_calloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item));
-	d->title = TEXT_(T_RESIZE_TERMINAL);
-	d->fn = group_fn;
-	d->udata = (void *)resize_texts;
-	d->refresh = do_resize_terminal;
-	d->refresh_data = term;
-	d->items[0].type = D_FIELD;
-	d->items[0].dlen = 4;
-	d->items[0].data = x_str;
-	d->items[0].fn = check_number;
-	d->items[0].gid = 1;
-	d->items[0].gnum = 999;
-	d->items[1].type = D_FIELD;
-	d->items[1].dlen = 4;
-	d->items[1].data = y_str;
-	d->items[1].fn = check_number;
-	d->items[1].gid = 1;
-	d->items[1].gnum = 999;
-	d->items[2].type = D_BUTTON;
-	d->items[2].gid = B_ENTER;
-	d->items[2].fn = ok_dialog;
-	d->items[2].text = TEXT_(T_OK);
-	d->items[3].type = D_BUTTON;
-	d->items[3].gid = B_ESC;
-	d->items[3].fn = cancel_dialog;
-	d->items[3].text = TEXT_(T_CANCEL);
-	d->items[4].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-
-}
-
 static_const struct menu_item file_menu11[] = {
 	{ TEXT_(T_GOTO_URL), cast_uchar "g", TEXT_(T_HK_GOTO_URL), menu_goto_url, NULL, 0, 1 },
 	{ TEXT_(T_GO_BACK), cast_uchar "z", TEXT_(T_HK_GO_BACK), menu_go_back, NULL, 0, 1 },
