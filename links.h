@@ -215,11 +215,7 @@ void *xrealloc(void *, size_t);
 #define ANSI_SET_BOLD		"\033[1m"
 #define ANSI_CLEAR_BOLD		"\033[0m"
 
-#define alloc_overhead	0
-
 void *do_not_optimize_here(void *p);
-void init_heap(void);
-void check_memory_leaks(void);
 void error(char *, ...) PRINTF_FORMAT(1, 2);
 void fatal_exit(char *, ...) PRINTF_FORMAT(1, 2) ATTR_NORETURN;
 void debug_msg(char *, ...) PRINTF_FORMAT(1, 2);

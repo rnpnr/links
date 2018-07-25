@@ -5,12 +5,6 @@
 
 #include "links.h"
 
-#ifdef RED_ZONE
-#define RED_ZONE_INC	1
-#else
-#define RED_ZONE_INC	0
-#endif
-
 volatile char dummy_val;
 volatile char * volatile dummy_ptr = &dummy_val;
 volatile char * volatile x_ptr;
@@ -23,12 +17,6 @@ void *do_not_optimize_here(void *p)
 	return p;
 }
 
-#define heap_calloc(x) calloc(1, (x))
-void init_heap(void)
-{
-}
-#define exit_heap()	do { } while (0)
-
 static inline void force_dump(void)
 {
 	int rs;
@@ -36,11 +24,6 @@ static inline void force_dump(void)
 	fflush(stdout);
 	fflush(stderr);
 	EINTRLOOP(rs, raise(SIGSEGV));
-}
-
-void check_memory_leaks(void)
-{
-	exit_heap();
 }
 
 static void er(int b, char *m, va_list l)
@@ -111,7 +94,7 @@ void *mem_calloc_(size_t size, int mayfail)
 	if (!size)
 		return NULL;
 	retry:
-	if (!(p = heap_calloc(size))) {
+	if (!(p = calloc(1, size))) {
 		if (out_of_memory_fl(0, !mayfail ? cast_uchar "calloc" : NULL, size, NULL, 0)) goto retry;
 		return NULL;
 	}

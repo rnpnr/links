@@ -198,7 +198,7 @@ static void mem_free_fragment(struct fragment *f)
 
 int page_size = 4096;
 
-#define C_ALIGN(x) ((((x) + sizeof(struct fragment) + alloc_overhead) | (page_size - 1)) - sizeof(struct fragment) - alloc_overhead)
+#define C_ALIGN(x) ((((x) + sizeof(struct fragment)) | (page_size - 1)) - sizeof(struct fragment))
 
 int add_fragment(struct cache_entry *e, off_t offset, const unsigned char *data, off_t length)
 {

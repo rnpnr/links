@@ -524,8 +524,6 @@ main(int argc, char *argv[])
 	g_argc = argc;
 	g_argv = (unsigned char **)argv;
 
-	init_heap();
-
 	init_os();
 
 	get_path_to_exe();
@@ -533,6 +531,5 @@ main(int argc, char *argv[])
 	select_loop(init);
 	terminate_all_subsystems();
 
-	check_memory_leaks();
 	return retval;
 }
