@@ -2943,7 +2943,7 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 			d[1] = 0;
 			nl = f_data->nlinks, lnl = 1;
 			while (nl) nl /= 10, lnl++;
-			if (lnl > 1) input_field(ses->term, NULL, TEXT_(T_GO_TO_LINK), TEXT_(T_ENTER_LINK_NUMBER), ses, NULL, lnl, d, 1, f_data->nlinks, check_number, 2, TEXT_(T_OK), goto_link_number, TEXT_(T_CANCEL), input_field_null);
+			if (lnl > 1) input_field(ses->term, NULL, TEXT_(T_GO_TO_LINK), TEXT_(T_ENTER_LINK_NUMBER), ses, NULL, lnl, d, 1, f_data->nlinks, check_number, 2, TEXT_(T_OK), goto_link_number, TEXT_(T_CANCEL), NULL);
 		}
 		else x = 0;
 	} else if (ev->ev == EV_MOUSE && (ev->b & BM_BUTT) <= B_RIGHT) {

@@ -2867,7 +2867,6 @@ void msg_box(struct terminal *, struct memory_list *, unsigned char *, int, /*un
  *		... other buttons
  */
 
-void input_field_null(void *d_, unsigned char *s_);
 void input_field(struct terminal *, struct memory_list *, unsigned char *, unsigned char *, void *, struct history *, int, unsigned char *, int, int, int (*)(struct dialog_data *, struct dialog_item_data *), int n, ...);
 /* input_field arguments:
  *		terminal,
