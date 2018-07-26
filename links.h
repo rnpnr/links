@@ -139,14 +139,15 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 {
 	sigset_t old = 0;
 	switch (how) {
-		case SIG_BLOCK:
-			old = sigblock(*set);
-			break;
-		case SIG_SETMASK:
-			old = sigsetmask(*set);
-			break;
+	case SIG_BLOCK:
+		old = sigblock(*set);
+		break;
+	case SIG_SETMASK:
+		old = sigsetmask(*set);
+		break;
 	}
-	if (oset) *oset = old;
+	if (oset)
+		*oset = old;
 	return 0;
 }
 #ifdef sigdelset
@@ -231,14 +232,13 @@ extern unsigned char *errfile;
 #define internal internal_
 #define debug errfile = cast_uchar __FILE__, errline = __LINE__, debug_msg
 
-void fatal_tty_exit(void);
 
-#define overalloc_condition	1
+void fatal_tty_exit(void);
 
 #define overalloc_at(f, l)						\
 do {									\
 	fatal_exit("ERROR: attempting to allocate too large block at %s:%d", f, l);\
-} while (overalloc_condition)	/* while (1) is not a typo --- it's here to allow the compiler
+} while (1)	/* while (1) is not a typo --- it's here to allow the compiler
 	that doesn't know that fatal_exit doesn't return to do better
 	optimizations */
 
@@ -368,12 +368,14 @@ void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size)
 /* return value: 1=strings differ, 0=strings are same */
 static inline unsigned upcase(unsigned a)
 {
-	if (a >= 'a' && a <= 'z') a -= 0x20;
+	if (a >= 'a' && a <= 'z')
+		a -= 0x20;
 	return a;
 }
 static inline unsigned locase(unsigned a)
 {
-	if (a >= 'A' && a <= 'Z') a += 0x20;
+	if (a >= 'A' && a <= 'Z')
+		a += 0x20;
 	return a;
 }
 static inline int srch_cmp(unsigned char c1, unsigned char c2)
