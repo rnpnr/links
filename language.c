@@ -123,17 +123,22 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 	unsigned char **current_tra;
 	unsigned char *trn;
 	int charset;
-	if (!term) charset = 0;
-	else if (term->spec) charset = term_charset(term);
-	else charset = utf8_table;
-	if (is_direct_text(text)) return text;
+	if (!term)
+		charset = 0;
+	else if (term->spec)
+		charset = term_charset(term);
+	else
+		charset = utf8_table;
+	if (is_direct_text(text))
+		return text;
 	if ((current_tra = translation_array[charset])) {
 		unsigned char *tt;
-		if ((trn = current_tra[text - dummyarray])) return trn;
+		if ((trn = current_tra[text - dummyarray]))
+			return trn;
 		tr:
-		if (!(tt = cast_uchar translations[0].t[text - dummyarray].name)) {
+		if (!(tt = cast_uchar translations[0].t[text - dummyarray].name))
 			trn = cast_uchar translation_english[text - dummyarray].name;
-		} else {
+		else {
 			struct document_options l_opt;
 			memset(&l_opt, 0, sizeof(l_opt));
 			l_opt.plain = 0;
@@ -160,7 +165,8 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 
 unsigned char *get_english_translation(unsigned char *text)
 {
-	if (is_direct_text(text)) return text;
+	if (is_direct_text(text))
+		return text;
 	return cast_uchar translation_english[text - dummyarray].name;
 }
 
@@ -168,10 +174,12 @@ void set_language(void)
 {
 	int i;
 	unsigned char *cp;
-	for (i = 0; i < T__N_TEXTS; i++) if (translations[0].t[i].code != i) {
-		internal("Bad table for language %s. Run script synclang.", translations[0].t[T__LANGUAGE].name);
-		return;
-	}
+	for (i = 0; i < T__N_TEXTS; i++)
+		if (translations[0].t[i].code != i) {
+			internal("Bad table for language %s. Run script synclang.",
+					translations[0].t[T__LANGUAGE].name);
+			return;
+		}
 	cp = cast_uchar translations[0].t[T__CHAR_SET].name;
 	i = get_cp_index(cp);
 	if (i == -1) {

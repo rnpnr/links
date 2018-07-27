@@ -62,7 +62,8 @@ static void sig_intr(void *t_)
 
 static void sig_ctrl_c(void *t_)
 {
-	if (!is_blocked()) kbd_ctrl_c();
+	if (!is_blocked())
+		kbd_ctrl_c();
 }
 
 #ifdef SIGTTOU
@@ -81,9 +82,8 @@ void sig_tstp(void *t_)
 	pid_t pid, newpid;
 	EINTRLOOP(pid, getpid());
 #endif
-	if (!F) {
+	if (!F)
 		block_itrm(1);
-	}
 #ifdef G
 	else {
 		drv->block(NULL);
@@ -119,16 +119,14 @@ static void poll_fg(void *t_)
 	struct terminal *t = (struct terminal *)t_;
 	int r;
 	fg_poll_timer = NULL;
-	if (!F) {
+	if (!F)
 		r = unblock_itrm(1);
 #ifdef G
-	} else {
+	else
 		r = drv->unblock(NULL);
 #endif
-	}
-	if (r == -1) {
+	if (r == -1)
 		fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
-	}
 	if (r == -2) {
 		/* This will unblock externally spawned viewer, if it exists */
 #ifdef SIGCONT
@@ -139,13 +137,12 @@ static void poll_fg(void *t_)
 
 void sig_cont(void *t_)
 {
-	if (!F) {
+	if (!F)
 		unblock_itrm(1);
 #ifdef G
-	} else {
+	else
 		drv->unblock(NULL);
 #endif
-	}
 }
 
 static void handle_basic_signals(struct terminal *term)
@@ -291,12 +288,15 @@ static void end_dump(struct object_request *r, void *p)
 				off_t l;
 				int w;
 				l = frag->length - (dump_pos - frag->offset);
-				if (l >= MAXINT) l = MAXINT;
+				if (l >= MAXINT)
+					l = MAXINT;
 				w = hard_write(oh, frag->data + dump_pos - frag->offset, (int)l);
 				if (w != l) {
 					detach_object_connection(r, dump_pos);
-					if (w < 0) fprintf(stderr, "Error writing to stdout: %s.\n", strerror(errno));
-					else fprintf(stderr, "Can't write to stdout.\n");
+					if (w < 0)
+						fprintf(stderr, "Error writing to stdout: %s.\n", strerror(errno));
+					else
+						fprintf(stderr, "Can't write to stdout.\n");
 					retval = RET_ERROR;
 					goto terminate;
 				}
@@ -305,7 +305,8 @@ static void end_dump(struct object_request *r, void *p)
 				goto nextfrag;
 			}
 		}
-		if (r->state >= 0) return;
+		if (r->state >= 0)
+			return;
 	} else if (ce) {
 		struct document_options o;
 		struct f_data_c *fd;
@@ -353,8 +354,10 @@ static void initialize_all_subsystems_2(void);
 
 static void fixup_g(void)
 {
-	if (ggr_drv[0] || ggr_mode[0] || force_g) ggr = 1;
-	if (dmp) ggr = 0;
+	if (ggr_drv[0] || ggr_mode[0] || force_g)
+		ggr = 1;
+	if (dmp)
+		ggr = 0;
 }
 
 static void init(void)
@@ -490,14 +493,16 @@ static void terminate_all_subsystems(void)
 	destroy_all_terminals();
 	check_bottom_halves();
 	shutdown_bfu();
-	if (!F) free_all_itrms();
+	if (!F)
+		free_all_itrms();
 	release_object(&dump_obj);
 	abort_all_connections();
 
 	free_all_caches();
 	free_format_text_cache();
 	ssl_finish();
-	if (init_b) save_url_history();
+	if (init_b)
+		save_url_history();
 	free_history_lists();
 	free_term_specs();
 	free_types();
@@ -514,7 +519,8 @@ static void terminate_all_subsystems(void)
 	GF(free_dither());
 	GF(shutdown_graphics());
 	os_free_clipboard();
-	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer), fg_poll_timer = NULL;
+	if (fg_poll_timer != NULL)
+		kill_timer(fg_poll_timer), fg_poll_timer = NULL;
 	terminate_select();
 }
 
