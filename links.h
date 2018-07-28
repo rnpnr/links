@@ -115,57 +115,6 @@ do {							\
 	(ret_) = (call_);				\
 } while (!(ret_) && errno == EINTR)
 
-#if defined(HAVE_PTHREAD_SIGMASK)
-static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
-{
-	int r;
-	r = pthread_sigmask(how, set, oset);
-	if (r) {
-		errno = r;
-		return -1;
-	}
-	return 0;
-}
-#else /* if !defined(HAVE_PTHREAD_SIGMASK) */
-#define do_sigprocmask	sigprocmask
-#define sigset_t	int
-#ifndef SIG_BLOCK
-#define SIG_BLOCK	0
-#endif
-#ifndef SIG_SETMASK
-#define SIG_SETMASK	2
-#endif
-static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
-{
-	sigset_t old = 0;
-	switch (how) {
-	case SIG_BLOCK:
-		old = sigblock(*set);
-		break;
-	case SIG_SETMASK:
-		old = sigsetmask(*set);
-		break;
-	}
-	if (oset)
-		*oset = old;
-	return 0;
-}
-#ifdef sigdelset
-#undef sigdelset
-#endif
-#define sigdelset(x, s)	(*(x) &= ~(1 << (s)), 0)
-#ifdef HAVE_SIGFILLSET
-#undef HAVE_SIGFILLSET
-#endif
-#endif /* defined(HAVE_PTHREAD_SIGMASK) */
-
-#ifdef HAVE_SIGFILLSET
-static inline void sig_fill_set(sigset_t *set)
-{
-	sigfillset(set);
-}
-#endif
-
 #define option option_dirty_workaround_for_name_clash_with_include_on_cygwin
 #define table table_dirty_workaround_for_name_clash_with_libraries_on_macos
 #define scroll scroll_dirty_workaround_for_name_clash_with_libraries_on_macos

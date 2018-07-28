@@ -6,8 +6,6 @@
 
 - pledge(2) for OpenBSD
 
-- finish removal of config.h so it can be used for actual configuration
-
 - cleanup empty functions
 
 - finish language cleanup

@@ -677,7 +677,7 @@ void install_signal_handler(int sig, void (*fn)(void *), void *data, int critica
 	}
 	if (!fn) sa.sa_handler = SIG_IGN;
 	else sa.sa_handler = (void (*)(int))got_signal;
-	sig_fill_set(&sa.sa_mask);
+	sigfillset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	if (!fn)
 		EINTRLOOP(rs, sigaction(sig, &sa, NULL));
@@ -699,7 +699,7 @@ void interruptible_signal(int sig, int in)
 	}
 	if (!signal_handlers[sig].fn) return;
 	sa.sa_handler = (void (*)(int))got_signal;
-	sig_fill_set(&sa.sa_mask);
+	sigfillset(&sa.sa_mask);
 	if (!in) sa.sa_flags = SA_RESTART;
 	EINTRLOOP(rs, sigaction(sig, &sa, NULL));
 #endif
@@ -712,7 +712,7 @@ void block_signals(int except1, int except2)
 {
 	int rs;
 	sigset_t mask;
-	sig_fill_set(&mask);
+	sigfillset(&mask);
 	if (except1) sigdelset(&mask, except1);
 	if (except2) sigdelset(&mask, except2);
 #ifdef SIGILL
@@ -730,7 +730,7 @@ void block_signals(int except1, int except2)
 #ifdef SIGBUS
 	sigdelset(&mask, SIGBUS);
 #endif
-	EINTRLOOP(rs, do_sigprocmask(SIG_BLOCK, &mask, &sig_old_mask));
+	EINTRLOOP(rs, sigprocmask(SIG_BLOCK, &mask, &sig_old_mask));
 	if (!rs) sig_unblock = 1;
 }
 
@@ -738,7 +738,7 @@ void unblock_signals(void)
 {
 	int rs;
 	if (sig_unblock) {
-		EINTRLOOP(rs, do_sigprocmask(SIG_SETMASK, &sig_old_mask, NULL));
+		EINTRLOOP(rs, sigprocmask(SIG_SETMASK, &sig_old_mask, NULL));
 		sig_unblock = 0;
 	}
 }

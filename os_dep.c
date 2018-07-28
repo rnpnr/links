@@ -7,32 +7,8 @@
 
 #include <sys/ioctl.h>
 
-#ifdef HAVE_PTHREADS
-#include <pthread.h>
-
-static pthread_mutex_t pth_mutex;
-static void fd_lock(void);
-static void fd_unlock(void);
-static void fd_init(void)
-{
-	int r;
-	r = pthread_mutex_init(&pth_mutex, NULL);
-	if (r)
-		fatal_exit("pthread_mutex_create failed: %s", strerror(r));
-}
-#endif
-
 void init_os(void)
 {
-#if defined(HAVE_PTHREADS)
-	{
-		int r;
-		fd_init();
-		r = pthread_atfork(fd_lock, fd_unlock, fd_init);
-		if (r)
-			fatal_exit("pthread_atfork failed: %s", strerror(r));
-	}
-#endif
 }
 
 int is_safe_in_shell(unsigned char c)
@@ -196,30 +172,8 @@ int get_terminal_size(int fd, int *x, int *y)
 	return 0;
 }
 
-#if defined(HAVE_PTHREADS)
-
-static void fd_lock(void)
-{
-	int r;
-	r = pthread_mutex_lock(&pth_mutex);
-	if (r)
-		fatal_exit("pthread_mutex_lock failed: %s", strerror(r));
-}
-
-static void fd_unlock(void)
-{
-	int r;
-	r = pthread_mutex_unlock(&pth_mutex);
-	if (r)
-		fatal_exit("pthread_mutex_lock failed: %s", strerror(r));
-}
-
-#else
-
 #define fd_lock()	do { } while (0)
 #define fd_unlock()	do { } while (0)
-
-#endif
 
 static void new_fd_cloexec(int fd)
 {
@@ -469,130 +423,6 @@ unsigned char *get_window_title(void)
 
 /* Threads */
 
-#if defined(HAVE_PTHREADS)
-
-struct tdata {
-	void (*fn)(void *, int);
-	int h;
-	int counted;
-	unsigned char data[1];
-};
-
-static void bgt(void *t_)
-{
-	struct tdata *t = t_;
-	int rs;
-	ignore_signals();
-	t->fn(t->data, t->h);
-	EINTRLOOP(rs, (int)write(t->h, "x", 1));
-	EINTRLOOP(rs, close(t->h));
-	free(t);
-}
-
-#endif
-
-#if defined(HAVE_PTHREADS)
-
-static unsigned thread_count = 0;
-
-static inline void reset_thread_count(void)
-{
-	fd_lock();
-	thread_count = 0;
-	fd_unlock();
-}
-
-static void inc_thread_count(void)
-{
-	fd_lock();
-	thread_count++;
-	fd_unlock();
-}
-
-static void dec_thread_count(void)
-{
-	fd_lock();
-	if (!thread_count)
-		internal("thread_count underflow");
-	thread_count--;
-	fd_unlock();
-}
-
-static inline unsigned get_thread_count(void)
-{
-	unsigned val;
-	fd_lock();
-	val = thread_count;
-	fd_unlock();
-	return val;
-}
-
-static void *bgpt(void *t)
-{
-	int counted = ((struct tdata *)t)->counted;
-	bgt(t);
-	if (counted) dec_thread_count();
-	return NULL;
-}
-
-int start_thread(void (*fn)(void *, int), void *ptr, int l, int counted)
-{
-	pthread_attr_t attr;
-	pthread_t thread;
-	struct tdata *t;
-	int p[2];
-	int rs;
-	if (c_pipe(p) < 0) return -1;
-	retry1:
-	if (!(t = malloc(sizeof(struct tdata) + l))) {
-		if (out_of_memory(0, NULL, 0))
-			goto retry1;
-		goto err1;
-	}
-	t->fn = fn;
-	t->h = p[1];
-	t->counted = counted;
-	memcpy(t->data, ptr, l);
-	retry2:
-	if (pthread_attr_init(&attr)) {
-		if (out_of_memory(0, NULL, 0))
-			goto retry2;
-		goto err2;
-	}
-	retry3:
-	if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED)) {
-		if (out_of_memory(0, NULL, 0))
-			goto retry3;
-		goto err3;
-	}
-#ifdef THREAD_NEED_STACK_SIZE
-	retry4:
-	if (pthread_attr_setstacksize(&attr, THREAD_NEED_STACK_SIZE)) {
-		if (out_of_memory(0, NULL, 0))
-			goto retry4;
-		goto err3;
-	}
-#endif
-	if (counted) inc_thread_count();
-	if (pthread_create(&thread, &attr, bgpt, t)) {
-		if (counted) dec_thread_count();
-		goto err3;
-	}
-	pthread_attr_destroy(&attr);
-	return p[0];
-
-	err3:
-	pthread_attr_destroy(&attr);
-	err2:
-	free(t);
-	err1:
-	EINTRLOOP(rs, close(p[0]));
-	EINTRLOOP(rs, close(p[1]));
-	return -1;
-}
-
-#else /* HAVE_BEGINTHREAD */
-
 int start_thread(void (*fn)(void *, int), void *ptr, int l, int counted)
 {
 	int p[2];
@@ -617,8 +447,6 @@ int start_thread(void (*fn)(void *, int), void *ptr, int l, int counted)
 	return p[0];
 }
 
-#endif
-
 void want_draw(void) {}
 void done_draw(void) {}
 
@@ -626,34 +454,10 @@ int get_output_handle(void) { return 1; }
 
 int get_ctl_handle(void) { return 0; }
 
-#if defined(HAVE_BEGINTHREAD) && defined(HAVE__READ_KBD)
-
-int get_input_handle(void)
-{
-	int rs;
-	int fd[2];
-	if (ti != -1) return ti;
-	if (is_xterm()) return 0;
-	if (c_pipe(fd) < 0) return 0;
-	ti = fd[0];
-	tp = fd[1];
-	if (_beginthread(input_thread, NULL, 0x10000, (void *)tp) == -1) {
-		EINTRLOOP(rs, close(fd[0]));
-		EINTRLOOP(rs, close(fd[1]));
-		return 0;
-	}
-	return fd[0];
-}
-
-#else
-
 int get_input_handle(void)
 {
 	return 0;
 }
-
-#endif /* defined(HAVE_BEGINTHREAD) && defined(HAVE__READ_KBD) */
-
 
 static void exec_new_links(struct terminal *term, unsigned char *xterm, unsigned char *exe, unsigned char *param)
 {
@@ -781,23 +585,11 @@ void os_seed_random(unsigned char **pool, int *pool_size)
 void os_detach_console(void)
 {
 #if !defined(NO_FORK_ON_EXIT)
-	{
-		pid_t rp;
-		EINTRLOOP(rp, fork());
-		if (!rp) {
-			reinit_child();
-#if defined(HAVE_PTHREADS)
-			reset_thread_count();
-#endif
-		}
-		if (rp > 0) {
-#if defined(HAVE_PTHREADS)
-			while (get_thread_count()) {
-				portable_sleep(1000);
-			}
-#endif
-			_exit(0);
-		}
-	}
+	pid_t rp;
+	EINTRLOOP(rp, fork());
+	if (!rp)
+		reinit_child();
+	if (rp > 0)
+		_exit(0);
 #endif
 }
