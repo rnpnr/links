@@ -167,11 +167,8 @@ static void redraw_terminal_all(struct terminal *term)
 
 static void erase_screen(struct terminal *term)
 {
-	if (!term->master || !is_blocked()) {
-		if (term->master) want_draw();
+	if (!term->master || !is_blocked())
 		hard_write(term->fdout, cast_uchar "\033[2J\033[1;1H", 10);
-		if (term->master) done_draw();
-	}
 }
 
 static void redraw_terminal_cls(struct terminal *term)
@@ -596,7 +593,7 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 	term->count = terminal_count++;
 	term->fdin = fdin;
 	term->fdout = fdout;
-	term->master = term->fdout == get_output_handle();
+	term->master = term->fdout == 1;
 	term->lcx = -1;
 	term->lcy = -1;
 	term->dirty = 1;
@@ -1057,9 +1054,7 @@ static void redraw_screen(struct terminal *term)
 		add_num_to_str(&a, &l, term->cx + 1 + term->left_margin);
 		add_to_str(&a, &l, cast_uchar "H");
 	}
-	if (l && term->master) want_draw();
 	hard_write(term->fdout, a, l);
-	if (l && term->master) done_draw();
 	free(a);
 	term->dirty = 0;
 }

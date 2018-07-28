@@ -129,26 +129,20 @@ unsigned char term_seq_tw_mouse[] = "\033[?9l";
 
 static void send_init_sequence(int h, int flags)
 {
-	want_draw();
 	hard_write(h, init_seq, (int)strlen(cast_const_char init_seq));
-	if (flags & USE_TWIN_MOUSE) {
+	if (flags & USE_TWIN_MOUSE)
 		hard_write(h, init_seq_tw_mouse, (int)strlen(cast_const_char init_seq_tw_mouse));
-	} else {
+	else
 		hard_write(h, init_seq_x_mouse, (int)strlen(cast_const_char init_seq_x_mouse));
-	}
-	done_draw();
 }
 
 static void send_term_sequence(int h, int flags)
 {
-	want_draw();
 	hard_write(h, term_seq, (int)strlen(cast_const_char term_seq));
-	if (flags & USE_TWIN_MOUSE) {
+	if (flags & USE_TWIN_MOUSE)
 		hard_write(h, term_seq_tw_mouse, (int)strlen(cast_const_char term_seq_tw_mouse));
-	} else {
+	else
 		hard_write(h, term_seq_x_mouse, (int)strlen(cast_const_char term_seq_x_mouse));
-	}
-	done_draw();
 }
 
 static void resize_terminal(void)
@@ -469,18 +463,12 @@ static void in_sock(void *itrm_)
 
 	qwerty:
 	for (i = 0; i < c; i++) if (!buf[i]) goto ex;
-	if (!is_blocked()) {
-		want_draw();
+	if (!is_blocked())
 		hard_write(itrm->std_out, buf, c);
-		done_draw();
-	}
 	goto ret;
 	ex:
-	if (!is_blocked()) {
-		want_draw();
+	if (!is_blocked())
 		hard_write(itrm->std_out, buf, i);
-		done_draw();
-	}
 	i++;
 	memmove(buf, buf + i, c - i);
 	c -= i;

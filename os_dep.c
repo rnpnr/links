@@ -7,10 +7,6 @@
 
 #include <sys/ioctl.h>
 
-void init_os(void)
-{
-}
-
 int is_safe_in_shell(unsigned char c)
 {
 	return c == '@' || c == '+' || c == '-' || c == '.' || c == ',' || c == '=' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z');
@@ -172,9 +168,6 @@ int get_terminal_size(int fd, int *x, int *y)
 	return 0;
 }
 
-#define fd_lock()	do { } while (0)
-#define fd_unlock()	do { } while (0)
-
 static void new_fd_cloexec(int fd)
 {
 	int rs;
@@ -203,74 +196,60 @@ void set_nonblock(int fd)
 int c_pipe(int *fd)
 {
 	int r;
-	fd_lock();
 	EINTRLOOP(r, pipe(fd));
 	if (!r) new_fd_bin(fd[0]), new_fd_bin(fd[1]);
-	fd_unlock();
 	return r;
 }
 
 int c_dup(int oh)
 {
 	int h;
-	fd_lock();
 	EINTRLOOP(h, dup(oh));
 	if (h != -1) new_fd_cloexec(h);
-	fd_unlock();
 	return h;
 }
 
 int c_socket(int d, int t, int p)
 {
 	int h;
-	fd_lock();
 	EINTRLOOP(h, socket(d, t, p));
 	if (h != -1) new_fd_cloexec(h);
-	fd_unlock();
 	return h;
 }
 
 int c_accept(int h, struct sockaddr *addr, socklen_t *addrlen)
 {
 	int rh;
-	fd_lock();
 	EINTRLOOP(rh, accept(h, addr, addrlen));
 	if (rh != -1) new_fd_cloexec(rh);
-	fd_unlock();
 	return rh;
 }
 
 int c_open(unsigned char *path, int flags)
 {
 	int h;
-	fd_lock();
 	EINTRLOOP(h, open(cast_const_char path, flags));
 	if (h != -1) new_fd_bin(h);
-	fd_unlock();
 	return h;
 }
 
 int c_open3(unsigned char *path, int flags, int mode)
 {
 	int h;
-	fd_lock();
 	EINTRLOOP(h, open(cast_const_char path, flags, mode));
 	if (h != -1) new_fd_bin(h);
-	fd_unlock();
 	return h;
 }
 
 DIR *c_opendir(unsigned char *path)
 {
 	DIR *d;
-	fd_lock();
 	ENULLLOOP(d, opendir(cast_const_char path));
 	if (d) {
 		int h;
 		EINTRLOOP(h, dirfd(d));
 		if (h != -1) new_fd_cloexec(h);
 	}
-	fd_unlock();
 	return d;
 }
 
@@ -336,6 +315,7 @@ void get_path_to_exe(void)
 {
 	path_to_exe = g_argv[0];
 }
+
 
 unsigned char *os_conv_to_external_path(unsigned char *file, unsigned char *prog)
 {
@@ -445,18 +425,6 @@ int start_thread(void (*fn)(void *, int), void *ptr, int l, int counted)
 	}
 	EINTRLOOP(rs, close(p[1]));
 	return p[0];
-}
-
-void want_draw(void) {}
-void done_draw(void) {}
-
-int get_output_handle(void) { return 1; }
-
-int get_ctl_handle(void) { return 0; }
-
-int get_input_handle(void)
-{
-	return 0;
 }
 
 static void exec_new_links(struct terminal *term, unsigned char *xterm, unsigned char *exe, unsigned char *param)

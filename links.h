@@ -369,15 +369,10 @@ int c_accept(int, struct sockaddr *, socklen_t *);
 int c_open(unsigned char *, int);
 int c_open3(unsigned char *, int, int);
 DIR *c_opendir(unsigned char *);
-int get_input_handle(void);
-int get_output_handle(void);
-int get_ctl_handle(void);
 #ifdef OS_SETRAW
 int setraw(int ctl, int save);
 void setcooked(int ctl);
 #endif
-void want_draw(void);
-void done_draw(void);
 void save_gpm_signals(void);
 void restore_gpm_signals(void);
 void add_gpm_version(unsigned char **s, int *l);
@@ -398,7 +393,6 @@ void do_signal(int sig, void (*handler)(int));
 uttime get_time(void);
 uttime get_absolute_time(void);
 void ignore_signals(void);
-void init_os(void);
 void get_path_to_exe(void);
 int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);

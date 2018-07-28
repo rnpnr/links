@@ -275,9 +275,7 @@ static off_t dump_pos;
 static void end_dump(struct object_request *r, void *p)
 {
 	struct cache_entry *ce;
-	int oh;
 	if (!r->state || (r->state == 1 && dmp != D_SOURCE)) return;
-	if ((oh = get_output_handle()) == -1) return;
 	ce = r->ce;
 	if (dmp == D_SOURCE) {
 		if (ce) {
@@ -290,7 +288,7 @@ static void end_dump(struct object_request *r, void *p)
 				l = frag->length - (dump_pos - frag->offset);
 				if (l >= MAXINT)
 					l = MAXINT;
-				w = hard_write(oh, frag->data + dump_pos - frag->offset, (int)l);
+				w = hard_write(1, frag->data + dump_pos - frag->offset, (int)l);
 				if (w != l) {
 					detach_object_connection(r, dump_pos);
 					if (w < 0)
@@ -327,7 +325,7 @@ static void end_dump(struct object_request *r, void *p)
 			o.assume_cp = get_commandline_charset();
 		}
 		if (!(fd->f_data = cached_format_html(fd, r, r->url, &o, NULL, 0))) goto term_1;
-		dump_to_file(fd->f_data, oh);
+		dump_to_file(fd->f_data, 1);
 		term_1:
 		reinit_f_data_c(fd);
 		free(fd);
@@ -429,7 +427,7 @@ static void init(void)
 		initialize_all_subsystems_2();
 		info = create_session_info(base_session, u, default_target, &len);
 		if (!F) {
-			if (attach_terminal(get_input_handle(), get_output_handle(), get_ctl_handle(), info, len) < 0)
+			if (attach_terminal(0, 1, 0, info, len) < 0)
 				fatal_exit("Could not open initial session");
 		}
 #ifdef G
@@ -529,8 +527,6 @@ main(int argc, char *argv[])
 {
 	g_argc = argc;
 	g_argv = (unsigned char **)argv;
-
-	init_os();
 
 	get_path_to_exe();
 
