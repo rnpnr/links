@@ -219,7 +219,6 @@ void *xrealloc(void *, size_t);
 void *do_not_optimize_here(void *p);
 void error(char *, ...) PRINTF_FORMAT(1, 2);
 void fatal_exit(char *, ...) PRINTF_FORMAT(1, 2) ATTR_NORETURN;
-void debug_msg(char *, ...) PRINTF_FORMAT(1, 2);
 void int_error(char *, ...) PRINTF_FORMAT(1, 2)
 #ifndef NO_IE
 	ATTR_NORETURN
@@ -230,8 +229,6 @@ extern unsigned char *errfile;
 
 #define internal_ errfile = cast_uchar __FILE__, errline = __LINE__, int_error
 #define internal internal_
-#define debug errfile = cast_uchar __FILE__, errline = __LINE__, debug_msg
-
 
 void fatal_tty_exit(void);
 

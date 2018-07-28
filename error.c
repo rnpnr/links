@@ -17,19 +17,10 @@ void *do_not_optimize_here(void *p)
 	return p;
 }
 
-static inline void force_dump(void)
-{
-	int rs;
-	fprintf(stderr, "\n"ANSI_SET_BOLD"Forcing core dump"ANSI_CLEAR_BOLD"\n");
-	fflush(stdout);
-	fflush(stderr);
-	EINTRLOOP(rs, raise(SIGSEGV));
-}
-
-static void er(int b, char *m, va_list l)
+static void er(char *m, va_list l)
 {
 	vfprintf(stderr, cast_const_char m, l);
-	if (b) fprintf(stderr, ANSI_BELL);
+	fprintf(stderr, ANSI_BELL);
 	fprintf(stderr, "\n");
 	fflush(stderr);
 	portable_sleep(1000);
@@ -39,8 +30,7 @@ void error(char *m, ...)
 {
 	va_list l;
 	va_start(l, m);
-	fprintf(stderr, "\n");
-	er(1, m, l);
+	er(m, l);
 	va_end(l);
 }
 
@@ -49,8 +39,7 @@ void fatal_exit(char *m, ...)
 	va_list l;
 	fatal_tty_exit();
 	va_start(l, m);
-	fprintf(stderr, "\n");
-	er(1, m, l);
+	er(m, l);
 	va_end(l);
 	fflush(stdout);
 	fflush(stderr);
@@ -71,20 +60,10 @@ void int_error(char *m, ...)
 	fatal_tty_exit();
 	va_start(l, m);
 	sprintf(cast_char errbuf, "\n"ANSI_SET_BOLD"INTERNAL ERROR"ANSI_CLEAR_BOLD" at %s:%d: %s", errfile, errline, m);
-	er(1, cast_char errbuf, l);
+	er(cast_char errbuf, l);
 	va_end(l);
-	force_dump();
 	exit(RET_INTERNAL);
 #endif
-}
-
-void debug_msg(char *m, ...)
-{
-	va_list l;
-	va_start(l, m);
-	sprintf(cast_char errbuf, "\nDEBUG MESSAGE at %s:%d: %s", errfile, errline, m);
-	er(0, cast_char errbuf, l);
-	va_end(l);
 }
 
 void *mem_calloc_(size_t size, int mayfail)

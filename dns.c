@@ -56,22 +56,24 @@ static int get_addr_byte(unsigned char **ptr, unsigned char *res, unsigned char 
 int numeric_ip_address(unsigned char *name, unsigned char address[4])
 {
 	unsigned char dummy[4];
-	if (!address) address = dummy;
-	if (get_addr_byte(&name, address + 0, '.')) return -1;
-	if (get_addr_byte(&name, address + 1, '.')) return -1;
-	if (get_addr_byte(&name, address + 2, '.')) return -1;
-	if (get_addr_byte(&name, address + 3, 0)) return -1;
+	if (!address)
+		address = dummy;
+	if (get_addr_byte(&name, address + 0, '.'))
+		return -1;
+	if (get_addr_byte(&name, address + 1, '.'))
+		return -1;
+	if (get_addr_byte(&name, address + 2, '.'))
+		return -1;
+	if (get_addr_byte(&name, address + 3, 0))
+		return -1;
 	return 0;
 }
 
 static int extract_ipv6_address(struct addrinfo *p, unsigned char address[16], unsigned *scope_id)
 {
-	/*{
-		int i;
-		for (i = 0; i < p->ai_addrlen; i++)
-			fprintf(stderr, "%02x%c", ((unsigned char *)p->ai_addr)[i], i != p->ai_addrlen - 1 ? ':' : '\n');
-	}*/
-	if (p->ai_family == AF_INET6 && (socklen_t)p->ai_addrlen >= (socklen_t)sizeof(struct sockaddr_in6) && p->ai_addr->sa_family == AF_INET6) {
+	if (p->ai_family == AF_INET6
+	&& (socklen_t)p->ai_addrlen >= (socklen_t)sizeof(struct sockaddr_in6)
+	&& p->ai_addr->sa_family == AF_INET6) {
 		memcpy(address, &((struct sockaddr_in6 *)p->ai_addr)->sin6_addr, 16);
 		*scope_id = ((struct sockaddr_in6 *)p->ai_addr)->sin6_scope_id;
 		return 0;
@@ -86,8 +88,10 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	int r;
 	struct in6_addr i6a;
 	struct addrinfo hints, *res;
-	if (!address) address = dummy_a;
-	if (!scope_id) scope_id = &dummy_s;
+	if (!address)
+		address = dummy_a;
+	if (!scope_id)
+		scope_id = &dummy_s;
 
 	if (inet_pton(AF_INET6, cast_const_char name, &i6a) == 1) {
 		memcpy(address, &i6a, 16);
@@ -116,18 +120,17 @@ static int memcmp_host_address(struct host_address *a, struct host_address *b)
 }
 #endif
 
-static void add_address(struct lookup_result *host, int af, unsigned char *address, unsigned scope_id, int preference)
+static void add_address(struct lookup_result *host, int af,
+		unsigned char *address, unsigned scope_id, int preference)
 {
 	struct host_address neww;
 	struct host_address *e, *t;
 #if MAX_ADDRESSES > 1
 	struct host_address *n;
 #endif
-	if (af != AF_INET && preference == ADDR_PREFERENCE_IPV4_ONLY)
-		return;
-	if (af != AF_INET6 && preference == ADDR_PREFERENCE_IPV6_ONLY)
-		return;
-	if (host->n >= MAX_ADDRESSES)
+	if ((af != AF_INET && preference == ADDR_PREFERENCE_IPV4_ONLY)
+	|| (af != AF_INET6 && preference == ADDR_PREFERENCE_IPV6_ONLY)
+	|| (host->n >= MAX_ADDRESSES))
 		return;
 	memset(&neww, 0, sizeof(struct host_address));
 	neww.af = af;
@@ -139,11 +142,10 @@ static void add_address(struct lookup_result *host, int af, unsigned char *addre
 	for (n = host->a; n != e; n++) {
 		if (!memcmp_host_address(n, &neww))
 			return;
-		if (preference == ADDR_PREFERENCE_IPV4 && af == AF_INET && n->af != AF_INET) {
-			t = n;
-			break;
-		}
-		if (preference == ADDR_PREFERENCE_IPV6 && af == AF_INET6 && n->af != AF_INET6) {
+		if ((preference == ADDR_PREFERENCE_IPV4 && af == AF_INET
+		&& n->af != AF_INET)
+		|| (preference == ADDR_PREFERENCE_IPV6 && af == AF_INET6
+		&& n->af != AF_INET6)) {
 			t = n;
 			break;
 		}
@@ -164,15 +166,20 @@ static int use_getaddrinfo(unsigned char *name, struct addrinfo *hints, int pref
 	if (gai_err)
 		return gai_err;
 	for (p = res; p; p = p->ai_next) {
-		if (p->ai_family == AF_INET && (socklen_t)p->ai_addrlen >= (socklen_t)sizeof(struct sockaddr_in) && p->ai_addr->sa_family == AF_INET) {
-			add_address(host, AF_INET, (unsigned char *)&((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr, 0, preference);
+		if (p->ai_family == AF_INET
+		&& (socklen_t)p->ai_addrlen >= (socklen_t)sizeof(struct sockaddr_in)
+		&& p->ai_addr->sa_family == AF_INET) {
+			add_address(host, AF_INET,
+				(unsigned char *)&((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr,
+				0, preference);
 			continue;
 		}
 		{
 			unsigned char address[16];
 			unsigned scope_id;
 			if (!extract_ipv6_address(p, address, &scope_id)) {
-				add_address(host, AF_INET6, address, scope_id, preference);
+				add_address(host, AF_INET6, address, scope_id,
+					preference);
 				continue;
 			}
 		}
@@ -218,10 +225,13 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 
 	memset(host, 0, sizeof(struct lookup_result));
 
-	if (strlen(cast_const_char name) >= 6 && !casestrcmp(name + strlen(cast_const_char name) - 6, cast_uchar ".onion"))
+	if (strlen(cast_const_char name) >= 6
+	&& !casestrcmp(name + strlen(cast_const_char name) - 6,
+			cast_uchar ".onion"))
 		goto ret;
 
-	if (!support_ipv6) preference = ADDR_PREFERENCE_IPV4_ONLY;
+	if (!support_ipv6)
+		preference = ADDR_PREFERENCE_IPV4_ONLY;
 
 	if (!numeric_ip_address(name, address)) {
 		add_address(host, AF_INET, address, 0, preference);
@@ -291,10 +301,9 @@ ret:
 
 static int do_lookup(struct dnsquery *q, int force_async)
 {
-	/*debug("starting lookup for %s", q->name);*/
-		do_real_lookup(q->name, q->addr_preference, q->addr);
-		end_dns_lookup(q, !q->addr->n);
-		return 0;
+	do_real_lookup(q->name, q->addr_preference, q->addr);
+	end_dns_lookup(q, !q->addr->n);
+	return 0;
 }
 
 static int do_queued_lookup(struct dnsquery *q)
@@ -303,13 +312,13 @@ static int do_queued_lookup(struct dnsquery *q)
 	q->next_in_queue = NULL;
 	if (!dns_queue) {
 		dns_queue = q;
-		/*debug("direct lookup");*/
 #endif
 		return do_lookup(q, 0);
 #ifndef THREAD_SAFE_LOOKUP
 	} else {
 		/*debug("queuing lookup for %s", q->name);*/
-		if (dns_queue->next_in_queue) internal("DNS queue corrupted");
+		if (dns_queue->next_in_queue)
+			internal("DNS queue corrupted");
 		dns_queue->next_in_queue = q;
 		dns_queue = q;
 		return 1;
@@ -352,12 +361,11 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 	size_t sl;
 	void (*fn)(void *, int);
 	void *data;
-	/*debug("end lookup %s", q->name);*/
 #ifndef THREAD_SAFE_LOOKUP
 	if (q->next_in_queue) {
-		/*debug("processing next in queue: %s", q->next_in_queue->name);*/
 		do_lookup(q->next_in_queue, 1);
-	} else dns_queue = NULL;
+	} else
+		dns_queue = NULL;
 #endif
 	if (!q->fn || !q->addr) {
 		free(q);
@@ -371,18 +379,22 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 		}
 		free_dns_entry(dnsentry);
 	}
-	if (a) goto e;
-	if (q->addr_preference != ipv6_options.addr_preference) goto e;
+	if (a)
+		goto e;
+	if (q->addr_preference != ipv6_options.addr_preference)
+		goto e;
 	check_dns_cache_addr_preference();
 	sl = strlen(cast_const_char q->name);
-	if (sl > MAXINT - sizeof(struct dnsentry)) overalloc();
+	if (sl > MAXINT - sizeof(struct dnsentry))
+		overalloc();
 	dnsentry = xmalloc(sizeof(struct dnsentry) + sl);
 	strcpy(cast_char dnsentry->name, cast_const_char q->name);
 	memcpy(&dnsentry->addr, q->addr, sizeof(struct lookup_result));
 	dnsentry->absolute_time = get_absolute_time();
 	add_to_list(dns_cache, dnsentry);
-	e:
-	if (q->s) *q->s = NULL;
+e:
+	if (q->s)
+		*q->s = NULL;
 	fn = q->fn;
 	data = q->data;
 	free(q);
@@ -406,14 +418,16 @@ int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **q
 	q->addr = addr;
 	q->addr_preference = ipv6_options.addr_preference;
 	strcpy(cast_char q->name, cast_const_char name);
-	if (qp) *qp = q;
+	if (qp)
+		*qp = q;
 	return do_queued_lookup(q);
 }
 
 int find_host(unsigned char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
 {
 	struct dnsentry *dnsentry;
-	if (qp) *qp = NULL;
+	if (qp)
+		*qp = NULL;
 	if (!find_in_dns_cache(name, &dnsentry)) {
 		if (get_absolute_time() - dnsentry->absolute_time > DNS_TIMEOUT) goto timeout;
 		memcpy(addr, &dnsentry->addr, sizeof(struct lookup_result));
@@ -440,15 +454,18 @@ void dns_set_priority(unsigned char *name, struct host_address *address, int pre
 	if (find_in_dns_cache(name, &dnsentry))
 		return;
 	for (i = 0; i < dnsentry->addr.n; i++)
-		if (!memcmp_host_address(&dnsentry->addr.a[i], address)) goto found_it;
+		if (!memcmp_host_address(&dnsentry->addr.a[i], address))
+			goto found_it;
 	return;
-	found_it:
+found_it:
 	if (prefer) {
 		memmove(&dnsentry->addr.a[1], &dnsentry->addr.a[0], i * sizeof(struct host_address));
 		memcpy(&dnsentry->addr.a[0], address, sizeof(struct host_address));
 	} else {
-		memmove(&dnsentry->addr.a[i], &dnsentry->addr.a[i + 1], (dnsentry->addr.n - i - 1) * sizeof(struct host_address));
-		memcpy(&dnsentry->addr.a[dnsentry->addr.n - 1], address, sizeof(struct host_address));
+		memmove(&dnsentry->addr.a[i], &dnsentry->addr.a[i + 1],
+			(dnsentry->addr.n - i - 1) * sizeof(struct host_address));
+		memcpy(&dnsentry->addr.a[dnsentry->addr.n - 1], address,
+			sizeof(struct host_address));
 	}
 }
 #endif
@@ -464,10 +481,10 @@ void dns_clear_host(unsigned char *name)
 unsigned long dns_info(int type)
 {
 	switch (type) {
-		case CI_FILES:
-			return list_size(&dns_cache);
-		default:
-			internal("dns_info: bad request");
+	case CI_FILES:
+		return list_size(&dns_cache);
+	default:
+		internal("dns_info: bad request");
 	}
 	return 0;
 }
@@ -482,12 +499,13 @@ static int shrink_dns_cache(int u)
 		d = list_struct(dns_cache.prev, struct dnsentry);
 		goto delete_last;
 	}
-	foreach(struct dnsentry, d, ld, dns_cache) if (u == SH_FREE_ALL || now - d->absolute_time > DNS_TIMEOUT) {
+	foreach(struct dnsentry, d, ld, dns_cache)
+		if (u == SH_FREE_ALL || now - d->absolute_time > DNS_TIMEOUT) {
 delete_last:
-		ld = d->list_entry.prev;
-		free_dns_entry(d);
-		f = ST_SOMETHING_FREED;
-	}
+			ld = d->list_entry.prev;
+			free_dns_entry(d);
+			f = ST_SOMETHING_FREED;
+		}
 	return f | (list_empty(dns_cache) ? ST_CACHE_EMPTY : 0);
 }
 
@@ -519,30 +537,31 @@ int ipv6_full_access(void)
 	 */
 	struct sockaddr_in6 sin6;
 	int h, c, rs;
-	if (!support_ipv6) return 0;
+	if (!support_ipv6)
+		return 0;
 	h = c_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	if (h == -1) return 0;
+	if (h == -1)
+		return 0;
 	memset(&sin6, 0, sizeof sin6);
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_port = htons(1024);
 	memcpy(&sin6.sin6_addr.s6_addr, "\052\001\004\060\000\015\000\000\002\314\236\377\376\044\176\032", 16);
 	EINTRLOOP(c, connect(h, (struct sockaddr *)(void *)&sin6, sizeof sin6));
 	EINTRLOOP(rs, close(h));
-	if (!c) return 1;
+	if (!c)
+		return 1;
 	return 0;
 }
 
 void init_dns(void)
 {
 	register_cache_upcall(shrink_dns_cache, 0, cast_uchar "dns");
-	{
-		int h, rs;
-		h = c_socket(AF_INET6, SOCK_STREAM, 0);
-		if (h == -1)
-			support_ipv6 = 0;
-		else {
-			EINTRLOOP(rs, close(h));
-			support_ipv6 = 1;
-		}
+	int h, rs;
+	h = c_socket(AF_INET6, SOCK_STREAM, 0);
+	if (h == -1)
+		support_ipv6 = 0;
+	else {
+		EINTRLOOP(rs, close(h));
+		support_ipv6 = 1;
 	}
 }

@@ -62,7 +62,9 @@ static_const unsigned char strings[256][2] = {
 static void free_translation_table(struct conv_table *p)
 {
 	int i;
-	for (i = 0; i < 256; i++) if (p[i].t) free_translation_table(p[i].u.tbl);
+	for (i = 0; i < 256; i++)
+		if (p[i].t)
+			free_translation_table(p[i].u.tbl);
 	free(p);
 }
 
@@ -71,9 +73,17 @@ static_const unsigned char no_str[] = "*";
 static void new_translation_table(struct conv_table *p)
 {
 	int i;
-	for (i = 0; i < 256; i++) if (p[i].t) free_translation_table(p[i].u.tbl);
-	for (i = 0; i < 128; i++) p[i].t = 0, p[i].u.str = cast_uchar strings[i];
-	for (; i < 256; i++) p[i].t = 0, p[i].u.str = cast_uchar no_str;
+	for (i = 0; i < 256; i++)
+		if (p[i].t)
+			free_translation_table(p[i].u.tbl);
+	for (i = 0; i < 128; i++) {
+		p[i].t = 0;
+		p[i].u.str = cast_uchar strings[i];
+	}
+	for (; i < 256; i++) {
+		p[i].t = 0;
+		p[i].u.str = cast_uchar no_str;
+	}
 }
 
 static_const unsigned short strange_chars[32] = {
@@ -95,31 +105,43 @@ unsigned char *u2cp(int u, int to, int fallback)
 {
 	int j, s;
 	again:
-	if (u < 0) return cast_uchar "";
-	if (u < 128) return cast_uchar strings[u];
-	if (is_nbsp(u)) return cast_uchar strings[1];
-	if (u == 0xad) return cast_uchar strings[0];
-	if (to == utf8_table) return encode_utf_8(u);
+	if (u < 0)
+		return cast_uchar "";
+	if (u < 128)
+		return cast_uchar strings[u];
+	if (is_nbsp(u))
+		return cast_uchar strings[1];
+	if (u == 0xad)
+		return cast_uchar strings[0];
+	if (to == utf8_table)
+		return encode_utf_8(u);
 	if (u < 0xa0) {
 		u = strange_chars[u - 0x80];
-		if (!u) return NULL;
+		if (!u)
+			return NULL;
 		goto again;
 	}
 	for (j = 0; codepages[to].table[j].c; j++)
 		if (codepages[to].table[j].u == u)
 			return cast_uchar strings[codepages[to].table[j].c];
-	if (!fallback) return NULL;
+	if (!fallback)
+		return NULL;
 	BIN_SEARCH(N_UNICODE_7B, U_EQUAL, U_ABOVE, u, s);
-	if (s != -1) return cast_uchar unicode_7b[s].s;
+	if (s != -1)
+		return cast_uchar unicode_7b[s].s;
 	return NULL;
 }
 
 int cp2u(unsigned ch, int from)
 {
 	const struct table_entry *e;
-	if (from == utf8_table) return ch;
-	if (from < 0 || ch < 0x80) return ch;
-	for (e = codepages[from].table; e->c; e++) if (e->c == ch) return e->u;
+	if (from == utf8_table)
+		return ch;
+	if (from < 0 || ch < 0x80)
+		return ch;
+	for (e = codepages[from].table; e->c; e++)
+		if (e->c == ch)
+			return e->u;
 	return -1;
 }
 
@@ -128,8 +150,9 @@ static unsigned char utf_buffer[7];
 unsigned char *encode_utf_8(int u)
 {
 	memset(utf_buffer, 0, 7);
-	if (u < 0) ;
-	else if (u < 0x80) utf_buffer[0] = (unsigned char)u;
+	if (u < 0);
+	else if (u < 0x80)
+		utf_buffer[0] = (unsigned char)u;
 	else if (u < 0x800)
 		utf_buffer[0] = 0xc0 | ((u >> 6) & 0x1f),
 		utf_buffer[1] = 0x80 | (u & 0x3f);
@@ -161,7 +184,8 @@ static void add_utf_8(struct conv_table *ct, int u, unsigned char *str)
 {
 	unsigned char *p = encode_utf_8(u);
 	while (p[1]) {
-		if (ct[*p].t) ct = ct[*p].u.tbl;
+		if (ct[*p].t)
+			ct = ct[*p].u.tbl;
 		else {
 			struct conv_table *nct;
 			if (ct[*p].u.str != no_str) {
@@ -181,7 +205,8 @@ static void add_utf_8(struct conv_table *ct, int u, unsigned char *str)
 		internal("bad utf encoding #2");
 		return;
 	}
-	if (ct[*p].u.str == no_str) ct[*p].u.str = str;
+	if (ct[*p].u.str == no_str)
+		ct[*p].u.str = str;
 }
 
 static struct conv_table utf_table[256];
@@ -198,23 +223,25 @@ static struct conv_table *get_translation_table_to_utf_8(int from)
 {
 	int i;
 	static int lfr = -1;
-	if (from == -1) return NULL;
-	if (from == lfr) return utf_table;
+	if (from == -1)
+		return NULL;
+	if (from == lfr)
+		return utf_table;
 	lfr = from;
 	if (utf_table_init) {
 		memset(utf_table, 0, sizeof(struct conv_table) * 256);
 		for (i = 0; i < 128; i++) utf_table[i].u.str = cast_uchar strings[i];
 		utf_table_init = 0;
-	} else {
+	} else
 		free_utf_table();
-	}
 	if (from == utf8_table) {
 		for (i = 128; i < 256; i++) utf_table[i].u.str = stracpy(strings[i]);
 		return utf_table;
 	}
-	for (i = 128; i < 256; i++) utf_table[i].u.str = NULL;
+	for (i = 128; i < 256; i++)
+		utf_table[i].u.str = NULL;
 	for (i = 0; codepages[from].table[i].c; i++) {
-		int u = codepages[from].table[i].u;
+		const int u = codepages[from].table[i].u;
 		if (!utf_table[codepages[from].table[i].c].u.str)
 			utf_table[codepages[from].table[i].c].u.str = stracpy(encode_utf_8(u));
 	}

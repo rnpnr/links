@@ -83,9 +83,11 @@ static int auth_cancel(struct dialog_data *dlg, struct dialog_item_data *item)
 	if (rq) {
 		rq->hold = 0;
 		rq->state = O_OK;
-		if (rq->timer != NULL) kill_timer(rq->timer);
+		if (rq->timer != NULL)
+			kill_timer(rq->timer);
 		rq->timer = install_timer(0, object_timer, rq);
-		if (!rq->ce) (rq->ce = rq->ce_internal)->refcount++;
+		if (!rq->ce)
+			(rq->ce = rq->ce_internal)->refcount++;
 	}
 	cancel_dialog(dlg, item);
 	return 0;

@@ -16,17 +16,23 @@ struct memory_list *getml(void *p, ...)
 	void *q = p;
 	va_start(ap, p);
 	while (q) {
-		if (n == MAXINT) overalloc();
-		n++, q = va_arg(ap, void *);
+		if (n == MAXINT)
+			overalloc();
+		n++;
+		q = va_arg(ap, void *);
 	}
-	if ((unsigned)n > (MAXINT - sizeof(struct memory_list)) / sizeof(void *)) overalloc();
+	if ((unsigned)n > (MAXINT - sizeof(struct memory_list)) / sizeof(void *))
+		overalloc();
 	ml = xmalloc(sizeof(struct memory_list) + n * sizeof(void *));
 	ml->n = n;
 	n = 0;
 	q = p;
 	va_end(ap);
 	va_start(ap, p);
-	while (q) ml->p[n++] = q, q = va_arg(ap, void *);
+	while (q) {
+		ml->p[n++] = q;
+		q = va_arg(ap, void *);
+	}
 	va_end(ap);
 	return ml;
 }
@@ -43,7 +49,8 @@ void add_to_ml(struct memory_list **ml, ...)
 	}
 	va_start(ap, ml);
 	while ((q = va_arg(ap, void *))) {
-		if (n == MAXINT) overalloc();
+		if (n == MAXINT)
+			overalloc();
 		n++;
 	}
 	if ((unsigned)n + (unsigned)((*ml)->n) > (MAXINT - sizeof(struct memory_list)) / sizeof(void *))
@@ -69,9 +76,11 @@ void freeml(struct memory_list *ml)
 static inline int is_utf_8(struct terminal *term)
 {
 #ifdef G
-	if (F) return 1;
+	if (F)
+		return 1;
 #endif
-	if (term_charset(term) == utf8_table) return 1;
+	if (term_charset(term) == utf8_table)
+		return 1;
 	return 0;
 }
 
@@ -117,7 +126,8 @@ void init_bfu(void)
 
 void shutdown_bfu(void)
 {
-	if (!F) return;
+	if (!F)
+		return;
 	g_free_style(bfu_style_wb);
 	g_free_style(bfu_style_wb_b);
 	g_free_style(bfu_style_bw);
@@ -139,7 +149,8 @@ unsigned char m_bar = 0;
 static unsigned select_hotkey(struct terminal *term, unsigned char *text, unsigned char *hotkey, unsigned *hotkeys, int n)
 {
 	unsigned c;
-	if (hotkey == M_BAR) return 0;
+	if (hotkey == M_BAR)
+		return 0;
 	if (text) {
 		text = stracpy(get_text_translation(text, term));
 		charset_upcase_string(&text, term_charset(term));
@@ -148,11 +159,14 @@ static unsigned select_hotkey(struct terminal *term, unsigned char *text, unsign
 	while (1) {
 		int i;
 		c = GET_TERM_CHAR(term, &hotkey);
-		if (!c) break;
+		if (!c)
+			break;
 		c = charset_upcase(c, term_charset(term));
-		for (i = 0; i < n; i++) if (hotkeys[i] == c) goto cont;
-		if (!text || cp_strchr(term_charset(term), text, c)) break;
-		cont:;
+		for (i = 0; i < n; i++)
+			if (hotkeys[i] == c)
+				continue;
+		if (!text || cp_strchr(term_charset(term), text, c))
+			break;
 	}
 	free(text);
 	return c;
@@ -162,7 +176,9 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 {
 	int i;
 	struct menu *menu;
-	for (i = 0; items[i].text; i++) if (i == (MAXINT - sizeof(struct menu)) / sizeof(unsigned)) overalloc();
+	for (i = 0; items[i].text; i++)
+		if (i == (MAXINT - sizeof(struct menu)) / sizeof(unsigned))
+			overalloc();
 	menu = xmalloc(sizeof(struct menu) + (!i ? 0 : i - 1) * sizeof(unsigned));
 	menu->selected = selected;
 	menu->view = 0;
@@ -172,10 +188,13 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 	menu->free_function = free_function;
 	menu->free_data = free_data;
 	for (i = 0; i < menu->ni; i++)
-		menu->hotkeys[i] = select_hotkey(term, !term->spec->braille ? items[i].text : NULL, items[i].hotkey, menu->hotkeys, i);
+		menu->hotkeys[i] = select_hotkey(term,
+					!term->spec->braille ? items[i].text : NULL,
+					items[i].hotkey, menu->hotkeys, i);
 #ifdef G
 	if (F) {
-		if ((unsigned)menu->ni > MAXINT / sizeof(unsigned char *)) overalloc();
+		if ((unsigned)menu->ni > MAXINT / sizeof(unsigned char *))
+			overalloc();
 		menu->hktxt1 = mem_calloc(menu->ni * sizeof(unsigned char *));
 		menu->hktxt2 = mem_calloc(menu->ni * sizeof(unsigned char *));
 		menu->hktxt3 = mem_calloc(menu->ni * sizeof(unsigned char *));
@@ -215,12 +234,14 @@ static void select_menu(struct terminal *term, struct menu *menu)
 	void (*func)(struct terminal *, void *, void *);
 	void *data1;
 	void *data2;
-	if (menu->selected < 0 || menu->selected >= menu->ni) return;
+	if (menu->selected < 0 || menu->selected >= menu->ni)
+		return;
 	it = &menu->items[menu->selected];
 	func = it->func;
 	data1 = it->data;
 	data2 = menu->data;
-	if (it->hotkey == M_BAR) return;
+	if (it->hotkey == M_BAR)
+		return;
 	flush_terminal(term);
 	if (!it->in_m) {
 		struct window *win;
@@ -237,7 +258,8 @@ static void select_menu(struct terminal *term, struct menu *menu)
 
 static unsigned char *get_rtext(unsigned char *rtext)
 {
-	if (!strcmp(cast_const_char rtext, ">")) return MENU_SUBMENU;
+	if (!strcmp(cast_const_char rtext, ">"))
+		return MENU_SUBMENU;
 	return rtext;
 }
 
