@@ -12,16 +12,11 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 	unsigned char bp[12] = "?--------- ";
 	if (stp)
 		strmode(stp->st_mode, cast_char bp);
-#ifndef FS_UNIX_RIGHTS
-	bp[1] = ' ';
-	bp[2] = 0;
-#endif
 	add_to_str(p, l, bp);
 }
 
 #else
 
-#ifdef FS_UNIX_RIGHTS
 static void setrwx(unsigned m, unsigned char *p)
 {
 	if (m & S_IRUSR) p[0] = 'r';
@@ -50,7 +45,6 @@ static void setst(unsigned m, unsigned char *p)
 	}
 #endif
 }
-#endif
 
 static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 {
@@ -79,7 +73,6 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 #endif
 	}
 	add_chr_to_str(p, l, c);
-#ifdef FS_UNIX_RIGHTS
 	{
 		unsigned char rwx[10] = "---------";
 		if (stp) {
@@ -91,7 +84,6 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 		}
 		add_to_str(p, l, rwx);
 	}
-#endif
 	add_chr_to_str(p, l, ' ');
 }
 
@@ -100,27 +92,22 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 
 static void stat_links(unsigned char **p, int *l, struct stat *stp)
 {
-#ifdef FS_UNIX_HARDLINKS
 	unsigned char lnk[64];
 	if (!stp) add_to_str(p, l, cast_uchar "    ");
 	else {
 		sprintf(cast_char lnk, "%3ld ", (unsigned long)stp->st_nlink);
 		add_to_str(p, l, lnk);
 	}
-#endif
 }
 
-#ifdef FS_UNIX_USERS
 static int last_uid = -1;
 static unsigned char last_user[64];
 
 static int last_gid = -1;
 static unsigned char last_group[64];
-#endif
 
 static void stat_user(unsigned char **p, int *l, struct stat *stp, int g)
 {
-#ifdef FS_UNIX_USERS
 	struct passwd *pwd;
 	struct group *grp;
 	int id;
@@ -149,7 +136,6 @@ static void stat_user(unsigned char **p, int *l, struct stat *stp, int g)
 	add_to_str(p, l, pp);
 	for (i = (int)strlen(cast_const_char pp); i < 8; i++) add_chr_to_str(p, l, ' ');
 	add_chr_to_str(p, l, ' ');
-#endif
 }
 
 static void stat_size(unsigned char **p, int *l, struct stat *stp)
@@ -217,7 +203,7 @@ struct dirs {
 	unsigned char *f;
 };
 
-LIBC_CALLBACK static int comp_de(const void *d1_, const void *d2_)
+static int comp_de(const void *d1_, const void *d2_)
 {
 	const struct dirs *d1 = (const struct dirs *)d1_;
 	const struct dirs *d2 = (const struct dirs *)d2_;
@@ -298,10 +284,8 @@ void file_func(struct connection *c)
 			closedir(d);
 			goto end;
 		}
-#ifdef FS_UNIX_USERS
 		last_uid = -1;
 		last_gid = -1;
-#endif
 		file = init_str();
 		fl = 0;
 		add_to_str(&file, &fl, cast_uchar "<html><head><title>");
@@ -334,11 +318,7 @@ void file_func(struct connection *c)
 			l = 0;
 			n = stracpy(name);
 			add_to_strn(&n, cast_uchar de->d_name);
-#ifdef FS_UNIX_SOFTLINKS
 			EINTRLOOP(rs, lstat(cast_const_char n, &stt));
-#else
-			EINTRLOOP(rs, stat(cast_const_char n, &stt));
-#endif
 			if (rs) stp = NULL;
 			else stp = &stt;
 			free(n);
@@ -353,7 +333,6 @@ void file_func(struct connection *c)
 		if (dirl) qsort(dir, dirl, sizeof(struct dirs), (int (*)(const void *, const void *))comp_de);
 		for (i = 0; i < dirl; i++) {
 			unsigned char *lnk = NULL;
-#ifdef FS_UNIX_SOFTLINKS
 			if (dir[i].s[0] == 'l') {
 				unsigned char *buf = NULL;
 				int size = 0;
@@ -376,7 +355,6 @@ void file_func(struct connection *c)
 				xxx:
 				free(n);
 			}
-#endif
 			/*add_to_str(&file, &fl, cast_uchar "   ");*/
 			add_to_str(&file, &fl, dir[i].s);
 			add_to_str(&file, &fl, cast_uchar "<a href=\"./");

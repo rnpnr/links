@@ -320,36 +320,6 @@ DIR *c_opendir(unsigned char *path)
 	return d;
 }
 
-#if defined(O_SIZE) && defined(__EMX__)
-
-int open_prealloc(unsigned char *name, int flags, int mode, off_t siz)
-{
-	int h;
-	fd_lock();
-	EINTRLOOP(h, open(cast_const_char name, flags | O_SIZE, mode, (unsigned long)siz));
-	if (h != -1) new_fd_bin(h);
-	fd_unlock();
-	return h;
-}
-
-#elif defined(HAVE_OPEN_PREALLOC)
-
-int open_prealloc(unsigned char *name, int flags, int mode, off_t siz)
-{
-	int h, rs;
-	fd_lock();
-	EINTRLOOP(h, open(cast_const_char name, flags, mode));
-	if (h == -1) {
-		fd_unlock();
-		return -1;
-	}
-	new_fd_bin(h);
-	fd_unlock();
-	return h;
-}
-
-#endif
-
 /* Exec */
 
 int is_twterm(void)

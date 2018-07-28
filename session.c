@@ -833,26 +833,6 @@ static int download_write(struct download *down, void *ptr, off_t to_write)
 	return 0;
 }
 
-static int download_prealloc(struct download *down, off_t est_length)
-{
-	if (est_length <= 0)
-		return 0;
-#ifdef HAVE_OPEN_PREALLOC
-	if (!down->last_pos && !strcmp(cast_const_char down->file, cast_const_char down->orig_file)) {
-		struct stat st;
-		int rs;
-		EINTRLOOP(rs, fstat(down->handle, &st));
-		if (rs || !S_ISREG(st.st_mode))
-			return 0;
-		close_download_file(down);
-		delete_download_file(down);
-		if ((down->handle = create_download_file(get_download_ses(down), down->cwd, down->file, !down->prog ? CDF_EXCL : CDF_RESTRICT_PERMISSION | CDF_EXCL, est_length)) < 0)
-			return -1;
-	}
-#endif
-	return 0;
-}
-
 static void download_data(struct status *stat, void *down_)
 {
 	struct download *down = (struct download *)down_;
@@ -915,8 +895,6 @@ static void download_data(struct status *stat, void *down_)
 		foreach(struct fragment, frag, lfrag, ce->frag) {
 have_frag:
 			while (frag->offset <= down->last_pos && frag->offset + frag->length > down->last_pos) {
-				if (download_prealloc(down, stat->state < 0 ? ce->length : down->stat.prg ? down->stat.prg->size : 0))
-					goto det_abt;
 				if (download_write(down, frag->data + (down->last_pos - frag->offset), frag->length - (down->last_pos - frag->offset))) {
 					det_abt:
 					detach_connection(stat, down->last_pos, 0, 0);
@@ -935,8 +913,6 @@ have_frag:
 			int err;
 			get_file_by_term(ses ? ses->term : NULL, ce, &start, &end, &err);
 			if (err) goto det_abt;
-			if (download_prealloc(down, end - start))
-				goto det_abt;
 			while (down->last_pos < end - start) {
 				if (download_write(down, start + down->last_pos, end - start - down->last_pos)) goto det_abt;
 			}
@@ -1008,14 +984,7 @@ int create_download_file(struct session *ses, unsigned char *cwd, unsigned char 
 	wd = get_cwd();
 	set_cwd(cwd);
 	file = translate_download_file(fi);
-#ifdef HAVE_OPEN_PREALLOC
-	if (siz && !(mode & CDF_NOTRUNC)) {
-		h = open_prealloc(file, O_CREAT | O_NOCTTY | O_WRONLY | O_TRUNC | (mode & CDF_EXCL ? O_EXCL : 0), perm, siz);
-	} else
-#endif
-	{
-		h = c_open3(file, O_CREAT | O_NOCTTY | O_WRONLY | (mode & CDF_NOTRUNC ? 0 : O_TRUNC) | (mode & CDF_EXCL ? O_EXCL : 0), perm);
-	}
+	h = c_open3(file, O_CREAT | O_NOCTTY | O_WRONLY | (mode & CDF_NOTRUNC ? 0 : O_TRUNC) | (mode & CDF_EXCL ? O_EXCL : 0), perm);
 	if (h == -1) {
 		unsigned char *msg, *msge;
 		int errn = errno;

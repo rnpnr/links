@@ -126,7 +126,7 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 	}
 	return 0;
 }
-#else
+#else /* if !defined(HAVE_PTHREAD_SIGMASK) */
 #define do_sigprocmask	sigprocmask
 #define sigset_t	int
 #ifndef SIG_BLOCK
@@ -157,16 +157,12 @@ static inline int do_sigprocmask(int how, const sigset_t *set, sigset_t *oset)
 #ifdef HAVE_SIGFILLSET
 #undef HAVE_SIGFILLSET
 #endif
-#endif
+#endif /* defined(HAVE_PTHREAD_SIGMASK) */
+
 #ifdef HAVE_SIGFILLSET
 static inline void sig_fill_set(sigset_t *set)
 {
 	sigfillset(set);
-}
-#else
-static inline void sig_fill_set(sigset_t *set)
-{
-	memset(set, -1, sizeof(sigset_t));
 }
 #endif
 
@@ -217,13 +213,9 @@ void *xrealloc(void *, size_t);
 #define ANSI_CLEAR_BOLD		"\033[0m"
 
 void *do_not_optimize_here(void *p);
-void error(char *, ...) PRINTF_FORMAT(1, 2);
-void fatal_exit(char *, ...) PRINTF_FORMAT(1, 2) ATTR_NORETURN;
-void int_error(char *, ...) PRINTF_FORMAT(1, 2)
-#ifndef NO_IE
-	ATTR_NORETURN
-#endif
-	;
+void error(char *, ...);
+void fatal_exit(char *, ...);
+void int_error(char *, ...);
 extern int errline;
 extern unsigned char *errfile;
 
@@ -428,9 +420,6 @@ int c_accept(int, struct sockaddr *, socklen_t *);
 int c_open(unsigned char *, int);
 int c_open3(unsigned char *, int, int);
 DIR *c_opendir(unsigned char *);
-#ifdef HAVE_OPEN_PREALLOC
-int open_prealloc(unsigned char *, int, int, off_t);
-#endif
 int get_input_handle(void);
 int get_output_handle(void);
 int get_ctl_handle(void);
@@ -558,11 +547,7 @@ void set_sigcld(void);
 
 /* dns.c */
 
-#ifdef USE_GETADDRINFO
 #define MAX_ADDRESSES		64
-#else
-#define MAX_ADDRESSES		1
-#endif
 
 struct host_address {
 	int af;

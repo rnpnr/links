@@ -1105,7 +1105,6 @@ static void dlg_net_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].fn = check_number;
 	d->items[a].gid = 1;
 	d->items[a++].gnum = 9999;
-#ifdef USE_GETADDRINFO
 	net_msg[a] = TEXT_(T_TIMEOUT_WHEN_TRYING_MULTIPLE_ADDRESSES);
 	d->items[a].type = D_FIELD;
 	d->items[a].data = addrtime_str;
@@ -1113,7 +1112,6 @@ static void dlg_net_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].fn = check_number;
 	d->items[a].gid = 1;
 	d->items[a++].gnum = 999;
-#endif
 	net_msg[a] = TEXT_(T_BIND_TO_LOCAL_IP_ADDRESS);
 	d->items[a].type = D_FIELD;
 	d->items[a].data = bind_ip_address;

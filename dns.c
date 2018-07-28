@@ -15,14 +15,7 @@ struct dnsentry {
 	unsigned char name[1];
 };
 
-#ifndef THREAD_SAFE_LOOKUP
-struct dnsquery *dns_queue = NULL;
-#endif
-
 struct dnsquery {
-#ifndef THREAD_SAFE_LOOKUP
-	struct dnsquery *next_in_queue;
-#endif
 	void (*fn)(void *, int);
 	void *data;
 	int h;
@@ -156,8 +149,6 @@ static void add_address(struct lookup_result *host, int af,
 	host->n++;
 }
 
-#ifdef USE_GETADDRINFO
-
 static int use_getaddrinfo(unsigned char *name, struct addrinfo *hints, int preference, struct lookup_result *host)
 {
 	int gai_err;
@@ -187,8 +178,6 @@ static int use_getaddrinfo(unsigned char *name, struct addrinfo *hints, int pref
 	freeaddrinfo(res);
 	return 0;
 }
-
-#endif
 
 void rotate_addresses(struct lookup_result *host)
 {
@@ -258,7 +247,6 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 		}
 	}
 
-#if defined(USE_GETADDRINFO)
 	use_getaddrinfo(name, NULL, preference, host);
 #if defined(EXTRA_IPV6_LOOKUP)
 	if ((preference == ADDR_PREFERENCE_IPV4 && !host->n) ||
@@ -276,25 +264,6 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 	}
 	already_have_inet6:;
 #endif
-#elif defined(HAVE_GETHOSTBYNAME)
-	{
-		int i;
-		struct hostent *hst;
-		if ((hst = gethostbyname(cast_const_char name))) {
-			if (hst->h_addrtype != AF_INET || hst->h_length != 4 || !hst->h_addr)
-				goto ret;
-#ifdef h_addr
-			for (i = 0; hst->h_addr_list[i]; i++) {
-				add_address(host, AF_INET, cast_uchar hst->h_addr_list[i], 0, preference);
-			}
-#else
-			add_address(host, AF_INET, cast_uchar hst->h_addr, 0, preference);
-#endif
-			goto ret;
-		}
-	}
-#endif
-
 ret:
 	return;
 }
@@ -308,22 +277,7 @@ static int do_lookup(struct dnsquery *q, int force_async)
 
 static int do_queued_lookup(struct dnsquery *q)
 {
-#ifndef THREAD_SAFE_LOOKUP
-	q->next_in_queue = NULL;
-	if (!dns_queue) {
-		dns_queue = q;
-#endif
 		return do_lookup(q, 0);
-#ifndef THREAD_SAFE_LOOKUP
-	} else {
-		/*debug("queuing lookup for %s", q->name);*/
-		if (dns_queue->next_in_queue)
-			internal("DNS queue corrupted");
-		dns_queue->next_in_queue = q;
-		dns_queue = q;
-		return 1;
-	}
-#endif
 }
 
 static void check_dns_cache_addr_preference(void)
@@ -361,12 +315,6 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 	size_t sl;
 	void (*fn)(void *, int);
 	void *data;
-#ifndef THREAD_SAFE_LOOKUP
-	if (q->next_in_queue) {
-		do_lookup(q->next_in_queue, 1);
-	} else
-		dns_queue = NULL;
-#endif
 	if (!q->fn || !q->addr) {
 		free(q);
 		return;

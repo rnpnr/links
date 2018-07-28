@@ -1613,7 +1613,7 @@ static struct font_cache_entry *locked_color_entry = NULL;
 
 /* Adds required entry into font_cache and returns pointer to the entry.
  */
-ATTR_NOINLINE static struct font_cache_entry *supply_color_cache_entry(struct style *style, struct letter *letter)
+static struct font_cache_entry *supply_color_cache_entry(struct style *style, struct letter *letter)
 {
 	struct font_cache_entry *found, *neww;
 	unsigned short *primary_data;

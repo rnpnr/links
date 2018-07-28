@@ -117,7 +117,7 @@ static int find_tag(struct f_data *f, unsigned char *name)
 	return -1;
 }
 
-LIBC_CALLBACK static int comp_links(const void *l1_, const void *l2_)
+static int comp_links(const void *l1_, const void *l2_)
 {
 	const struct link *l1 = (const struct link *)l1_;
 	const struct link *l2 = (const struct link *)l2_;

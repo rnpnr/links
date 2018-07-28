@@ -187,7 +187,7 @@ static unsigned char *create_config_string(struct option *options)
 		if (options[i].wr_cfg)
 			options[i].wr_cfg(&options[i], &s, &l);
 	}
-	add_to_str(&s, &l, cast_uchar NEWLINE);
+	add_to_str(&s, &l, cast_uchar "\n");
 	return s;
 }
 
@@ -436,7 +436,7 @@ static int write_config_data(unsigned char *prefix, unsigned char *name, struct 
 
 static void add_nm(struct option *o, unsigned char **s, int *l)
 {
-	if (*l) add_to_str(s, l, cast_uchar NEWLINE);
+	if (*l) add_to_str(s, l, cast_uchar "\n");
 	add_to_str(s, l, cast_uchar o->cfg_name);
 	add_to_str(s, l, cast_uchar " ");
 }
@@ -959,11 +959,7 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 	do_real_lookup(h3, ipv6_options.addr_preference, &addr);
 	free(h3);
 	if (!addr.n) {
-#if !defined(USE_GETADDRINFO)
-		herror("error");
-#else
 		fprintf(stderr, "error: host not found\n");
-#endif
 		do_exit(RET_ERROR);
 		return NULL;
 	}
@@ -1831,7 +1827,7 @@ void save_url_history(void)
 		if (!*hi->str || hi->str[0] == ' ' || strchr(cast_const_char hi->str, 10) || strchr(cast_const_char hi->str, 13)) continue;
 		if (!url_not_saveable(hi->str)) {
 			add_to_str(&hs, &hsl, hi->str);
-			add_to_str(&hs, &hsl, cast_uchar NEWLINE);
+			add_to_str(&hs, &hsl, cast_uchar "\n");
 		}
 	}
 	write_to_config_file(history_file, hs, 0);

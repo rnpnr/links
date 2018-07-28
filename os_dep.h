@@ -27,18 +27,11 @@
 #if defined(UNIX)
 
 static inline int dir_sep(unsigned char x) { return x == '/'; }
-#define NEWLINE "\n"
-#define FS_UNIX_RIGHTS
-#define FS_UNIX_HARDLINKS
-#define FS_UNIX_SOFTLINKS
-#define FS_UNIX_USERS
 #define SYSTEM_ID SYS_UNIX
 #define SYSTEM_NAME "Unix"
 #define DEFAULT_SHELL "/bin/sh"
 #define GETSHELL getenv("SHELL")
 #define SHARED_CONFIG_DIR "/etc/"
-#define ASSOC_BLOCK
-#define ASSOC_CONS_XWIN
 
 #endif
 

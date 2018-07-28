@@ -3,5 +3,3 @@
 
 /* */
 #define HAVE_SIGFILLSET 1
-
-#define HAVE_GETHOSTBYNAME 1

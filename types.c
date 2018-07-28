@@ -143,13 +143,9 @@ static unsigned char * const ct_msg[] = {
 	TEXT_(T_LABEL),
 	TEXT_(T_CONTENT_TYPES),
 	TEXT_(T_PROGRAM__IS_REPLACED_WITH_FILE_NAME),
-#ifdef ASSOC_BLOCK
 	TEXT_(T_BLOCK_TERMINAL_WHILE_PROGRAM_RUNNING),
-#endif
-#ifdef ASSOC_CONS_XWIN
 	TEXT_(T_RUN_ON_TERMINAL),
 	TEXT_(T_RUN_IN_XWINDOW),
-#endif
 	TEXT_(T_ASK_BEFORE_OPENING),
 	TEXT_(T_ACCEPT_HTTP),
 	TEXT_(T_ACCEPT_FTP),
@@ -163,12 +159,8 @@ static void assoc_edit_item_fn(struct dialog_data *dlg)
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
 	int p = 3;
 	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
-#ifdef ASSOC_BLOCK
 	p++;
-#endif
-#ifdef ASSOC_CONS_XWIN
 	p += 2;
-#endif
 	max_text_width(term, ct_msg[0], &max, AL_LEFT);
 	min_text_width(term, ct_msg[0], &min, AL_LEFT);
 	max_text_width(term, ct_msg[1], &max, AL_LEFT);
@@ -309,19 +301,15 @@ static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	d->items[2].data = prog;
 	d->items[2].fn = check_nonempty;
 	p = 3;
-#ifdef ASSOC_BLOCK
 	d->items[p].type = D_CHECKBOX;
 	d->items[p].data = (unsigned char *)&neww->block;
 	d->items[p++].dlen = sizeof(int);
-#endif
-#ifdef ASSOC_CONS_XWIN
 	d->items[p].type = D_CHECKBOX;
 	d->items[p].data = (unsigned char *)&neww->cons;
 	d->items[p++].dlen = sizeof(int);
 	d->items[p].type = D_CHECKBOX;
 	d->items[p].data = (unsigned char *)&neww->xwin;
 	d->items[p++].dlen = sizeof(int);
-#endif
 	d->items[p].type = D_CHECKBOX;
 	d->items[p].data = (unsigned char *)&neww->ask;
 	d->items[p++].dlen = sizeof(int);

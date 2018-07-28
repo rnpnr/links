@@ -634,7 +634,7 @@ static volatile struct signal_handler signal_handlers[NUM_SIGNALS];
 pid_t signal_pid;
 int signal_pipe[2];
 
-SIGNAL_HANDLER static void got_signal(int sig)
+static void got_signal(int sig)
 {
 	void (*fn)(void *);
 	int sv_errno = errno;
@@ -903,7 +903,7 @@ void select_loop(void (*init)(void))
 #ifdef DEBUG_CALLS
 		fprintf(stderr, "select\n");
 #endif
-		if ((n = loop_select(w_max, &x_read, &x_write, NULL, tm)) < 0) {
+		if ((n = select(w_max, &x_read, &x_write, NULL, tm)) < 0) {
 #ifdef DEBUG_CALLS
 			fprintf(stderr, "select intr\n");
 #endif

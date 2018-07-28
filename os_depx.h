@@ -123,29 +123,6 @@
 #define SA_RESTART	0
 #endif
 
-#ifdef __EMX__
-#define getcwd _getcwd2
-#define chdir _chdir2
-#endif
-
-#if defined(O_SIZE) && defined(__EMX__)
-#define HAVE_OPEN_PREALLOC
-#elif (defined(HAVE_FALLOCATE) || defined(HAVE_POSIX_FALLOCATE))
-#define HAVE_OPEN_PREALLOC
-#endif
-
-#if defined(__WATCOMC__) && defined(_WCRTLINK)
-#define LIBC_CALLBACK	_WCRTLINK
-#else
-#define LIBC_CALLBACK
-#endif
-
-#if defined(__WATCOMC__) && defined(__LINUX__)
-#define SIGNAL_HANDLER	__declspec(__cdecl)
-#else
-#define SIGNAL_HANDLER
-#endif
-
 #ifndef PF_INET
 #define PF_INET AF_INET
 #endif
@@ -155,37 +132,6 @@
 
 #define my_intptr_t long
 #define my_uintptr_t unsigned long
-
-#if defined(__GNUC__)
-#if __GNUC__ >= 2
-#define PRINTF_FORMAT(a, b)	__attribute__((format(printf, a, b)))
-#endif
-#endif
-#ifndef PRINTF_FORMAT
-#define PRINTF_FORMAT(a, b)
-#endif
-
-#if defined(__clang_analyzer__)
-#define ATTR_NORETURN		__attribute__((analyzer_noreturn))
-#elif defined(__GNUC__) && defined(__GNUC_MINOR__)
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 5)
-#define ATTR_NORETURN		__attribute__((noreturn))
-#endif
-#endif
-#ifndef ATTR_NORETURN
-#define ATTR_NORETURN
-#endif
-
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-#define ATTR_NOINLINE		__attribute__((__noinline__))
-#endif
-#endif
-#ifndef ATTR_NOINLINE
-#define ATTR_NOINLINE
-#endif
-
-#define USE_GETADDRINFO
 
 #ifndef PF_INET6
 #define PF_INET6 AF_INET6
@@ -210,9 +156,3 @@ typedef const char *const_char_ptr;
 #if defined(HAVE_PTHREADS)
 #define EXEC_IN_THREADS
 #endif
-
-#if !defined(EXEC_IN_THREADS) || !defined(HAVE_GETHOSTBYNAME) || defined(USE_GETADDRINFO)
-#define THREAD_SAFE_LOOKUP
-#endif
-
-#define loop_select select
