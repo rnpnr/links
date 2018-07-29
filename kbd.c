@@ -36,7 +36,6 @@ struct itrm {
 
 static void free_trm(struct itrm *);
 static void in_kbd(void *);
-static void in_sock(void *);
 
 static struct itrm *ditrm = NULL;
 
@@ -346,13 +345,6 @@ void handle_trm(int sock_out, void *init_string, int init_len)
 	itrm->mouse_h = NULL;
 }
 
-static void unblock_itrm_x(void *h)
-{
-	close_handle(h);
-	if (!ditrm) return;
-	unblock_itrm(0);
-}
-
 int unblock_itrm(int fd)
 {
 	struct itrm *itrm = ditrm;
@@ -440,88 +432,6 @@ do {								\
 	}							\
 	xx = cc;						\
 } while (0)
-
-static void in_sock(void *itrm_)
-{
-	struct itrm *itrm = (struct itrm *)itrm_;
-	unsigned char buf[OUT_BUF_SIZE];
-
-	unsigned char *path, *delet;
-	int pl, dl;
-	unsigned char ch;
-	unsigned char fg;
-	int c, i, p;
-	int rs;
-
-	EINTRLOOP(c, (int)read(itrm->sock_in, buf, OUT_BUF_SIZE));
-	if (c <= 0) {
-		fr:
-		itrm_error(itrm);
-		goto ret;
-	}
-
-	qwerty:
-	for (i = 0; i < c; i++) if (!buf[i]) goto ex;
-	if (!is_blocked())
-		hard_write(itrm->std_out, buf, c);
-	goto ret;
-	ex:
-	if (!is_blocked())
-		hard_write(itrm->std_out, buf, i);
-	i++;
-	memmove(buf, buf + i, c - i);
-	c -= i;
-	p = 0;
-	path = init_str();
-	delet = init_str();
-	pl = dl = 0;
-	RD(fg);
-	while (1) {
-		RD(ch);
-		if (!ch) break;
-		add_chr_to_str(&path, &pl, ch);
-	}
-	while (1) {
-		RD(ch);
-		if (!ch) break;
-		add_chr_to_str(&delet, &dl, ch);
-	}
-	if (!*path) {
-		dispatch_special(delet);
-	} else {
-		int blockh;
-		unsigned char *param;
-		if (is_blocked() && fg) {
-			if (*delet)
-				EINTRLOOP(rs, unlink(cast_const_char delet));
-			goto to_je_ale_hnus;
-		}
-		param = xmalloc(strlen(cast_const_char path) + strlen(cast_const_char delet) + 3);
-		param[0] = fg;
-		strcpy(cast_char(param + 1), cast_const_char path);
-		strcpy(cast_char(param + 1 + strlen(cast_const_char path) + 1), cast_const_char delet);
-		if (fg == 1) block_itrm(0);
-		if ((blockh = start_thread(exec_thread, param, (int)strlen(cast_const_char path) + (int)strlen(cast_const_char delet) + 3, *delet != 0)) == -1) {
-			if (fg == 1) unblock_itrm(0);
-			free(param);
-			goto to_je_ale_hnus;
-		}
-		free(param);
-		if (fg == 1)
-			set_handlers(blockh, unblock_itrm_x, NULL, (void *)(my_intptr_t)blockh);
-		else
-			set_handlers(blockh, close_handle, NULL, (void *)(my_intptr_t)blockh);
-	}
-	to_je_ale_hnus:
-	free(path);
-	free(delet);
-	memmove(buf, buf + p, c - p);
-	c -= p;
-	goto qwerty;
-
-	ret:
-	return;
-}
 
 static int process_queue(struct itrm *);
 static int get_esc_code(unsigned char *, int, unsigned char *, int *, int *);
