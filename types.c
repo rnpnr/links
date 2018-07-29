@@ -894,10 +894,10 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 		for (; *ct && !end_of_dir(url, *ct); ct++)
 			if (dir_sep(*ct))
 				fname = ct + 1;
-		if (!fname)
+		if (!fname) {
 			if (is_in_list(e->ext, ext, extl))
 				return stracpy(e->ct);
-		else {
+		} else {
 			int fnlen = 0;
 			int x;
 			while (fname[fnlen] && !end_of_dir(url, fname[fnlen])) fnlen++;
