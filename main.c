@@ -205,14 +205,14 @@ static void unhandle_basic_signals(struct terminal *term)
 
 int terminal_pipe[2] = { -1, -1 };
 
-int attach_terminal(int in, int out, int ctl, void *info, int len)
+int attach_terminal(void *info, int len)
 {
 	struct terminal *term;
 	set_nonblock(terminal_pipe[0]);
 	set_nonblock(terminal_pipe[1]);
-	handle_trm(in, out, out, terminal_pipe[1], ctl, info, len);
+	handle_trm(terminal_pipe[1], info, len);
 	free(info);
-	if ((term = init_term(terminal_pipe[0], out, win_func))) {
+	if ((term = init_term(terminal_pipe[0], 1, win_func))) {
 		handle_basic_signals(term);	/* OK, this is race condition, but it must be so; GPM installs it's own buggy TSTP handler */
 		return terminal_pipe[1];
 	}
@@ -427,7 +427,7 @@ static void init(void)
 		initialize_all_subsystems_2();
 		info = create_session_info(base_session, u, default_target, &len);
 		if (!F) {
-			if (attach_terminal(0, 1, 0, info, len) < 0)
+			if (attach_terminal(info, len) < 0)
 				fatal_exit("Could not open initial session");
 		}
 #ifdef G

@@ -280,14 +280,14 @@ static void setcooked(int ctl)
 	ttcsetattr(ctl, TCSANOW, &saved_termios);
 }
 
-void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, void *init_string, int init_len)
+void handle_trm(int sock_out, void *init_string, int init_len)
 {
 	int x, y;
 	struct itrm *itrm;
 	struct links_event ev = { EV_INIT, 80, 24, 0 };
 	unsigned char *ts;
 	int xwin, def_charset;
-	if (get_terminal_size(ctl_in, &x, &y)) {
+	if (get_terminal_size(0, &x, &y)) {
 		error("ERROR: could not get terminal size");
 		return;
 	}
@@ -295,22 +295,21 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 	itrm->queue_event = queue_event;
 	itrm->free_trm = free_trm;
 	ditrm = itrm;
-	itrm->std_in = std_in;
-	itrm->std_out = std_out;
-	itrm->sock_in = sock_in;
+	itrm->std_in = 0;
+	itrm->std_out = 1;
+	itrm->sock_in = 1;
 	itrm->sock_out = sock_out;
-	itrm->ctl_in = ctl_in;
+	itrm->ctl_in = 0;
 	itrm->blocked = 0;
 	itrm->qlen = 0;
 	itrm->tm = NULL;
 	itrm->ev_queue = NULL;
 	itrm->eqlen = 0;
 	setraw(itrm->ctl_in, 1);
-	set_handlers(std_in, in_kbd, NULL, itrm);
-	if (sock_in != std_out) set_handlers(sock_in, in_sock, NULL, itrm);
+	set_handlers(0, in_kbd, NULL, itrm);
 	ev.x = x;
 	ev.y = y;
-	handle_terminal_resize(ctl_in, resize_terminal);
+	handle_terminal_resize(0, resize_terminal);
 	queue_event(itrm, (unsigned char *)&ev, sizeof(struct links_event));
 	xwin = is_xterm() * ENV_XWIN + is_twterm() * ENV_TWIN + is_screen() * ENV_SCREEN;
 	itrm->flags = 0;
@@ -343,7 +342,7 @@ void handle_trm(int std_in, int std_out, int sock_in, int sock_out, int ctl_in, 
 	queue_event(itrm, (unsigned char *)init_string, init_len);
 	itrm->orig_title = get_window_title();
 	set_window_title(cast_uchar "Links");
-	send_init_sequence(std_out, itrm->flags);
+	send_init_sequence(1, itrm->flags);
 	itrm->mouse_h = NULL;
 }
 

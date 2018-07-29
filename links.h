@@ -1011,7 +1011,7 @@ void mailto_func(struct session *, unsigned char *);
 #define KBD_ALT		4
 #define KBD_PASTE	8
 
-void handle_trm(int, int, int, int, int, void *, int);
+void handle_trm(int, void *, int);
 void free_all_itrms(void);
 void dispatch_special(unsigned char *);
 void kbd_ctrl_c(void);
@@ -1688,7 +1688,7 @@ void sig_tstp(void *t);
 void sig_cont(void *t);
 
 void unhandle_terminal_signals(struct terminal *term);
-int attach_terminal(int, int, int, void *, int);
+int attach_terminal(void *, int);
 #ifdef G
 int attach_g_terminal(unsigned char *, void *, int);
 void gfx_connection(int);
