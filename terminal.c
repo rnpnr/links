@@ -313,7 +313,10 @@ void exclude_rect_from_set(struct rect_set **s, struct rect *r)
 int restrict_clip_area(struct graphics_device *dev, struct rect *r, int x1, int y1, int x2, int y2)
 {
 	struct rect v, rr;
-	rr.x1 = x1, rr.x2 = x2, rr.y1 = y1, rr.y2 = y2;
+	rr.x1 = x1;
+	rr.x2 = x2;
+	rr.y1 = y1;
+	rr.y2 = y2;
 	if (r) memcpy(r, &dev->clip, sizeof(struct rect));
 	intersect_rect(&v, &dev->clip, &rr);
 	drv->set_clip_area(dev, &v);
@@ -400,7 +403,10 @@ void set_window_pos(struct window *win, int x1, int y1, int x2, int y2)
 {
 	struct terminal *term = win->term;
 	struct rect r;
-	r.x1 = x1, r.y1 = y1, r.x2 = x2, r.y2 = y2;
+	r.x1 = x1;
+	r.y1 = y1;
+	r.x2 = x2;
+	r.y2 = y2;
 	if (is_rect_valid(&win->pos) && (x1 > win->pos.x1 || x2 < win->pos.x2 || y1 > win->pos.y1 || y2 < win->pos.y2) && term->redrawing < 2) {
 		struct window *w;
 		struct list_head *lw;
@@ -578,7 +584,10 @@ struct term_spec *new_term_spec(unsigned char *term)
 	t = xmalloc(sizeof(struct term_spec));
 	memcpy(t, default_term_spec(term), sizeof(struct term_spec));
 	if (strlen(cast_const_char term) < MAX_TERM_LEN) strcpy(cast_char t->term, cast_const_char term);
-	else memcpy(t->term, term, MAX_TERM_LEN - 1), t->term[MAX_TERM_LEN - 1] = 0;
+	else {
+		memcpy(t->term, term, MAX_TERM_LEN - 1);
+		t->term[MAX_TERM_LEN - 1] = 0;
+	}
 	add_to_list(term_specs, t);
 	sync_term_specs();
 	return t;
@@ -629,8 +638,12 @@ static int process_utf_8(struct terminal *term, struct links_event *ev)
 				term->utf8_paste_mode = ev->y & KBD_PASTE;
 				term->utf8_buffer[0] = 0;
 			}
-			if ((l = strlen(cast_const_char term->utf8_buffer)) >= sizeof(term->utf8_buffer) - 1 || ev->x < 0x80 || ev->x >= 0xc0)
-				term->utf8_buffer[0] = 0, l = 0;
+			if ((l = strlen(cast_const_char term->utf8_buffer))
+				>= sizeof(term->utf8_buffer) - 1
+			|| ev->x < 0x80 || ev->x >= 0xc0) {
+				term->utf8_buffer[0] = 0;
+				l = 0;
+			}
 			term->utf8_buffer[l] = (unsigned char)ev->x;
 			term->utf8_buffer[l + 1] = 0;
 			p = term->utf8_buffer;
@@ -733,7 +746,8 @@ void t_kbd(struct graphics_device *dev, int key, int flags)
 	struct terminal *term = dev->user_data;
 	struct links_event ev = { EV_KBD, 0, 0, 0 };
 	struct rect r = { 0, 0, 0, 0 };
-	r.x2 = dev->size.x2, r.y2 = dev->size.y2;
+	r.x2 = dev->size.x2;
+	r.y2 = dev->size.y2;
 	ev.x = key;
 	ev.y = flags;
 	if (upcase(key) == 'L' && flags == KBD_CTRL) {
@@ -774,8 +788,11 @@ void t_mouse(struct graphics_device *dev, int x, int y, int b)
 	} else {
 		term->last_mouse_x = term->last_mouse_y = term->last_mouse_b = MAXINT;
 	}
-	r.x2 = dev->size.x2, r.y2 = dev->size.y2;
-	ev.x = x, ev.y = y, ev.b = b;
+	r.x2 = dev->size.x2;
+	r.y2 = dev->size.y2;
+	ev.x = x;
+	ev.y = y;
+	ev.b = b;
 	drv->set_clip_area(dev, &r);
 	if (list_empty(term->windows)) return;
 	next = list_struct(term->windows.next, struct window);
@@ -1205,10 +1222,16 @@ void fill_area(struct terminal *t, int x, int y, int xw, int yw, unsigned ch, un
 {
 	int i;
 	chr *p, *ps;
-	if (x < 0) xw += x, x = 0;
+	if (x < 0) {
+		xw += x;
+		x = 0;
+	}
 	if (x + xw > t->x) xw = t->x - x;
 	if (xw <= 0) return;
-	if (y < 0) yw += y, y = 0;
+	if (y < 0) {
+		yw += y;
+		y = 0;
+	}
 	if (y + yw > t->y) yw = t->y - y;
 	if (yw <= 0) return;
 	t->dirty = 1;
@@ -1254,7 +1277,10 @@ void print_text(struct terminal *t, int x, int y, int l, unsigned char *text, un
 void set_cursor(struct terminal *term, int x, int y, int altx, int alty)
 {
 	term->dirty = 1;
-	if (term->spec->block_cursor && !term->spec->braille) x = altx, y = alty;
+	if (term->spec->block_cursor && !term->spec->braille) {
+		x = altx;
+		y = alty;
+	}
 	if (x >= term->x) x = term->x - 1;
 	if (y >= term->y) y = term->y - 1;
 	if (x < 0) x = 0;

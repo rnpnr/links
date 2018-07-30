@@ -197,7 +197,10 @@ int c_pipe(int *fd)
 {
 	int r;
 	EINTRLOOP(r, pipe(fd));
-	if (!r) new_fd_bin(fd[0]), new_fd_bin(fd[1]);
+	if (!r) {
+		new_fd_bin(fd[0]);
+		new_fd_bin(fd[1]);
+	}
 	return r;
 }
 

@@ -153,7 +153,11 @@ void sort_links(struct f_data *f)
 			if (link->pos[j].y < p) p = link->pos[j].y;
 			if (link->pos[j].y > q) q = link->pos[j].y;
 		}
-		if (p > q) j = p, p = q, q = j;
+		if (p > q) {
+			j = p;
+			p = q;
+			q = j;
+		}
 		for (j = p; j <= q; j++) {
 			if (j >= f->y) {
 				internal("link out of screen");
@@ -373,7 +377,10 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 					if (!f || (link->type == L_CHECKBOX && i == 1) || (link->type == L_BUTTON && i == 2) || ((link->type == L_FIELD || link->type == L_AREA) && i == q)) {
 						int xx = x, yy = y;
 						if (link->type != L_FIELD && link->type != L_AREA) {
-							if ((unsigned)(co->at & 0x38) != (link->sel_color & 0x38)) xx = xp + xw - 1, yy = yp + yw - 1;
+							if ((unsigned)(co->at & 0x38) != (link->sel_color & 0x38)) {
+								xx = xp + xw - 1;
+								yy = yp + yw - 1;
+							}
 						}
 						set_cursor(t, x, y, xx, yy);
 						set_window_ptr(scr->ses->win, x, y);
@@ -453,7 +460,8 @@ static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int 
 	int found = 0;
 	int l;
 	int s1, s2;
-	*min = MAXINT, *max = 0;
+	*min = MAXINT;
+	*max = 0;
 
 	if (!utf8) {
 		l = (int)strlen(cast_const_char txt);
@@ -767,7 +775,10 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 			lnx = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
 			ln = lnx;
 			sl = fs->vypos;
-			while (ln->st && sl) sl--, ln++;
+			while (ln->st && sl) {
+				sl--;
+				ln++;
+			}
 			for (; ln->st && y < l->pos[0].y + yp - vy + form->rows; ln++, y++) {
 				s = textptr_add(ln->st, fs->vpos, f->f_data->opt.cp);
 				for (i = 0; i < form->cols; i++) {
@@ -851,7 +862,8 @@ static void y_draw_form_entry(struct terminal *t, void *x_)
 static void x_draw_form_entry(struct session *ses, struct f_data_c *f, struct link *l)
 {
 	struct xdfe x;
-	x.f = f, x.l = l;
+	x.f = f;
+	x.l = l;
 	draw_to_window(ses->win, y_draw_form_entry, &x);
 }
 
@@ -1029,7 +1041,10 @@ void draw_doc(struct terminal *t, void *scr_)
 		if (!scr->f_data->y) return;
 		while (vs->view_pos >= scr->f_data->y) vs->view_pos -= yw ? yw : 1;
 		if (vs->view_pos < 0) vs->view_pos = 0;
-		if (vy != vs->view_pos) vy = vs->view_pos, check_vs(scr);
+		if (vy != vs->view_pos) {
+			vy = vs->view_pos;
+			check_vs(scr);
+		}
 		for (y = vy <= 0 ? 0 : vy; y < (-vy + scr->f_data->y <= yw ? scr->f_data->y : yw + vy); y++) {
 			int st = vx <= 0 ? 0 : vx;
 			int en = -vx + scr->f_data->data[y].l <= xw ? scr->f_data->data[y].l : xw + vx;
@@ -1159,8 +1174,16 @@ int dump_to_file(struct f_data *fd, int h)
 				else if (fc->type == FC_FILE) add_to_str(&s, &l, cast_uchar "File upload");
 				else if (fc->type == FC_PASSWORD) add_to_str(&s, &l, cast_uchar "Password field");
 				else goto unknown;
-				if (fc->name && fc->name[0]) add_to_str(&s, &l, cast_uchar ", Name "), add_to_str(&s, &l, fc->name);
-				if ((fc->type == FC_CHECKBOX || fc->type == FC_RADIO) && fc->default_value && fc->default_value[0]) add_to_str(&s, &l, cast_uchar ", Value "), add_to_str(&s, &l, fc->default_value);
+				if (fc->name && fc->name[0]) {
+					add_to_str(&s, &l, cast_uchar ", Name ");
+					add_to_str(&s, &l, fc->name);
+				}
+				if ((fc->type == FC_CHECKBOX || fc->type == FC_RADIO)
+				&& fc->default_value
+				&& fc->default_value[0]) {
+					add_to_str(&s, &l, cast_uchar ", Value ");
+					add_to_str(&s, &l, fc->default_value);
+				}
 			}
 			unknown:
 			add_to_str(&s, &l, cast_uchar "\n");
@@ -1506,7 +1529,10 @@ static void cursor_word(struct session *ses, struct f_data_c *f, int a)
 				return;
 			}
 			x++;
-			if (x >= f->f_data->x) x = 0, y++;
+			if (x >= f->f_data->x) {
+				x = 0;
+				y++;
+			}
 			p = q;
 		}
 	}
@@ -1520,9 +1546,13 @@ static void cursor_word_back(struct session *ses, struct f_data_c *f, int a)
 		int x = f->vs->brl_x, y = f->vs->brl_y;
 		int px, py;
 		while (1) {
-			px = x, py = y;
+			px = x;
+			py = y;
 			x--;
-			if (x < 0) x = f->f_data->x - 1, y--;
+			if (x < 0) {
+				x = f->f_data->x - 1;
+				y--;
+			}
 			if (x < 0) x = 0;
 			q = get_at_pos(f->f_data, x, y);
 			if (q == -1) return;
@@ -1572,7 +1602,8 @@ static void br_next_link(struct session *ses, struct f_data_c *f, int a)
 		for (y = vs->brl_y; y < f_data->y; y++) if (f_data->lines1[y]) goto o;
 		return;
 		o:
-		cl = NULL, ol = NULL;
+		cl = NULL;
+		ol = NULL;
 		for (l = f_data->lines1[y]; l && l < f_data->links + f_data->nlinks && (!cl || l <= cl); l++) {
 			if (!l->n) continue;
 			if (a && !l->form) continue;
@@ -1609,7 +1640,8 @@ static void br_prev_link(struct session *ses, struct f_data_c *f, int a)
 		for (y = vs->brl_y; y >= 0; y--) if (f_data->lines2[y]) goto o;
 		return;
 		o:
-		cl = NULL, ol = NULL;
+		cl = NULL;
+		ol = NULL;
 		for (l = f_data->lines2[y]; l && l >= f_data->links && (!cl || l >= cl); l--) {
 			if (!l->n) goto cont;
 			if (l->pos[0].y < vs->brl_y || (l->pos[0].y == vs->brl_y && l->pos[0].x < vs->brl_x)) if (vs->current_link == -1 || l != f_data->links + vs->current_link) {
@@ -2365,14 +2397,22 @@ static int textarea_adjust_viewport(struct f_data_c *fd, struct link *l)
 	struct form_control *fc = l->form;
 	struct view_state *vs = fd->vs;
 	int r = 0;
-	if (l->pos[0].x + fc->cols > fd->xw + vs->view_posx)
-		vs->view_posx = l->pos[0].x + fc->cols - fd->xw, r = 1;
-	if (l->pos[0].x < vs->view_posx)
-		vs->view_posx = l->pos[0].x, r = 1;
-	if (l->pos[0].y + fc->rows > fd->yw + vs->view_pos)
-		vs->view_pos = l->pos[0].y + fc->rows - fd->yw, r = 1;
-	if (l->pos[0].y < vs->view_pos)
-		vs->view_pos = l->pos[0].y, r = 1;
+	if (l->pos[0].x + fc->cols > fd->xw + vs->view_posx) {
+		vs->view_posx = l->pos[0].x + fc->cols - fd->xw;
+		r = 1;
+	}
+	if (l->pos[0].x < vs->view_posx) {
+		vs->view_posx = l->pos[0].x;
+		r = 1;
+	}
+	if (l->pos[0].y + fc->rows > fd->yw + vs->view_pos) {
+		vs->view_pos = l->pos[0].y + fc->rows - fd->yw;
+		r = 1;
+	}
+	if (l->pos[0].y < vs->view_pos) {
+		vs->view_pos = l->pos[0].y;
+		r = 1;
+	}
 	vs->orig_view_pos = vs->view_pos;
 	vs->orig_view_posx = vs->view_posx;
 	return r;
@@ -2493,7 +2533,10 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				goto b;
 				xx:
 				if (rep) goto rep1;
-			} else x = 0, f->vs->brl_in_field = 0;
+			} else {
+				x = 0;
+				f->vs->brl_in_field = 0;
+			}
 		} else if (ev->x == KBD_DOWN && (!ses->term->spec->braille || f->vs->brl_in_field)) {
 			if (form->type == FC_TEXTAREA) {
 				struct line_info *ln;
@@ -2514,7 +2557,10 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				yy:
 				if (rep) goto rep2;
 
-			} else x = 0, f->vs->brl_in_field = 0;
+			} else {
+				x = 0;
+				f->vs->brl_in_field = 0;
+			}
 		} else if ((ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) /*&& (!ses->term->spec->braille || f->vs->brl_in_field)*/) {
 			if (form->type == FC_TEXTAREA) {
 				struct line_info *ln;
@@ -2685,7 +2731,10 @@ static int point_intersect(struct point *p1, int l1, struct point *p2, int l2)
 	int i, j;
 	static unsigned char hash[HASH_SIZE];
 	static unsigned char init = 0;
-	if (!init) memset(hash, 0, HASH_SIZE), init = 1;
+	if (!init) {
+		memset(hash, 0, HASH_SIZE);
+		init = 1;
+	}
 	for (i = 0; i < l1; i++) hash[HASH(p1[i])] = 1;
 	for (j = 0; j < l2; j++) if (hash[HASH(p2[j])]) {
 		for (i = 0; i < l1; i++) if (p1[i].x == p2[j].x && p1[i].y == p2[j].y) {
@@ -2863,7 +2912,12 @@ static int find_pos_in_link(struct f_data_c *fd, struct link *l, struct links_ev
 	for (a = 0; a < l->n; a++) {
 		if (l->pos[a].x < minx) minx = l->pos[a].x;
 		if (l->pos[a].y < miny) miny = l->pos[a].y;
-		if (l->pos[a].x - fd->vs->view_posx == ev->x && l->pos[a].y - fd->vs->view_pos == ev->y) (*xx = l->pos[a].x), (*yy = l->pos[a].y), found = 1;
+		if (l->pos[a].x - fd->vs->view_posx == ev->x
+		&& l->pos[a].y - fd->vs->view_pos == ev->y) {
+			(*xx = l->pos[a].x);
+			(*yy = l->pos[a].y);
+			found = 1;
+		}
 	}
 	if (!found) return 1;
 	*xx -= minx;
@@ -2941,8 +2995,12 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 			unsigned char d[2];
 			d[0] = (unsigned char)ev->x;
 			d[1] = 0;
-			nl = f_data->nlinks, lnl = 1;
-			while (nl) nl /= 10, lnl++;
+			nl = f_data->nlinks;
+			lnl = 1;
+			while (nl) {
+				nl /= 10;
+				lnl++;
+			}
 			if (lnl > 1) input_field(ses->term, NULL, TEXT_(T_GO_TO_LINK), TEXT_(T_ENTER_LINK_NUMBER), ses, NULL, lnl, d, 1, f_data->nlinks, check_number, 2, TEXT_(T_OK), goto_link_number, TEXT_(T_CANCEL), input_field_null);
 		}
 		else x = 0;
@@ -3827,8 +3885,22 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 			free(m);
 			return NULL;
 		}
-		if (l->form->name && l->form->name[0]) add_to_str(&m, &ll, cast_uchar ", "), add_to_str(&m, &ll, get_text_translation(TEXT_(T_NAME), term)), add_to_str(&m, &ll, cast_uchar " "), add_to_str(&m, &ll, l->form->name);
-		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO) && l->form->default_value && l->form->default_value[0]) add_to_str(&m, &ll, cast_uchar ", "), add_to_str(&m, &ll, get_text_translation(TEXT_(T_VALUE), term)), add_to_str(&m, &ll, cast_uchar " "), add_to_str(&m, &ll, l->form->default_value);
+		if (l->form->name && l->form->name[0]) {
+			add_to_str(&m, &ll, cast_uchar ", ");
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_NAME),
+				term));
+			add_to_str(&m, &ll, cast_uchar " ");
+			add_to_str(&m, &ll, l->form->name);
+		}
+		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
+		&& l->form->default_value
+		&& l->form->default_value[0]) {
+			add_to_str(&m, &ll, cast_uchar ", ");
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_VALUE),
+				term));
+			add_to_str(&m, &ll, cast_uchar " ");
+			add_to_str(&m, &ll, l->form->default_value);
+		}
 				       /* pri enteru se bude posilat vzdycky   -- Brain */
 		if (l->type == L_FIELD && !has_form_submit(fd->f_data, l->form)  && l->form->action) {
 			add_to_str(&m, &ll, cast_uchar ", ");
@@ -3965,8 +4037,22 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			free(m);
 			return NULL;
 		}
-		if (l->form->name && l->form->name[0]) add_to_str(&m, &ll, cast_uchar ", "), add_to_str(&m, &ll, get_text_translation(TEXT_(T_NAME), term)), add_to_str(&m, &ll, cast_uchar " "), add_to_str(&m, &ll, l->form->name);
-		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO) && l->form->default_value && l->form->default_value[0]) add_to_str(&m, &ll, cast_uchar ", "), add_to_str(&m, &ll, get_text_translation(TEXT_(T_VALUE), term)), add_to_str(&m, &ll, cast_uchar " "), add_to_str(&m, &ll, l->form->default_value);
+		if (l->form->name && l->form->name[0]) {
+			add_to_str(&m, &ll, cast_uchar ", ");
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_NAME),
+				term));
+			add_to_str(&m, &ll, cast_uchar " ");
+			add_to_str(&m, &ll, l->form->name);
+		}
+		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
+		&& l->form->default_value
+		&& l->form->default_value[0]) {
+			add_to_str(&m, &ll, cast_uchar ", ");
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_VALUE),
+				term));
+			add_to_str(&m, &ll, cast_uchar " ");
+			add_to_str(&m, &ll, l->form->default_value);
+		}
 				       /* pri enteru se bude posilat vzdycky   -- Brain */
 		if (l->type == L_FIELD && !has_form_submit(fd->f_data, l->form)  && l->form->action) {
 			add_to_str(&m, &ll, cast_uchar ", ");
@@ -4056,8 +4142,16 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			add_to_str(&s, &l, get_text_translation(TEXT_(T_CODEPAGE), term));
 			add_to_str(&s, &l, cast_uchar ": ");
 			add_to_str(&s, &l, get_cp_name(frame->f_data->cp));
-			if (frame->f_data->ass == 1) add_to_str(&s, &l, cast_uchar " ("), add_to_str(&s, &l, get_text_translation(TEXT_(T_ASSUMED), term)), add_to_str(&s, &l, cast_uchar ")");
-			if (frame->f_data->ass == 2) add_to_str(&s, &l, cast_uchar " ("), add_to_str(&s, &l, get_text_translation(TEXT_(T_IGNORING_SERVER_SETTING), term)), add_to_str(&s, &l, cast_uchar ")");
+			if (frame->f_data->ass == 1) {
+				add_to_str(&s, &l, cast_uchar " (");
+				add_to_str(&s, &l, get_text_translation(TEXT_(T_ASSUMED), term));
+				add_to_str(&s, &l, cast_uchar ")");
+			}
+			if (frame->f_data->ass == 2) {
+				add_to_str(&s, &l, cast_uchar " (");
+				add_to_str(&s, &l, get_text_translation(TEXT_(T_IGNORING_SERVER_SETTING), term));
+				add_to_str(&s, &l, cast_uchar ")");
+			}
 		}
 		if (ce->head && ce->head[0] != '\n' && ce->head[0] != '\r' && (a = parse_http_header(ce->head, cast_uchar "Content-Type", NULL))) {
 			add_to_str(&s, &l, cast_uchar "\n");

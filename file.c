@@ -193,7 +193,8 @@ static unsigned char *get_filename(unsigned char *url)
 	int ml;
 	for (p = url + 7; *p && *p != POST_CHAR; p++)
 		;
-	m = init_str(), ml = 0;
+	m = init_str();
+	ml = 0;
 	add_conv_str(&m, &ml, url + 7, (int)(p - url - 7), -2);
 	return m;
 }

@@ -139,20 +139,44 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 			struct style *inv;
 			int in;
 			case FC_RADIO:
-				if (link && fd->active && fd->vs->g_display_link && fd->vs->current_link == link - fd->f_data->links) inv = g_invert_style(t->style), in = 1;
-				else inv = t->style, in = 0;
+				if (link
+				&& fd->active
+				&& fd->vs->g_display_link
+				&& fd->vs->current_link == link - fd->f_data->links) {
+					inv = g_invert_style(t->style);
+					in = 1;
+				} else {
+					inv = t->style;
+					in = 0;
+				}
 				g_print_text(dev, x, y, inv, fs->state ? cast_uchar "[X]" : cast_uchar "[ ]", NULL);
 				if (in) g_free_style(inv);
 				return;
 			case FC_CHECKBOX:
-				if (link && fd->active && fd->vs->g_display_link && fd->vs->current_link == link - fd->f_data->links) inv = g_invert_style(t->style), in = 1;
-				else inv = t->style, in = 0;
+				if (link
+				&& fd->active
+				&& fd->vs->g_display_link
+				&& fd->vs->current_link == link - fd->f_data->links) {
+					inv = g_invert_style(t->style);
+					in = 1;
+				} else {
+					inv = t->style;
+					in = 0;
+				}
 				g_print_text(dev, x, y, inv, fs->state ? cast_uchar "[X]" : cast_uchar "[ ]", NULL);
 				if (in) g_free_style(inv);
 				return;
 			case FC_SELECT:
-				if (link && fd->active && fd->vs->g_display_link && fd->vs->current_link == link - fd->f_data->links) inv = g_invert_style(t->style), in = 1;
-				else inv = t->style, in = 0;
+				if (link
+				&& fd->active
+				&& fd->vs->g_display_link
+				&& fd->vs->current_link == link - fd->f_data->links) {
+					inv = g_invert_style(t->style);
+					in = 1;
+				} else {
+					inv = t->style;
+					in = 0;
+				}
 				fixup_select_state(form, fs);
 				l = 0;
 				if (fs->state < form->nvalues) g_print_text(dev, x, y, inv, form->labels[fs->state], &l);
@@ -189,10 +213,15 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 						sm = 1;
 					}
 					if (fs->vpos + i >= ll) {
-						tx[0] = '_', tx[1] = 0, i++;
+						tx[0] = '_';
+						tx[1] = 0;
+						i++;
 					} else {
 						i += prepare_input_field_char(fs->value + fs->vpos + i, tx);
-						if (form->type == FC_PASSWORD) tx[0] = '*', tx[1] = 0;
+						if (form->type == FC_PASSWORD) {
+							tx[0] = '*';
+							tx[1] = 0;
+						}
 					}
 					g_print_text(dev, x + l, y, st, tx, &l);
 					if (sm) g_free_style(st);
@@ -395,7 +424,8 @@ void g_area_draw(struct f_data_c *fd, struct g_object *a_, int xx, int yy)
 	if (fd->ses->term->dev->clip.y1 == fd->ses->term->dev->clip.y2 || fd->ses->term->dev->clip.x1 == fd->ses->term->dev->clip.x2) return;
 	l1 = g_find_line(a->lines, a->n_lines, y1);
 	l2 = g_find_line(a->lines, a->n_lines, y2);
-	root_x = xx, root_y = yy;
+	root_x = xx;
+	root_y = yy;
 	if (!l1) {
 		if (y1 > a->go.yw) return;
 		else l1 = &a->lines[0];
@@ -408,7 +438,8 @@ void g_area_draw(struct f_data_c *fd, struct g_object *a_, int xx, int yy)
 		struct g_object *o = &(*i)->go;
 		o->draw(fd, o, xx + o->x, yy + o->y);
 	}
-	root_x = rx, root_y = ry;
+	root_x = rx;
+	root_y = ry;
 }
 
 void g_area_destruct(struct g_object *a_)
@@ -746,7 +777,10 @@ static void get_parents_sub(struct g_object *p, struct g_object *c)
 		int x = 0, y = 0;
 		struct g_object *o;
 		c->y -= c->parent->yw;
-		for (o = c; o; o = o->parent) x += o->x, y += o->y;
+		for (o = c; o; o = o->parent) {
+			x += o->x;
+			y += o->y;
+		}
 		html_tag(ffff, tg->name, x, y);
 	}
 	if (c->mouse_event == g_text_mouse) {
@@ -756,7 +790,10 @@ static void get_parents_sub(struct g_object *p, struct g_object *c)
 			struct link *link = &ffff->links[l];
 			int x = 0, y = 0;
 			struct g_object *o;
-			for (o = c; o; o = o->parent) x += o->x, y += o->y;
+			for (o = c; o; o = o->parent) {
+				x += o->x;
+				y += o->y;
+			}
 			if (x < link->r.x1) link->r.x1 = x;
 			if (y < link->r.y1) link->r.y1 = y;
 			if (x + c->xw > link->r.x2) link->r.x2 = x + c->xw;
@@ -981,7 +1018,11 @@ int g_next_link(struct f_data_c *fd, int dir)
 	if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
 		orig_link = fd->vs->current_link;
 		n = (pn = fd->vs->current_link) + dir;
-	} else retry: n = dir > 0 ? 0 : fd->f_data->nlinks - 1, pn = -1;
+	} else {
+retry:
+		n = dir > 0 ? 0 : fd->f_data->nlinks - 1;
+		pn = -1;
+	}
 	again:
 	if (n < 0 || n >= fd->f_data->nlinks) {
 		if (r == 1) {

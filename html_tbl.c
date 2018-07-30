@@ -474,7 +474,10 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	}
 	if (t_namelen == 8 && !casecmp(t_name, cast_uchar "COLGROUP", 8)) {
 		if (c_span) new_columns(t, c_span, c_width, c_al, c_val, 1);
-		if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
+		if (lbhp) {
+			(*bad_html)[*bhp-1].e = html;
+			lbhp = NULL;
+		}
 		c_al = AL_TR;
 		c_val = VAL_TR;
 		c_width = W_AUTO;
@@ -486,7 +489,10 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	}
 	if (t_namelen == 9 && !casecmp(t_name, cast_uchar "/COLGROUP", 9)) {
 		if (c_span) new_columns(t, c_span, c_width, c_al, c_val, 1);
-		if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
+		if (lbhp) {
+			(*bad_html)[*bhp-1].e = html;
+			lbhp = NULL;
+		}
 		c_span = 0;
 		c_al = AL_TR;
 		c_val = VAL_TR;
@@ -495,7 +501,10 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	}
 	if (t_namelen == 3 && !casecmp(t_name, cast_uchar "COL", 3)) {
 		int sp, wi, al, val;
-		if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
+		if (lbhp) {
+			(*bad_html)[*bhp-1].e = html;
+			lbhp = NULL;
+		}
 		if ((sp = get_num(t_attr, cast_uchar "span")) == -1) sp = 1;
 		wi = c_width;
 		al = c_al;
@@ -509,13 +518,25 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	}
 	if (t_namelen == 3 && (!casecmp(t_name, cast_uchar "/TR", 3) || !casecmp(t_name, cast_uchar "/TD", 3) || !casecmp(t_name, cast_uchar "/TH", 3))) {
 		if (c_span) new_columns(t, c_span, c_width, c_al, c_val, 1);
-		if (p) CELL(t, x, y)->end = html, p = 0;
-		if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
+		if (p) {
+			CELL(t, x, y)->end = html;
+			p = 0;
+		}
+		if (lbhp) {
+			(*bad_html)[*bhp-1].e = html;
+			lbhp = NULL;
+		}
 	}
 	if (t_namelen == 2 && !casecmp(t_name, cast_uchar "TR", 2)) {
 		if (c_span) new_columns(t, c_span, c_width, c_al, c_val, 1);
-		if (p) CELL(t, x, y)->end = html, p = 0;
-		if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
+		if (p) {
+			CELL(t, x, y)->end = html;
+			p = 0;
+		}
+		if (lbhp) {
+			(*bad_html)[*bhp-1].e = html;
+			lbhp = NULL;
+		}
 		if (group) group--;
 		l_al = default_line_align();
 		l_val = VAL_MIDDLE;
@@ -523,19 +544,32 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 		get_align(t_attr, &l_al);
 		get_valign(t_attr, &l_val);
 		get_bgcolor(t_attr, &l_col);
-		y++, x = 0;
+		y++;
+		x = 0;
 		goto see;
 	}
 	if (t_namelen == 5 && ((!casecmp(t_name, cast_uchar "THEAD", 5)) || (!casecmp(t_name, cast_uchar "TBODY", 5)) || (!casecmp(t_name, cast_uchar "TFOOT", 5)))) {
 		if (c_span) new_columns(t, c_span, c_width, c_al, c_val, 1);
-		if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
+		if (lbhp) {
+			(*bad_html)[*bhp-1].e = html;
+			lbhp = NULL;
+		}
 		group = 2;
 	}
 	if (t_namelen != 2 || (casecmp(t_name, cast_uchar "TD", 2) && casecmp(t_name, cast_uchar "TH", 2))) goto see;
 	if (c_span) new_columns(t, c_span, c_width, c_al, c_val, 1);
-	if (lbhp) (*bad_html)[*bhp-1].e = html, lbhp = NULL;
-	if (p) CELL(t, x, y)->end = html, p = 0;
-	if (y == -1) y = 0, x = 0;
+	if (lbhp) {
+		(*bad_html)[*bhp-1].e = html;
+		lbhp = NULL;
+	}
+	if (p) {
+		CELL(t, x, y)->end = html;
+		p = 0;
+	}
+	if (y == -1) {
+		y = 0;
+		x = 0;
+	}
 	nc:
 	if (!(cell = new_cell(t, x, y))) goto see;
 	if (cell->used) {
@@ -714,7 +748,10 @@ static void dst_width(int *p, int n, int w, int *lim)
 	w = 0;
 	for (i = 0; i < n; i++) {
 		p[i] = safe_add(p[i], d + (i < r));
-		if (lim && p[i] > lim[i]) w = safe_add(w, p[i] - lim[i]), p[i] = lim[i];
+		if (lim && p[i] > lim[i]) {
+			w = safe_add(w, p[i] - lim[i]);
+			p[i] = lim[i];
+		}
 	}
 	if (w) {
 		/*if (!lim) internal("bug in dst_width");*/
@@ -760,8 +797,13 @@ static int g_get_vline_pad(struct table *t, int col, int *plpos, int *plsize)
 	if (!col || col == t->x) {
 		border = (!col && t->frame & F_LHS) || (col == t->x && t->frame & F_RHS) ? t->border : 0;
 		pad = safe_add(safe_add(border, t->cellsp), t->cellpd);
-		if (!col) lpos = 0, lsize = border + t->cellsp;
-		else lpos = pad - border - t->cellsp, lsize = border + t->cellsp;
+		if (!col) {
+			lpos = 0;
+			lsize = border + t->cellsp;
+		} else {
+			lpos = pad - border - t->cellsp;
+			lsize = border + t->cellsp;
+		}
 	} else {
 		border = t->rules == R_COLS || t->rules == R_ALL || (t->rules == R_GROUPS && col < t->c && t->cols[col].group) ? t->border : 0;
 		pad = safe_add(safe_add(t->cellpd, t->cellpd), t->cellsp);
@@ -786,8 +828,13 @@ static int g_get_hline_pad(struct table *t, int row, int *plpos, int *plsize)
 	if (!row || row == t->y) {
 		border = (!row && t->frame & F_ABOVE) || (row == t->y && t->frame & F_BELOW) ? t->border : 0;
 		pad = safe_add(safe_add(border, t->cellsp), t->cellpd);
-		if (!row) lpos = 0, lsize = border + t->cellsp;
-		else lpos = pad - border - t->cellsp, lsize = border + t->cellsp;
+		if (!row) {
+			lpos = 0;
+			lsize = border + t->cellsp;
+		} else {
+			lpos = pad - border - t->cellsp;
+			lsize = border + t->cellsp;
+		}
 	} else {
 		border = t->rules == R_ROWS || t->rules == R_ALL ? t->border : 0;
 		if (t->rules == R_GROUPS) {
@@ -872,20 +919,24 @@ static void get_table_width(struct table *t)
 			vl = g_get_vline_pad(t, i, NULL, NULL);
 		} else vl = 0;
 #endif
-		min = safe_add(min, vl), max = safe_add(max, vl);
+		min = safe_add(min, vl);
+		max = safe_add(max, vl);
 		min = safe_add(min, t->min_c[i]);
 		if (t->xcols[i] > t->max_c[i]) max = safe_add(max, t->xcols[i]);
 		max = safe_add(max, t->max_c[i]);
 	}
 	if (!F) {
 		vl = (!!(t->frame & F_LHS) + !!(t->frame & F_RHS)) * !!t->border;
-		min = safe_add(min, vl), max = safe_add(max, vl);
+		min = safe_add(min, vl);
+		max = safe_add(max, vl);
 #ifdef G
 	} else {
 		vl = g_get_vline_pad(t, 0, NULL, NULL);
-		min = safe_add(min, vl), max = safe_add(max, vl);
+		min = safe_add(min, vl);
+		max = safe_add(max, vl);
 		vl = g_get_vline_pad(t, t->x, NULL, NULL);
-		min = safe_add(min, vl), max = safe_add(max, vl);
+		min = safe_add(min, vl);
+		max = safe_add(max, vl);
 #endif
 	}
 	t->min_t = min;
@@ -925,7 +976,9 @@ static void distribute_widths(struct table *t, int width)
 			switch (om) {
 				case 0:
 					if (t->w_c[i] < t->xcols[i]) {
-						w[i] = 1, mx[i] = (t->xcols[i] > t->max_c[i] ? t->max_c[i] : t->xcols[i]) - t->w_c[i];
+						w[i] = 1;
+						mx[i] = (t->xcols[i] > t->max_c[i] ? t->max_c[i]
+										: t->xcols[i]) - t->w_c[i];
 						if (mx[i] <= 0) w[i] = 0;
 					}
 					break;
@@ -940,21 +993,27 @@ static void distribute_widths(struct table *t, int width)
 				case 3:
 					if (t->w_c[i] < t->max_c[i] && (om == 3 || t->xcols[i] == W_AUTO)) {
 						mx[i] = t->max_c[i] - t->w_c[i];
-						if (mmax_c) w[i] = safe_add(gf_val(5, 5 * HTML_CHAR_WIDTH), t->max_c[i] * 10 / mmax_c);
+						if (mmax_c)
+							w[i] = safe_add(gf_val(5, 5 * HTML_CHAR_WIDTH), t->max_c[i] * 10 / mmax_c);
 						else w[i] = 1;
 					}
 					break;
 				case 4:
 					if (t->xcols[i] >= 0) {
-						w[i] = 1, mx[i] = t->xcols[i] - t->w_c[i];
+						w[i] = 1;
+						mx[i] = t->xcols[i] - t->w_c[i];
 						if (mx[i] <= 0) w[i] = 0;
 					}
 					break;
 				case 5:
-					if (t->xcols[i] < 0) w[i] = t->xcols[i] <= -2 ? -2 - t->xcols[i] : 1, mx[i] = MAXINT;
+					if (t->xcols[i] < 0) {
+						w[i] = t->xcols[i] <= -2 ? -2 - t->xcols[i] : 1;
+						mx[i] = MAXINT;
+					}
 					break;
 				case 6:
-					w[i] = 1, mx[i] = MAXINT;
+					w[i] = 1;
+					mx[i] = MAXINT;
 					break;
 				default:
 					/*internal("could not expand table");*/
@@ -976,14 +1035,20 @@ static void distribute_widths(struct table *t, int width)
 			if (u && u[i]) continue;
 			if (!(ss = dd * w[i] / p)) ss = 1;
 			if (ss > mx[i]) ss = mx[i];
-			if (ss > mss) mss = ss, mii = i;
+			if (ss > mss) {
+				mss = ss;
+				mii = i;
+			}
 		}
 		if (mii != -1) {
 			int q = t->w_c[mii];
 			if (u) u[mii] = 1;
 			t->w_c[mii] = safe_add(t->w_c[mii], mss);
 			d -= t->w_c[mii] - q;
-			while (d < 0) t->w_c[mii]--, d++;
+			while (d < 0) {
+				t->w_c[mii]--;
+				d++;
+			}
 			if (t->w_c[mii] < q) {
 				/*internal("shrinking cell");*/
 				t->w_c[mii] = q;
@@ -1054,7 +1119,8 @@ static void check_table_widths(struct table *t)
 
 	s = 0; ns = 0;
 	for (i = 0; i < t->x; i++) {
-		s = safe_add(s, t->w_c[i]), ns = safe_add(ns, w[i]);
+		s = safe_add(s, t->w_c[i]);
+		ns = safe_add(ns, w[i]);
 		/*if (w[i] > t->w_c[i]) {
 			int k;
 			for (k = 0; k < t->x; k++) debug("%d, %d", t->w_c[k], w[k]);
@@ -1069,7 +1135,10 @@ static void check_table_widths(struct table *t)
 	m = -1;
 	for (i = 0; i < t->x; i++) {
 		/*if (table_level == 1) debug("%d: %d %d %d %d", i, t->max_c[i], t->min_c[i], t->w_c[i], w[i]);*/
-		if (t->max_c[i] > m) m = t->max_c[i], mi = i;
+		if (t->max_c[i] > m) {
+			m = t->max_c[i];
+			mi = i;
+		}
 	}
 	/*if (table_level == 1) debug("%d %d", mi, s - ns);*/
 	if (m != -1) {
@@ -1771,7 +1840,8 @@ static void process_g_table(struct g_part *gp, struct table *t)
 						yw = safe_add(yw, er);
 					}
 				}
-				c->root->go.x = x, c->root->go.y = y;
+				c->root->go.x = x;
+				c->root->go.y = y;
 				c->root->go.y = safe_add(c->root->go.y, c->valign != VAL_MIDDLE && c->valign != VAL_BOTTOM ? 0 : (yw - c->root->go.yw) / (c->valign == VAL_MIDDLE ? 2 : 1));
 			}
 			x = safe_add(x, t->w_c[i]);
@@ -1822,13 +1892,17 @@ static void process_g_table(struct g_part *gp, struct table *t)
 				/*debug("C: %d %d %d %d", c->xpos, c->ypos, c->xw, c->yw);*/
 				/*debug("%d %d %d", y, ypos, c->ypos);*/
 				if (!c->used && !c->spanned) {
-					r.x1 = c->xpos, r.x2 = c->xpos + c->xw;
-					r.y1 = c->ypos, r.y2 = c->ypos + c->yw;
+					r.x1 = c->xpos;
+					r.x2 = c->xpos + c->xw;
+					r.y1 = c->ypos;
+					r.y2 = c->ypos + c->yw;
 					add_to_rect_sets(&t->r_bg, &t->nr_bg, &r);
 				}
 			}
-			r.x1 = x + xpos, r.x2 = x + xpos + xsize;
-			r.y1 = y + ypos, r.y2 = y + ypos + ysize;
+			r.x1 = x + xpos;
+			r.x2 = x + xpos + xsize;
+			r.y1 = y + ypos;
+			r.y2 = y + ypos + ysize;
 			if (H_LINE(i-1,j) || H_LINE(i,j) || V_LINE(i,j-1) || V_LINE(i,j))
 				add_to_rect_sets(&t->r_frame, &t->nr_frame, &r);
 			else if (H_LINE_X(i-1,j) != -2 || H_LINE_X(i,j) != -2 || V_LINE_X(i,j-1) != -2 || V_LINE_X(i,j) != -2) add_to_rect_sets(&t->r_bg, &t->nr_bg, &r);
@@ -1844,7 +1918,8 @@ static void process_g_table(struct g_part *gp, struct table *t)
 				else if (l > 0) add_to_rect_sets(&t->r_frame, &t->nr_frame, &r);
 				else add_to_rect_sets(&t->r_bg, &t->nr_bg, &r);
 			}
-			r.x1 = x + xpos, r.x2 = x + xpos + xsize;
+			r.x1 = x + xpos;
+			r.x2 = x + xpos + xsize;
 			if (j < t->y) {
 				int l;
 				int b;

@@ -857,7 +857,8 @@ static void decimate_3(unsigned short **data0, int x, int y)
 				data[0]=(ahead[-3]+ahead[0]+ahead[3])/3;
 				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
 				data[2]=(ahead[5]+ahead[8]+ahead[8])/3;
-				ahead+=9,data+=3;
+				ahead += 9;
+				data += 3;
 			}
 		}
 	}else{
@@ -881,7 +882,8 @@ static void decimate_3(unsigned short **data0, int x, int y)
 				data[0]=(ahead[3]+ahead[6]+ahead[6])/3;
 				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
 				data[2]=(ahead[-1]+ahead[2]+ahead[5])/3;
-				ahead+=9,data+=3;
+				ahead += 9;
+				data += 3;
 			}
 		}
 	}
@@ -1930,8 +1932,10 @@ int g_wrap_text(struct wrap_struct *w)
 		int u;
 		int s;
 		unsigned char *l_text = w->text;
-		if (*l_text == ' ') w->last_wrap = l_text,
-				    w->last_wrap_obj = w->obj;
+		if (*l_text == ' ') {
+			w->last_wrap = l_text;
+			w->last_wrap_obj = w->obj;
+		}
 		GET_UTF_8(w->text, u);
 		if (!u) continue;
 		s = g_get_width(w->style, u);

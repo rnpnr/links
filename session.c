@@ -150,11 +150,24 @@ static void add_xnum_to_str(unsigned char **s, int *l, off_t n)
 {
 	unsigned char suff = 0;
 	int d = -1;
-	if (n >= 1000000000) suff = 'G', d = (int)((n / 100000000) % 10), n /= 1000000000;
-	else if (n >= 1000000) suff = 'M', d = (int)((n / 100000) % 10), n /= 1000000;
-	else if (n >= 1000) suff = 'k', d = (int)((n / 100) % 10), n /= 1000;
+	if (n >= 1000000000) {
+		suff = 'G';
+		d = (int)((n / 100000000) % 10);
+		n /= 1000000000;
+	} else if (n >= 1000000) {
+		suff = 'M';
+		d = (int)((n / 100000) % 10);
+		n /= 1000000;
+	} else if (n >= 1000) {
+		suff = 'k';
+		d = (int)((n / 100) % 10);
+		n /= 1000;
+	}
 	add_num_to_str(s, l, n);
-	if (n < 10 && d != -1) add_chr_to_str(s, l, '.'), add_num_to_str(s, l, d);
+	if (n < 10 && d != -1) {
+		add_chr_to_str(s, l, '.');
+		add_num_to_str(s, l, d);
+	}
 	add_chr_to_str(s, l, ' ');
 	if (suff) add_chr_to_str(s, l, suff);
 	add_chr_to_str(s, l, 'B');
@@ -163,10 +176,20 @@ static void add_xnum_to_str(unsigned char **s, int *l, off_t n)
 static void add_time_to_str(unsigned char **s, int *l, uttime t)
 {
 	unsigned char q[64];
-	if (t >= 86400) sprintf(cast_char q, "%lud ", (unsigned long)(t / 86400)), add_to_str(s, l, q);
-	if (t >= 3600) t %= 86400, sprintf(cast_char q, "%d:%02d", (int)(t / 3600), (int)(t / 60 % 60)), add_to_str(s, l, q);
-	else sprintf(cast_char q, "%d", (int)(t / 60)), add_to_str(s, l, q);
-	sprintf(cast_char q, ":%02d", (int)(t % 60)), add_to_str(s, l, q);
+	if (t >= 86400) {
+		sprintf(cast_char q, "%lud ", (unsigned long)(t / 86400));
+		add_to_str(s, l, q);
+	}
+	if (t >= 3600) {
+		t %= 86400;
+		sprintf(cast_char q, "%d:%02d", (int)(t / 3600), (int)(t / 60 % 60));
+		add_to_str(s, l, q);
+	} else {
+		sprintf(cast_char q, "%d", (int)(t / 60));
+		add_to_str(s, l, q);
+	}
+	sprintf(cast_char q, ":%02d", (int)(t % 60));
+	add_to_str(s, l, q);
 }
 
 static unsigned char *get_stat_msg(struct status *stat, struct terminal *term)
@@ -177,17 +200,28 @@ static unsigned char *get_stat_msg(struct status *stat, struct terminal *term)
 		add_to_str(&m, &l, get_text_translation(TEXT_(T_RECEIVED), term));
 		add_to_str(&m, &l, cast_uchar " ");
 		add_xnum_to_str(&m, &l, stat->prg->pos);
-		if (stat->prg->size >= 0)
-			add_to_str(&m, &l, cast_uchar " "), add_to_str(&m, &l, get_text_translation(TEXT_(T_OF), term)), add_to_str(&m, &l, cast_uchar " "), add_xnum_to_str(&m, &l, stat->prg->size);
+		if (stat->prg->size >= 0) {
+			add_to_str(&m, &l, cast_uchar " ");
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_OF),
+				term));
+			add_to_str(&m, &l, cast_uchar " ");
+			add_xnum_to_str(&m, &l, stat->prg->size);
+		}
 		add_to_str(&m, &l, cast_uchar ", ");
-		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
-			add_to_str(&m, &l, get_text_translation(TEXT_(T_AVG), term)), add_to_str(&m, &l, cast_uchar " ");
+		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_AVG),
+				term));
+			add_to_str(&m, &l, cast_uchar " ");
+		}
 		add_xnum_to_str(&m, &l, stat->prg->loaded * 10 / (stat->prg->elapsed / 100));
 		add_to_str(&m, &l, cast_uchar "/s");
-		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
-			add_to_str(&m, &l, cast_uchar ", "), add_to_str(&m, &l, get_text_translation(TEXT_(T_CUR), term)), add_to_str(&m, &l, cast_uchar " "),
-			add_xnum_to_str(&m, &l, stat->prg->cur_loaded / (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000)),
+		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
+			add_to_str(&m, &l, cast_uchar ", ");
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_CUR), term));
+			add_to_str(&m, &l, cast_uchar " ");
+			add_xnum_to_str(&m, &l, stat->prg->cur_loaded / (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
 			add_to_str(&m, &l, cast_uchar "/s");
+		}
 		return m;
 	}
 	return stracpy(get_text_translation(get_err_msg(stat->state), term));
@@ -295,7 +329,13 @@ void print_screen_status(struct session *ses)
 		draw_to_window(ses->win, x_print_screen_title, ses);
 
 	m = stracpy(cast_uchar "Links");
-	if (ses->screen && ses->screen->f_data && ses->screen->f_data->title && ses->screen->f_data->title[0]) add_to_strn(&m, cast_uchar " - "), add_to_strn(&m, ses->screen->f_data->title);
+	if (ses->screen
+	&& ses->screen->f_data
+	&& ses->screen->f_data->title
+	&& ses->screen->f_data->title[0]) {
+		add_to_strn(&m, cast_uchar " - ");
+		add_to_strn(&m, ses->screen->f_data->title);
+	}
 	set_terminal_title(ses->term, m);
 
 	if (!F && ses->brl_cursor_mode) {
@@ -339,7 +379,11 @@ unsigned char *encode_url(unsigned char *url)
 	add_to_str(&u, &l, cast_uchar "+++");
 	for (; *url; url++) {
 		if (is_safe_in_shell(*url) && *url != '+') add_chr_to_str(&u, &l, *url);
-		else add_chr_to_str(&u, &l, '+'), add_chr_to_str(&u, &l, hx(*url >> 4)), add_chr_to_str(&u, &l, hx(*url & 0xf));
+		else {
+			add_chr_to_str(&u, &l, '+');
+			add_chr_to_str(&u, &l, hx(*url >> 4));
+			add_chr_to_str(&u, &l, hx(*url & 0xf));
+		}
 	}
 	return u;
 }
@@ -354,7 +398,10 @@ unsigned char *decode_url(unsigned char *url)
 	l = 0;
 	for (; *url; url++) {
 		if (*url != '+' || unhx(url[1]) == -1 || unhx(url[2]) == -1) add_chr_to_str(&u, &l, *url);
-		else add_chr_to_str(&u, &l, (unhx(url[1]) << 4) + unhx(url[2])), url += 2;
+		else {
+			add_chr_to_str(&u, &l, (unhx(url[1]) << 4) + unhx(url[2]));
+			url += 2;
+		}
 	}
 	return u;
 }
@@ -533,8 +580,13 @@ void download_window_function(struct dialog_data *dlg)
 		add_to_str(&m, &l, get_text_translation(TEXT_(T_RECEIVED), term));
 		add_to_str(&m, &l, cast_uchar " ");
 		add_xnum_to_str(&m, &l, stat->prg->pos);
-		if (stat->prg->size >= 0)
-			add_to_str(&m, &l, cast_uchar " "), add_to_str(&m, &l, get_text_translation(TEXT_(T_OF),term)), add_to_str(&m, &l, cast_uchar " "), add_xnum_to_str(&m, &l, stat->prg->size), add_to_str(&m, &l, cast_uchar " ");
+		if (stat->prg->size >= 0) {
+			add_to_str(&m, &l, cast_uchar " ");
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_OF),term));
+			add_to_str(&m, &l, cast_uchar " ");
+			add_xnum_to_str(&m, &l, stat->prg->size);
+			add_to_str(&m, &l, cast_uchar " ");
+		}
 		add_to_str(&m, &l, cast_uchar "\n");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
 			add_to_str(&m, &l, get_text_translation(TEXT_(T_AVERAGE_SPEED), term));
@@ -542,10 +594,13 @@ void download_window_function(struct dialog_data *dlg)
 		add_to_str(&m, &l, cast_uchar " ");
 		add_xnum_to_str(&m, &l, (longlong)stat->prg->loaded * 10 / (stat->prg->elapsed / 100));
 		add_to_str(&m, &l, cast_uchar "/s");
-		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
-			add_to_str(&m, &l, cast_uchar ", "), add_to_str(&m, &l, get_text_translation(TEXT_(T_CURRENT_SPEED), term)), add_to_str(&m, &l, cast_uchar " "),
-			add_xnum_to_str(&m, &l, stat->prg->cur_loaded / (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000)),
+		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
+			add_to_str(&m, &l, cast_uchar ", ");
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_CURRENT_SPEED), term));
+			add_to_str(&m, &l, cast_uchar " ");
+			add_xnum_to_str(&m, &l, stat->prg->cur_loaded / (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
 			add_to_str(&m, &l, cast_uchar "/s");
+		}
 		add_to_str(&m, &l, cast_uchar "\n");
 		add_to_str(&m, &l, get_text_translation(TEXT_(T_ELAPSED_TIME), term));
 		add_to_str(&m, &l, cast_uchar " ");
@@ -926,7 +981,8 @@ have_frag:
 				download_file_error(down, errno);
 			} else if (down->prog) {
 				exec_on_terminal(get_download_ses(down)->term, down->prog, down->orig_file, !!down->prog_flag_block);
-				free(down->prog), down->prog = NULL;
+				free(down->prog);
+				down->prog = NULL;
 			} else if (down->remotetime && download_utime) {
 				struct timeval utv[2];
 				unsigned char *file = stracpy(down->orig_file);
@@ -1403,12 +1459,15 @@ void init_fcache(void)
 
 static void calculate_scrollbars(struct f_data_c *fd, struct f_data *f)
 {
-	fd->hsb = 0, fd->vsb = 0;
-	fd->hsbsize = 0, fd->vsbsize = 0;
+	fd->hsb = 0;
+	fd->vsb = 0;
+	fd->hsbsize = 0;
+	fd->vsbsize = 0;
 	if (!f)
 		return;
 	if (f->opt.scrolling == SCROLLING_YES) {
-		fd->hsb = 1, fd->vsb = 1;
+		fd->hsb = 1;
+		fd->vsb = 1;
 	} else if (f->opt.scrolling == SCROLLING_AUTO) {
 		x:
 		if (!fd->hsb && f->x > fd->xw - fd->vsb * G_SCROLL_BAR_WIDTH) {
@@ -1435,7 +1494,10 @@ struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq
 		int marg = (fd->marginwidth + G_HTML_MARGIN - 1) / G_HTML_MARGIN;
 		if (marg >= 0 && marg < 9) opt->margin = marg;
 	}
-	if (opt->plain == 2) opt->margin = 0, opt->display_images = 1;
+	if (opt->plain == 2) {
+		opt->margin = 0;
+		opt->display_images = 1;
+	}
 	pr(
 	if (ses) {
 		if (fd->f_data && !strcmp(cast_const_char fd->f_data->rq->url, cast_const_char url) && !compare_opt(&fd->f_data->opt, opt) && is_format_cache_entry_uptodate(fd->f_data)) {
@@ -1792,8 +1854,14 @@ void reinit_f_data_c(struct f_data_c *fd)
 	fd->next_update_interval = 0;
 	fd->done = 0;
 	fd->parsed_done = 0;
-	if (fd->image_timer != NULL) kill_timer(fd->image_timer), fd->image_timer = NULL;
-	if (fd->refresh_timer != NULL) kill_timer(fd->refresh_timer), fd->refresh_timer = NULL;
+	if (fd->image_timer != NULL) {
+		kill_timer(fd->image_timer);
+		fd->image_timer = NULL;
+	}
+	if (fd->refresh_timer != NULL) {
+		kill_timer(fd->refresh_timer);
+		fd->refresh_timer = NULL;
+	}
 }
 
 struct f_data_c *create_f_data_c(struct session *ses, struct f_data_c *parent)
@@ -1871,7 +1939,10 @@ void fd_loaded(struct object_request *rq, void *fd_)
 	int first = !fd->f_data;
 	if (fd->done) {
 		if (f_is_finished(fd->f_data)) goto priint;
-		else fd->done = 0, fd->parsed_done = 1;
+		else {
+			fd->done = 0;
+			fd->parsed_done = 1;
+		}
 	}
 	if (fd->parsed_done && f_need_reparse(fd->f_data)) fd->parsed_done = 0;
 	if (fd->vs->plain == -1 && rq->state != O_WAITING) {
@@ -1881,8 +1952,10 @@ void fd_loaded(struct object_request *rq, void *fd_)
 		if (!fd->parsed_done) {
 			html_interpret(fd, 1);
 			if (fd->went_to_position) {
-				if (!fd->goto_position) fd->goto_position = fd->went_to_position, fd->went_to_position = NULL;
-				else {
+				if (!fd->goto_position) {
+					fd->goto_position = fd->went_to_position;
+					fd->went_to_position = NULL;
+				} else {
 					free(fd->went_to_position);
 					fd->went_to_position = NULL;
 				}
@@ -1904,8 +1977,10 @@ fn:
 			html_interpret(fd, rq == fd->rq && rq->state < 0);
 			if (fd->rq->state < 0 && !f_need_reparse(fd->f_data)) {
 				if (fd->went_to_position) {
-					if (!fd->goto_position) fd->goto_position = fd->went_to_position, fd->went_to_position = NULL;
-					else {
+					if (!fd->goto_position) {
+						fd->goto_position = fd->went_to_position;
+						fd->went_to_position = NULL;
+					} else {
 						free(fd->went_to_position);
 						fd->went_to_position = NULL;
 					}
@@ -2003,7 +2078,10 @@ static struct f_data_c *new_main_location(struct session *ses)
 	reinit_f_data_c(ses->screen);
 	ses->screen->loc = loc;
 	ses->screen->vs = loc->vs;
-	if (ses->wanted_framename) loc->name=ses->wanted_framename, ses->wanted_framename=NULL;
+	if (ses->wanted_framename) {
+		loc->name=ses->wanted_framename;
+		ses->wanted_framename=NULL;
+	}
 	return ses->screen;
 }
 
@@ -2310,7 +2388,9 @@ static int prog_sel_open(struct dialog_data *dlg, struct dialog_item_data *idata
 	struct session *ses = (struct session *)dlg->dlg->udata2;
 
 	if (!a) internal("This should not happen.\n");
-	ses->tq_prog = stracpy(a->prog), ses->tq_prog_flag_block = a->block, ses->tq_prog_flag_direct = direct_download_possible(ses->tq, a);
+	ses->tq_prog = stracpy(a->prog);
+	ses->tq_prog_flag_block = a->block;
+	ses->tq_prog_flag_direct = direct_download_possible(ses->tq, a);
 	tp_open(ses);
 	cancel_dialog(dlg,idata);
 	return 0;
@@ -2387,7 +2467,11 @@ static void type_query(struct session *ses, unsigned char *ct, struct assoc *a, 
 		return;
 	}
 
-	if (a) ses->tq_prog = stracpy(a[0].prog), ses->tq_prog_flag_block = a[0].block, ses->tq_prog_flag_direct = direct_download_possible(ses->tq, a);
+	if (a) {
+		ses->tq_prog = stracpy(a[0].prog);
+		ses->tq_prog_flag_block = a[0].block;
+		ses->tq_prog_flag_direct = direct_download_possible(ses->tq, a);
+	}
 	if (a && !a[0].ask) {
 		tp_open(ses);
 		if (n)

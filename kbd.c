@@ -1099,7 +1099,10 @@ static void in_kbd(void *itrm_)
 	struct itrm *itrm = (struct itrm *)itrm_;
 	int r;
 	if (!can_read(itrm->std_in)) return;
-	if (itrm->tm != NULL) kill_timer(itrm->tm), itrm->tm = NULL;
+	if (itrm->tm != NULL) {
+		kill_timer(itrm->tm);
+		itrm->tm = NULL;
+	}
 	if (itrm->qlen >= IN_BUF_SIZE) {
 		set_handlers(itrm->std_in, NULL, NULL, itrm);
 		while (process_queue(itrm))

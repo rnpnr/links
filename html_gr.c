@@ -131,7 +131,10 @@ void flush_pending_line_to_obj(struct g_part *p, int minheight)
 		if (go->draw == g_text_draw) {
 			struct g_object_text *got = get_struct(go, struct g_object_text, goti.go);
 			int l = (int)strlen(cast_const_char got->text);
-			while (l && got->text[l - 1] == ' ') got->text[--l] = 0, got->goti.go.xw -= g_char_width(got->style, ' ');
+			while (l && got->text[l - 1] == ' ') {
+				got->text[--l] = 0;
+				got->goti.go.xw -= g_char_width(got->style, ' ');
+			}
 			if (got->goti.go.xw < 0)
 				internal("xw(%d) < 0", got->goti.go.xw);
 		}
@@ -568,7 +571,10 @@ static void do_image(struct g_part *p, struct image_description *im)
 					while (*p && (*p < '0' || *p > '9')) p++;
 					if (!*p)
 						goto noc;
-					while (*p >= '0' && *p <= '9' && num < 10000000) num = num * 10 + *p - '0', p++;
+					while (*p >= '0' && *p <= '9' && num < 10000000) {
+						num = num * 10 + *p - '0';
+						p++;
+					}
 					if (*p == '.') {
 						p++;
 						while (*p >= '0' && *p <= '9')
@@ -857,7 +863,8 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 			p->w.last_wrap_obj = &t->goti.go;
 		p->text = t;
 	}
-	memcpy(p->text->text + p->pending_text_len, s, l), p->text->text[p->pending_text_len = safe_add(p->pending_text_len, l)] = 0;
+	memcpy(p->text->text + p->pending_text_len, s, l);
+	p->text->text[p->pending_text_len = safe_add(p->pending_text_len, l)] = 0;
 	qw = g_text_width(p->text->style, p->text->text + p->pending_text_len - l);
 	p->text->goti.go.xw = safe_add(p->text->goti.go.xw, qw); /* !!! FIXME: move to g_wrap_text */
 	if (par_format.align != AL_NO /*&& par_format.align != AL_NO_BREAKABLE*/) {

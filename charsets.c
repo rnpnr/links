@@ -153,30 +153,32 @@ unsigned char *encode_utf_8(int u)
 	if (u < 0);
 	else if (u < 0x80)
 		utf_buffer[0] = (unsigned char)u;
-	else if (u < 0x800)
-		utf_buffer[0] = 0xc0 | ((u >> 6) & 0x1f),
+	else if (u < 0x800) {
+		utf_buffer[0] = 0xc0 | ((u >> 6) & 0x1f);
 		utf_buffer[1] = 0x80 | (u & 0x3f);
-	else if (u < 0x10000)
-		utf_buffer[0] = 0xe0 | ((u >> 12) & 0x0f),
-		utf_buffer[1] = 0x80 | ((u >> 6) & 0x3f),
+	} else if (u < 0x10000) {
+		utf_buffer[0] = 0xe0 | ((u >> 12) & 0x0f);
+		utf_buffer[1] = 0x80 | ((u >> 6) & 0x3f);
 		utf_buffer[2] = 0x80 | (u & 0x3f);
-	else if (u < 0x200000)
-		utf_buffer[0] = 0xf0 | ((u >> 18) & 0x0f),
-		utf_buffer[1] = 0x80 | ((u >> 12) & 0x3f),
-		utf_buffer[2] = 0x80 | ((u >> 6) & 0x3f),
+	} else if (u < 0x200000) {
+		utf_buffer[0] = 0xf0 | ((u >> 18) & 0x0f);
+		utf_buffer[1] = 0x80 | ((u >> 12) & 0x3f);
+		utf_buffer[2] = 0x80 | ((u >> 6) & 0x3f);
 		utf_buffer[3] = 0x80 | (u & 0x3f);
-	else if (u < 0x4000000)
-		utf_buffer[0] = 0xf8 | ((u >> 24) & 0x0f),
-		utf_buffer[1] = 0x80 | ((u >> 18) & 0x3f),
-		utf_buffer[2] = 0x80 | ((u >> 12) & 0x3f),
-		utf_buffer[3] = 0x80 | ((u >> 6) & 0x3f),
+	} else if (u < 0x4000000) {
+		utf_buffer[0] = 0xf8 | ((u >> 24) & 0x0f);
+		utf_buffer[1] = 0x80 | ((u >> 18) & 0x3f);
+		utf_buffer[2] = 0x80 | ((u >> 12) & 0x3f);
+		utf_buffer[3] = 0x80 | ((u >> 6) & 0x3f);
 		utf_buffer[4] = 0x80 | (u & 0x3f);
-	else	utf_buffer[0] = 0xfc | ((u >> 30) & 0x01),
-		utf_buffer[1] = 0x80 | ((u >> 24) & 0x3f),
-		utf_buffer[2] = 0x80 | ((u >> 18) & 0x3f),
-		utf_buffer[3] = 0x80 | ((u >> 12) & 0x3f),
-		utf_buffer[4] = 0x80 | ((u >> 6) & 0x3f),
+	} else {
+		utf_buffer[0] = 0xfc | ((u >> 30) & 0x01);
+		utf_buffer[1] = 0x80 | ((u >> 24) & 0x3f);
+		utf_buffer[2] = 0x80 | ((u >> 18) & 0x3f);
+		utf_buffer[3] = 0x80 | ((u >> 12) & 0x3f);
+		utf_buffer[4] = 0x80 | ((u >> 6) & 0x3f);
 		utf_buffer[5] = 0x80 | (u & 0x3f);
+	}
 	return utf_buffer;
 }
 
@@ -313,7 +315,10 @@ struct conv_table *get_translation_table(int from, int to)
 	static int lto = -1;
 	if (/*from == to ||*/ from == -1 || to == -1) return NULL;
 	if (to == utf8_table) return get_translation_table_to_utf_8(from);
-	if (table_init) memset(table, 0, sizeof(struct conv_table) * 256), table_init = 0;
+	if (table_init) {
+		memset(table, 0, sizeof(struct conv_table) * 256);
+		table_init = 0;
+	}
 	if (from == lfr && to == lto) return table;
 	lfr = from; lto = to;
 	new_translation_table(table);
@@ -340,7 +345,9 @@ static inline int xxstrcmp(unsigned char *s1, unsigned char *s2, int l2)
 	while (l2) {
 		if (*s1 > *s2) return 1;
 		if (!*s1 || *s1 < *s2) return -1;
-		s1++, s2++, l2--;
+		s1++;
+		s2++;
+		l2--;
 	}
 	return !!*s1;
 }
@@ -349,7 +356,8 @@ int get_entity_number(unsigned char *st, int l)
 {
 	int n = 0;
 	if (upcase(st[0]) == 'X') {
-		st++, l--;
+		st++;
+		l--;
 		if (!l) return -1;
 		do {
 			unsigned char c = upcase(*(st++));

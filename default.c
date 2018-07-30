@@ -61,7 +61,8 @@ static unsigned char *p_arse_options(int argc, unsigned char *argv[], struct opt
 		}
 	}
 	while (argc) {
-		argv++, argc--;
+		argv++;
+		argc--;
 		if (argv[-1][0] == '-') {
 			struct option *options;
 			struct option **op;
@@ -164,7 +165,12 @@ static void parse_config_file(unsigned char *name, unsigned char *file, struct o
 			for (i = 0; options[i].p; i++) if (options[i].cfg_name && (size_t)nl == strlen(cast_const_char options[i].cfg_name) && !casecmp(tok, cast_uchar options[i].cfg_name, nl)) {
 				unsigned char *o = memacpy(p, pl);
 				if ((e = options[i].rd_cfg(&options[i], o))) {
-					if (e[0]) fprintf(stderr, "Error parsing config file %s, line %d: %s\n", name, line, e), err = 1;
+					if (e[0]) {
+						fprintf(stderr,
+							"Error parsing config file %s, line %d: %s\n",
+							name, line, e);
+						err = 1;
+					}
 				}
 				free(o);
 				goto f;
@@ -174,7 +180,10 @@ static void parse_config_file(unsigned char *name, unsigned char *file, struct o
 		f:
 		free(tok);
 	}
-	if (err) fprintf(stderr, "\007"), portable_sleep(1000);
+	if (err) {
+		fprintf(stderr, "\007");
+		portable_sleep(1000);
+	}
 }
 
 static unsigned char *create_config_string(struct option *options)

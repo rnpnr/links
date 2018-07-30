@@ -142,7 +142,10 @@ void setcstate(struct connection *c, int state)
 		}
 	} else {
 		struct remaining_info *r = &c->prg;
-		if (r->timer != NULL) kill_timer(r->timer), r->timer = NULL;
+		if (r->timer != NULL) {
+			kill_timer(r->timer);
+			r->timer = NULL;
+		}
 	}
 	foreach(struct status, stat, lstat, c->statuss) {
 		stat->state = state;
@@ -352,8 +355,10 @@ static void check_keepalive_connections(void)
 	struct list_head *lkc;
 	uttime ct = get_absolute_time();
 	int p = 0;
-	if (keepalive_timeout != NULL)
-		kill_timer(keepalive_timeout), keepalive_timeout = NULL;
+	if (keepalive_timeout != NULL) {
+		kill_timer(keepalive_timeout);
+		keepalive_timeout = NULL;
+	}
 	foreach(struct k_conn, kc, lkc, keepalive_connections) {
 		if (can_read(kc->conn) || ct - kc->add_time > kc->timeout) {
 			lkc = lkc->prev;
@@ -1017,7 +1022,10 @@ static void connection_timeout_1(void *c_)
 
 void clear_connection_timeout(struct connection *c)
 {
-	if (c->timer != NULL) kill_timer(c->timer), c->timer = NULL;
+	if (c->timer != NULL) {
+		kill_timer(c->timer);
+		c->timer = NULL;
+	}
 }
 
 void set_connection_timeout(struct connection *c)

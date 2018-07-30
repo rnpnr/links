@@ -21,7 +21,11 @@ int snprint(unsigned char *s, int n, my_uintptr_t num)
 int snzprint(unsigned char *s, int n, off_t num)
 {
 	off_t q = 1;
-	if (n > 1 && num < 0) *(s++) = '-', num = -num, n--;
+	if (n > 1 && num < 0) {
+		*(s++) = '-';
+		num = -num;
+		n--;
+	}
 	while (q <= num / 10) q *= 10;
 	while (n-- > 1 && q) {
 		*(s++) = (unsigned char)(num / q + '0');
@@ -111,9 +115,16 @@ void add_num_to_str(unsigned char **s, int *l, off_t n)
 void add_knum_to_str(unsigned char **s, int *l, off_t n)
 {
 	unsigned char a[13];
-	if (n && n / (1024 * 1024) * (1024 * 1024) == n) snzprint(a, 12, n / (1024 * 1024)), a[strlen(cast_const_char a) + 1] = 0, a[strlen(cast_const_char a)] = 'M';
-	else if (n && n / 1024 * 1024 == n) snzprint(a, 12, n / 1024), a[strlen(cast_const_char a) + 1] = 0, a[strlen(cast_const_char a)] = 'k';
-	else snzprint(a, 13, n);
+	if (n && n / (1024 * 1024) * (1024 * 1024) == n) {
+		snzprint(a, 12, n / (1024 * 1024));
+		a[strlen(cast_const_char a) + 1] = 0;
+		a[strlen(cast_const_char a)] = 'M';
+	} else if (n && n / 1024 * 1024 == n) {
+		snzprint(a, 12, n / 1024);
+		a[strlen(cast_const_char a) + 1] = 0;
+		a[strlen(cast_const_char a)] = 'k';
+	} else
+		snzprint(a, 13, n);
 	add_to_str(s, l, a);
 }
 
@@ -166,7 +177,8 @@ int casestrcmp(const unsigned char *s1, const unsigned char *s2)
 			return (int)c1 - (int)c2;
 		}
 		if (!*s1) break;
-		s1++, s2++;
+		s1++;
+		s2++;
 	}
 	return 0;
 }
@@ -192,8 +204,11 @@ int casestrstr(const unsigned char *h, const unsigned char *n)
 			const unsigned char *q, *r;
 			for (q=n, r=p;*r&&*q;)
 			{
-				if (!srch_cmp(*q,*r)) r++,q++;    /* same */
-				else break;
+				if (!srch_cmp(*q,*r)) {
+					r++;
+					q++;    /* same */
+				} else
+					break;
 			}
 			if (!*q) return 1;
 		}

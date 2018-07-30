@@ -341,7 +341,12 @@ static void display_menu_txt(struct terminal *term, void *menu_)
 		int h = 0;
 		unsigned c;
 		unsigned char *tmptext = get_text_translation(menu->items[p].text, term);
-		unsigned char co = p == menu->selected ? h = 1, COLOR_MENU_SELECTED : COLOR_MENU_TEXT;
+		unsigned char co;
+		if (p == menu->selected) {
+			h = 1;
+			co = COLOR_MENU_SELECTED;
+		} else
+			co = COLOR_MENU_TEXT;
 		if (h) {
 			setc = 1;
 			set_cursor(term, menu->x + 1 + !!term->spec->braille, s, term->x - 1, term->y - 1);
@@ -366,7 +371,15 @@ static void display_menu_txt(struct terminal *term, void *menu_)
 			for (x = 0; x < menu->xw - 4; x++) {
 				c = GET_TERM_CHAR(term, &tmptext);
 				if (!c) break;
-				set_char(term, menu->x + x + 2 + 2 * !!term->spec->braille, s, c, !h && charset_upcase(c, term_charset(term)) == menu->hotkeys[p] ? h = 1, COLOR_MENU_HOTKEY : co);
+				if (!h && charset_upcase(c, term_charset(term)) == menu->hotkeys[p]) {
+					h = 1;
+					set_char(term,
+						menu->x + x + 2 + 2 * !!term->spec->braille,
+						s, c, COLOR_MENU_HOTKEY);
+				} else
+					set_char(term,
+						menu->x + x + 2 + 2 * !!term->spec->braille,
+						s, c, co);
 			}
 			if (term->spec->braille && menu->hotkeys[p]) {
 				set_char(term, menu->x + 2, s, menu->hotkeys[p], COLOR_MENU_HOTKEY);
@@ -578,9 +591,13 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			menu_oldsel = menu->selected;
 			if (ev->x == KBD_UP) scroll_menu(menu, -1);
 			else if (ev->x == KBD_DOWN) scroll_menu(menu, 1);
-			else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) menu->selected = -1, scroll_menu(menu, 1);
-			else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) menu->selected = menu->ni, scroll_menu(menu, -1);
-			else if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
+			else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) {
+				menu->selected = -1;
+				scroll_menu(menu, 1);
+			} else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
+				menu->selected = menu->ni;
+				scroll_menu(menu, -1);
+			} else if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
 				if ((menu->selected -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) < -1) menu->selected = -1;
 				if ((menu->view -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) < 0) menu->view = 0;
 				scroll_menu(menu, -1);
@@ -671,7 +688,12 @@ static void display_mainmenu(struct terminal *term, void *menu_)
 			int s = 0;
 			unsigned c;
 			unsigned char *tmptext = get_text_translation(menu->items[i].text, term);
-			unsigned char co = i == menu->selected ? s = 1, COLOR_MAINMENU_SELECTED : COLOR_MAINMENU;
+			unsigned char co;
+			if (i == menu->selected) {
+				s = 1;
+				co = COLOR_MAINMENU_SELECTED;
+			} else
+				co = COLOR_MAINMENU;
 			if (i == menu->selected) {
 				fill_area(term, p, 0, 2, 1, ' ', co);
 				menu->sp = p;
@@ -686,7 +708,11 @@ static void display_mainmenu(struct terminal *term, void *menu_)
 			for (;; p++) {
 				c = GET_TERM_CHAR(term, &tmptext);
 				if (!c) break;
-				set_char(term, p, 0, c, !s && charset_upcase(c, term_charset(term)) == menu->hotkeys[i] ? s = 1, COLOR_MAINMENU_HOTKEY : co);
+				if (!s && charset_upcase(c, term_charset(term)) == menu->hotkeys[i]) {
+					s = 1;
+					set_char(term, p, 0, c, COLOR_MAINMENU_HOTKEY);
+				} else
+					set_char(term, p, 0, c, co);
 			}
 			if (i == menu->selected) {
 				fill_area(term, p, 0, 2, 1, ' ', co);
@@ -948,8 +974,13 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 				} else {
 					int s = g_text_width(bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X);
 					g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_L:cast_uchar G_DIALOG_CHECKBOX_L, &p);
-					if (!sel) drv->fill_area(dev, p, di->y, p + s, di->y + G_BFU_FONT_SIZE, bfu_bg_color), p += s;
-					else {
+					if (!sel) {
+						drv->fill_area(dev, p, di->y,
+							p + s,
+							di->y + G_BFU_FONT_SIZE,
+							bfu_bg_color);
+						p += s;
+					} else {
 						restrict_clip_area(dev, &r, p, di->y, p + s, di->y + G_BFU_FONT_SIZE);
 						g_print_text(dev, p, di->y, bfu_style_bw_u, cast_uchar "          ", NULL);
 						p += s;
@@ -1057,7 +1088,9 @@ static void u_display_dlg_item(struct terminal *term, void *p)
 static void x_display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int sel)
 {
 	struct dspd dspd;
-	dspd.dlg = dlg, dspd.di = di, dspd.sel = sel;
+	dspd.dlg = dlg;
+	dspd.di = di;
+	dspd.sel = sel;
 	draw_to_window(dlg->win, u_display_dlg_item, &dspd);
 }
 
@@ -1399,7 +1432,8 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 					if (cp2u(ev->x, term_charset(term)) == -1)
 						break;
 					if (!is_utf_8(term)) {
-						p[0] = (unsigned char)ev->x, u = p;
+						p[0] = (unsigned char)ev->x;
+						u = p;
 					} else {
 						u = encode_utf_8(ev->x);
 					}
@@ -1800,8 +1834,10 @@ void max_text_width(struct terminal *term, unsigned char *text, int *width, int 
 	do {
 		int c = 0;
 		while (*text && *text != '\n') {
-			if (!is_utf_8(term)) text++, c++;
-			else {
+			if (!is_utf_8(term)) {
+				text++;
+				c++;
+			} else {
 				int u;
 				GET_UTF_8(text, u);
 				if (!F) c++;
@@ -1821,8 +1857,10 @@ void min_text_width(struct terminal *term, unsigned char *text, int *width, int 
 	do {
 		int c = 0;
 		while (*text && *text != '\n' && *text != ' ') {
-			if (!is_utf_8(term)) text++, c++;
-			else {
+			if (!is_utf_8(term)) {
+				text++;
+				c++;
+			} else {
 				int u;
 				GET_UTF_8(text, u);
 				if (!F) c++;
@@ -2035,7 +2073,10 @@ void dlg_format_text_and_field(struct dialog_data *dlg, struct terminal *term, u
 		dlg_format_field(dlg, term, item, x, y, w, rw, align);
 	} else {
 		int pos = dlg_format_text(dlg, term, text, x, y, w, rw, co, align);
-		if (pos >= w - 4) (*y)++, pos = 0;
+		if (pos >= w - 4) {
+			(*y)++;
+			pos = 0;
+		}
 		if (term) {
 			item->x = x + pos;
 			item->y = *y - 1;
@@ -2283,7 +2324,8 @@ void msg_box(struct terminal *term, struct memory_list *ml, unsigned char *title
 		msg_fn = va_arg(ap, msg_button_fn);
 		flags = va_arg(ap, int);
 		if (!m) {
-			i--, n--;
+			i--;
+			n--;
 			continue;
 		}
 		dlg->items[i].type = D_BUTTON;

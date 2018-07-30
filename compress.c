@@ -288,7 +288,8 @@ int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned cha
 	if (list_empty(ce->frag)) return 1;
 	fr = list_struct(ce->frag.next, struct fragment);
 	if (fr->offset || !fr->length) return 1;
-	*start = fr->data, *end = fr->data + fr->length;
+	*start = fr->data;
+	*end = fr->data + fr->length;
 	return 0;
 }
 

@@ -205,8 +205,11 @@ int find_nearest_color(struct rgb *r, int l)
 	if (rgb_cache[h].color != -1 && rgb_cache[h].l == l && rgb_cache[h].rgb.r == r->r && rgb_cache[h].rgb.g == r->g && rgb_cache[h].rgb.b == r->b) return rgb_cache[h].color;
 	dist = 0xffffff;
 	min = 0;
-	for (i = 0; i < l; i++) if ((dst = color_distance(r, &palette_16_colors[i])) < dist)
-		dist = dst, min = i;
+	for (i = 0; i < l; i++)
+		if ((dst = color_distance(r, &palette_16_colors[i])) < dist) {
+			dist = dst;
+			min = i;
+		}
 	rgb_cache[h].color = min;
 	rgb_cache[h].l = l;
 	rgb_cache[h].rgb.r = r->r;
@@ -419,8 +422,12 @@ static inline void move_links(struct part *p, int xf, int yf, int xt, int yt)
 						link->pos[i].x = safe_add(link->pos[i].x, -xf + xt);
 					else
 						link->pos[i].x = link->pos[i].x -xf + xt;
+				} else {
+					memmove(&link->pos[i], &link->pos[i+1],
+						(link->n-i-1) * sizeof(struct point));
+					link->n--;
+					i--;
 				}
-				else memmove(&link->pos[i], &link->pos[i+1], (link->n-i-1) * sizeof(struct point)), link->n--, i--;
 			}
 		} else {
 			link->first_point_to_move = safe_add(i, 1);
@@ -594,7 +601,11 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	if (l < 0) overalloc();
 
 	/*printf("%d-", p->cx);for (i=0; i<l; i++) printf("%c", c[i]); printf("-\n");portable_sleep(1000);*/
-	while (p->cx <= par_format.leftmargin && l && *c == ' ' && par_format.align != AL_NO && par_format.align != AL_NO_BREAKABLE) c++, l--;
+	while (p->cx <= par_format.leftmargin && l && *c == ' '
+	&& par_format.align != AL_NO && par_format.align != AL_NO_BREAKABLE) {
+		c++;
+		l--;
+	}
 	if (!l) return;
 	if (p->cx < par_format.leftmargin) p->cx = par_format.leftmargin;
 	if (c[0] != ' ' || (c[1] && c[1] != ' ')) {
@@ -665,7 +676,8 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	no_l:
 	/*printf("%d %d\n",p->cx, p->cy);*/
 	if (memcmp(&ta_cache, &format_, sizeof(struct text_attrib_beginning))) goto format_change;
-	bg = bg_cache, fg = fg_cache;
+	bg = bg_cache;
+	fg = fg_cache;
 	end_format_change:
 	if (p->y < safe_add(p->cy, 1)) p->y = p->cy + 1;
 	if (nowrap && safe_add(p->cx, ll) > rm(par_format)) {
@@ -740,7 +752,9 @@ static void put_chars(void *p_, unsigned char *c, int l)
 			put_chars(p, s, (int)strlen(cast_const_char s));
 			if (ff && ff->type == FC_TEXTAREA) line_break(p);
 			if (p->cx < par_format.leftmargin) p->cx = par_format.leftmargin;
-			format_.link = fl, format_.target = ft, format_.image = fi;
+			format_.link = fl;
+			format_.target = ft;
+			format_.image = fi;
 			format_.form = ff;
 			format_.js_event = js;
 		}
@@ -779,8 +793,10 @@ static void put_chars(void *p_, unsigned char *c, int l)
 			overalloc();
 		pt = xrealloc(link->pos, (link->n + ll) * sizeof(struct point));
 		link->pos = pt;
-		for (i = 0; i < ll; i++) pt[link->n + i].x = X(p->cx) + i,
-					 pt[link->n + i].y = Y(p->cy);
+		for (i = 0; i < ll; i++) {
+			pt[link->n + i].x = X(p->cx) + i;
+			pt[link->n + i].y = Y(p->cy);
+		}
 		link->n += ll;
 	}
 	goto no_l;
@@ -813,7 +829,12 @@ static void line_break(void *p_)
 	}
 	if (!p->data) goto e;
 	xpand_lines(p, safe_add(p->cy, 1));
-	if (p->cx > par_format.leftmargin && LEN(p->cy) > p->cx - 1 && POS(p->cx-1, p->cy).ch == ' ') del_chars(p, p->cx-1, p->cy), p->cx--;
+	if (p->cx > par_format.leftmargin
+	&& LEN(p->cy) > p->cx - 1
+	&& POS(p->cx-1, p->cy).ch == ' ') {
+		del_chars(p, p->cx-1, p->cy);
+		p->cx--;
+	}
 	if (p->cx > 0) align_line(p, p->cy);
 	if (p->data) foreachbackfrom(struct tag, t, lt, p->data->tags, last_tag_for_newline) {
 		t->x = X(0);
@@ -847,8 +868,11 @@ static void html_form_control(struct part *p, struct form_control *fc)
 	if (fc->type == FC_TEXTAREA) {
 		unsigned char *p;
 		for (p = fc->default_value; p[0]; p++) if (p[0] == '\r') {
-			if (p[1] == '\n') memmove(p, p + 1, strlen(cast_const_char p)), p--;
-			else p[0] = '\n';
+			if (p[1] == '\n') {
+				memmove(p, p + 1, strlen(cast_const_char p));
+				p--;
+			} else
+				p[0] = '\n';
 		}
 	}
 	add_to_list(p->data->forms, fc);
@@ -863,7 +887,10 @@ static void add_frameset_entry(struct frameset_desc *fsd, struct frameset_desc *
 	fsd->f[fsd->xp + fsd->yp * fsd->x].marginwidth = marginwidth;
 	fsd->f[fsd->xp + fsd->yp * fsd->x].marginheight = marginheight;
 	fsd->f[fsd->xp + fsd->yp * fsd->x].scrolling = scrolling;
-	if (++fsd->xp >= fsd->x) fsd->xp = 0, fsd->yp++;
+	if (++fsd->xp >= fsd->x) {
+		fsd->xp = 0;
+		fsd->yp++;
+	}
 }
 
 struct frameset_desc *create_frameset(struct f_data *fda, struct frameset_param *fp)
@@ -1181,7 +1208,8 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	screen->use_tag = ce->count;
 	startf = start;
 	eofff = end;
-	head = init_str(), hdl = 0;
+	head = init_str();
+	hdl = 0;
 	if (ce->head) add_to_str(&head, &hdl, ce->head);
 	scan_http_equiv(start, end, &head, &hdl, &t, d_opt->plain ? NULL : &bg, d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor, &implicit_pre_wrap, NULL );
 	if (d_opt->break_long_lines) implicit_pre_wrap = 1;
@@ -1219,7 +1247,8 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 			if (screen->x > w) w = screen->x;
 			if (screen->y > h) h = screen->y;
 			g_x_extend_area(rp->root, w, h, AL_LEFT);
-			screen->root = &rp->root->go, rp->root = NULL;
+			screen->root = &rp->root->go;
+			rp->root = NULL;
 			g_release_part(rp);
 			free(rp);
 			get_parents(screen, screen->root);
@@ -1345,14 +1374,23 @@ static int sort_srch(struct f_data *f)
 	}
 	for (i = 0; i < f->y; i++)
 		f->slines1[i] = f->slines2[i] = -1;
-	for (i = 0; i < f->y; i++) min[i] = MAXINT, max[i] = 0;
+	for (i = 0; i < f->y; i++) {
+		min[i] = MAXINT;
+		max[i] = 0;
+	}
 	for (i = 0; i < f->nsearch_pos; i++) {
 		struct search *s = &f->search_pos[i];
 		int xe;
-		if (s->x < min[s->y]) min[s->y] = s->x, f->slines1[s->y] = s->idx;
+		if (s->x < min[s->y]) {
+			min[s->y] = s->x;
+			f->slines1[s->y] = s->idx;
+		}
 		if (s->n == 1) xe = safe_add(s->x, s->co);
 		else xe = safe_add(s->x, s->n);
-		if (xe > max[s->y]) max[s->y] = xe, f->slines2[s->y] = s->idx + s->co - 1;
+		if (xe > max[s->y]) {
+			max[s->y] = xe;
+			f->slines2[s->y] = s->idx + s->co - 1;
+		}
 	}
 	free(min);
 	free(max);

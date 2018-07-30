@@ -353,7 +353,10 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 		len = XLookupString(e,cast_char str,str_size,&ks,&comp);
 
 	str[len>str_size?str_size:len]=0;
-	if (!len) str[0]=(unsigned char)ks, str[1]=0;
+	if (!len) {
+		str[0] = (unsigned char)ks;
+		str[1] = 0;
+	}
 	*flag=0;
 	*key=0;
 
@@ -519,14 +522,36 @@ static void x_free_hash_table(void)
 	static_color_table = NULL;
 
 	if (x_display) {
-		if (x_icon) XFreePixmap(x_display, x_icon), x_icon = 0;
-		if (fake_window_initialized) XDestroyWindow(x_display,fake_window), fake_window_initialized = 0;
-		if (x_normal_gc) XFreeGC(x_display,x_normal_gc), x_normal_gc = 0;
-		if (x_copy_gc) XFreeGC(x_display,x_copy_gc), x_copy_gc = 0;
-		if (x_drawbitmap_gc) XFreeGC(x_display,x_drawbitmap_gc), x_drawbitmap_gc = 0;
-		if (x_scroll_gc) XFreeGC(x_display,x_scroll_gc), x_scroll_gc = 0;
-		if (xim) XCloseIM(xim), xim = NULL;
-		XCloseDisplay(x_display), x_display = NULL;
+		if (x_icon) {
+			XFreePixmap(x_display, x_icon);
+			x_icon = 0;
+		}
+		if (fake_window_initialized) {
+			XDestroyWindow(x_display, fake_window);
+			fake_window_initialized = 0;
+		}
+		if (x_normal_gc) {
+			XFreeGC(x_display, x_normal_gc);
+			x_normal_gc = 0;
+		}
+		if (x_copy_gc) {
+			XFreeGC(x_display, x_copy_gc);
+			x_copy_gc = 0;
+		}
+		if (x_drawbitmap_gc) {
+			XFreeGC(x_display, x_drawbitmap_gc);
+			x_drawbitmap_gc = 0;
+		}
+		if (x_scroll_gc) {
+			XFreeGC(x_display, x_scroll_gc);
+			x_scroll_gc = 0;
+		}
+		if (xim) {
+			XCloseIM(xim);
+			xim = NULL;
+		}
+		XCloseDisplay(x_display);
+		x_display = NULL;
 	}
 
 	free(x_driver_param);
@@ -1351,7 +1376,8 @@ visual_found:;
 			if (xic) {
 				XDestroyIC(xic);
 			} else {
-				XCloseIM(xim), xim = NULL;
+				XCloseIM(xim);
+				xim = NULL;
 			}
 		}
 #if defined(LC_CTYPE)
@@ -1624,7 +1650,10 @@ no_pixmap:
 	return;
 
 cant_create:
-	if (bmp->data) free(bmp->data), bmp->data = NULL;
+	if (bmp->data) {
+		free(bmp->data);
+		bmp->data = NULL;
+	}
 	bmp->flags=NULL;
 	return;
 }

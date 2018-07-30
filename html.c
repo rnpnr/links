@@ -127,9 +127,15 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 	while (WHITECHAR(*e)) e++;
 	if (*e == '>' || *e == '<') return NULL;
 	n = name;
-	while (*n && upcase(*e) == upcase(*n)) e++, n++;
+	while (*n && upcase(*e) == upcase(*n)) {
+		e++;
+		n++;
+	}
 	f = *n;
-	while (atchr(*e)) f = 1, e++;
+	while (atchr(*e)) {
+		f = 1;
+		e++;
+	}
 	while (WHITECHAR(*e)) e++;
 	if (*e != '=') goto ea;
 	e++;
@@ -608,7 +614,10 @@ int empty_format;
 static void ln_break(int n)
 {
 	if (!n || html_top.invisible) return;
-	while (n > line_breax) line_breax++, line_break_f(ff);
+	while (n > line_breax) {
+		line_breax++;
+		line_break_f(ff);
+	}
 	pos = 0;
 	putsp = -1;
 }
@@ -704,9 +713,15 @@ static void put_chrs(unsigned char *start, int len)
 {
 	if (par_format.align == AL_NO || par_format.align == AL_NO_BREAKABLE) putsp = 0;
 	if (!len || html_top.invisible) return;
-	if (putsp == 1) pos += put_chars_conv(cast_uchar " ", 1), putsp = -1;
+	if (putsp == 1) {
+		pos += put_chars_conv(cast_uchar " ", 1);
+		putsp = -1;
+	}
 	if (putsp == -1) {
-		if (start[0] == ' ') start++, len--;
+		if (start[0] == ' ') {
+			start++;
+			len--;
+		}
 		putsp = 0;
 	}
 	if (!len) {
@@ -798,7 +813,10 @@ static int parse_width(unsigned char *w, int trunc)
 		;
 	while (l && WHITECHAR(w[l - 1])) l--;
 	if (!l) return -1;
-	if (w[l - 1] == '%') l--, p = 1;
+	if (w[l - 1] == '%') {
+		l--;
+		p = 1;
+	}
 	while (l && WHITECHAR(w[l - 1])) l--;
 	if (!l) return -1;
 	s = strtoul(cast_const_char w, (char **)(void *)&end, 10);
@@ -987,8 +1005,14 @@ static void html_font(unsigned char *a)
 		unsigned long s;
 		unsigned char *nn = al;
 		unsigned char *end;
-		if (*al == '+') p = 1, nn++;
-		if (*al == '-') p = -1, nn++;
+		if (*al == '+') {
+			p = 1;
+			nn++;
+		}
+		if (*al == '-') {
+			p = -1;
+			nn++;
+		}
 		s = strtoul(cast_const_char nn, (char **)(void *)&end, 10);
 		if (*nn && !*end) {
 			if (s > 7) s = 7;
@@ -1129,7 +1153,8 @@ static void html_img(unsigned char *a)
 
 		i.url = stracpy(format_.image);
 
-		i.src = orig_link, orig_link = NULL;
+		i.src = orig_link;
+		orig_link = NULL;
 		/*
 		i.xsize = get_num(a, cast_uchar "width");
 		i.ysize = get_num(a, cast_uchar "height");
@@ -1216,7 +1241,11 @@ static void html_obj(unsigned char *a, int obj)
 		free(url);
 	}
 	ret:
-	if (base) free(format_.href_base), format_.href_base = old_base, free(base);
+	if (base) {
+		free(format_.href_base);
+		format_.href_base = old_base;
+		free(base);
+	}
 	free(type);
 }
 
@@ -1559,7 +1588,12 @@ static void html_li(unsigned char *a)
 		if (F) par_format.leftmargin += 4;
 #endif
 		if (s != -1) par_format.list_number = s;
-		if ((t != P_roman && t != P_ROMAN && par_format.list_number < 10) || t == P_alpha || t == P_ALPHA) put_chrs(cast_uchar "&nbsp;", 6), c = 1;
+		if ((t != P_roman && t != P_ROMAN
+		&& par_format.list_number < 10)
+		|| t == P_alpha || t == P_ALPHA) {
+			put_chrs(cast_uchar "&nbsp;", 6);
+			c = 1;
+		}
 		if (t == P_ALPHA || t == P_alpha) {
 			n[0] = par_format.list_number ? (par_format.list_number - 1) % 26 + (t == P_ALPHA ? 'A' : 'a') : 0;
 			n[1] = 0;
@@ -1676,7 +1710,8 @@ static void find_form_for_input(unsigned char *i)
 		lf = last_form_tag;
 		s = last_input_tag;
 	} else {
-		lf = NULL, la = NULL;
+		lf = NULL;
+		la = NULL;
 		s = startf;
 	}
 	se:
@@ -1950,7 +1985,8 @@ static void html_option(unsigned char *a)
 		while (p < eoff && WHITECHAR(*p)) p++;
 		while (p < eoff && !WHITECHAR(*p) && *p != '<') {
 			pppp:
-			add_chr_to_str(&val, &l, *p), p++;
+			add_chr_to_str(&val, &l, *p);
+			p++;
 		}
 		r = p;
 		while (r < eoff && WHITECHAR(*r)) r++;
@@ -2159,7 +2195,9 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	vlbl = NULL;
 	vlbl_l = 0;
 	val = NULL;
-	order = 0, group = 0, preselect = -1;
+	order = 0;
+	group = 0;
+	preselect = -1;
 	init_menu();
 	se:
 	en = html;
@@ -2182,7 +2220,10 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	if (lbl) {
 		unsigned char *q, *s = en;
 		int l = (int)(html - en);
-		while (l && WHITECHAR(s[0])) s++, l--;
+		while (l && WHITECHAR(s[0])) {
+			s++;
+			l--;
+		}
 		while (l && WHITECHAR(s[l-1])) l--;
 		q = convert_string(ct, s, l, d_opt);
 		if (q) {
@@ -2202,8 +2243,10 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	if (t_namelen == 7 && !casecmp(t_name, cast_uchar "/SELECT", 7)) {
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
-			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else {
+			if (!nnmi) {
+				new_menu_item(lbl, order - 1, 1);
+				lbl = NULL;
+			} else {
 				free(lbl);
 				lbl = NULL;
 			}
@@ -2215,8 +2258,10 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	if (t_namelen == 7 && !casecmp(t_name, cast_uchar "/OPTION", 7)) {
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
-			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else {
+			if (!nnmi) {
+				new_menu_item(lbl, order - 1, 1);
+				lbl = NULL;
+			} else {
 				free(lbl);
 				lbl = NULL;
 			}
@@ -2229,8 +2274,10 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		unsigned char *v, *vx;
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
-			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else {
+			if (!nnmi) {
+				new_menu_item(lbl, order - 1, 1);
+				lbl = NULL;
+			} else {
 				free(lbl);
 				lbl = NULL;
 			}
@@ -2252,8 +2299,10 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 			free(vx);
 		}
 		if (!v || !vx) {
-			lbl = init_str(), lbl_l = 0;
-			vlbl = init_str(), vlbl_l = 0;
+			lbl = init_str();
+			lbl_l = 0;
+			vlbl = init_str();
+			vlbl_l = 0;
 			nnmi = !!vx;
 		}
 		goto see;
@@ -2261,15 +2310,20 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	if ((t_namelen == 8 && !casecmp(t_name, cast_uchar "OPTGROUP", 8)) || (t_namelen == 9 && !casecmp(t_name, cast_uchar "/OPTGROUP", 9))) {
 		if (lbl) {
 			if (!val[order - 1]) val[order - 1] = stracpy(vlbl);
-			if (!nnmi) new_menu_item(lbl, order - 1, 1), lbl = NULL;
-			else {
+			if (!nnmi) {
+				new_menu_item(lbl, order - 1, 1);
+				lbl = NULL;
+			} else {
 				free(lbl);
 				lbl = NULL;
 			}
 			free(vlbl);
 			vlbl = NULL;
 		}
-		if (group) new_menu_item(NULL, -1, 0), group = 0;
+		if (group) {
+			new_menu_item(NULL, -1, 0);
+			group = 0;
+		}
 	}
 	if (t_namelen == 8 && !casecmp(t_name, cast_uchar "OPTGROUP", 8)) {
 		unsigned char *la;
@@ -2514,8 +2568,16 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 		while (q) {
 			nn = 0;
 			for (i = 0; i < ol; i++) {
-				if (q < 0) o[i]++, q++, nn = 1;
-				if (q > 0 && o[i] > 1) o[i]--, q--, nn = 1;
+				if (q < 0) {
+					o[i]++;
+					q++;
+					nn = 1;
+				}
+				if (q > 0 && o[i] > 1) {
+					o[i]--;
+					q--;
+					nn = 1;
+				}
 				if (!q) break;
 			}
 			if (!nn) break;
@@ -2542,7 +2604,10 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 			/*internal("parse_frame_widths: q < 0"); may happen when page contains too big values */
 		}
 		for (i = 0; i < ol; i++) if (oo[i] < 0) {
-			if (q) o[i]++, q--;
+			if (q) {
+				o[i]++;
+				q--;
+			}
 		}
 		if (q > 0) {
 			q = 0;
@@ -2554,8 +2619,15 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 		int j;
 		int m = 0;
 		int mj = 0;
-		for (j = 0; j < ol; j++) if (o[j] > m) m = o[j], mj = j;
-		if (m) o[i] = 1, o[mj]--;
+		for (j = 0; j < ol; j++)
+			if (o[j] > m) {
+				m = o[j];
+				mj = j;
+			}
+		if (m) {
+			o[i] = 1;
+			o[mj]--;
+		}
 	}
 }
 
@@ -3405,8 +3477,14 @@ void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 		}
 	}
 	if (namelen == 4 && !casecmp(name, cast_uchar "BODY", 4)) {
-		if (background) *background = get_attr_val(attr, cast_uchar "background"), background = NULL;
-		if (bgcolor) *bgcolor = get_attr_val(attr, cast_uchar "bgcolor"), bgcolor = NULL;
+		if (background) {
+			*background = get_attr_val(attr, cast_uchar "background");
+			background = NULL;
+		}
+		if (bgcolor) {
+			*bgcolor = get_attr_val(attr, cast_uchar "bgcolor");
+			bgcolor = NULL;
+		}
 		/*return;*/
 	}
 	if (title && !tlen && namelen == 5 && !casecmp(name, cast_uchar "TITLE", 5)) {

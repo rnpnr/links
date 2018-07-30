@@ -180,7 +180,10 @@ void unhandle_terminal_signals(struct terminal *term)
 #ifdef SIGCONT
 	install_signal_handler(SIGCONT, NULL, NULL, 0);
 #endif
-	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer), fg_poll_timer = NULL;
+	if (fg_poll_timer != NULL) {
+		kill_timer(fg_poll_timer);
+		fg_poll_timer = NULL;
+	}
 }
 
 static void unhandle_basic_signals(struct terminal *term)
@@ -200,7 +203,10 @@ static void unhandle_basic_signals(struct terminal *term)
 #ifdef SIGCONT
 	install_signal_handler(SIGCONT, NULL, NULL, 0);
 #endif
-	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer), fg_poll_timer = NULL;
+	if (fg_poll_timer != NULL) {
+		kill_timer(fg_poll_timer);
+		fg_poll_timer = NULL;
+	}
 }
 
 int terminal_pipe[2] = { -1, -1 };
@@ -517,8 +523,10 @@ static void terminate_all_subsystems(void)
 	GF(free_dither());
 	GF(shutdown_graphics());
 	os_free_clipboard();
-	if (fg_poll_timer != NULL)
-		kill_timer(fg_poll_timer), fg_poll_timer = NULL;
+	if (fg_poll_timer != NULL) {
+		kill_timer(fg_poll_timer);
+		fg_poll_timer = NULL;
+	}
 	terminate_select();
 }
 

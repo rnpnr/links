@@ -353,8 +353,10 @@ void truncate_entry(struct cache_entry *e, off_t off, int final)
 	int modified = final == 2;
 	struct fragment *f, *g;
 	struct list_head *lf;
-	if (e->length > off)
-		e->length = off, e->incomplete = 1;
+	if (e->length > off) {
+		e->length = off;
+		e->incomplete = 1;
+	}
 	foreach(struct fragment, f, lf, e->frag) {
 		if (f->offset >= off) {
 			modified = 1;
@@ -477,8 +479,17 @@ static int shrink_file_cache(int u)
 		ccs += (my_uintptr_t)e->data_size;
 		ccs2 += e->decompressed_len;
 	}
-	if (ccs != cache_size) internal("cache size badly computed: %lu != %lu", (unsigned long)cache_size, (unsigned long)ccs), cache_size = ccs;
-	if (ccs2 != decompressed_cache_size) internal("decompressed cache size badly computed: %lu != %lu", (unsigned long)decompressed_cache_size, (unsigned long)ccs2), decompressed_cache_size = ccs2;
+	if (ccs != cache_size) {
+		internal("cache size badly computed: %lu != %lu",
+			(unsigned long)cache_size, (unsigned long)ccs);
+		cache_size = ccs;
+	}
+	if (ccs2 != decompressed_cache_size) {
+		internal("decompressed cache size badly computed: %lu != %lu",
+			(unsigned long)decompressed_cache_size,
+			(unsigned long)ccs2);
+		decompressed_cache_size = ccs2;
+	}
 	if (u == SH_CHECK_QUOTA && ncs <= (my_uintptr_t)memory_cache_size) goto ret;
 	foreachback(struct cache_entry, e, le, cache) {
 		if (u == SH_CHECK_QUOTA && (longlong)ncs <= (longlong)memory_cache_size * MEMORY_CACHE_GC_PERCENT) goto g;

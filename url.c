@@ -614,12 +614,15 @@ unsigned char *translate_url(unsigned char *url, unsigned char *cwd)
 			g = memacpy(e, f - e);
 			tl = is_tld(g);
 			free(g);
-			if (tl)
-				http: prefix = cast_uchar "http://", sl = 1;
+			if (tl) {
+				http: prefix = cast_uchar "http://";
+				sl = 1;
+			}
 		}
-		if (*ch == '@' || *ch == ':' || !cmpbeg(url, cast_uchar "ftp.")) prefix = cast_uchar "ftp://", sl = 1;
-		goto set_prefix;
-		set_prefix:
+		if (*ch == '@' || *ch == ':' || !cmpbeg(url, cast_uchar "ftp.")) {
+			prefix = cast_uchar "ftp://";
+			sl = 1;
+		}
 		nu = stracpy(prefix);
 		add_to_strn(&nu, url);
 		if (sl && !strchr(cast_const_char url, '/')) add_to_strn(&nu, cast_uchar "/");
