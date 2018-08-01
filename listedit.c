@@ -1149,7 +1149,7 @@ static void redraw_list_line(struct terminal *term, void *bla)
 	struct list *l;
 
 	redraw_list_element(term, dlg, y, w, ld, ld->current_pos);
-	if (!F && (!term->spec->block_cursor || term->spec->braille)) {
+	if (!F && !term->spec->block_cursor) {
 		set_cursor(term, dlg->x + DIALOG_LB, y, dlg->x + DIALOG_LB, y);
 	}
 	y+=gf_val(direction, direction*G_BFU_FONT_SIZE);
@@ -1264,7 +1264,11 @@ static void list_find_next(struct redraw_data *rd, int direction)
 				if (l!=item) l->type|=2;
 
 		draw_to_window(dlg->win,redraw_list,rd);
-		if (!F) if (!ses->term->spec->block_cursor || ses->term->spec->braille) set_cursor(ses->term, dlg->x + DIALOG_LB, dlg->y+DIALOG_TB+ld->win_pos, dlg->x + DIALOG_LB, dlg->y+DIALOG_TB+ld->win_pos);
+		if (!F && !ses->term->spec->block_cursor)
+			set_cursor(ses->term, dlg->x + DIALOG_LB,
+				dlg->y + DIALOG_TB + ld->win_pos,
+				dlg->x + DIALOG_LB,
+				dlg->y + DIALOG_TB + ld->win_pos);
 	}
 	else
 		msg_box(ses->term, NULL, TEXT_(T_SEARCH), AL_CENTER, TEXT_(T_SEARCH_STRING_NOT_FOUND), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
@@ -1772,10 +1776,7 @@ static void create_list_window_fn(struct dialog_data *dlg)
 	dlg_format_buttons(dlg, NULL, dlg->items, a, 0, &y, w, &rw, AL_CENTER);
 
 	n_items = term->y - y;
-	if (!term->spec->braille)
-		n_items -= gf_val(2, 3) * DIALOG_TB + gf_val(2, 2*G_BFU_FONT_SIZE);
-	else
-		n_items -= 2;
+	n_items -= gf_val(2, 3) * DIALOG_TB + gf_val(2, 2 * G_BFU_FONT_SIZE);
 #ifdef G
 	if (F) n_items /= G_BFU_FONT_SIZE;
 #endif

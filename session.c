@@ -296,7 +296,6 @@ static void x_print_screen_title(struct terminal *term, void *ses_)
 	if ((m = print_current_title(ses))) {
 		int p = term->x - 1 - cp_len(term_charset(ses->term), m);
 		if (p < 0) p = 0;
-		if (term->spec->braille) p = 0;
 		print_text(term, p, 0, cp_len(term_charset(ses->term), m), m, color);
 		free(m);
 	}
@@ -624,7 +623,8 @@ void download_window_function(struct dialog_data *dlg)
 	min_buttons_width(term, dlg->items, dlg->n, &min);
 	w = dlg->win->term->x * 9 / 10 - 2 * DIALOG_LB;
 	if (w < min) w = min;
-	if (!dlg->win->term->spec->braille && w > dlg->win->term->x - 2 * DIALOG_LB) w = dlg->win->term->x - 2 * DIALOG_LB;
+	if (w > dlg->win->term->x - 2 * DIALOG_LB)
+		w = dlg->win->term->x - 2 * DIALOG_LB;
 	if (show_percentage) {
 		if (w < DOWN_DLG_MIN) w = DOWN_DLG_MIN;
 	} else {
@@ -649,7 +649,6 @@ void download_window_function(struct dialog_data *dlg)
 		if (!F) {
 			unsigned char *q;
 			int p = w - 6;
-			if (term->spec->braille && p > 39 - 6) p = 39 - 6;
 			y++;
 			set_only_char(term, x, y, '[', 0);
 			set_only_char(term, x + p + 1, y, ']', 0);
@@ -1662,11 +1661,9 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 		}
 #endif
 		o.cp = term_charset(fd->ses->term);
-		o.braille = fd->ses->term->spec->braille;
 	} else {
 		o.col = 3;
 		o.cp = 0;
-		o.braille = 0;
 	}
 	if (!(o.framename = fd->loc->name)) o.framename = NULL;
 	if (!(fd->f_data = cached_format_html(fd, fd->rq, fd->rq->url, &o, &cch, report_status))) {

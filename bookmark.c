@@ -170,7 +170,6 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 	int y = gf_val(-1, -1 * G_BFU_FONT_SIZE);
 	struct terminal *term;
 	int a;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 
 	term = dlg->win->term;
 
@@ -198,7 +197,6 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	for (a = 0; a < dlg->n - 2; a++) {
 		dlg_format_text_and_field(dlg, term, bm_add_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 		y += gf_val(1, G_BFU_FONT_SIZE);

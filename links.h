@@ -1546,7 +1546,6 @@ struct term_spec {
 	int restrict_852;
 	int block_cursor;
 	int col;
-	int braille;
 	int character_set;
 	int left_margin;
 	int right_margin;
@@ -1929,7 +1928,6 @@ struct document_options {
 	int xp, yp; /* pos of window */
 	int scrolling;
 	int col, cp, assume_cp, hard_assume;
-	int braille;
 	int tables, frames, break_long_lines, images, image_names, margin;
 	int js_enable;
 	int plain;

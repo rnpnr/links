@@ -158,7 +158,6 @@ static void assoc_edit_item_fn(struct dialog_data *dlg)
 	int w, rw;
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
 	int p = 3;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	p++;
 	p += 2;
 	max_text_width(term, ct_msg[0], &max, AL_LEFT);
@@ -192,7 +191,6 @@ static void assoc_edit_item_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, ct_msg[0], &dlg->items[0], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, ct_msg[1], &dlg->items[1], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
@@ -520,7 +518,6 @@ static void ext_edit_item_fn(struct dialog_data *dlg)
 	int max = 0, min = 0;
 	int w, rw;
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	max_text_width(term, ext_msg[0], &max, AL_LEFT);
 	min_text_width(term, ext_msg[0], &min, AL_LEFT);
 	max_text_width(term, ext_msg[1], &max, AL_LEFT);
@@ -548,8 +545,6 @@ static void ext_edit_item_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille)
-		y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, ext_msg[0], &dlg->items[0], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, ext_msg[1], &dlg->items[1], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);

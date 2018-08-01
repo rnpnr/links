@@ -136,8 +136,6 @@ static void block_edit_item_fn(struct dialog_data *dlg)
 	unsigned char *text = TEXT_(T_ENTER_URL);
 
 
-	if (dlg->win->term->spec->braille)
-		y += gf_val(1, G_BFU_FONT_SIZE);
 	max_text_width(term, text, &max, AL_LEFT);
 	min_text_width(term, text, &min, AL_LEFT);
 	max_buttons_width(term, dlg->items + 1, 2, &max);
@@ -159,8 +157,6 @@ static void block_edit_item_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille)
-		y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, text, dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += LL;
 	dlg_format_buttons(dlg, term, dlg->items + 1, 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);

@@ -158,10 +158,9 @@ static void menu_about(struct terminal *term, void *d, void *ses_)
 
 static void menu_keys(struct terminal *term, void *d, void *ses_)
 {
-	if (!term->spec->braille)
-		msg_box(term, NULL, TEXT_(T_KEYS), AL_LEFT | AL_MONO, TEXT_(T_KEYS_DESC), MSG_BOX_END, NULL, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
-	else
-		msg_box(term, NULL, TEXT_(T_KEYS), AL_LEFT | AL_MONO, TEXT_(T_KEYS_DESC), cast_uchar "\n", TEXT_(T_KEYS_BRAILLE_DESC), MSG_BOX_END, NULL, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
+	msg_box(term, NULL, TEXT_(T_KEYS), AL_LEFT | AL_MONO,
+		TEXT_(T_KEYS_DESC), MSG_BOX_END, NULL, 1, TEXT_(T_OK),
+		msg_box_null, B_ENTER | B_ESC);
 }
 
 void activate_keys(struct session *ses)
@@ -608,7 +607,7 @@ static void terminal_options_ok(void *p)
 	cls_redraw_all_terminals();
 }
 
-static unsigned char * const td_labels[] = { TEXT_(T_NO_FRAMES), TEXT_(T_VT_100_FRAMES), TEXT_(T_LINUX_OR_OS2_FRAMES), TEXT_(T_KOI8R_FRAMES), TEXT_(T_FREEBSD_FRAMES), TEXT_(T_USE_11M), TEXT_(T_RESTRICT_FRAMES_IN_CP850_852), TEXT_(T_BLOCK_CURSOR), TEXT_(T_COLOR), TEXT_(T_BRAILLE_TERMINAL), NULL };
+static unsigned char * const td_labels[] = { TEXT_(T_NO_FRAMES), TEXT_(T_VT_100_FRAMES), TEXT_(T_LINUX_OR_OS2_FRAMES), TEXT_(T_KOI8R_FRAMES), TEXT_(T_FREEBSD_FRAMES), TEXT_(T_USE_11M), TEXT_(T_RESTRICT_FRAMES_IN_CP850_852), TEXT_(T_BLOCK_CURSOR), TEXT_(T_COLOR), NULL };
 
 static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 {
@@ -660,19 +659,15 @@ static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 	d->items[8].gid = 0;
 	d->items[8].dlen = sizeof(int);
 	d->items[8].data = (void *)&ts->col;
-	d->items[9].type = D_CHECKBOX;
-	d->items[9].gid = 0;
-	d->items[9].dlen = sizeof(int);
-	d->items[9].data = (void *)&ts->braille;
+	d->items[9].type = D_BUTTON;
+	d->items[9].gid = B_ENTER;
+	d->items[9].fn = ok_dialog;
+	d->items[9].text = TEXT_(T_OK);
 	d->items[10].type = D_BUTTON;
-	d->items[10].gid = B_ENTER;
-	d->items[10].fn = ok_dialog;
-	d->items[10].text = TEXT_(T_OK);
-	d->items[11].type = D_BUTTON;
-	d->items[11].gid = B_ESC;
-	d->items[11].fn = cancel_dialog;
-	d->items[11].text = TEXT_(T_CANCEL);
-	d->items[12].type = D_END;
+	d->items[10].gid = B_ESC;
+	d->items[10].fn = cancel_dialog;
+	d->items[10].text = TEXT_(T_CANCEL);
+	d->items[11].type = D_END;
 	do_dialog(term, d, getml(d, NULL));
 }
 
@@ -1206,7 +1201,6 @@ static void proxy_fn(struct dialog_data *dlg)
 	int w, rw;
 	int i;
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	for (i = 0; i < N_N; i++) {
 		max_text_width(term, proxy_msg[i], &max, AL_LEFT);
 		min_text_width(term, proxy_msg[i], &min, AL_LEFT);
@@ -1223,7 +1217,7 @@ static void proxy_fn(struct dialog_data *dlg)
 	rw = 0;
 	for (i = 0; i < N_N; i++) {
 		dlg_format_text_and_field(dlg, NULL, proxy_msg[i], &dlg->items[i], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-		if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+		y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	}
 	dlg_format_group(dlg, NULL, proxy_msg + N_N, dlg->items + N_N, dlg->n - 2 - N_N, 0, &y, w, &rw);
 	y += gf_val(1, G_BFU_FONT_SIZE);
@@ -1234,10 +1228,9 @@ static void proxy_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	for (i = 0; i < N_N; i++) {
 		dlg_format_text_and_field(dlg, term, proxy_msg[i], &dlg->items[i], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-		if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
+		y += gf_val(1, G_BFU_FONT_SIZE);
 	}
 	dlg_format_group(dlg, term, proxy_msg + N_N, &dlg->items[N_N], dlg->n - 2 - N_N, dlg->x + DIALOG_LB, &y, w, NULL);
 	y += gf_val(1, G_BFU_FONT_SIZE);
@@ -1591,9 +1584,9 @@ static void ssl_options_fn(struct dialog_data *dlg)
 	dlg_format_checkboxes(dlg, NULL, dlg->items, dlg->n - 5, 0, &y, w, &rw, dlg->dlg->udata);
 	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, NULL, ssl_labels[dlg->n - 5], dlg->items + dlg->n - 5, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, NULL, ssl_labels[dlg->n - 4], dlg->items + dlg->n - 4, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, NULL, ssl_labels[dlg->n - 3], dlg->items + dlg->n - 3, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 2, 2, 0, &y, w, &rw, AL_CENTER);
@@ -1606,9 +1599,9 @@ static void ssl_options_fn(struct dialog_data *dlg)
 	dlg_format_checkboxes(dlg, term, dlg->items, dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, dlg->dlg->udata);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, ssl_labels[dlg->n - 5], dlg->items + dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, term, ssl_labels[dlg->n - 4], dlg->items + dlg->n - 4, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, term, ssl_labels[dlg->n - 3], dlg->items + dlg->n - 3, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, term, dlg->items + dlg->n - 2, 2, dlg->x + DIALOG_LB, &y, w, &rw, AL_CENTER);
@@ -1702,9 +1695,9 @@ static void httpheadopt_fn(struct dialog_data *dlg)
 	dlg_format_checkboxes(dlg, NULL, dlg->items, dlg->n - 5, 0, &y, w, &rw, dlg->dlg->udata);
 	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, NULL, http_header_labels[dlg->n - 5], dlg->items + dlg->n - 5, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, NULL, http_header_labels[dlg->n - 4], dlg->items + dlg->n - 4, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, NULL, http_header_labels[dlg->n - 3], dlg->items + dlg->n - 3, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 2, 2, 0, &y, w, &rw, AL_CENTER);
@@ -1717,9 +1710,9 @@ static void httpheadopt_fn(struct dialog_data *dlg)
 	dlg_format_checkboxes(dlg, term, dlg->items, dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, dlg->dlg->udata);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, http_header_labels[dlg->n - 5], dlg->items + dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, term, http_header_labels[dlg->n - 4], dlg->items + dlg->n - 4, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	if (!dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += gf_val(1, G_BFU_FONT_SIZE * 1);
 	dlg_format_text_and_field(dlg, term, http_header_labels[dlg->n - 3], dlg->items + dlg->n - 3, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, term, dlg->items + dlg->n - 2, 2, dlg->x + DIALOG_LB, &y, w, &rw, AL_CENTER);
@@ -1863,7 +1856,6 @@ static void ftpopt_fn(struct dialog_data *dlg)
 	int max = 0, min = 0;
 	int w, rw;
 	int y = 0;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	max_text_width(term, ftp_texts[0], &max, AL_LEFT);
 	min_text_width(term, ftp_texts[0], &min, AL_LEFT);
 	checkboxes_width(term, ftp_texts + 1, dlg->n - 3, &max, max_text_width);
@@ -1886,7 +1878,6 @@ static void ftpopt_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, ftp_texts[0], dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_checkboxes(dlg, term, dlg->items + 1, dlg->n - 3, dlg->x + DIALOG_LB, &y, w, NULL, ftp_texts + 1);
@@ -1975,17 +1966,15 @@ static void netprog_fn(struct dialog_data *dlg)
 	if (w < 1) w = 1;
 	rw = 0;
 	a=0;
-	if (term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	a++;
 #ifdef G
 	if (have_extra_exec()) {
 		dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 		a++;
-		if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
+		y += gf_val(1, G_BFU_FONT_SIZE);
 	}
 #endif
-	if (term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, NULL, dlg->items + a, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
@@ -1993,7 +1982,6 @@ static void netprog_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	a=0;
 	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	a++;
@@ -2001,10 +1989,9 @@ static void netprog_fn(struct dialog_data *dlg)
 	if (have_extra_exec()) {
 		dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 		a++;
-		if (!term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
+		y += gf_val(1, G_BFU_FONT_SIZE);
 	}
 #endif
-	if (term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, term, &dlg->items[a], 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
 
@@ -2014,7 +2001,8 @@ static void net_programs(struct terminal *term, void *xxx, void *yyy)
 	int a;
 	d = mem_calloc(sizeof(struct dialog) + 8 * sizeof(struct dialog_item));
 #ifdef G
-	if (have_extra_exec()) d->title = TEXT_(T_MAIL_TELNET_AND_SHELL_PROGRAMS);
+	if (have_extra_exec())
+		d->title = TEXT_(T_MAIL_TELNET_AND_SHELL_PROGRAMS);
 	else
 #endif
 	d->title = TEXT_(T_MAIL_AND_TELNET_PROGRAMS);

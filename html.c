@@ -1071,10 +1071,7 @@ static void html_img(unsigned char *a)
 	|| (s = get_url_val_nonempty(a, cast_uchar "dynsrc"))
 	|| (s = get_url_val_nonempty(a, cast_uchar "data"))
 	|| (s = get_url_val_nonempty(a, cast_uchar "content"))) {
-		 if (!format_.link && d_opt->braille)
-			goto skip_img;
 		 format_.image = join_urls(format_.href_base, s);
-		 skip_img:
 		 orig_link = s;
 	}
 	if (!F || !d_opt->display_images) {

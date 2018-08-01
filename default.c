@@ -700,7 +700,6 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '3') goto err_f;
 	ts->m11_hack = (w[0] - '0') & 1;
-	ts->braille = !!((w[0] - '0') & 2);
 	free(w);
 	if (!(w = get_token(&c))) goto err;
 	if (strlen(cast_const_char w) != 1 || w[0] < '0' || w[0] > '7') goto err_f;
@@ -789,7 +788,7 @@ static void term_wr(struct option *o, unsigned char **s, int *l)
 		add_to_str(s, l, cast_uchar " ");
 		add_num_to_str(s, l, ts->mode);
 		add_to_str(s, l, cast_uchar " ");
-		add_num_to_str(s, l, !!ts->m11_hack + !!ts->braille * 2);
+		add_num_to_str(s, l, !!ts->m11_hack);
 		add_to_str(s, l, cast_uchar " ");
 		add_num_to_str(s, l, !!ts->col + !!ts->restrict_852 * 2 + !!ts->block_cursor * 4);
 		add_to_str(s, l, cast_uchar " ");

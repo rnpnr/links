@@ -188,8 +188,7 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 	menu->free_function = free_function;
 	menu->free_data = free_data;
 	for (i = 0; i < menu->ni; i++)
-		menu->hotkeys[i] = select_hotkey(term,
-					!term->spec->braille ? items[i].text : NULL,
+		menu->hotkeys[i] = select_hotkey(term, items[i].text,
 					items[i].hotkey, menu->hotkeys, i);
 #ifdef G
 	if (F) {
@@ -291,13 +290,6 @@ static void count_menu_size(struct terminal *term, struct menu *menu)
 	if ((menu->y = menu->yp) < 0) menu->y = 0;
 	if (menu->x + mx > sx) menu->x = sx - mx;
 	if (menu->y + my > sy) menu->y = sy - my;
-	if (term->spec->braille) {
-		menu->x = -1;
-		menu->y = -1;
-		menu->xw = term->x + 2;
-		menu->yw = term->y + 2;
-		menu->nview = term->y;
-	}
 #ifdef G
 	if (F) set_window_pos(menu->win, menu->x, menu->y, menu->x + menu->xw, menu->y + menu->yw);
 #endif
@@ -332,7 +324,6 @@ static void display_menu_txt(struct terminal *term, void *menu_)
 {
 	struct menu *menu = (struct menu *)menu_;
 	int p, s;
-	int setc = 0;
 	fill_area(term, menu->x+1, menu->y+1, menu->xw-2, menu->yw-2, ' ', COLOR_MENU_TEXT);
 	draw_frame(term, menu->x, menu->y, menu->xw, menu->yw, COLOR_MENU_FRAME, 1);
 	set_window_ptr(menu->win, menu->x, menu->y);
@@ -348,50 +339,39 @@ static void display_menu_txt(struct terminal *term, void *menu_)
 		} else
 			co = COLOR_MENU_TEXT;
 		if (h) {
-			setc = 1;
-			set_cursor(term, menu->x + 1 + !!term->spec->braille, s, term->x - 1, term->y - 1);
+			set_cursor(term, menu->x + 1, s, term->x - 1,
+				term->y - 1);
 			/*set_window_ptr(menu->win, menu->x+3, s+1);*/
 			set_window_ptr(menu->win, menu->x+menu->xw, s);
 			fill_area(term, menu->x+1, s, menu->xw-2, 1, ' ', co);
 		}
-		if (term->spec->braille) h = 1;
 		if (menu->items[p].hotkey != M_BAR || (tmptext[0])) {
 			unsigned char *rt = get_text_translation(get_rtext(menu->items[p].rtext), term);
 			int l = ttxtlen(term, rt);
 			for (x = 0;; x++) {
 				c = GET_TERM_CHAR(term, &rt);
 				if (!c) break;
-				if (!term->spec->braille) {
-					if (menu->xw - 4 >= l - x)
-						set_char(term, menu->x + menu->xw - 2 - l + x, s, c, co);
-				} else {
-					set_char(term, menu->x + ttxtlen(term, tmptext) + 4 + x + 2, s, c, COLOR_MENU_HOTKEY);
-				}
+				if (menu->xw - 4 >= l - x)
+					set_char(term,
+						menu->x + menu->xw - 2 - l + x,
+						s, c, co);
 			}
 			for (x = 0; x < menu->xw - 4; x++) {
 				c = GET_TERM_CHAR(term, &tmptext);
 				if (!c) break;
 				if (!h && charset_upcase(c, term_charset(term)) == menu->hotkeys[p]) {
 					h = 1;
-					set_char(term,
-						menu->x + x + 2 + 2 * !!term->spec->braille,
-						s, c, COLOR_MENU_HOTKEY);
+					set_char(term, menu->x + x + 2, s, c,
+						COLOR_MENU_HOTKEY);
 				} else
 					set_char(term,
-						menu->x + x + 2 + 2 * !!term->spec->braille,
-						s, c, co);
-			}
-			if (term->spec->braille && menu->hotkeys[p]) {
-				set_char(term, menu->x + 2, s, menu->hotkeys[p], COLOR_MENU_HOTKEY);
+						menu->x + x + 2, s, c, co);
 			}
 		} else {
 			set_char(term, menu->x, s, 0xc3, COLOR_MENU_FRAME | ATTR_FRAME);
 			fill_area(term, menu->x+1, s, menu->xw-2, 1, 0xc4, COLOR_MENU_FRAME | ATTR_FRAME);
 			set_char(term, menu->x+menu->xw-1, s, 0xb4, COLOR_MENU_FRAME | ATTR_FRAME);
 		}
-	}
-	if (!setc && term->spec->braille) {
-		set_cursor(term, menu->x + 1, menu->y + 1, term->x - 1, term->y - 1);
 	}
 }
 
@@ -700,10 +680,6 @@ static void display_mainmenu(struct terminal *term, void *menu_)
 				set_cursor(term, p, 0, term->x - 1, term->y - 1);
 				set_window_ptr(menu->win, p, 1);
 			}
-			if (term->spec->braille) {
-				s = 1;
-				if (menu->hotkeys[i]) set_char(term, p, 0, menu->hotkeys[i], COLOR_MAINMENU_HOTKEY);
-			}
 			p += 2;
 			for (;; p++) {
 				c = GET_TERM_CHAR(term, &tmptext);
@@ -796,7 +772,9 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 					if (ev->x >= o && ev->x < p) {
 						menu->selected = i;
 						draw_to_window(win, display_mainmenu, menu);
-						if ((ev->b & BM_ACT) == B_UP || (menu->items[s].in_m && !win->term->spec->braille)) select_mainmenu(win->term, menu);
+						if ((ev->b & BM_ACT) == B_UP
+						|| menu->items[s].in_m)
+							select_mainmenu(win->term, menu);
 						break;
 					}
 				}
@@ -1207,11 +1185,6 @@ static void redraw_dialog_items(struct terminal *term, void *dlg_)
 	for (i = 0; i < dlg->n; i++) display_dlg_item(dlg, &dlg->items[i], i == dlg->selected);
 }
 
-static int dlg_is_braille_moving(struct dialog_data *dlg)
-{
-	return dlg->win->term->spec->braille && (dlg->dlg->fn == msg_box_fn || dlg->dlg->fn == download_window_function);
-}
-
 static void redraw_dialog(struct terminal *term, void *dlg_)
 {
 	struct dialog_data *dlg = (struct dialog_data *)dlg_;
@@ -1220,10 +1193,6 @@ static void redraw_dialog(struct terminal *term, void *dlg_)
 #endif
 	dlg->dlg->fn(dlg);
 	redraw_dialog_items(term, dlg);
-	if (dlg_is_braille_moving(dlg)) {
-		if (dlg->brl_y < dlg->items[0].y - 3)
-			set_cursor(term, dlg->x + 6, dlg->y + 3 + dlg->brl_y, dlg->x + 6, dlg->y + 3 + dlg->brl_y);
-	}
 #ifdef G
 	if (F) {
 		drv->set_clip_area(term->dev, &dlg->r);
@@ -1346,7 +1315,6 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 			draw_to_window(dlg->win, redraw_dialog, dlg);
 			/*-fallthrough*/
 		case EV_REDRAW:
-			redraw:
 			draw_to_window(dlg->win, redraw_dialog, dlg);
 			break;
 		case EV_MOUSE:
@@ -1363,26 +1331,6 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 				if (!((di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) &&
 				      (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT)))))
 					break;
-			}
-			if (ev->x == KBD_UP && dlg_is_braille_moving(dlg)) {
-				if (dlg->brl_y) dlg->brl_y--;
-				goto redraw;
-			}
-			if (ev->x == KBD_DOWN && dlg_is_braille_moving(dlg)) {
-				if (dlg->brl_y < dlg->items[0].y - 3) dlg->brl_y++;
-				goto redraw;
-			}
-			if ((ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL) || ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) && dlg_is_braille_moving(dlg)) {
-				dlg->brl_y = 0;
-				goto redraw;
-			}
-			if ((ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) && dlg_is_braille_moving(dlg)) {
-				dlg->brl_y = dlg->items[0].y - 4;
-				goto redraw;
-			}
-			if ((ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F' && ev->y & KBD_CTRL)) && dlg_is_braille_moving(dlg)) {
-				dlg->brl_y = dlg->items[0].y - 3;
-				goto redraw;
 			}
 			if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) {
 				if (ev->x == KBD_UP && di->cur_hist->prev != &di->history) {
@@ -1553,15 +1501,15 @@ clipbd_paste:
 				dlg_select_item(dlg, &dlg->items[i]);
 				goto bla;
 			}
-			if (((ev->x == KBD_TAB && !ev->y) || ev->x == KBD_DOWN || ev->x == KBD_RIGHT) && (dlg->n > 1 || term->spec->braille)) {
-				if (term->spec->braille) dlg->brl_y = dlg->items[0].y - 3;
+			if (((ev->x == KBD_TAB && !ev->y) || ev->x == KBD_DOWN
+			|| ev->x == KBD_RIGHT) && dlg->n > 1) {
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
 				if ((++dlg->selected) >= dlg->n) dlg->selected = 0;
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
 				break;
 			}
-			if (((ev->x == KBD_TAB && ev->y) || ev->x == KBD_UP || ev->x == KBD_LEFT) && (dlg->n > 1 || term->spec->braille)) {
-				if (term->spec->braille) dlg->brl_y = dlg->items[0].y - 3;
+			if (((ev->x == KBD_TAB && ev->y) || ev->x == KBD_UP
+			|| ev->x == KBD_LEFT) && dlg->n > 1) {
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
 				if ((--dlg->selected) < 0) dlg->selected = dlg->n - 1;
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
@@ -1732,15 +1680,8 @@ int ok_dialog(struct dialog_data *dlg, struct dialog_item_data *di)
 
 void center_dlg(struct dialog_data *dlg)
 {
-	if (!dlg->win->term->spec->braille) {
-		dlg->x = (dlg->win->term->x - dlg->xw) / 2;
-		dlg->y = (dlg->win->term->y - dlg->yw) / 2;
-	} else {
-		dlg->x = -6;
-		dlg->y = -1;
-		dlg->xw = dlg->win->term->x + 12;
-		dlg->yw = dlg->win->term->y + 3;
-	}
+	dlg->x = (dlg->win->term->x - dlg->xw) / 2;
+	dlg->y = (dlg->win->term->y - dlg->yw) / 2;
 }
 
 void draw_dlg(struct dialog_data *dlg)
@@ -1752,7 +1693,6 @@ void draw_dlg(struct dialog_data *dlg)
 		draw_frame(term, dlg->x + DIALOG_LEFT_BORDER, dlg->y + DIALOG_TOP_BORDER, dlg->xw - 2 * DIALOG_LEFT_BORDER, dlg->yw - 2 * DIALOG_TOP_BORDER, COLOR_DIALOG_FRAME, DIALOG_FRAME);
 		i = ttxtlen(term, get_text_translation(dlg->dlg->title, term));
 		tpos = (dlg->xw - i) / 2;
-		if (term->spec->braille) tpos = 9;
 		print_text(term, tpos + dlg->x - 1, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
 		print_text(term, tpos + dlg->x, dlg->y + DIALOG_TOP_BORDER, i, get_text_translation(dlg->dlg->title, term), COLOR_DIALOG_TITLE);
 		print_text(term, tpos + dlg->x + i, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
@@ -1829,7 +1769,6 @@ void draw_dlg(struct dialog_data *dlg)
 
 void max_text_width(struct terminal *term, unsigned char *text, int *width, int align)
 {
-	if (term->spec->braille) *width = term->x;
 	text = get_text_translation(text, term);
 	do {
 		int c = 0;
@@ -1852,7 +1791,6 @@ void max_text_width(struct terminal *term, unsigned char *text, int *width, int 
 
 void min_text_width(struct terminal *term, unsigned char *text, int *width, int align)
 {
-	if (term->spec->braille) *width = term->x;
 	text = get_text_translation(text, term);
 	do {
 		int c = 0;
@@ -1880,7 +1818,6 @@ int dlg_format_text(struct dialog_data *dlg, struct terminal *term, unsigned cha
 	unsigned char *tx2;
 #endif
 	text = get_text_translation(text, dlg->win->term);
-	if (dlg->win->term->spec->braille && !(align & AL_NOBRLEXP)) w = dlg->win->term->x;
 	if (!F) while (1) {
 		unsigned char *t1;
 		unsigned ch;
@@ -1908,7 +1845,7 @@ int dlg_format_text(struct dialog_data *dlg, struct terminal *term, unsigned cha
 		print_line:
 		if (rw && lbr > *rw) *rw = lbr;
 		xx = x;
-		if ((align & AL_MASK) == AL_CENTER && !dlg->win->term->spec->braille) {
+		if ((align & AL_MASK) == AL_CENTER) {
 			xx += (w - lbr) / 2;
 		}
 		for (; lbr--; xx++) {
@@ -1977,7 +1914,6 @@ void max_buttons_width(struct terminal *term, struct dialog_item_data *butt, int
 {
 	int w = gf_val(-2, -G_DIALOG_BUTTON_SPACE);
 	int i;
-	if (term->spec->braille) *width = term->x;
 	for (i = 0; i < n; i++) w += txtlen(term, get_text_translation((butt++)->item->text, term)) + gf_val(6, G_DIALOG_BUTTON_SPACE + txtlen(term, cast_uchar G_DIALOG_BUTTON_L) + txtlen(term, cast_uchar G_DIALOG_BUTTON_R));
 	if (w > *width) *width = w;
 }
@@ -1985,7 +1921,6 @@ void max_buttons_width(struct terminal *term, struct dialog_item_data *butt, int
 void min_buttons_width(struct terminal *term, struct dialog_item_data *butt, int n, int *width)
 {
 	int i;
-	if (term->spec->braille) *width = term->x;
 	for (i = 0; i < n; i++) {
 		int w = txtlen(term, get_text_translation((butt++)->item->text, term)) + gf_val(4, txtlen(term, cast_uchar(G_DIALOG_BUTTON_L G_DIALOG_BUTTON_R)));
 		if (w > *width) *width = w;
@@ -1995,7 +1930,6 @@ void min_buttons_width(struct terminal *term, struct dialog_item_data *butt, int
 void dlg_format_buttons(struct dialog_data *dlg, struct terminal *term, struct dialog_item_data *butt, int n, int x, int *y, int w, int *rw, int align)
 {
 	int i1 = 0;
-	if (dlg->win->term->spec->braille) w = dlg->win->term->x;
 	while (i1 < n) {
 		int i2 = i1 + 1;
 		int mw;
@@ -2036,7 +1970,6 @@ void dlg_format_checkbox(struct dialog_data *dlg, struct terminal *term, struct 
 
 void dlg_format_checkboxes(struct dialog_data *dlg, struct terminal *term, struct dialog_item_data *chkb, int n, int x, int *y, int w, int *rw, unsigned char * const *texts)
 {
-	if (dlg->win->term->spec->braille) w = dlg->win->term->x;
 	while (n) {
 		dlg_format_checkbox(dlg, term, chkb, x, y, w, rw, texts[0]);
 		texts++; chkb++; n--;
@@ -2056,7 +1989,6 @@ void checkboxes_width(struct terminal *term, unsigned char * const *texts, int n
 
 void dlg_format_field(struct dialog_data *dlg, struct terminal *term, struct dialog_item_data *item, int x, int *y, int w, int *rw, int align)
 {
-	if (dlg->win->term->spec->braille) w = dlg->win->term->x;
 	if (term) {
 		item->x = x;
 		item->y = *y;
@@ -2068,21 +2000,8 @@ void dlg_format_field(struct dialog_data *dlg, struct terminal *term, struct dia
 
 void dlg_format_text_and_field(struct dialog_data *dlg, struct terminal *term, unsigned char *text, struct dialog_item_data *item, int x, int *y, int w, int *rw, unsigned char co, int align)
 {
-	if (!dlg->win->term->spec->braille) {
-		dlg_format_text(dlg, term, text, x, y, w, rw, co, align);
-		dlg_format_field(dlg, term, item, x, y, w, rw, align);
-	} else {
-		int pos = dlg_format_text(dlg, term, text, x, y, w, rw, co, align);
-		if (pos >= w - 4) {
-			(*y)++;
-			pos = 0;
-		}
-		if (term) {
-			item->x = x + pos;
-			item->y = *y - 1;
-			item->l = w - pos;
-		}
-	}
+	dlg_format_text(dlg, term, text, x, y, w, rw, co, align);
+	dlg_format_field(dlg, term, item, x, y, w, rw, align);
 }
 
 
@@ -2100,7 +2019,6 @@ void dlg_format_box(struct terminal *term, struct terminal *t2, struct dialog_it
 void max_group_width(struct terminal *term, unsigned char * const *texts, struct dialog_item_data *item, int n, int *w)
 {
 	int ww = 0;
-	if (term->spec->braille) *w = term->x;
 	while (n--) {
 		int wx = item->item->type == D_CHECKBOX ? gf_val(4, txtlen(term, cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R)) + G_DIALOG_CHECKBOX_SPACE) :
 			item->item->type == D_BUTTON ? txtlen(term, get_text_translation(item->item->text, term)) + (gf_val(4, txtlen(term, cast_uchar(G_DIALOG_BUTTON_L G_DIALOG_BUTTON_R)))) :
@@ -2116,7 +2034,6 @@ void max_group_width(struct terminal *term, unsigned char * const *texts, struct
 
 void min_group_width(struct terminal *term, unsigned char * const *texts, struct dialog_item_data *item, int n, int *w)
 {
-	if (term->spec->braille) *w = term->x;
 	while (n--) {
 		int wx = item->item->type == D_CHECKBOX ? gf_val(4, txtlen(term, cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R)) + G_DIALOG_CHECKBOX_SPACE) :
 			item->item->type == D_BUTTON ? txtlen(term, get_text_translation(item->item->text, term)) + (gf_val(4, txtlen(term, cast_uchar(G_DIALOG_BUTTON_L G_DIALOG_BUTTON_R)))) :
@@ -2130,9 +2047,7 @@ void min_group_width(struct terminal *term, unsigned char * const *texts, struct
 
 void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned char * const *texts, struct dialog_item_data *item, int n, int x, int *y, int w, int *rw)
 {
-	int f = 1;
 	int nx = 0;
-	if (dlg->win->term->spec->braille) w = dlg->win->term->x;
 	while (n--) {
 		int wx = item->item->type == D_CHECKBOX ? gf_val(3, txtlen(dlg->win->term, cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R))) :
 			item->item->type == D_BUTTON ? txtlen(dlg->win->term, get_text_translation(item->item->text, dlg->win->term)) + (gf_val(4, txtlen(dlg->win->term, cast_uchar(G_DIALOG_BUTTON_L G_DIALOG_BUTTON_R)))) :
@@ -2141,12 +2056,7 @@ void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned c
 		if (get_text_translation(texts[0], dlg->win->term)[0]) sl = txtlen(dlg->win->term, get_text_translation(texts[0], dlg->win->term)) + gf_val(1, G_DIALOG_GROUP_TEXT_SPACE);
 		else sl = 0;
 		wx += sl;
-		if (dlg->win->term->spec->braille) {
-			if (!f) {
-				nx = 0;
-				(*y) += gf_val(1, G_BFU_FONT_SIZE * 1);
-			} else f = 0;
-		} else if (nx && nx + wx > w) {
+		if (nx && nx + wx > w) {
 			nx = 0;
 			(*y) += gf_val(2, G_BFU_FONT_SIZE * 2);
 		}
@@ -2409,7 +2319,6 @@ static void input_field_fn(struct dialog_data *dlg)
 	int max = 0, min = 0;
 	int w, rw;
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	max_text_width(term, dlg->dlg->udata, &max, AL_LEFT);
 	min_text_width(term, dlg->dlg->udata, &min, AL_LEFT);
 	max_buttons_width(term, dlg->items + 1, dlg->n - 1, &max);
@@ -2428,7 +2337,6 @@ static void input_field_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	if (dlg->win->term->spec->braille) y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text_and_field(dlg, term, dlg->dlg->udata, dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += LL;
 	dlg_format_buttons(dlg, term, dlg->items + 1, dlg->n - 1, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);

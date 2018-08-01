@@ -376,10 +376,7 @@ static void add_user_agent(unsigned char **hdr, int *l)
 		add_to_str(hdr, l, system_name);
 		add_to_str(hdr, l, cast_uchar "; ");
 		if (!F && !list_empty(terminals)) {
-			struct terminal *term;
-			struct list_head *lterm;
 			unsigned char *t = cast_uchar "text";
-			foreach(struct terminal, term, lterm, terminals) if (term->spec->braille) t = cast_uchar "braille";
 			add_to_str(hdr, l, t);
 		}
 #ifdef G

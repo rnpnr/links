@@ -551,8 +551,8 @@ void free_term_specs(void)
 	free_list(struct term_spec, term_specs);
 }
 
-static struct term_spec dumb_term = { init_list_1st(NULL) "", 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, init_list_last(NULL) };
-static struct term_spec cygwin_term = { init_list_1st(NULL) "", 2, 1, 1, 0, 1, 0, -1, 0, 0, 0, 0, init_list_last(NULL) };
+static struct term_spec dumb_term = { init_list_1st(NULL) "", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, init_list_last(NULL) };
+static struct term_spec cygwin_term = { init_list_1st(NULL) "", 2, 1, 1, 0, 1, 0, 0, 0, 0, 0, init_list_last(NULL) };
 
 static struct term_spec *default_term_spec(unsigned char *term)
 {
@@ -659,7 +659,7 @@ direct:
 
 #ifdef G
 
-static struct term_spec gfx_term = { init_list_1st(NULL) "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, init_list_last(NULL) };
+static struct term_spec gfx_term = { init_list_1st(NULL) "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, init_list_last(NULL) };
 
 struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links_event *, int), unsigned char *cwd, void *info, int len)
 {
@@ -1277,7 +1277,7 @@ void print_text(struct terminal *t, int x, int y, int l, unsigned char *text, un
 void set_cursor(struct terminal *term, int x, int y, int altx, int alty)
 {
 	term->dirty = 1;
-	if (term->spec->block_cursor && !term->spec->braille) {
+	if (term->spec->block_cursor) {
 		x = altx;
 		y = alty;
 	}

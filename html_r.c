@@ -728,7 +728,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		last_form = NULL;
 		last_js_event = NULL;
 		if (!(format_.link || format_.image || format_.form || format_.js_event)) goto no_l;
-		if (d_opt->num_links || d_opt->braille) {
+		if (d_opt->num_links) {
 			unsigned char s[64];
 			unsigned char *fl = format_.link, *ft = format_.target, *fi = format_.image;
 			struct form_control *ff = format_.form;
@@ -1306,7 +1306,6 @@ int compare_opt(struct document_options *o1, struct document_options *o2)
 	    o1->cp == o2->cp &&
 	    o1->assume_cp == o2->assume_cp &&
 	    o1->hard_assume == o2->hard_assume &&
-	    o1->braille == o2->braille &&
 	    o1->tables == o2->tables &&
 	    o1->frames == o2->frames &&
 	    o1->break_long_lines == o2->break_long_lines &&
