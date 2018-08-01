@@ -12,7 +12,6 @@ static int c_in_view(struct f_data_c *);
 static void set_pos_x(struct f_data_c *, struct link *);
 static void set_pos_y(struct f_data_c *, struct link *);
 static void find_link(struct f_data_c *, int, int);
-static void update_braille_link(struct f_data_c *f);
 
 static int is_active_frame(struct session *ses, struct f_data_c *f);
 
@@ -73,23 +72,10 @@ void check_vs(struct f_data_c *f)
 			set_pos_y(f, &f->f_data->links[f->vs->current_link]);
 		}
 		if (vs->current_link == -1) find_link(f, 1, 0);
-		if (f->ses->term->spec->braille) {
-			if (vs->brl_x >= f->f_data->x) vs->brl_x = f->f_data->x - 1;
-			if (vs->brl_x >= vs->view_posx + f->xw) vs->brl_x = vs->view_posx + f->xw - 1;
-			if (vs->brl_x < vs->view_posx) vs->brl_x = vs->view_posx;
-			if (vs->brl_y >= f->f_data->y) vs->brl_y = f->f_data->y - 1;
-			if (vs->brl_y >= vs->view_pos + f->yw) vs->brl_y = vs->view_pos + f->yw - 1;
-			if (vs->brl_y < vs->view_pos) vs->brl_y = vs->view_pos;
-			update_braille_link(f);
-		}
-#ifdef G
-	} else {
-		/*if (vs->current_link >= 0 && !is_link_in_view(f, vs->current_link)) vs->current_link = -1;*/
-#endif
 	}
 	f->vs->orig_view_posx = ovx;
 	f->vs->orig_view_pos = ovy;
-	if (!f->ses->term->spec->braille) f->vs->orig_link = ol;
+	f->vs->orig_link = ol;
 	f->vs->orig_brl_x = obx;
 	f->vs->orig_brl_y = oby;
 }
@@ -373,7 +359,6 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 					scr->link_bg[i].x = x;
 					scr->link_bg[i].y = y;
 					scr->link_bg[i].c = co->at;
-					if (t->spec->braille && !vs->brl_in_field) goto skip_link;
 					if (!f || (link->type == L_CHECKBOX && i == 1) || (link->type == L_BUTTON && i == 2) || ((link->type == L_FIELD || link->type == L_AREA) && i == q)) {
 						int xx = x, yy = y;
 						if (link->type != L_FIELD && link->type != L_AREA) {
@@ -386,7 +371,6 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 						set_window_ptr(scr->ses->win, x, y);
 						f = 1;
 					}
-					skip_link:
 					set_color(t, x, y, link->sel_color);
 				} else {
 					scr->link_bg[i].x = scr->link_bg[i].y = -1;
@@ -549,7 +533,7 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 				if (f->search_chr[s1 + i] != cc) goto c;
 			}
 		}
-		for (i = 0; i < l && (!scr->ses->term->spec->braille || i < 1); i++) {
+		for (i = 0; i < l; i++) {
 			struct search *sr = search_lookup(f, s1 + i);
 			for (j = 0; j < sr->n; j++) {
 				int x = sr->x + j + xp - vx;
@@ -924,12 +908,6 @@ static void draw_frame_lines(struct session *ses, struct frameset_desc *fsd, int
 	}
 }
 
-static void set_brl_cursor(struct terminal *t, struct f_data_c *scr)
-{
-	set_cursor(t, scr->xp + scr->vs->brl_x - scr->vs->view_posx, scr->yp + scr->vs->brl_y - scr->vs->view_pos, scr->xp + scr->vs->brl_x - scr->vs->view_posx, scr->yp + scr->vs->brl_y - scr->vs->view_pos);
-	set_window_ptr(scr->ses->win, scr->xp + scr->vs->brl_x - scr->vs->view_posx, scr->yp + scr->vs->brl_y - scr->vs->view_pos);
-}
-
 void draw_doc(struct terminal *t, void *scr_)
 {
 	struct f_data_c *scr = (struct f_data_c *)scr_;
@@ -960,12 +938,8 @@ void draw_doc(struct terminal *t, void *scr_)
 	}
 	if (active) {
 		if (!F) {
-			if (!t->spec->braille) {
-				set_cursor(t, xp + xw - 1, yp + yw - 1, xp + xw - 1, yp + yw - 1);
-				set_window_ptr(ses->win, xp, yp);
-			} else {
-				set_brl_cursor(t, scr);
-			}
+			set_cursor(t, xp + xw - 1, yp + yw - 1, xp + xw - 1, yp + yw - 1);
+			set_window_ptr(ses->win, xp, yp);
 		}
 	}
 	check_vs(scr);
@@ -992,19 +966,14 @@ void draw_doc(struct terminal *t, void *scr_)
 		vs->orig_view_pos = vy;
 		vs->view_posx = 0;
 		vs->orig_view_posx = 0;
-		if (t->spec->braille) {
-			vs->brl_y = vy;
-			vs->brl_x = 0;
-			vs->orig_brl_y = vy;
-			vs->orig_brl_x = 0;
-		}
 		if (!F) set_link(scr);
 		free(scr->went_to_position);
 		scr->went_to_position = scr->goto_position;
 		scr->goto_position = NULL;
-		if (t->spec->braille) set_brl_cursor(t, scr);
 	}
-	if (vs->view_pos != vs->orig_view_pos || vs->view_posx != vs->orig_view_posx || vs->current_link != vs->orig_link || (t->spec->braille && (vs->brl_x != vs->orig_brl_x || vs->brl_y != vs->orig_brl_y))) {
+	if (vs->view_pos != vs->orig_view_pos
+	|| vs->view_posx != vs->orig_view_posx
+	|| vs->current_link != vs->orig_link) {
 		int ol;
 		vs->view_pos = vs->orig_view_pos;
 		vs->view_posx = vs->orig_view_posx;
@@ -1016,14 +985,10 @@ void draw_doc(struct terminal *t, void *scr_)
 			while (vs->view_pos >= scr->f_data->y) vs->view_pos -= yw ? yw : 1;
 			if (vs->view_pos < 0) vs->view_pos = 0;
 		}
-		if (!F && !t->spec->braille) set_link(scr);
+		if (!F)
+			set_link(scr);
 		check_vs(scr);
-		if (!t->spec->braille) {
-			vs->orig_link = ol;
-		} else {
-			vs->orig_link = vs->current_link;
-			set_brl_cursor(t, scr);
-		}
+		vs->orig_link = ol;
 	}
 	if (!F) {
 		vx = vs->view_posx;
@@ -1285,50 +1250,12 @@ static void set_pos_y(struct f_data_c *f, struct link *l)
 	f->vs->orig_view_pos = f->vs->view_pos;
 }
 
-static void update_braille_link(struct f_data_c *f)
-{
-	int i;
-	struct link *l1, *l2;
-	struct view_state *vs = f->vs;
-	struct f_data *f_data = f->f_data;
-	if (vs->brl_x >= f->f_data->x && f->f_data->x) vs->brl_x = f->f_data->x - 1;
-	if (vs->brl_x >= vs->view_posx + f->xw) vs->view_posx = vs->brl_x - f->xw + 1;
-	if (vs->brl_x < vs->view_posx) vs->view_posx = vs->brl_x;
-	if (vs->brl_y >= f_data->y && f_data->y) vs->brl_y = f->f_data->y - 1;
-	if (vs->brl_y >= vs->view_pos + f->yw) vs->view_pos = vs->brl_y - f->yw + 1;
-	if (vs->brl_y < vs->view_pos) vs->view_pos = vs->brl_y;
-	vs->orig_brl_x = vs->brl_x;
-	vs->orig_brl_y = vs->brl_y;
-	vs->orig_view_pos = vs->view_pos;
-	vs->orig_view_posx = vs->view_posx;
-	if (vs->brl_y >= f_data->y) goto no_link;
-	l1 = f_data->lines1[vs->brl_y];
-	l2 = f_data->lines2[vs->brl_y];
-	if (!l1 || !l2) goto no_link;
-	for (; l1 <= l2; l1++) {
-		for (i = 0; i < l1->n; i++) if (l1->pos[i].x == vs->brl_x && l1->pos[i].y == vs->brl_y) {
-			if (l1 - f_data->links != vs->current_link) vs->brl_in_field = 0;
-			vs->current_link = (int)(l1 - f_data->links);
-			vs->orig_link = vs->current_link;
-			return;
-		}
-	}
-	no_link:
-	vs->brl_in_field = 0;
-	vs->current_link = -1;
-	vs->orig_link = vs->current_link;
-}
-
 static void find_link(struct f_data_c *f, int p, int s)
 { /* p=1 - top, p=-1 - bottom, s=0 - pgdn, s=1 - down */
 	int y;
 	int l;
 	struct link *link;
 	struct link **line;
-	if (f->ses->term->spec->braille) {
-		update_braille_link(f);
-		return;
-	}
 	line = p == -1 ? f->f_data->lines2 : f->f_data->lines1;
 	if (p == -1) {
 		y = f->vs->view_pos + f->yw - 1;
@@ -1363,71 +1290,31 @@ static void page_down(struct session *ses, struct f_data_c *f, int a)
 	if (f->vs->view_pos + f->yw < f->f_data->y) {
 		f->vs->view_pos += f->yw;
 		f->vs->orig_view_pos = f->vs->view_pos;
-		if (!ses->term->spec->braille) find_link(f, 1, a);
-	} else {
-		if (!ses->term->spec->braille) find_link(f, -1, a);
-		else if (f->f_data->y) f->vs->brl_y = f->f_data->y - 1;
-	}
-	if (ses->term->spec->braille) {
-		if (f->vs->view_pos > f->vs->brl_y) f->vs->brl_y = f->vs->view_pos;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		update_braille_link(f);
-	}
+		find_link(f, 1, a);
+	} else
+		find_link(f, -1, a);
 }
 
 static void page_up(struct session *ses, struct f_data_c *f, int a)
 {
 	f->vs->view_pos -= f->yw;
-	if (ses->term->spec->braille) {
-		if (f->vs->view_pos + f->yw <= f->vs->brl_y) f->vs->brl_y = f->vs->view_pos + f->yw - 1;
-	} else find_link(f, -1, a);
+	find_link(f, -1, a);
 	if (f->vs->view_pos < 0) {
 		f->vs->view_pos = 0;
 	}
 	f->vs->orig_view_pos = f->vs->view_pos;
-	if (ses->term->spec->braille) {
-		if (f->vs->brl_y < 0) f->vs->brl_y = 0;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		update_braille_link(f);
-	}
 }
 
 static void down(struct session *ses, struct f_data_c *f, int a)
 {
-	int l;
-	if (ses->term->spec->braille) {
-		if (f->vs->brl_y < f->f_data->y - 1) f->vs->brl_y++;
-		else if (f->f_data->y) f->vs->brl_y = f->f_data->y - 1;
-		else f->vs->brl_y = 0;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		if (f->vs->brl_y >= f->vs->view_pos + f->yw) {
-			page_down(ses, f, 1);
-			return;
-		}
-		update_braille_link(f);
-		return;
-	}
-	l = f->vs->current_link;
-	/*if (f->vs->current_link >= f->nlinks - 1) return;*/
+	int l = f->vs->current_link;
 	if (f->vs->current_link == -1 || !next_in_view(f, f->vs->current_link+1, 1, in_viewy, set_pos_x)) page_down(ses, f, 1);
 	if (l != f->vs->current_link) set_textarea(ses, f, KBD_UP);
 }
 
 static void up(struct session *ses, struct f_data_c *f, int a)
 {
-	int l;
-	if (ses->term->spec->braille) {
-		if (f->vs->brl_y > 0) f->vs->brl_y--;
-		else f->vs->brl_y = 0;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		if (f->vs->brl_y < f->vs->view_pos) {
-			page_up(ses, f, 0);
-			return;
-		}
-		update_braille_link(f);
-		return;
-	}
-	l = f->vs->current_link;
+	int l = f->vs->current_link;
 	if (f->vs->current_link == -1 || !next_in_view(f, f->vs->current_link-1, -1, in_viewy, set_pos_x)) page_up(ses, f, 1);
 	if (l != f->vs->current_link) set_textarea(ses, f, KBD_DOWN);
 }
@@ -1439,13 +1326,6 @@ static void scroll(struct session *ses, struct f_data_c *f, int a)
 	if (f->vs->view_pos > f->f_data->y - f->yw && a > 0) f->vs->view_pos = f->f_data->y - f->yw;
 	if (f->vs->view_pos < 0) f->vs->view_pos = 0;
 	f->vs->orig_view_pos = f->vs->view_pos;
-	if (ses->term->spec->braille) {
-		if (f->vs->view_pos + f->yw <= f->vs->brl_y) f->vs->brl_y = f->vs->view_pos + f->yw - 1;
-		if (f->vs->view_pos > f->vs->brl_y) f->vs->brl_y = f->vs->view_pos;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		update_braille_link(f);
-		return;
-	}
 	if (c_in_view(f)) return;
 	find_link(f, a < 0 ? -1 : 1, 0);
 }
@@ -1456,216 +1336,9 @@ static void hscroll(struct session *ses, struct f_data_c *f, int a)
 	if (f->vs->view_posx >= f->f_data->x) f->vs->view_posx = f->f_data->x - 1;
 	if (f->vs->view_posx < 0) f->vs->view_posx = 0;
 	f->vs->orig_view_posx = f->vs->view_posx;
-	if (ses->term->spec->braille) {
-		if (f->vs->view_posx + f->xw <= f->vs->brl_x) f->vs->brl_x = f->vs->view_posx + f->xw - 1;
-		if (f->vs->view_posx > f->vs->brl_x) f->vs->brl_x = f->vs->view_posx;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		update_braille_link(f);
-		return;
-	}
 	if (c_in_view(f)) return;
 	find_link(f, 1, 0);
 	/* !!! FIXME: check right margin */
-}
-
-static void right(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		if (f->vs->brl_x < f->f_data->x - 1) f->vs->brl_x++;
-		else if (f->f_data->x) f->vs->brl_x = f->f_data->x - 1;
-		else f->vs->brl_x = 0;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		if (f->vs->brl_x >= f->vs->view_posx + f->xw) {
-			hscroll(ses, f, 1);
-			return;
-		}
-		update_braille_link(f);
-		return;
-	}
-}
-
-static void left(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		if (f->vs->brl_x > 0) f->vs->brl_x--;
-		else f->vs->brl_x = 0;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		if (f->vs->brl_x < f->vs->view_posx) {
-			hscroll(ses, f, -1);
-			return;
-		}
-		update_braille_link(f);
-		return;
-	}
-}
-
-static int get_at_pos(struct f_data *f, int x, int y)
-{
-	chr *ch;
-	struct line *ln;
-	if (y < 0 || y >= f->y) return -1;
-	ln = &f->data[y];
-	if (x < 0 || x >= ln->l) return 0;
-	ch = &ln->d[x];
-	if (ch->at & ATTR_FRAME) return 0;
-	return ch->ch != 0 && ch->ch != 1 && ch->ch != ' ' && ch->ch != '~';
-}
-
-static void cursor_word(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		int p = 1;
-		int q;
-		int x = f->vs->brl_x, y = f->vs->brl_y;
-		while (1) {
-			q = get_at_pos(f->f_data, x, y);
-			if (q == -1) return;
-			if (!p && q) {
-				f->vs->brl_x = x;
-				f->vs->brl_y = y;
-				f->vs->orig_brl_x = f->vs->brl_x;
-				f->vs->orig_brl_y = f->vs->brl_y;
-				update_braille_link(f);
-				return;
-			}
-			x++;
-			if (x >= f->f_data->x) {
-				x = 0;
-				y++;
-			}
-			p = q;
-		}
-	}
-}
-
-static void cursor_word_back(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		int p = 0;
-		int q;
-		int x = f->vs->brl_x, y = f->vs->brl_y;
-		int px, py;
-		while (1) {
-			px = x;
-			py = y;
-			x--;
-			if (x < 0) {
-				x = f->f_data->x - 1;
-				y--;
-			}
-			if (x < 0) x = 0;
-			q = get_at_pos(f->f_data, x, y);
-			if (q == -1) return;
-			if (p && !q) {
-				f->vs->brl_x = px;
-				f->vs->brl_y = py;
-				f->vs->orig_brl_x = f->vs->brl_x;
-				f->vs->orig_brl_y = f->vs->brl_y;
-				update_braille_link(f);
-				return;
-			}
-			p = q;
-		}
-	}
-}
-
-static void cursor_home(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		f->vs->brl_x = 0;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		update_braille_link(f);
-		return;
-	}
-}
-
-static void cursor_end(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		if (f->f_data->x) f->vs->brl_x = f->f_data->x - 1;
-		else f->vs->brl_x = 0;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		update_braille_link(f);
-		return;
-	}
-}
-
-
-static void br_next_link(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		int y;
-		struct link *l, *ol, *cl;
-		struct view_state *vs = f->vs;
-		struct f_data *f_data = f->f_data;
-		if (vs->brl_y >= f_data->y) return;
-		for (y = vs->brl_y; y < f_data->y; y++) if (f_data->lines1[y]) goto o;
-		return;
-		o:
-		cl = NULL;
-		ol = NULL;
-		for (l = f_data->lines1[y]; l && l < f_data->links + f_data->nlinks && (!cl || l <= cl); l++) {
-			if (!l->n) continue;
-			if (a && !l->form) continue;
-			if (l->pos[0].y > vs->brl_y || (l->pos[0].y == vs->brl_y && l->pos[0].x > vs->brl_x)) if (vs->current_link == -1 || l != f_data->links + vs->current_link) {
-				if (!ol || l->pos[0].y < ol->pos[0].y || (l->pos[0].y == ol->pos[0].y && l->pos[0].x < ol->pos[0].x)) {
-					ol = l;
-					cl = f_data->lines2[ol->pos[0].y];
-				}
-			}
-		}
-		if (!ol) return;
-		vs->brl_x = ol->pos[0].x;
-		vs->brl_y = ol->pos[0].y;
-		while (vs->brl_y >= vs->view_pos + f->yw) {
-			vs->view_pos += f->yw ? f->yw : 1;
-			if (vs->view_pos >= f_data->y) vs->view_pos = f_data->y - !!f_data->y;
-			vs->orig_view_pos = vs->view_pos;
-		}
-		vs->orig_brl_x = vs->brl_x;
-		vs->orig_brl_y = vs->brl_y;
-		set_pos_x(f, ol);
-		update_braille_link(f);
-	}
-}
-
-static void br_prev_link(struct session *ses, struct f_data_c *f, int a)
-{
-	if (ses->term->spec->braille) {
-		int y;
-		struct link *l, *ol, *cl;
-		struct view_state *vs = f->vs;
-		struct f_data *f_data = f->f_data;
-		if (vs->brl_y >= f_data->y) return;
-		for (y = vs->brl_y; y >= 0; y--) if (f_data->lines2[y]) goto o;
-		return;
-		o:
-		cl = NULL;
-		ol = NULL;
-		for (l = f_data->lines2[y]; l && l >= f_data->links && (!cl || l >= cl); l--) {
-			if (!l->n) goto cont;
-			if (l->pos[0].y < vs->brl_y || (l->pos[0].y == vs->brl_y && l->pos[0].x < vs->brl_x)) if (vs->current_link == -1 || l != f_data->links + vs->current_link) {
-				if (!ol || l->pos[0].y > ol->pos[0].y || (l->pos[0].y == ol->pos[0].y && l->pos[0].x > ol->pos[0].x)) {
-					ol = l;
-					cl = f_data->lines1[ol->pos[0].y];
-				}
-			}
-			cont:
-			if (l == f_data->links) break;
-		}
-		if (!ol) return;
-		vs->brl_x = ol->pos[0].x;
-		vs->brl_y = ol->pos[0].y;
-		while (vs->brl_y < vs->view_pos) {
-			vs->view_pos -= f->yw ? f->yw : 1;
-			if (vs->view_pos < 0) vs->view_pos = 0;
-			vs->orig_view_pos = vs->view_pos;
-		}
-		vs->orig_brl_x = vs->brl_x;
-		vs->orig_brl_y = vs->brl_y;
-		set_pos_x(f, ol);
-		update_braille_link(f);
-	}
 }
 
 static void home(struct session *ses, struct f_data_c *f, int a)
@@ -1673,13 +1346,6 @@ static void home(struct session *ses, struct f_data_c *f, int a)
 	f->vs->view_pos = f->vs->view_posx = 0;
 	f->vs->orig_view_pos = f->vs->view_pos;
 	f->vs->orig_view_posx = f->vs->view_posx;
-	if (ses->term->spec->braille) {
-		f->vs->brl_x = f->vs->brl_y = 0;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		update_braille_link(f);
-		return;
-	}
 	find_link(f, 1, 0);
 }
 
@@ -1690,15 +1356,6 @@ static void x_end(struct session *ses, struct f_data_c *f, int a)
 	if (f->vs->view_pos < 0) f->vs->view_pos = 0;
 	f->vs->orig_view_pos = f->vs->view_pos;
 	f->vs->orig_view_posx = f->vs->view_posx;
-	if (ses->term->spec->braille) {
-		if (f->f_data->y) f->vs->brl_y = f->f_data->y - 1;
-		else f->vs->brl_y = 0;
-		f->vs->brl_x = 0;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		update_braille_link(f);
-		return;
-	}
 	find_link(f, -1, 0);
 }
 
@@ -2271,19 +1928,7 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 		}
 #endif
 		if (!F) {
-			if (!ses->term->spec->braille) {
-				down(ses, f, 0);
-			} else {
-				if (f->vs->current_link < f->f_data->nlinks - 1) {
-					f->vs->current_link++;
-					if (f->f_data->links[f->vs->current_link].n) {
-						f->vs->brl_x = f->f_data->links[f->vs->current_link].pos[0].x;
-						f->vs->brl_y = f->f_data->links[f->vs->current_link].pos[0].y;
-						f->vs->orig_brl_x = f->vs->brl_x;
-						f->vs->orig_brl_y = f->vs->brl_y;
-					}
-				}
-			}
+			down(ses, f, 0);
 		}
 #ifdef G
 		else g_next_link(f, 1);
@@ -2420,13 +2065,6 @@ static int textarea_adjust_viewport(struct f_data_c *fd, struct link *l)
 
 static void set_br_pos(struct f_data_c *fd, struct link *l)
 {
-	struct links_event ev;
-	if (!fd->ses->term->spec->braille || fd->vs->brl_in_field) return;
-	ev.ev = EV_MOUSE;
-	ev.x = fd->ses->term->cx - fd->xp;
-	ev.y = fd->ses->term->cy - fd->yp;
-	ev.b = 0;
-	set_form_position(fd, l, &ev);
 }
 
 int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev, int rep)
@@ -2470,8 +2108,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			goto done;
 		} else if (!(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT))
 		&& ev->x == KBD_ENTER
-		&& form->type == FC_TEXTAREA
-		&& (!ses->term->spec->braille || f->vs->brl_in_field)) {
+		&& form->type == FC_TEXTAREA) {
 			if (!form->ro
 			&& strlen(cast_const_char fs->value) < (size_t)form->maxlength) {
 				unsigned char *v;
@@ -2487,14 +2124,14 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			x = 0;
 			goto done;
 		}
-		if (ev->x == KBD_LEFT && (!ses->term->spec->braille || f->vs->brl_in_field)) {
+		if (ev->x == KBD_LEFT) {
 			if (f->f_data->opt.cp != utf8_table) fs->state = fs->state ? fs->state - 1 : 0;
 			else {
 				unsigned char *p = fs->value + fs->state;
 				BACK_UTF_8(p, fs->value);
 				fs->state = (int)(p - fs->value);
 			}
-		} else if (ev->x == KBD_RIGHT && (!ses->term->spec->braille || f->vs->brl_in_field)) {
+		} else if (ev->x == KBD_RIGHT) {
 			if ((size_t)fs->state < strlen(cast_const_char fs->value)) {
 				if (f->f_data->opt.cp != utf8_table) fs->state = fs->state + 1;
 				else {
@@ -2503,7 +2140,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 					fs->state = (int)(p - fs->value);
 				}
 			} else fs->state = (int)strlen(cast_const_char fs->value);
-		} else if ((ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) /*&& (!ses->term->spec->braille || f->vs->brl_in_field)*/) {
+		} else if ((ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL))) {
 			if (form->type == FC_TEXTAREA) {
 				struct line_info *ln;
 				int y;
@@ -2514,7 +2151,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				}
 				fs->state = 0;
 			} else fs->state = 0;
-		} else if (ev->x == KBD_UP && (!ses->term->spec->braille || f->vs->brl_in_field)) {
+		} else if (ev->x == KBD_UP) {
 			if (form->type == FC_TEXTAREA) {
 				struct line_info *ln;
 				int y;
@@ -2537,7 +2174,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				x = 0;
 				f->vs->brl_in_field = 0;
 			}
-		} else if (ev->x == KBD_DOWN && (!ses->term->spec->braille || f->vs->brl_in_field)) {
+		} else if (ev->x == KBD_DOWN) {
 			if (form->type == FC_TEXTAREA) {
 				struct line_info *ln;
 				int y;
@@ -2561,7 +2198,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				x = 0;
 				f->vs->brl_in_field = 0;
 			}
-		} else if ((ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) /*&& (!ses->term->spec->braille || f->vs->brl_in_field)*/) {
+		} else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
 			if (form->type == FC_TEXTAREA) {
 				struct line_info *ln;
 				int y;
@@ -2669,15 +2306,9 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 	} else x = 0;
 done:
 	if (!F && x) {
-		if (((ev->x != KBD_UP && ev->x != KBD_DOWN) || (ses->term->spec->braille)) && form->type == FC_TEXTAREA && textarea_adjust_viewport(f, l))
-			;
-		else x_draw_form_entry(ses, f, l);
-	}
-	if (!x && ses->term->spec->braille) {
-		f->vs->brl_x = ses->term->cx - f->xp + f->vs->view_posx;
-		f->vs->brl_y = ses->term->cy - f->yp + f->vs->view_pos;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		f->vs->orig_brl_y = f->vs->brl_y;
+		if (ev->x == KBD_UP || ev->x == KBD_DOWN
+		|| form->type != FC_TEXTAREA || textarea_adjust_viewport(f, l))
+			x_draw_form_entry(ses, f, l);
 	}
 	return x;
 }
@@ -2751,35 +2382,6 @@ static int find_next_link_in_search(struct f_data_c *f, int d)
 	struct point *pt;
 	int len;
 	struct link *link;
-	if (f->ses->term->spec->braille) {
-		int i, opt;
-		if (get_searched(f, &pt, &len))
-			return 1;
-		if (!len) {
-			free(pt);
-			return 1;
-		}
-		opt = -1;
-		for (i = 0; i < len; i++) {
-			if (d > 0) {
-				if ((d == 2 || pt[i].y > f->vs->brl_y || (pt[i].y == f->vs->brl_y && pt[i].x > f->vs->brl_x)) && (opt == -1 || pt[i].y < pt[opt].y || (pt[i].y == pt[opt].y && pt[i].x < pt[opt].x))) opt = i;
-			}
-			if (d < 0) {
-				if ((d == -2 || pt[i].y < f->vs->brl_y || (pt[i].y == f->vs->brl_y && pt[i].x < f->vs->brl_x)) && (opt == -1 || pt[i].y > pt[opt].y || (pt[i].y == pt[opt].y && pt[i].x > pt[opt].x))) opt = i;
-			}
-		}
-		if (opt == -1) {
-			free(pt);
-			return 1;
-		}
-		f->vs->brl_x = pt[opt].x;
-		f->vs->brl_y = pt[opt].y;
-		f->vs->orig_brl_x = f->vs->brl_x;
-		f->vs->orig_brl_y = f->vs->brl_y;
-		update_braille_link(f);
-		free(pt);
-		return 0;
-	}
 	if (d == -2 || d == 2) {
 		d /= 2;
 		find_link(f, d, 0);
@@ -2842,7 +2444,7 @@ void find_next(struct session *ses, struct f_data_c *f, int a)
 			}
 			f->vs->orig_view_pos = f->vs->view_pos;
 			f->vs->orig_view_posx = f->vs->view_posx;
-			if (!ses->term->spec->braille) set_link(f);
+			set_link(f);
 			find_next_link_in_search(f, ses->search_direction * 2);
 			return;
 		}
@@ -2885,14 +2487,6 @@ static void goto_link_number(void *ses_, unsigned char *num)
 	f->vs->current_link = n - 1;
 	f->vs->orig_link = f->vs->current_link;
 	link = &f->f_data->links[f->vs->current_link];
-	if (ses->term->spec->braille) {
-		if (link->n) {
-			f->vs->brl_x = link->pos[0].x;
-			f->vs->brl_y = link->pos[0].y;
-			f->vs->orig_brl_x = f->vs->brl_x;
-			f->vs->orig_brl_y = f->vs->brl_y;
-		}
-	}
 	check_vs(f);
 	f->vs->orig_view_pos = f->vs->view_pos;
 	f->vs->orig_view_posx = f->vs->view_posx;
@@ -2949,15 +2543,6 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 		else if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && (!(ev->y & KBD_ALT)))) rep_ev(ses, fd, page_up, 0);
 		else if (ev->x == KBD_DOWN) rep_ev(ses, fd, down, 0);
 		else if (ev->x == KBD_UP) rep_ev(ses, fd, up, 0);
-		else if (ev->x == KBD_LEFT && ses->term->spec->braille) rep_ev(ses, fd, left, 0);
-		else if (ev->x == KBD_RIGHT && ses->term->spec->braille) rep_ev(ses, fd, right, 0);
-		else if (ev->x == '{' && ses->term->spec->braille) rep_ev(ses, fd, cursor_home, 0);
-		else if (ev->x == '}' && ses->term->spec->braille) rep_ev(ses, fd, cursor_end, 0);
-		else if (upcase(ev->x) == 'Y' && !(ev->y & (KBD_CTRL | KBD_ALT)) && ses->term->spec->braille) rep_ev(ses, fd, cursor_word, 0);
-		else if (upcase(ev->x) == 'T' && !(ev->y & (KBD_CTRL | KBD_ALT)) && ses->term->spec->braille) rep_ev(ses, fd, cursor_word_back, 0);
-		else if (((ev->x == KBD_TAB && !ev->y && fd == ses->screen) || (upcase(ev->x) == 'Y' && ev->y & KBD_CTRL)) && ses->term->spec->braille) rep_ev(ses, fd, br_next_link, 0);
-		else if (((ev->x == KBD_TAB && ev->y && fd == ses->screen) || (upcase(ev->x) == 'T' && ev->y & KBD_CTRL)) && ses->term->spec->braille) rep_ev(ses, fd, br_prev_link, 0);
-		else if (upcase(ev->x) == 'O' && ev->y & KBD_CTRL && ses->term->spec->braille) rep_ev(ses, fd, br_next_link, 1);
 		/* Copy current link to clipboard */
 		else if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'C' && ev->y & KBD_CTRL)) {
 			unsigned char *current_link = print_current_link(ses);
@@ -2972,7 +2557,7 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 		else if (ev->x == ']') rep_ev(ses, fd, hscroll, 1 + 7 * !ses->kbdprefix.rep);
 		else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) rep_ev(ses, fd, home, 0);
 		else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) rep_ev(ses, fd, x_end, 0);
-		else if ((ev->x == KBD_RIGHT && !ses->term->spec->braille) || ev->x == KBD_ENTER) {
+		else if (ev->x == KBD_RIGHT || ev->x == KBD_ENTER) {
 			x = enter(ses, fd, 0);
 		} else if (ev->x == '*') {
 			ses->ds.images ^= 1;
@@ -3217,7 +2802,7 @@ void send_event(struct session *ses, struct links_event *ev)
 			next_frame(ses, ev->y ? -1 : 1);
 			draw_formatted(ses);
 		}
-		if (ev->x == KBD_LEFT && !ses->term->spec->braille) {
+		if (ev->x == KBD_LEFT) {
 			go_back(ses, 1);
 			goto x;
 		}
@@ -3231,16 +2816,6 @@ void send_event(struct session *ses, struct links_event *ev)
 		}
 		if (upcase(ev->x) == 'X' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
 			go_back(ses, -1);
-			goto x;
-		}
-		if (upcase(ev->x) == 'A' && ses->term->spec->braille) {
-			ses->brl_cursor_mode = 2;
-			print_screen_status(ses);
-			goto x;
-		}
-		if (upcase(ev->x) == 'W' && ses->term->spec->braille) {
-			ses->brl_cursor_mode = 1;
-			print_screen_status(ses);
 			goto x;
 		}
 		if (ev->x == KBD_BS) {
@@ -3764,19 +3339,15 @@ static unsigned char *print_current_titlex(struct f_data_c *fd, int w)
 		} else pp = pe = 1;
 		if (pp > pe) pp = pe;
 		if (fd->vs->view_pos + fd->yw >= fd->f_data->y) pp = pe;
-		if (fd->f_data->title && !fd->ses->term->spec->braille) add_chr_to_str(&p, &pl, ' ');
+		if (fd->f_data->title)
+			add_chr_to_str(&p, &pl, ' ');
 		add_to_str(&p, &pl, get_text_translation(TEXT_(T_PAGE_P), fd->ses->term));
 		add_num_to_str(&p, &pl, pp);
 		add_to_str(&p, &pl, get_text_translation(TEXT_(T_PAGE_OF), fd->ses->term));
 		add_num_to_str(&p, &pl, pe);
 		add_to_str(&p, &pl, get_text_translation(TEXT_(T_PAGE_CL), fd->ses->term));
-		if (fd->f_data->title && fd->ses->term->spec->braille) add_chr_to_str(&p, &pl, ' ');
 	}
 	if (!fd->f_data->title) return p;
-	if (fd->ses->term->spec->braille) {
-		add_to_str(&p, &pl, fd->f_data->title);
-		return p;
-	}
 	m = init_str();
 	add_to_str(&m, &ml, fd->f_data->title);
 	mul = cp_len(term_charset(fd->ses->term), m);
