@@ -2869,7 +2869,7 @@ int get_entity_number(unsigned char *st, int l);
 unsigned char *get_entity_string(unsigned char *, int, int);
 unsigned char *convert_string(struct conv_table *, unsigned char *, int, struct document_options *);
 unsigned char *convert(int from, int to, unsigned char *c, struct document_options *dopt);
-int get_cp_index(unsigned char *);
+int get_cp_index(const unsigned char *);
 unsigned char *get_cp_name(int);
 unsigned char *get_cp_mime_name(int);
 void free_conv_table(void);
