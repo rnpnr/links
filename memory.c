@@ -49,7 +49,7 @@ void free_all_caches(void)
 			a |= x;
 			b &= x;
 		}
-	} while (a);
+	} while (a & ST_SOMETHING_FREED);
 	if (!(b & ST_CACHE_EMPTY)) {
 		unsigned char *m = init_str();
 		int l = 0;
