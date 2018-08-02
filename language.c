@@ -80,7 +80,6 @@ search_again:
 int get_default_charset(void)
 {
 	unsigned char *lang, *p;
-	const int i = get_cp_index(p);
 
 	lang = cast_uchar getenv("LC_CTYPE");
 	if (!lang)
@@ -100,10 +99,10 @@ int get_default_charset(void)
 				p = cast_uchar "";
 		}
 	}
-	if (i < 0)
+	if ((get_cp_index(p)) < 0)
 		return 0;
 
-	return i;
+	return get_cp_index(p);
 }
 
 int get_commandline_charset(void)
