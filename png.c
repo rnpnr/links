@@ -127,13 +127,15 @@ void png_start(struct cached_image *cimg)
 			NULL, img_my_png_error, img_my_png_warning);
 #endif
 	if (!png_ptr) {
-		if (out_of_memory(0, NULL, 0)) goto retry1;
+		if (out_of_memory())
+			goto retry1;
 		fatal_exit("png_create_read_struct failed");
 	}
 	retry2:
 	info_ptr=png_create_info_struct(png_ptr);
 	if (!info_ptr) {
-		if (out_of_memory(0, NULL, 0)) goto retry2;
+		if (out_of_memory())
+			goto retry2;
 		fatal_exit("png_create_info_struct failed");
 	}
 	if (setjmp(png_jmpbuf(png_ptr))){

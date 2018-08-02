@@ -207,9 +207,7 @@ static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 
 #define safe_add(x, y)	safe_add_function(x, y, (unsigned char *)__FILE__, __LINE__)
 
-void *mem_calloc_(size_t size, int mayfail);
-#define mem_calloc(x)			mem_calloc_(x, 0)
-#define mem_calloc_mayfail(x)		mem_calloc_(x, 1)
+void *mem_calloc(size_t size);
 
 unsigned char *memacpy(const unsigned char *src, size_t len);
 unsigned char *stracpy(const unsigned char *src);
@@ -285,7 +283,7 @@ static inline unsigned char *init_str()
 {
 	unsigned char *p;
 
-	p = mem_calloc_(1L, 0);
+	p = mem_calloc(1L);
 	return p;
 }
 
@@ -418,15 +416,10 @@ void os_detach_console(void);
 
 #define MF_GPI			1
 
-void heap_trim(void);
-int shrink_memory(int, int);
+int shrink_memory(int);
 void register_cache_upcall(int (*)(int), int, unsigned char *);
 void free_all_caches(void);
-extern int malloc_try_hard;
-int out_of_memory_fl(int flags, unsigned char *msg, size_t size, unsigned char *file, int line);
-#define out_of_memory(flags, msg, size)	out_of_memory_fl(flags, msg, size, (unsigned char *)__FILE__, __LINE__)
-
-#define debug_test_free(file, line)
+int out_of_memory(void);
 
 /* select.c */
 

@@ -973,7 +973,7 @@ void detach_connection(struct status *stat, off_t pos, int want_to_restart, int 
 	for (i = 0; i < PRI_CANCEL; i++) n_users += c->pri[i];
 	if (!n_users) internal("detaching free connection");
 	if (n_users != 1) return;
-	shrink_memory(SH_CHECK_QUOTA, 0);
+	shrink_memory(SH_CHECK_QUOTA);
 	detach_cache_entry(c->cache);
 	c->detached = 1;
 	detach_done:

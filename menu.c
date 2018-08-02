@@ -440,7 +440,7 @@ static void resource_info_menu(struct terminal *term, void *d, void *ses_)
 static void flush_caches(struct terminal *term, void *d, void *e)
 {
 	abort_background_connections();
-	shrink_memory(SH_FREE_ALL, 0);
+	shrink_memory(SH_FREE_ALL);
 }
 
 /* jde v historii na polozku id_ptr */
@@ -1292,7 +1292,7 @@ static void data_cleanup(void)
 	free_cookies();
 	free_auth();
 	abort_all_connections();
-	shrink_memory(SH_FREE_ALL, 0);
+	shrink_memory(SH_FREE_ALL);
 }
 
 static unsigned char http_proxy[MAX_STR_LEN];
@@ -2048,7 +2048,7 @@ static void cache_refresh(void *xxx)
 	}
 #endif
 	max_format_cache_entries = atoi(cast_const_char doc_str);
-	shrink_memory(SH_CHECK_QUOTA, 0);
+	shrink_memory(SH_CHECK_QUOTA);
 }
 
 static unsigned char * const cache_texts[] = { TEXT_(T_MEMORY_CACHE_SIZE__KB), TEXT_(T_NUMBER_OF_FORMATTED_DOCUMENTS), TEXT_(T_AGGRESSIVE_CACHE) };

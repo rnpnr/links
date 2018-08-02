@@ -1381,7 +1381,6 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 				}
 #endif
 			}
-			heap_trim();
 			if ((blockh = start_thread(exec_thread, param, paraml + 1, *delet != 0)) == -1) {
 				if (fg == 1) {
 					if (!F) unblock_itrm(term->fdin);

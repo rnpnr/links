@@ -907,7 +907,7 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 		free(in);
 		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
 		if ((unsigned)ox * (unsigned)oy > MAXINT / 3 / sizeof(**out)) overalloc();
-		*out=mem_calloc_mayfail(ox*oy*sizeof(**out)*3);
+		*out = mem_calloc(ox * oy * sizeof(**out) * 3);
 		return;
 	}
 	if (display_optimize&&ox*3<=ix){
@@ -1491,13 +1491,15 @@ const unsigned char *png_data, int png_length)
 			NULL, my_png_error, my_png_warning);
 #endif
 	if (!png_ptr) {
-		if (out_of_memory(0, NULL, 0)) goto retry1;
+		if (out_of_memory())
+			goto retry1;
 		fatal_exit("png_create_read_struct failed");
 	}
 	retry2:
 	info_ptr=png_create_info_struct(png_ptr);
 	if (!info_ptr) {
-		if (out_of_memory(0, NULL, 0)) goto retry2;
+		if (out_of_memory())
+			goto retry2;
 		fatal_exit("png_create_info_struct failed");
 	}
 	png_set_read_fn(png_ptr, &work, (png_rw_ptr)read_stored_data);

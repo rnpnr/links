@@ -355,7 +355,7 @@ int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **q
 	retry:
 	q = (struct dnsquery *)malloc(sizeof(struct dnsquery) + strlen(cast_const_char name));
 	if (!q) {
-		if (out_of_memory(0, NULL, 0))
+		if (out_of_memory())
 			goto retry;
 		fn(data, 1);
 		return 0;

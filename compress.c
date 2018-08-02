@@ -236,7 +236,7 @@ static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, 
 	after_inflateend:
 	if (memory_error) {
 		free(p);
-		if (out_of_memory(0, NULL, 0))
+		if (out_of_memory())
 			goto retry_after_memory_error;
 		decompress_error(term, ce, cast_uchar "zlib", z.msg ? (unsigned char *)z.msg : TEXT_(T_OUT_OF_MEMORY), errp);
 		return 1;

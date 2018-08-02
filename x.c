@@ -1593,7 +1593,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 	retry:
 	image=XCreateImage(x_display,x_default_visual,x_depth,ZPixmap,0,0,bmp->x,bmp->y,x_bitmap_scanline_pad<<3,bmp->skip);
 	if (!image){
-		if (out_of_memory(0, NULL, 0))
+		if (out_of_memory())
 			goto retry;
 		free(p);
 		goto cant_create;
@@ -2041,7 +2041,7 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 		retry:
 		x_data = xmalloc(bmp->skip * lines);
 		if (!x_data) {
-			if (out_of_memory(0, NULL, 0))
+			if (out_of_memory())
 				goto retry;
 			return NULL;
 		}
@@ -2049,7 +2049,7 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 		retry2:
 		image=XCreateImage(x_display,x_default_visual,x_depth,ZPixmap,0,0,bmp->x,lines,x_bitmap_scanline_pad<<3,bmp->skip);
 		if (!image) {
-			if (out_of_memory(0, NULL, 0))
+			if (out_of_memory())
 				goto retry2;
 			free(x_data);
 			return NULL;

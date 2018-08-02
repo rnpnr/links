@@ -42,7 +42,7 @@ static void *malloc_hook(size_t size file_line_arg)
 	void *p;
 	in_ssl_malloc_hook++;
 	if (!size) size = 1;
-	do p = malloc(size); while (!p && out_of_memory(0, NULL, 0));
+	do p = malloc(size); while (!p && out_of_memory());
 	in_ssl_malloc_hook--;
 	return p;
 }
@@ -53,7 +53,7 @@ static void *realloc_hook(void *ptr, size_t size file_line_arg)
 	if (!ptr) return malloc_hook(size pass_file_line);
 	in_ssl_malloc_hook++;
 	if (!size) size = 1;
-	do p = realloc(ptr, size); while (!p && out_of_memory(0, NULL, 0));
+	do p = realloc(ptr, size); while (!p && out_of_memory());
 	in_ssl_malloc_hook--;
 	return p;
 }

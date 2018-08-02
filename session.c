@@ -1527,7 +1527,7 @@ struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq
 	detach_f_data(&fd->f_data);
 	f = format_html(fd, rq, url, opt, cch);
 	if (f) f->fd = fd;
-	shrink_memory(SH_CHECK_QUOTA, 0);
+	shrink_memory(SH_CHECK_QUOTA);
 ret_f:
 	calculate_scrollbars(fd, f);
 	return f;

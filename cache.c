@@ -3,6 +3,8 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <errno.h>
+#include <search.h>
 #include "links.h"
 
 static struct list_head cache = {&cache, &cache};
@@ -15,10 +17,9 @@ static void *cache_root = NULL;
 
 static int ce_compare(const void *p1, const void *p2)
 {
-	const unsigned char *u1 = (const unsigned char *)p1;
-	const unsigned char *u2 = (const unsigned char *)p2;
-	if (u1 == u2) return 0;
-	return strcmp(cast_const_char u1, cast_const_char u2);
+	if (p1 == p2)
+		return 0;
+	return strcmp(p1, p2);
 }
 
 static void cache_add_to_tree(struct cache_entry *e)
@@ -27,12 +28,9 @@ static void cache_add_to_tree(struct cache_entry *e)
 
 	if (!e->url[0])
 		return;
-retry:
-	p = tsearch(e->url, &cache_root, ce_compare);
-	if (!p) {
-		out_of_memory(0, cast_uchar "tsearch", 0);
-		goto retry;
-	}
+	if (!(p = tsearch(e->url, &cache_root, ce_compare)))
+		die("tsearch: %s\n", strerror(errno));
+
 	if ((unsigned char *)*p != e->url)
 		internal("cache_add_to_tree: url '%s' is already present", e->url);
 }
@@ -166,7 +164,7 @@ int get_connection_cache_entry(struct connection *c)
 int new_cache_entry(unsigned char *url, struct cache_entry **f)
 {
 	struct cache_entry *e;
-	shrink_memory(SH_CHECK_QUOTA, 0);
+	shrink_memory(SH_CHECK_QUOTA);
 	url = remove_proxy_prefix(url);
 	e = mem_calloc(sizeof(struct cache_entry) + strlen((const char *)url));
 	strcpy(cast_char e->url, cast_const_char url);
@@ -468,13 +466,13 @@ static int shrink_file_cache(int u)
 			if (e->decompressed_len)
 				free_decompressed_data(e);
 			else delete_cache_entry(e);
-			r |= ST_SOMETHING_FREED;
+			r = 1;
 			goto ret;
 		}
 		if (!e->refcount && e->decompressed_len
 		&& cache_size + decompressed_cache_size > (my_uintptr_t)memory_cache_size) {
 			free_decompressed_data(e);
-			r |= ST_SOMETHING_FREED;
+			r = 1;
 		}
 		ccs += (my_uintptr_t)e->data_size;
 		ccs2 += e->decompressed_len;
@@ -521,7 +519,7 @@ static int shrink_file_cache(int u)
 		if (f->tgc) {
 			lf = lf->prev;
 			delete_cache_entry(f);
-			r |= ST_SOMETHING_FREED;
+			r = 1;
 		}
 	}
 ret:

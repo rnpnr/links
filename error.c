@@ -66,17 +66,13 @@ void int_error(char *m, ...)
 #endif
 }
 
-void *mem_calloc_(size_t size, int mayfail)
+void *mem_calloc(size_t size)
 {
 	void *p;
-	debug_test_free(NULL, 0);
 	if (!size)
 		return NULL;
-	retry:
-	if (!(p = calloc(1, size))) {
-		if (out_of_memory_fl(0, !mayfail ? cast_uchar "calloc" : NULL, size, NULL, 0)) goto retry;
-		return NULL;
-	}
+	if (!(p = calloc(1, size)))
+		die("calloc: %s\n", strerror(errno));
 	return p;
 }
 
