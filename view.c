@@ -447,24 +447,28 @@ static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int 
 	*min = MAXINT;
 	*max = 0;
 
-	if (!utf8) {
-		l = (int)strlen(cast_const_char txt);
-	} else {
+	if (!utf8)
+		l = (int)strlen((const char *)txt);
+	else
 		l = strlen_utf8(txt);
-	}
 
-	if (get_range(f, y, yw, l, &s1, &s2)) return 0;
+	if (get_range(f, y, yw, l, &s1, &s2))
+		return 0;
 	for (; s1 <= s2; s1++) {
 		int i;
 		if (!utf8) {
-			if (f->search_chr[s1] != txt[0]) goto cont;
-			for (i = 1; i < l; i++) if (f->search_chr[s1 + i] != txt[i]) goto cont;
+			if (f->search_chr[s1] != txt[0])
+				continue;
+			for (i = 1; i < l; i++)
+				if (f->search_chr[s1 + i] != txt[i])
+					goto cont;
 		} else {
 			unsigned char *tt = txt;
 			for (i = 0; i < l; i++) {
 				unsigned cc;
 				GET_UTF_8(tt, cc);
-				if (f->search_chr[s1 + i] != cc) goto cont;
+				if (f->search_chr[s1 + i] != cc)
+					goto cont;
 			}
 		}
 		for (i = 0; i < l; i++) {
@@ -472,16 +476,18 @@ static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int 
 			if (sr->y >= y && sr->y < y + yw && sr->n) goto in_view;
 		}
 		continue;
-		in_view:
+in_view:
 		found = 1;
 		for (i = 0; i < l; i++) {
 			struct search *sr = search_lookup(f, s1 + i);
 			if (sr->n) {
-				if (sr->x < *min) *min = sr->x;
-				if (sr->x + sr->n > *max) *max = sr->x + sr->n;
+				if (sr->x < *min)
+					*min = sr->x;
+				if (sr->x + sr->n > *max)
+					*max = sr->x + sr->n;
 			}
 		}
-		cont:;
+cont:;
 	}
 	return found;
 }
@@ -503,34 +509,40 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 	int len = 0;
 	unsigned char *ww;
 	unsigned char *w = scr->ses->search_word;
-	if (!w || !*w) return -1;
+	if (!w || !*w)
+		return -1;
 	if (get_search_data(f) < 0) {
 		free(scr->ses->search_word);
 		scr->ses->search_word = NULL;
 		return -1;
 	}
 	if (!utf8) {
-		l = (int)strlen(cast_const_char w);
+		l = (int)strlen((const char *)w);
 		c = w[0];
 	} else {
 		l = strlen_utf8(w);
 		ww = w;
 		GET_UTF_8(ww, c);
 	}
-	if (get_range(f, scr->vs->view_pos, scr->yw, l, &s1, &s2)) goto ret;
+	if (get_range(f, scr->vs->view_pos, scr->yw, l, &s1, &s2))
+		goto ret;
 	for (; s1 <= s2; s1++) {
 		int i, j;
 		if (f->search_chr[s1] != c) {
-			c:continue;
+c:
+			continue;
 		}
 		if (!utf8) {
-			for (i = 1; i < l; i++) if (f->search_chr[s1 + i] != w[i]) goto c;
+			for (i = 1; i < l; i++)
+				if (f->search_chr[s1 + i] != w[i])
+					goto c;
 		} else {
 			ww = w;
 			for (i = 0; i < l; i++) {
 				unsigned cc;
 				GET_UTF_8(ww, cc);
-				if (f->search_chr[s1 + i] != cc) goto c;
+				if (f->search_chr[s1 + i] != cc)
+					goto c;
 			}
 		}
 		for (i = 0; i < l; i++) {
@@ -539,17 +551,14 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 				int x = sr->x + j + xp - vx;
 				int y = sr->y + yp - vy;
 				if (x >= xp && y >= yp && x < xp + xw && y < yp + yw) {
-					/*unsigned co;
-					co = get_char(t, x, y);
-					co = ((co >> 3) & 0x0700) | ((co << 3) & 0x3800);
-					set_color(t, x, y, co);*/
 					if (!(len & (ALLOC_GR - 1))) {
 						struct point *points2;
 						if ((unsigned)len > MAXINT / sizeof(struct point) - ALLOC_GR)
 							goto ret;
 						points2 = xrealloc(points,
 								sizeof(struct point) * (len + ALLOC_GR));
-						if (!points2) goto ret;
+						if (!points2)
+							goto ret;
 						points = points2;
 					}
 					points[len].x = sr->x + j;
@@ -558,7 +567,7 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 			}
 		}
 	}
-	ret:
+ret:
 	*pt = points;
 	*pl = len;
 	return 0;
@@ -1954,7 +1963,7 @@ void toggle(struct session *ses, struct f_data_c *f, int a)
 void selected_item(struct terminal *term, void *pitem, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	int item = (int)(my_intptr_t)pitem;
+	int item = (int)pitem;
 	struct f_data_c *f = current_frame(ses);
 	struct link *l;
 	struct form_state *fs;
@@ -2859,7 +2868,7 @@ void send_event(struct session *ses, struct links_event *ev)
 			goto x;
 		}
 		if ((upcase(ev->x) == 'Q' && !(ev->y & (KBD_CTRL | KBD_ALT))) || ev->x == KBD_CTRL_C) {
-			exit_prog(ses->term, (void *)(my_intptr_t)(ev->x == KBD_CTRL_C || ev->x == 'Q'), ses);
+			exit_prog(ses->term, (int *)(ev->x == KBD_CTRL_C || ev->x == 'Q'), ses);
 			goto x;
 		}
 		if (ev->x == KBD_CLOSE) {

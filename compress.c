@@ -6,7 +6,7 @@
 #undef write
 #endif
 
-my_uintptr_t decompressed_cache_size = 0;
+int decompressed_cache_size = 0;
 
 static int display_error(struct terminal *term, unsigned char *msg, int *errp)
 {

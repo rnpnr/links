@@ -5,9 +5,9 @@
 
 #include "links.h"
 
-int snprint(unsigned char *s, int n, my_uintptr_t num)
+int snprint(unsigned char *s, int n, int num)
 {
-	my_uintptr_t q = 1;
+	int q = 1;
 	while (q <= num / 10) q *= 10;
 	while (n-- > 1 && q) {
 		*(s++) = (unsigned char)(num / q + '0');
@@ -98,7 +98,7 @@ void add_chr_to_str(unsigned char **s, int *l, unsigned char a)
 	add_bytes_to_str(s, l, &a, 1);
 }
 
-void add_unsigned_long_num_to_str(unsigned char **s, int *l, my_uintptr_t n)
+void add_unsigned_long_num_to_str(unsigned char **s, int *l, long n)
 {
 	unsigned char a[64];
 	snprint(a, 64, n);

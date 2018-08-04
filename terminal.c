@@ -837,7 +837,7 @@ static void in_term(void *term_)
 		term->cwd[MAX_CWD_LEN - 1] = 0;
 		term->environment = *(int *)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN);
 		term->default_character_set = *(int *)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + sizeof(int));
-		ev->b = (my_intptr_t)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + 2 * sizeof(int));
+		ev->b = (int)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + 2 * sizeof(int));
 		r = (int)sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + 3 * (int)sizeof(int) + init_len;
 		sync_term_specs();
 	}
@@ -1304,14 +1304,14 @@ void exec_thread(void *path_, int p)
 
 void close_handle(void *p)
 {
-	int h = (int)(my_intptr_t)p;
+	int h = (int)p;
 	close_socket(&h);
 }
 
 static void unblock_terminal(void *term_)
 {
 	struct terminal *term = (struct terminal *)term_;
-	close_handle((void *)(my_intptr_t)term->blocked);
+	close_handle(&term->blocked);
 	term->blocked = -1;
 	if (!F) {
 		set_handlers(term->fdin, in_term, NULL, term);
@@ -1402,7 +1402,7 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 				if (!F) set_handlers(term->fdin, NULL, NULL, term);
 				/*block_itrm(term->fdin);*/
 			} else {
-				set_handlers(blockh, close_handle, NULL, (void *)(my_intptr_t)blockh);
+				set_handlers(blockh, close_handle, NULL, &blockh);
 			}
 		}
 	} else {

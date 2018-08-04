@@ -39,7 +39,10 @@ int is_tld(unsigned char *name)
 {
 	char *end;
 	unsigned long l;
-	if (strlen(cast_const_char name) == 2 && upcase(name[0]) >= 'A' && upcase(name[0]) <= 'Z' && upcase(name[1]) >= 'A' && upcase(name[1]) <= 'Z' && casestrcmp(name, cast_uchar "gz") && casestrcmp(name, cast_uchar "xz"))
+	if (strlen((const char *)name) == 2 && upcase(name[0]) >= 'A'
+	&& upcase(name[0]) <= 'Z' && upcase(name[1]) >= 'A'
+	&& upcase(name[1]) <= 'Z' && casestrcmp(name, cast_uchar "gz")
+	&& casestrcmp(name, cast_uchar "xz"))
 		return 1;
 	l = strtoul(cast_const_char name, &end, 10);
 	if (!*end && l <= 255)
@@ -49,16 +52,27 @@ int is_tld(unsigned char *name)
 
 int allow_cookie_domain(unsigned char *server, unsigned char *domain)
 {
-	int sl = (int)strlen(cast_const_char server);
-	int dl = (int)strlen(cast_const_char domain);
-	if (dl > sl) return 0;
-	if (casestrcmp(domain, server + sl - dl)) return 0;
-	if (dl == sl) return 1;
-	if (!numeric_ip_address(server, NULL)) return 0;
-	if (!numeric_ipv6_address(server, NULL, NULL)) return 0;
-	if (server[sl - dl - 1] != '.') return 0;
-	if (search_list_and_wildcards(domain_suffix_x, array_elements(domain_suffix_x), domain)) return 1;
-	if (!strchr(cast_const_char domain, '.')) return 0;
-	if (search_list_and_wildcards(domain_suffix, array_elements(domain_suffix), domain)) return 0;
+	const int sl = strlen((const char *)server);
+	const int dl = strlen((const char *)domain);
+	if (dl > sl)
+		return 0;
+	if (casestrcmp(domain, server + sl - dl))
+		return 0;
+	if (dl == sl)
+		return 1;
+	if (!numeric_ip_address(server, NULL))
+		return 0;
+	if (!numeric_ipv6_address(server, NULL, NULL))
+		return 0;
+	if (server[sl - dl - 1] != '.')
+		return 0;
+	if (search_list_and_wildcards(domain_suffix_x,
+			array_elements(domain_suffix_x), domain))
+		return 1;
+	if (!strchr(cast_const_char domain, '.'))
+		return 0;
+	if (search_list_and_wildcards(domain_suffix,
+			array_elements(domain_suffix), domain))
+		return 0;
 	return 1;
 }

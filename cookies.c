@@ -24,6 +24,8 @@ struct c_server {
 
 static struct list_head c_servers = { &c_servers, &c_servers };
 
+static void accept_cookie(struct cookie *);
+
 void free_cookie(struct cookie *c)
 {
 	free(c->name);
@@ -34,7 +36,6 @@ void free_cookie(struct cookie *c)
 	free(c);
 }
 
-static void accept_cookie(struct cookie *);
 
 /* sezere 1 cookie z retezce str, na zacatku nesmi byt zadne whitechars
  * na konci muze byt strednik nebo 0
@@ -73,21 +74,21 @@ int set_cookie(struct terminal *term, unsigned char *url, unsigned char *str)
 		cookie->path = stracpy(cast_uchar "/");
 	else if (cookie->path[0] != '/') {
 		add_to_strn(&cookie->path, cast_uchar "x");
-		memmove(cookie->path + 1, cookie->path, strlen(cast_const_char cookie->path) - 1);
+		memmove(cookie->path + 1, cookie->path, strlen((const char *)cookie->path) - 1);
 		cookie->path[0] = '/';
 	}
 	dom = parse_header_param(str, cast_uchar "domain", 0);
 	if (!dom)
 		cookie->domain = stracpy(server);
 	else {
-		cookie->domain = idn_encode_host(dom, (int)strlen(cast_const_char dom), cast_uchar ".", 0);
+		cookie->domain = idn_encode_host(dom, strlen((const char *)dom), cast_uchar ".", 0);
 		if (!cookie->domain)
 			cookie->domain = stracpy(server);
 		free(dom);
 	}
 	if (cookie->domain[0] == '.')
 		memmove(cookie->domain, cookie->domain + 1,
-			strlen(cast_const_char cookie->domain));
+			strlen((const char *)cookie->domain));
 	if ((s = parse_header_param(str, cast_uchar "secure", 0))) {
 		cookie->secure = 1;
 		free(s);
@@ -140,7 +141,7 @@ static void accept_cookie(struct cookie *c)
 	foreach(struct c_domain, cd, lcd, c_domains)
 		if (!casestrcmp(cd->domain, c->domain))
 			return;
-	sl = strlen(cast_const_char c->domain);
+	sl = strlen((const char *)c->domain);
 	if (sl > MAXINT - sizeof(struct c_domain))
 		overalloc();
 	cd = xmalloc(sizeof(struct c_domain) + sl);
@@ -150,8 +151,8 @@ static void accept_cookie(struct cookie *c)
 
 int is_in_domain(unsigned char *d, unsigned char *s)
 {
-	const int dl = strlen(cast_const_char d);
-	const int sl = strlen(cast_const_char s);
+	const int dl = strlen((const char *)d);
+	const int sl = strlen((const char *)s);
 	if (dl > sl)
 		return 0;
 	if (dl == sl)
@@ -163,8 +164,8 @@ int is_in_domain(unsigned char *d, unsigned char *s)
 
 int is_path_prefix(unsigned char *d, unsigned char *s)
 {
-	const int dl = strlen(cast_const_char d);
-	const int sl = strlen(cast_const_char s);
+	const int dl = strlen((const char *)d);
+	const int sl = strlen((const char *)s);
 	if (!dl)
 		return 1;
 	if (dl > sl)

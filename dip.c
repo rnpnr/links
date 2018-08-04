@@ -1968,7 +1968,7 @@ void update_aspect(void)
 	destroy_font_cache();
 }
 
-my_uintptr_t fontcache_info(int type)
+int fontcache_info(int type)
 {
 	switch (type) {
 		case CI_BYTES:

@@ -2080,7 +2080,7 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 		item->rtext = data == -1 ? cast_uchar ">" : cast_uchar "";
 		item->hotkey = fullname ? cast_uchar "\000\001" : cast_uchar "\000\000"; /* dirty */
 		item->func = data == -1 ? do_select_submenu : selected_item;
-		item->data = data == -1 ? nmenu : (void *)(my_intptr_t)data;
+		item->data = data == -1 ? nmenu : (void *)data;
 		item->in_m = data == -1 ? 1 : 0;
 		item->free_i = 0;
 		item++;
@@ -2145,15 +2145,18 @@ static void menu_labels(struct menu_item *m, unsigned char *base, unsigned char 
 			}
 		} else {
 			if ((bs = stracpy(m->hotkey[1] ? (unsigned char *)"" : base))) add_to_strn(&bs, m->text);
-			lbls[(my_intptr_t)m->data] = bs;
+			lbls[(int)m->data] = bs;
 		}
 	}
 }
 
 static int menu_contains(struct menu_item *m, int f)
 {
-	if (m->func != do_select_submenu) return (my_intptr_t)m->data == f;
-	for (m = m->data; m->text; m++) if (menu_contains(m, f)) return 1;
+	if (m->func != do_select_submenu)
+		return (int)m->data == f;
+	for (m = m->data; m->text; m++)
+		if (menu_contains(m, f))
+			return 1;
 	return 0;
 }
 

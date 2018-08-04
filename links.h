@@ -247,11 +247,12 @@ struct list_head {
 #define foreachback(struc, e, h, l)		foreachbackfrom(struc, e, h, l, (l).prev)
 #define free_list(struc, l)			do { while (!list_empty(l)) { struc *a__ = list_struct((l).next, struc); del_from_list(a__); free(a__); } } while (0)
 
-static inline unsigned long list_size(struct list_head *l)
+static inline int list_size(struct list_head *l)
 {
 	struct list_head *e;
-	unsigned long n = 0;
-	for (e = l->next; e != l; e = e->next) n++;
+	int n = 0;
+	for (e = l->next; e != l; e = e->next)
+		n++;
 	return n;
 }
 
@@ -274,7 +275,7 @@ static inline unsigned long list_size(struct list_head *l)
 
 /* string.c */
 
-int snprint(unsigned char *s, int n, my_uintptr_t num);
+int snprint(unsigned char *s, int n, int num);
 int snzprint(unsigned char *s, int n, off_t num);
 void add_to_strn(unsigned char **s, unsigned char *a);
 void extend_str(unsigned char **s, int n);
@@ -291,7 +292,7 @@ void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll);
 void add_to_str(unsigned char **s, int *l, unsigned char *a);
 void add_chr_to_str(unsigned char **s, int *l, unsigned char a);
 void add_unsigned_num_to_str(unsigned char **s, int *l, off_t n);
-void add_unsigned_long_num_to_str(unsigned char **s, int *l, my_uintptr_t n);
+void add_unsigned_long_num_to_str(unsigned char **s, int *l, long n);
 void add_num_to_str(unsigned char **s, int *l, off_t n);
 void add_knum_to_str(unsigned char **s, int *l, off_t n);
 long strtolx(unsigned char *c, unsigned char **end);
@@ -563,8 +564,8 @@ extern int page_size;
 struct connection;
 
 void init_cache(void);
-my_uintptr_t cache_info(int);
-my_uintptr_t decompress_info(int);
+int cache_info(int);
+int decompress_info(int);
 int find_in_cache(unsigned char *, struct cache_entry **);
 int get_connection_cache_entry(struct connection *);
 int new_cache_entry(unsigned char *, struct cache_entry **);
@@ -1045,7 +1046,7 @@ struct lru_entry {
 struct lru {
 	int (*compare_function)(void *, void *);
 	struct lru_entry *top, *bottom;
-	my_uintptr_t bytes, items;
+	int bytes, items;
 };
 
 void lru_insert(struct lru *cache, void *entry, struct lru_entry **row, unsigned bytes_consumed);
@@ -1261,7 +1262,7 @@ void generic_set_clip_area(struct graphics_device *dev, struct rect *r);
 					 */
 
 extern unsigned aspect; /* Must hold at least 20 bits */
-my_uintptr_t fontcache_info(int type);
+int fontcache_info(int type);
 
 #define G_BFU_FONT_SIZE menu_font_size
 
@@ -1440,7 +1441,7 @@ struct links_event {
 	int ev;
 	int x;
 	int y;
-	my_intptr_t b;
+	int b;
 };
 
 #define EV_INIT		0
@@ -1732,7 +1733,7 @@ void detach_object_connection(struct object_request *, off_t);
 
 /* compress.c */
 
-extern my_uintptr_t decompressed_cache_size;
+extern int decompressed_cache_size;
 
 int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, unsigned char **end, int *errp);
 int get_file(struct object_request *o, unsigned char **start, unsigned char **end);
@@ -3090,7 +3091,7 @@ int known_image_type(unsigned char *type);
 #ifdef G
 
 void init_imgcache(void);
-my_uintptr_t imgcache_info(int type);
+int imgcache_info(int type);
 struct cached_image *find_cached_image(int bg, unsigned char *url, int xw, int
 		yw, int xyw_meaning, int scale, unsigned aspect);
 void add_image_to_cache(struct cached_image *ci);

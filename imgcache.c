@@ -109,11 +109,11 @@ static int shrink_image_cache(int u)
 	return r | (list_empty(image_cache) ? ST_CACHE_EMPTY : 0);
 }
 
-my_uintptr_t imgcache_info(int type)
+int imgcache_info(int type)
 {
 	struct cached_image *i;
 	struct list_head *li;
-	my_uintptr_t n = 0;
+	int n = 0;
 	foreach(struct cached_image, i, li, image_cache) {
 		switch (type) {
 			case CI_BYTES:

@@ -968,7 +968,7 @@ static void *html_special(void *p_, int c, ...)
 			return convert_table;
 		case SP_USED:
 			va_end(l);
-			return (void *)(my_intptr_t)!!p->data;
+			return (void *)!!p->data;
 		case SP_FRAMESET:
 			fsp = va_arg(l, struct frameset_param *);
 			va_end(l);

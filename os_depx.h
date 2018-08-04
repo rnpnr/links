@@ -123,20 +123,6 @@
 #define SA_RESTART	0
 #endif
 
-#ifndef PF_INET
-#define PF_INET AF_INET
-#endif
-#ifndef PF_UNIX
-#define PF_UNIX AF_UNIX
-#endif
-
-#define my_intptr_t long
-#define my_uintptr_t unsigned long
-
-#ifndef PF_INET6
-#define PF_INET6 AF_INET6
-#endif
-
 #if !defined(INET_ADDRSTRLEN)
 #define INET_ADDRSTRLEN		16
 #endif

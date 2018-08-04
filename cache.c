@@ -9,7 +9,7 @@
 
 static struct list_head cache = {&cache, &cache};
 
-static my_uintptr_t cache_size = 0;
+static int cache_size = 0;
 
 static tcount cache_count = 1;
 
@@ -42,8 +42,7 @@ static void cache_delete_from_tree(struct cache_entry *e)
 	if (!e->url[0])
 		return;
 
-	p = tdelete(e->url, &cache_root, ce_compare);
-	if (!p)
+	if (!(p = tdelete(e->url, &cache_root, ce_compare)))
 		internal("cache_delete_from_tree: url '%s' not found", e->url);
 }
 
@@ -51,37 +50,39 @@ static struct cache_entry *cache_search_tree(unsigned char *url)
 {
 	void **p;
 
-	p = tfind(url, &cache_root, ce_compare);
-	if (!p)
+	if (!(p = tfind(url, &cache_root, ce_compare)))
 		return NULL;
+
 	return get_struct(*p, struct cache_entry, url);
 }
 
-my_uintptr_t cache_info(int type)
+int cache_info(int type)
 {
-	my_uintptr_t i = 0;
+	int i = 0;
 	struct cache_entry *ce;
 	struct list_head *lce;
 	switch (type) {
 	case CI_BYTES:
 		return cache_size;
 	case CI_FILES:
-		return (my_uintptr_t)list_size(&cache);
+		return list_size(&cache);
 	case CI_LOCKED:
-		foreach(struct cache_entry, ce, lce, cache) i += !!ce->refcount;
+		foreach(struct cache_entry, ce, lce, cache)
+			i += !!ce->refcount;
 		return i;
 	case CI_LOADING:
-		foreach(struct cache_entry, ce, lce, cache) i += is_entry_used(ce);
+		foreach(struct cache_entry, ce, lce, cache)
+			i += is_entry_used(ce);
 		return i;
 	default:
-		internal("cache_info: bad request");
+		die("cache_info: bad request");
 	}
 	return 0;
 }
 
-my_uintptr_t decompress_info(int type)
+int decompress_info(int type)
 {
-	my_uintptr_t i = 0;
+	int i = 0;
 	struct cache_entry *ce;
 	struct list_head *lce;
 	switch (type) {
@@ -190,7 +191,7 @@ void detach_cache_entry(struct cache_entry *e)
 	e->url[0] = 0;
 }
 
-#define sf(x) e->data_size += (x), cache_size += (my_uintptr_t)(x)
+#define sf(x) e->data_size += (x), cache_size += (int)(x)
 
 int page_size = 4096;
 
@@ -452,16 +453,17 @@ static int shrink_file_cache(int u)
 	int r = 0;
 	struct cache_entry *e, *f;
 	struct list_head *le, *lf;
-	my_uintptr_t ncs = cache_size;
-	my_uintptr_t ccs = 0, ccs2 = 0;
+	int ncs = cache_size;
+	int ccs = 0, ccs2 = 0;
 
-	if (u == SH_CHECK_QUOTA && cache_size + decompressed_cache_size <= (my_uintptr_t)memory_cache_size) goto ret;
+	if (u == SH_CHECK_QUOTA && cache_size + decompressed_cache_size <= memory_cache_size)
+		goto ret;
 	foreachback(struct cache_entry, e, le, cache) {
 		if (e->refcount || is_entry_used(e)) {
-			if (ncs < (my_uintptr_t)e->data_size) {
+			if (ncs < (int)e->data_size) {
 				internal("cache_size underflow: %lu, %lu", (unsigned long)ncs, (unsigned long)e->data_size);
 			}
-			ncs -= (my_uintptr_t)e->data_size;
+			ncs -= (int)e->data_size;
 		} else if (u == SH_FREE_SOMETHING) {
 			if (e->decompressed_len)
 				free_decompressed_data(e);
@@ -470,11 +472,11 @@ static int shrink_file_cache(int u)
 			goto ret;
 		}
 		if (!e->refcount && e->decompressed_len
-		&& cache_size + decompressed_cache_size > (my_uintptr_t)memory_cache_size) {
+		&& cache_size + decompressed_cache_size > memory_cache_size) {
 			free_decompressed_data(e);
 			r = 1;
 		}
-		ccs += (my_uintptr_t)e->data_size;
+		ccs += (int)e->data_size;
 		ccs2 += e->decompressed_len;
 	}
 	if (ccs != cache_size) {
@@ -488,18 +490,20 @@ static int shrink_file_cache(int u)
 			(unsigned long)ccs2);
 		decompressed_cache_size = ccs2;
 	}
-	if (u == SH_CHECK_QUOTA && ncs <= (my_uintptr_t)memory_cache_size) goto ret;
+	if (u == SH_CHECK_QUOTA && ncs <= memory_cache_size)
+		goto ret;
 	foreachback(struct cache_entry, e, le, cache) {
-		if (u == SH_CHECK_QUOTA && (longlong)ncs <= (longlong)memory_cache_size * MEMORY_CACHE_GC_PERCENT) goto g;
+		if (u == SH_CHECK_QUOTA && (long)ncs <= (long)memory_cache_size * MEMORY_CACHE_GC_PERCENT)
+			goto g;
 		if (e->refcount || is_entry_used(e)) {
 			e->tgc = 0;
 			continue;
 		}
 		e->tgc = 1;
-		if (ncs < (my_uintptr_t)e->data_size) {
+		if (ncs < (int)e->data_size) {
 			internal("cache_size underflow: %lu, %lu", (unsigned long)ncs, (unsigned long)e->data_size);
 		}
-		ncs -= (my_uintptr_t)e->data_size;
+		ncs -= (int)e->data_size;
 	}
 	if (ncs) internal("cache_size(%lu) is larger than size of all objects(%lu)", (unsigned long)cache_size, (unsigned long)(cache_size - ncs));
 	g:
@@ -509,8 +513,8 @@ static int shrink_file_cache(int u)
 	if (u == SH_CHECK_QUOTA) {
 		foreachfrom(struct cache_entry, f, lf, cache, le) {
 			if (f->data_size
-			&& (longlong)ncs + f->data_size <= (longlong)memory_cache_size * MEMORY_CACHE_GC_PERCENT) {
-				ncs += (my_uintptr_t)f->data_size;
+			&& (long)ncs + f->data_size <= (long)memory_cache_size * MEMORY_CACHE_GC_PERCENT) {
+				ncs += (int)f->data_size;
 				f->tgc = 0;
 			}
 		}

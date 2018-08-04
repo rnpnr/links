@@ -447,7 +447,7 @@ static void flush_caches(struct terminal *term, void *d, void *e)
 void go_backwards(struct terminal *term, void *id_ptr, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	unsigned want_id = (unsigned)(my_intptr_t)id_ptr;
+	unsigned want_id = (unsigned)id_ptr;
 	struct location *l;
 	struct list_head *ll;
 	int n = 0;
@@ -478,11 +478,14 @@ static_const struct menu_item no_hist_menu[] = {
 static void add_history_menu_entry(struct terminal *term, struct menu_item **mi, int *n, struct location *l)
 {
 	unsigned char *url;
-	if (!*mi) *mi = new_menu(3);
+	if (!*mi)
+		*mi = new_menu(3);
 	url = display_url(term, l->url, 1);
-	add_to_menu(mi, url, cast_uchar "", cast_uchar "", go_backwards, (void *)(my_intptr_t)l->location_id, 0, *n);
+	add_to_menu(mi, url, cast_uchar "", cast_uchar "", go_backwards,
+		(void *)(int)l->location_id, 0, *n);
 	(*n)++;
-	if (*n == MAXINT) overalloc();
+	if (*n == MAXINT)
+		overalloc();
 }
 
 static void history_menu(struct terminal *term, void *ddd, void *ses_)
@@ -557,7 +560,7 @@ static void menu_toggle(struct terminal *term, void *ddd, void *ses_)
 
 static void set_display_codepage(struct terminal *term, void *pcp, void *ptr)
 {
-	int cp = (int)(my_intptr_t)pcp;
+	int cp = (int)pcp;
 	struct term_spec *t = new_term_spec(term->term);
 	t->character_set = cp;
 	cls_redraw_all_terminals();
@@ -565,7 +568,7 @@ static void set_display_codepage(struct terminal *term, void *pcp, void *ptr)
 
 static void set_val(struct terminal *term, void *ip, void *d)
 {
-	*(int *)d = (int)(my_intptr_t)ip;
+	*(int *)d = (int)ip;
 }
 
 static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct terminal *term, void *ip, void *ptr), void *ptr, int utf, int def)
@@ -589,7 +592,7 @@ static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct 
 			n = get_cp_name(i);
 			r = stracpy(cast_uchar "");
 		}
-		add_to_menu(&mi, n, r, cast_uchar "", set, (void *)(my_intptr_t)i, 0, i + def);
+		add_to_menu(&mi, n, r, cast_uchar "", set, (void *)i, 0, i + def);
 	}
 	ini += def;
 	if (ini < 0)
