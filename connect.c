@@ -5,79 +5,10 @@
 
 #include "links.h"
 
-/*
-#define LOG_TRANSFER	"/tmp/log"
-#define LOG_SSL
-#define LOG_TO_STDERR
-*/
-
-#if defined(LOG_TRANSFER) || defined(LOG_TO_STDERR)
-static void log_data(unsigned char *data, int len)
-{
-#ifndef LOG_TO_STDERR
-	static int hlaseno = 0;
-	int fd;
-	if (!hlaseno) {
-		printf("\n"ANSI_SET_BOLD"WARNING -- LOGGING NETWORK TRANSFERS !!!"ANSI_CLEAR_BOLD ANSI_BELL"\n");
-		fflush(stdout);
-		portable_sleep(1000);
-		hlaseno = 1;
-	}
-	fd = c_open3(cast_uchar LOG_TRANSFER, O_WRONLY | O_APPEND | O_CREAT, 0600);
-	if (fd != -1) {
-		int rw;
-		EINTRLOOP(rw, write(fd, data, len));
-		EINTRLOOP(rw, close(fd));
-	}
-#else
-	int rw;
-	EINTRLOOP(rw, write(2, data, len));
-#endif
-}
-
-static void log_string(unsigned char *data)
-{
-	log_data(data, (int)strlen(cast_const_char data));
-}
-
-static void log_number(int number)
-{
-	unsigned char n[64];
-	snprintf(cast_char n, sizeof n, "%d", number);
-	log_string(n);
-}
-
-#else
-#define log_data(x, y)		do { } while (0)
-#define log_string(x)		do { } while (0)
-#define log_number(x)		do { } while (0)
-#endif
-
 static void log_ssl_error(unsigned char *url, int line, int ret1, int ret2)
 {
-#ifndef LOG_SSL
 	unsigned long err;
 	while ((err = ERR_get_error())) ;
-#else
-	unsigned char *u, *uu;
-	u = stracpy(url);
-	if ((uu = cast_uchar strchr(cast_const_char u, POST_CHAR))) *uu = 0;
-	SSL_load_error_strings();
-#if !defined(OPENSSL_NO_STDIO)
-	ERR_print_errors_fp(stderr);
-#else
-	{
-		unsigned long err;
-		while ((err = ERR_get_error())) {
-			unsigned char buf[1024];
-			ERR_error_string_n(err, cast_char buf, sizeof buf);
-			fprintf(stderr, "%s\n", buf);
-		}
-	}
-#endif
-	fprintf(stderr, "ssl error at %d: %d, %d, %d (%s), url (%s)\n", line, ret1, ret2, errno, strerror(errno), u);
-	free(u);
-#endif
 }
 
 void clear_ssl_errors(int line)
@@ -219,11 +150,6 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	b->l.target_port = port;
 	strcpy(cast_char b->host, cast_const_char host);
 	c->newconn = b;
-	log_string(cast_uchar "\nCONNECTION: ");
-	log_data(host, strlen(cast_const_char host));
-	log_string(cast_uchar ":");
-	log_number(socks_port != -1 ? socks_port : port);
-	log_string(cast_uchar "\n");
 	if (c->last_lookup_state.addr.n) {
 		b->l.addr = c->last_lookup_state.addr;
 		b->l.dont_try_more_servers = 1;
@@ -481,10 +407,6 @@ static void handle_socks(void *c_)
 		retry_connection(c);
 		return;
 	}
-	if (!b->socks_byte_count) {
-		log_data(command, len);
-		log_string(cast_uchar "\n");
-	}
 	EINTRLOOP(wr, (int)write(*b->sock, command + b->socks_byte_count, len - b->socks_byte_count));
 	free(command);
 	if (wr <= 0) {
@@ -567,7 +489,6 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 		else c->ssl = DUMMY;
 	}
 	if (ssl_downgrade) {
-		log_string(cast_uchar "\nSSL DOWNGRADE\n");
 		close_socket(b->sock);
 		try_connect(c);
 		return;
@@ -577,7 +498,6 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 	if (b->l.addr_index < b->l.addr.n && !b->l.dont_try_more_servers) {
 		if (b->l.addr_index == 1)
 			rotate_addresses(&b->l.addr);
-		log_string(cast_uchar "\nNEXT ADDRESS\n");
 		close_socket(b->sock);
 		try_connect(c);
 	} else
@@ -591,18 +511,17 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 
 static void try_connect(struct connection *c)
 {
-	int i;
 	int s;
 	int rs;
 	unsigned short p;
 	struct conn_info *b = c->newconn;
 	struct host_address *addr = &b->l.addr.a[b->l.addr_index];
 	/*debug("%p: %p %d %d\n", b, addr, b->l.addr_index, addr->af);*/
-	if (addr->af == AF_INET) {
+	if (addr->af == AF_INET)
 		s = socket_and_bind(PF_INET, bind_ip_address);
-	} else if (addr->af == AF_INET6) {
+	else if (addr->af == AF_INET6)
 		s = socket_and_bind(PF_INET6, bind_ipv6_address);
-	} else {
+	else {
 		setcstate(c, S_INTERNAL);
 		abort_connection(c);
 		return;
@@ -616,14 +535,6 @@ static void try_connect(struct connection *c)
 	b->socks_handled = 0;
 	b->socks_byte_count = 0;
 	p = b->l.socks_port != -1 ? b->l.socks_port : b->l.target_port;
-	log_string(cast_uchar "\nADDRESS: ");
-	for (i = 0; i < (addr->af == AF_INET ? 4 : 16); i++) {
-		if (i) log_string(cast_uchar ".");
-		log_number(addr->addr[i]);
-	}
-	log_string(cast_uchar ":");
-	log_number(p);
-	log_string(cast_uchar "\n");
 	if (addr->af == AF_INET) {
 		struct sockaddr_in sa;
 		memset(&sa, 0, sizeof sa);
@@ -671,7 +582,6 @@ void continue_connection(struct connection *c, int *sock, void (*func)(struct co
 	b->l = c->last_lookup_state;
 	b->socks_handled = 1;
 	c->newconn = b;
-	log_string(cast_uchar "\nCONTINUE CONNECTION\n");
 	connected(c);
 }
 
@@ -712,12 +622,10 @@ static void connected(void *c_)
 		handle_socks(c);
 		return;
 	}
-	log_string(cast_uchar "\nCONNECTED\n");
 	if (c->ssl) {
 		int ret1, ret2;
 		unsigned char *orig_url = remove_proxy_prefix(c->url);
 		unsigned char *h = get_host_name(orig_url);
-		log_string(cast_uchar "\nSSL\n");
 		if (*h && h[strlen(cast_const_char h) - 1] == '.')
 			h[strlen(cast_const_char h) - 1] = 0;
 		c->ssl = getSSL();
@@ -915,7 +823,6 @@ static void write_select(void *c_)
 void write_to_socket(struct connection *c, int s, unsigned char *data, int len, void (*write_func)(struct connection *))
 {
 	struct write_buffer *wb;
-	log_data(data, len);
 	if ((unsigned)len > MAXINT - sizeof(struct write_buffer)) overalloc();
 	wb = xmalloc(sizeof(struct write_buffer) + len);
 	wb->sock = s;
@@ -990,7 +897,6 @@ read_more:
 			return;
 		}
 	}
-	log_data(rb->data + rb->len, rd);
 	rb->len += rd;
 	total_read += rd;
 
