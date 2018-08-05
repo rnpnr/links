@@ -59,8 +59,8 @@ void int_error(char *m, ...)
 	va_list l;
 	fatal_tty_exit();
 	va_start(l, m);
-	sprintf(cast_char errbuf, "\n"ANSI_SET_BOLD"INTERNAL ERROR"ANSI_CLEAR_BOLD" at %s:%d: %s", errfile, errline, m);
-	er(cast_char errbuf, l);
+	sprintf((char *)errbuf, "\n"ANSI_SET_BOLD"INTERNAL ERROR"ANSI_CLEAR_BOLD" at %s:%d: %s", errfile, errline, m);
+	er((char *)errbuf, l);
 	va_end(l);
 	exit(RET_INTERNAL);
 #endif
@@ -89,5 +89,5 @@ unsigned char *memacpy(const unsigned char *src, size_t len)
 
 unsigned char *stracpy(const unsigned char *src)
 {
-	return src ? memacpy(src, src != DUMMY ? strlen(cast_const_char src) : 0) : NULL;
+	return src ? memacpy(src, src != DUMMY ? strlen((const char *)src) : 0) : NULL;
 }

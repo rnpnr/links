@@ -1181,8 +1181,7 @@ unsigned char *subst_file(unsigned char *prog, unsigned char *file, int cyg_subs
 	int l = 0;
 	while (*prog) {
 		int p;
-		for (p = 0; prog[p] && prog[p] != '%'; p++)
-			;
+		for (p = 0; prog[p] && prog[p] != '%'; p++);
 		add_bytes_to_str(&n, &l, prog, p);
 		prog += p;
 		if (*prog == '%') {
@@ -1208,7 +1207,8 @@ void start_download(struct session *ses, unsigned char *file, int mode)
 	unsigned char *xl_file;
 	off_t last_pos = 0, file_shift = 0;
 
-	if (!url) return;
+	if (!url)
+		return;
 	extract_position(url);
 
 	if (create_or_append_download_file(ses, ses->term->cwd, file, mode, &h, &xl_file, &last_pos, &file_shift) < 0) return;
