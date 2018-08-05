@@ -547,12 +547,6 @@ int can_open_os_shell(int environment)
 	return 1;
 }
 
-void os_seed_random(unsigned char **pool, int *pool_size)
-{
-	*pool = NULL;
-	*pool_size = 0;
-}
-
 void os_detach_console(void)
 {
 #if !defined(NO_FORK_ON_EXIT)

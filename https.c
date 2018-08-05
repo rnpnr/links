@@ -96,15 +96,6 @@ links_ssl *getSSL(void)
 			}
 		}
 #endif
-
-		{
-			unsigned char *os_pool;
-			int os_pool_size;
-			os_seed_random(&os_pool, &os_pool_size);
-			if (os_pool_size) RAND_add(os_pool, os_pool_size, os_pool_size);
-			free(os_pool);
-		}
-
 		OPENSSL_init_ssl(0, NULL);
 		ssl_initialized = 1;
 	}

@@ -372,15 +372,10 @@ DIR *c_opendir(unsigned char *);
 int setraw(int ctl, int save);
 void setcooked(int ctl);
 #endif
-void save_gpm_signals(void);
-void restore_gpm_signals(void);
-void add_gpm_version(unsigned char **s, int *l);
 int start_thread(void (*)(void *, int), void *, int, int);
 unsigned char *get_clipboard_text(struct terminal *);
 void set_clipboard_text(struct terminal *, unsigned char *);
 int clipboard_support(struct terminal *);
-int is_winnt(void);
-int get_windows_cp(int cons);
 void set_window_title(unsigned char *);
 unsigned char *get_window_title(void);
 int is_safe_in_shell(unsigned char);
@@ -403,7 +398,6 @@ struct open_in_new *get_open_in_new(int);
 
 void os_free_clipboard(void);
 
-void os_seed_random(unsigned char **pool, int *pool_size);
 void os_detach_console(void);
 
 /* memory.c */
