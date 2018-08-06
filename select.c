@@ -618,7 +618,7 @@ void clear_events(int h, int blocking)
 
 static void clear_events_ptr(void *handle)
 {
-	clear_events((int)handle, 0);
+	clear_events((int)(long)handle, 0);
 }
 
 
@@ -829,7 +829,7 @@ void select_loop(void (*init)(void))
 	}
 	set_nonblock(signal_pipe[0]);
 	set_nonblock(signal_pipe[1]);
-	set_handlers(signal_pipe[0], clear_events_ptr, NULL, (void *)signal_pipe[0]);
+	set_handlers(signal_pipe[0], clear_events_ptr, NULL, signal_pipe);
 #endif
 	init();
 	CHK_BH;

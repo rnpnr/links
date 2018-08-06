@@ -2145,7 +2145,7 @@ static void menu_labels(struct menu_item *m, unsigned char *base, unsigned char 
 			}
 		} else {
 			if ((bs = stracpy(m->hotkey[1] ? (unsigned char *)"" : base))) add_to_strn(&bs, m->text);
-			lbls[(int)m->data] = bs;
+			lbls[(int)(long)m->data] = bs;
 		}
 	}
 }
@@ -2153,7 +2153,7 @@ static void menu_labels(struct menu_item *m, unsigned char *base, unsigned char 
 static int menu_contains(struct menu_item *m, int f)
 {
 	if (m->func != do_select_submenu)
-		return (int)m->data == f;
+		return (int)(long)m->data == f;
 	for (m = m->data; m->text; m++)
 		if (menu_contains(m, f))
 			return 1;

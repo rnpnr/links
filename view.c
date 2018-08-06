@@ -1963,7 +1963,7 @@ void toggle(struct session *ses, struct f_data_c *f, int a)
 void selected_item(struct terminal *term, void *pitem, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	int item = (int)pitem;
+	int item = (int)(long)pitem;
 	struct f_data_c *f = current_frame(ses);
 	struct link *l;
 	struct form_state *fs;
@@ -2868,7 +2868,7 @@ void send_event(struct session *ses, struct links_event *ev)
 			goto x;
 		}
 		if ((upcase(ev->x) == 'Q' && !(ev->y & (KBD_CTRL | KBD_ALT))) || ev->x == KBD_CTRL_C) {
-			exit_prog(ses->term, (int *)(ev->x == KBD_CTRL_C || ev->x == 'Q'), ses);
+			exit_prog(ses->term, (int *)(long)(ev->x == KBD_CTRL_C || ev->x == 'Q'), ses);
 			goto x;
 		}
 		if (ev->x == KBD_CLOSE) {

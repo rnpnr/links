@@ -2932,7 +2932,7 @@ void win_func(struct window *win, struct links_event *ev, int fw)
 			break;
 		case EV_INIT:
 			ses = win->data = create_session(win);
-			if (read_session_info(ses, (char *)ev->b + sizeof(int), *(int *)ev->b)) {
+			if (read_session_info(ses, (char *)(ev->b + sizeof(int)), ev->b)) {
 				register_bottom_half(destroy_terminal, win->term);
 				return;
 			}

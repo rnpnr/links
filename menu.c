@@ -447,7 +447,7 @@ static void flush_caches(struct terminal *term, void *d, void *e)
 void go_backwards(struct terminal *term, void *id_ptr, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	unsigned want_id = (unsigned)id_ptr;
+	unsigned want_id = (int)(long)id_ptr;
 	struct location *l;
 	struct list_head *ll;
 	int n = 0;
@@ -482,7 +482,7 @@ static void add_history_menu_entry(struct terminal *term, struct menu_item **mi,
 		*mi = new_menu(3);
 	url = display_url(term, l->url, 1);
 	add_to_menu(mi, url, cast_uchar "", cast_uchar "", go_backwards,
-		(void *)(int)l->location_id, 0, *n);
+		(void *)(long)l->location_id, 0, *n);
 	(*n)++;
 	if (*n == MAXINT)
 		overalloc();
@@ -560,7 +560,7 @@ static void menu_toggle(struct terminal *term, void *ddd, void *ses_)
 
 static void set_display_codepage(struct terminal *term, void *pcp, void *ptr)
 {
-	int cp = (int)pcp;
+	int cp = (int)(long)pcp;
 	struct term_spec *t = new_term_spec(term->term);
 	t->character_set = cp;
 	cls_redraw_all_terminals();
@@ -568,7 +568,7 @@ static void set_display_codepage(struct terminal *term, void *pcp, void *ptr)
 
 static void set_val(struct terminal *term, void *ip, void *d)
 {
-	*(int *)d = (int)ip;
+	*(int *)d = (int)(long)ip;
 }
 
 static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct terminal *term, void *ip, void *ptr), void *ptr, int utf, int def)
@@ -592,7 +592,7 @@ static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct 
 			n = get_cp_name(i);
 			r = stracpy(cast_uchar "");
 		}
-		add_to_menu(&mi, n, r, cast_uchar "", set, (void *)i, 0, i + def);
+		add_to_menu(&mi, n, r, cast_uchar "", set, &i, 0, i + def);
 	}
 	ini += def;
 	if (ini < 0)
