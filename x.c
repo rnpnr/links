@@ -704,318 +704,228 @@ static void x_process_events(void *data)
 			gd->mouse_handler(gd,last_event.xmotion.x,last_event.xmotion.y,a|b);
 		}
 
-		switch(event.type)
+		switch (event.type) {
+		/* redraw uncovered area during scroll */
+		case GraphicsExpose:
 		{
-			case GraphicsExpose:  /* redraw uncovered area during scroll */
-			{
-				struct rect r;
+			struct rect r;
 
-#ifdef X_DEBUG
-				MESSAGE("(GraphicsExpose event)\n");
-#endif
-				gd=x_find_gd(&(event.xgraphicsexpose.drawable));
-				if (!gd)break;
-				r.x1=event.xgraphicsexpose.x;
-				r.y1=event.xgraphicsexpose.y;
-				r.x2=event.xgraphicsexpose.x+event.xgraphicsexpose.width;
-				r.y2=event.xgraphicsexpose.y+event.xgraphicsexpose.height;
-				gd->redraw_handler(gd,&r);
-			}
+			gd = x_find_gd(&event.xgraphicsexpose.drawable);
+			if (!gd)
+				break;
+			r.x1 = event.xgraphicsexpose.x;
+			r.y1 = event.xgraphicsexpose.y;
+			r.x2 = event.xgraphicsexpose.x + event.xgraphicsexpose.width;
+			r.y2 = event.xgraphicsexpose.y + event.xgraphicsexpose.height;
+			gd->redraw_handler(gd, &r);
+		}
 			break;
 
-			case Expose:   /* redraw part of the window */
-			{
-				struct rect r;
+		/* redraw part of the window */
+		case Expose:
+		{
+			struct rect r;
 
-#ifdef X_DEBUG
-				MESSAGE("(Expose event)\n");
-#endif
-
-				gd=x_find_gd(&(event.xexpose.window));
-				if (!gd)break;
-				r.x1=event.xexpose.x;
-				r.y1=event.xexpose.y;
-				r.x2=event.xexpose.x+event.xexpose.width;
-				r.y2=event.xexpose.y+event.xexpose.height;
-				gd->redraw_handler(gd,&r);
-			}
+			gd = x_find_gd(&event.xexpose.window);
+			if (!gd)
+				break;
+			r.x1 = event.xexpose.x;
+			r.y1 = event.xexpose.y;
+			r.x2 = event.xexpose.x + event.xexpose.width;
+			r.y2 = event.xexpose.y + event.xexpose.height;
+			gd->redraw_handler(gd, &r);
+		}
 			break;
 
-			case ConfigureNotify:   /* resize window */
-#ifdef X_DEBUG
-			MESSAGE("(ConfigureNotify event)\n");
-			{
-				unsigned char txt[256];
-				sprintf(txt,"width=%d height=%d\n",event.xconfigure.width,event.xconfigure.height);
-				MESSAGE(txt);
-			}
-#endif
-			gd=x_find_gd(&(event.xconfigure.window));
-			if (!gd)break;
+		/* resize window */
+		case ConfigureNotify:
+			gd = x_find_gd(&event.xconfigure.window);
+			if (!gd)
+				break;
 			/* when window only moved and size is the same, do nothing */
-			if (gd->size.x2==event.xconfigure.width&&gd->size.y2==event.xconfigure.height)break;
-			configure_notify_again:
-			gd->size.x2=event.xconfigure.width;
-			gd->size.y2=event.xconfigure.height;
+			if (gd->size.x2 == event.xconfigure.width
+			&& gd->size.y2 == event.xconfigure.height)
+				break;
+configure_notify_again:
+			gd->size.x2 = event.xconfigure.width;
+			gd->size.y2 = event.xconfigure.height;
 			x_update_driver_param(event.xconfigure.width, event.xconfigure.height);
-			while (XCheckWindowEvent(x_display,get_window_info(gd)->window,ExposureMask,&event)==True)
-				;
-			if (XCheckWindowEvent(x_display,get_window_info(gd)->window,StructureNotifyMask,&event)==True) {
-				if (event.type==ConfigureNotify) goto configure_notify_again;
-				replay_event=1;
+			while (XCheckWindowEvent(x_display,
+					get_window_info(gd)->window,
+					ExposureMask, &event) == True);
+			if (XCheckWindowEvent(x_display,
+					get_window_info(gd)->window,
+					StructureNotifyMask, &event) == True) {
+				if (event.type == ConfigureNotify)
+					goto configure_notify_again;
+				replay_event = 1;
 			}
 			gd->resize_handler(gd);
 			break;
 
-			case KeyPress:   /* a key was pressed */
-			{
-				int f,k;
-#ifdef X_DEBUG
-				MESSAGE("(KeyPress event)\n");
-				{
-					unsigned char txt[256];
-					sprintf(txt,"keycode=%d state=%d\n",event.xkey.keycode,event.xkey.state);
-					MESSAGE(txt);
-				}
-#endif
-				if (XFilterEvent(&event, None))
-					break;
-				gd=x_find_gd(&(event.xkey.window));
-				if (!gd)break;
-				if (x_translate_key(gd, (XKeyEvent*)(&event),&k,&f))
-					gd->keyboard_handler(gd,k,f);
+		case KeyPress:
+		{
+			int f, k;
+			if (XFilterEvent(&event, None))
+				break;
+			gd = x_find_gd(&event.xkey.window);
+			if (!gd)
+				break;
+			if (x_translate_key(gd, (XKeyEvent*)(&event), &k, &f))
+				gd->keyboard_handler(gd, k, f);
+		}
+			break;
+
+		case ClientMessage:
+			if (event.xclient.format != 32
+			|| event.xclient.message_type != x_wm_protocols_atom
+			|| (Atom)event.xclient.data.l[0] != x_delete_window_atom)
+				break;
+			/*else fallthrough*/
+
+		case DestroyNotify:
+			gd = x_find_gd(&event.xkey.window);
+			if (!gd)
+				break;
+
+			gd->keyboard_handler(gd, KBD_CLOSE, 0);
+			break;
+
+		case ButtonRelease:
+		{
+			int a;
+			gd = x_find_gd(&event.xbutton.window);
+			if (!gd)
+				break;
+			last_was_mouse = 0;
+			switch (event.xbutton.button) {
+			case 1:
+				a = B_LEFT;
+				break;
+			case 2:
+				a = B_MIDDLE;
+				break;
+			case 3:
+				a = B_RIGHT;
+				break;
+			case 8:
+				a = B_FOURTH;
+				break;
+			case 9:
+				a = B_FIFTH;
+				break;
+			default:
+				goto r_xx;
 			}
+			x_clip_number(&event.xmotion.x, gd->size.x1, gd->size.x2);
+			x_clip_number(&event.xmotion.y, gd->size.y1, gd->size.y2);
+			gd->mouse_handler(gd, event.xbutton.x, event.xbutton.y,
+					a|B_UP);
+r_xx:;
+		}
 			break;
 
-			case ClientMessage:
-			if (
-				event.xclient.format!=32||
-				event.xclient.message_type!=x_wm_protocols_atom||
-				(Atom)event.xclient.data.l[0]!=x_delete_window_atom
-			)break;
-			/*-fallthrough*/
-
-			/* This event is destroy window event from window manager */
-
-			case DestroyNotify:
-#ifdef X_DEBUG
-			MESSAGE("(DestroyNotify event)\n");
-#endif
-			gd=x_find_gd(&(event.xkey.window));
-			if (!gd)break;
-
-			gd->keyboard_handler(gd,KBD_CLOSE,0);
-			break;
-
-			case ButtonRelease:    /* mouse button was released */
-			{
-				int a;
-#ifdef X_DEBUG
-				MESSAGE("(ButtonRelease event)\n");
-				{
-					unsigned char txt[256];
-					sprintf(txt,"x=%d y=%d buttons=%d mask=%d\n",event.xbutton.x,event.xbutton.y,event.xbutton.button,event.xbutton.state);
-					MESSAGE(txt);
-				}
-#endif
-				gd=x_find_gd(&(event.xbutton.window));
-				if (!gd)break;
-				last_was_mouse=0;
-				switch(event.xbutton.button)
-				{
-					case 1:
-					a=B_LEFT;
-					break;
-
-					case 3:
-					a=B_RIGHT;
-					break;
-
-					case 2:
-					a=B_MIDDLE;
-					break;
-
-					case 8:
-					a=B_FOURTH;
-					break;
-
-					case 9:
-					a=B_FIFTH;
-					break;
-
-					default:
-					goto r_xx;
-
-				}
-				x_clip_number(&(event.xmotion.x),gd->size.x1,gd->size.x2);
-				x_clip_number(&(event.xmotion.y),gd->size.y1,gd->size.y2);
-				gd->mouse_handler(gd,event.xbutton.x,event.xbutton.y,a|B_UP);
-				r_xx:;
+		case ButtonPress:
+		{
+			int a;
+			gd = x_find_gd(&event.xbutton.window);
+			if (!gd)
+				break;
+			last_was_mouse = 0;
+			switch (event.xbutton.button) {
+			case 1:
+				a = B_LEFT;
+				break;
+			case 2:
+				a = B_MIDDLE;
+				break;
+			case 3:
+				a = B_RIGHT;
+				break;
+			case 4:
+				a = B_WHEELUP;
+				break;
+			case 5:
+				a = B_WHEELDOWN;
+				break;
+			case 6:
+				a = B_WHEELLEFT;
+				break;
+			case 7:
+				a = B_WHEELRIGHT;
+				break;
+			case 8:
+				a = B_FOURTH;
+				break;
+			case 9:
+				a = B_FIFTH;
+				break;
+			default:
+				goto p_xx;
 			}
+			x_clip_number(&event.xmotion.x, gd->size.x1, gd->size.x2);
+			x_clip_number(&event.xmotion.y, gd->size.y1, gd->size.y2);
+			gd->mouse_handler(gd, event.xbutton.x, event.xbutton.y,
+				a | (!BM_IS_WHEEL(a) ? B_DOWN : B_MOVE));
+p_xx:;
+		}
+				break;
+
+		case MotionNotify:
+			/* just sign, that this was mouse event */
+			last_was_mouse = 1;
+			last_event = event;
+			/* fix lag when using remote X and dragging over some text */
+			XSync(x_display, False);
 			break;
 
-			case ButtonPress:    /* mouse button was pressed */
-			{
-				int a;
-#ifdef X_DEBUG
-				MESSAGE("(ButtonPress event)\n");
-				{
-					unsigned char txt[256];
-					sprintf(txt,"x=%d y=%d buttons=%d mask=%d\n",event.xbutton.x,event.xbutton.y,event.xbutton.button,event.xbutton.state);
-					MESSAGE(txt);
-				}
-#endif
-				gd=x_find_gd(&(event.xbutton.window));
-				if (!gd)break;
-				last_was_mouse=0;
-				switch(event.xbutton.button)
-				{
-					case 1:
-					a=B_LEFT;
-					break;
-
-					case 3:
-					a=B_RIGHT;
-					break;
-
-					case 2:
-					a=B_MIDDLE;
-					break;
-
-					case 4:
-					a=B_WHEELUP;
-					break;
-
-					case 5:
-					a=B_WHEELDOWN;
-					break;
-
-					case 6:
-					a=B_WHEELLEFT;
-					break;
-
-					case 7:
-					a=B_WHEELRIGHT;
-					break;
-
-					case 8:
-					a=B_FOURTH;
-					break;
-
-					case 9:
-					a=B_FIFTH;
-					break;
-
-					default:
-					goto p_xx;
-				}
-				x_clip_number(&(event.xmotion.x),gd->size.x1,gd->size.x2);
-				x_clip_number(&(event.xmotion.y),gd->size.y1,gd->size.y2);
-				gd->mouse_handler(gd,event.xbutton.x, event.xbutton.y, a | (!BM_IS_WHEEL(a) ? B_DOWN : B_MOVE));
-				p_xx:;
-			}
-			break;
-
-			case MotionNotify:   /* pointer moved */
-			{
-#ifdef X_DEBUG
-				MESSAGE("(MotionNotify event)\n");
-				{
-					unsigned char txt[256];
-					sprintf(txt,"x=%d y=%d\n",event.xmotion.x,event.xmotion.y);
-					MESSAGE(txt);
-				}
-#endif
-				/* just sign, that this was mouse event */
-				last_was_mouse=1;
-				last_event=event;
-				/* fix lag when using remote X and dragging over some text */
-				XSync(x_display, False);
-			}
-			break;
-
-			/* read clipboard */
-			case SelectionNotify:
-#ifdef X_DEBUG
-			MESSAGE("xselectionnotify\n");
-#endif
+		/* read clipboard */
+		case SelectionNotify:
 			/* handled in x_get_clipboard_text */
 			break;
 
 /* This long code must be here in order to implement copying of stuff into the clipboard */
-			case SelectionRequest:
-			{
-				selection_request(&event);
-			}
+		case SelectionRequest:
+			selection_request(&event);
 			break;
 
-			case MapNotify:
+		case MapNotify:
 			XFlush (x_display);
 			break;
 
-			default:
-#ifdef X_DEBUG
-			{
-				unsigned char txt[256];
-				sprintf(txt,"event=%d\n",event.type);
-				MESSAGE(txt);
-			}
-#endif
+		default:
 			break;
 		}
 	}
 
-	if (last_was_mouse)  /* that was end of mouse move block --- call mouse handler */
-	{
-		int a,b;
+	/* that was end of mouse move block --- call mouse handler */
+	if (last_was_mouse)  {
+		int a, b;
 
-		last_was_mouse=0;
-#ifdef X_DEBUG
-		MESSAGE("(MotionNotify event)\n");
-		/*
-		{
-			unsigned char txt[256];
-			sprintf(txt,"x=%d y=%d\n",last_event.xmotion.x,last_event.xmotion.y);
-			MESSAGE(txt);
+		last_was_mouse = 0;
+		gd = x_find_gd(&last_event.xmotion.window);
+		if (!gd)
+			goto ret;
+		a = B_LEFT;
+		b = B_MOVE;
+		if ((last_event.xmotion.state) & Button1Mask) {
+			a = B_LEFT;
+			b = B_DRAG;
 		}
-		*/
-#endif
-		gd=x_find_gd(&(last_event.xmotion.window));
-		if (!gd)goto ret;
-		a=B_LEFT;
-		b=B_MOVE;
-		if ((last_event.xmotion.state)&Button1Mask)
-		{
-			a=B_LEFT;
-			b=B_DRAG;
-#ifdef X_DEBUG
-			MESSAGE("left button/drag\n");
-#endif
+		if ((last_event.xmotion.state) & Button2Mask) {
+			a = B_MIDDLE;
+			b = B_DRAG;
 		}
-		if ((last_event.xmotion.state)&Button2Mask)
-		{
-			a=B_MIDDLE;
-			b=B_DRAG;
-#ifdef X_DEBUG
-			MESSAGE("middle button/drag\n");
-#endif
+		if ((last_event.xmotion.state) & Button3Mask) {
+			a = B_RIGHT;
+			b = B_DRAG;
 		}
-		if ((last_event.xmotion.state)&Button3Mask)
-		{
-			a=B_RIGHT;
-			b=B_DRAG;
-#ifdef X_DEBUG
-			MESSAGE("right button/drag\n");
-#endif
-		}
-		x_clip_number(&(last_event.xmotion.x),gd->size.x1,gd->size.x2);
-		x_clip_number(&(last_event.xmotion.y),gd->size.y1,gd->size.y2);
-		gd->mouse_handler(gd,last_event.xmotion.x,last_event.xmotion.y,a|b);
+		x_clip_number(&last_event.xmotion.x, gd->size.x1, gd->size.x2);
+		x_clip_number(&last_event.xmotion.y, gd->size.y1, gd->size.y2);
+		gd->mouse_handler(gd, last_event.xmotion.x, last_event.xmotion.y,
+				a | b);
 	}
-	ret:;
-#ifdef SC_DEBUG
-	MESSAGE("x_process_event end\n");
-#endif
+ret:;
 }
 
 
@@ -1038,31 +948,25 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 	XGCValues gcv;
 	XSetWindowAttributes win_attr;
 	XVisualInfo vinfo;
-	int misordered=-1;
+	int misordered = -1;
 
 	x_hash_table_init();
 
-	n_wins=0;
+	n_wins = 0;
 
 #if defined(LC_CTYPE)
 	setlocale(LC_CTYPE, "");
 #endif
-#ifdef X_DEBUG
-	{
-		unsigned char txt[256];
-		sprintf(txt,"x_init_driver(%s, %s)\n", param, display);
-		MESSAGE(txt);
-	}
-#endif
-	x_input_encoding=-1;
+	x_input_encoding = -1;
 #if defined(CODESET)
 	{
 		unsigned char *cp;
 		cp = cast_uchar nl_langinfo(CODESET);
-		x_input_encoding=get_cp_index(cp);
+		x_input_encoding = get_cp_index(cp);
 	}
 #endif
-	if (!display||!(*display))display=NULL;
+	if (!display || !*display)
+		display = NULL;
 
 /*
 	X documentation says on XOpenDisplay(display_name) :
@@ -1076,23 +980,16 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 	But OS/2 has problems when display_name is NULL ...
 
 */
-	if (!display) display = cast_uchar getenv("DISPLAY");
-#if !defined(__linux__)
-	/* on Linux, do not assume XWINDOW present if $DISPLAY is not set
-	   --- rather open links on svgalib or framebuffer console */
-	if (!display) display = cast_uchar ":0.0";	/* needed for MacOS X */
-#endif
 	x_display_string = stracpy(display ? display : cast_uchar "");
 
-	x_display = XOpenDisplay(cast_char display);
-	if (!x_display)
-	{
-		unsigned char *err=init_str();
-		int l=0;
+	x_display = XOpenDisplay((char *)display);
+	if (!x_display) {
+		unsigned char *err = init_str();
+		int l = 0;
 
-		add_to_str(&err,&l,cast_uchar "Can't open display \"");
-		add_to_str(&err,&l,display?display:(unsigned char *)"(null)");
-		add_to_str(&err,&l,cast_uchar "\"\n");
+		add_to_str(&err, &l, cast_uchar "Can't open display \"");
+		add_to_str(&err, &l, display ? display : (unsigned char *)"(null)");
+		add_to_str(&err, &l, cast_uchar "\"\n");
 		x_free_hash_table();
 		return err;
 	}
@@ -1112,27 +1009,29 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 	x_driver_param = NULL;
 
-	if (param && *param)
-	{
+	if (param && *param) {
 		unsigned char *e;
 		unsigned long w, h;
 
 		x_driver_param = stracpy(param);
 
 		if (*x_driver_param < '0' || *x_driver_param > '9') {
-			invalid_param:
+invalid_param:
 			x_free_hash_table();
 			return stracpy(cast_uchar "Invalid parameter\n");
 		}
-		w=strtoul(cast_const_char x_driver_param, (char **)(void *)&e, 10);
-		if (upcase(*e) != 'X') goto invalid_param;
+		w = strtoul((char *)x_driver_param, (char **)(void *)&e, 10);
+		if (upcase(*e) != 'X')
+			goto invalid_param;
 		e++;
-		if (*e < '0' || *e > '9') goto invalid_param;
-		h=strtoul(cast_const_char e, (char **)(void *)&e, 10);
-		if (*e) goto invalid_param;
+		if (*e < '0' || *e > '9')
+			goto invalid_param;
+		h = strtoul((char *)e, (char **)(void *)&e, 10);
+		if (*e)
+			goto invalid_param;
 		if (w && h && w <= 30000 && h <= 30000) {
-			x_default_window_width=(int)w;
-			x_default_window_height=(int)h;
+			x_default_window_width = (int)w;
+			x_default_window_height = (int)h;
 		}
 	}
 
@@ -1140,82 +1039,88 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 	{
 #define DEPTHS 5
 #define CLASSES 3
-		int depths[DEPTHS]={24, 16, 15, 8, 4};
-		int classes[CLASSES]={TrueColor, PseudoColor, StaticColor}; /* FIXME: dodelat DirectColor */
+		int depths[DEPTHS] = { 24, 16, 15, 8, 4 };
+		int classes[CLASSES] = { TrueColor, PseudoColor, StaticColor }; /* FIXME: dodelat DirectColor */
 		int a,b;
 
-		for (a=0;a<DEPTHS;a++)
-			for (b=0;b<CLASSES;b++)
-			{
-				if (XMatchVisualInfo(x_display, x_screen,depths[a],classes[b], &vinfo))
-				{
+		for (a = 0; a < DEPTHS; a++)
+			for (b = 0; b < CLASSES; b++) {
+				if (XMatchVisualInfo(x_display, x_screen,
+						depths[a], classes[b], &vinfo)) {
 					XPixmapFormatValues *pfm;
-					int n,i;
+					int n, i;
 
-					x_default_visual=vinfo.visual;
-					x_depth=vinfo.depth;
+					x_default_visual = vinfo.visual;
+					x_depth = vinfo.depth;
 
-					if (classes[b] == StaticColor && depths[a] > 8)
+					if (classes[b] == StaticColor
+					&& depths[a] > 8)
 						continue;
 
 					/* determine bytes per pixel */
-					pfm=XListPixmapFormats(x_display,&n);
-					for (i=0;i<n;i++)
-						if (pfm[i].depth==x_depth)
-						{
-							x_bitmap_bpp=pfm[i].bits_per_pixel<8?1:((pfm[i].bits_per_pixel)>>3);
-							x_bitmap_scanline_pad=(pfm[i].scanline_pad)>>3;
+					pfm = XListPixmapFormats(x_display, &n);
+					for (i = 0; i < n; i++)
+						if (pfm[i].depth == x_depth) {
+							x_bitmap_bpp = pfm[i].bits_per_pixel < 8 ? 1 : ((pfm[i].bits_per_pixel) >> 3);
+							x_bitmap_scanline_pad = (pfm[i].scanline_pad) >> 3;
 							XFree(pfm);
 							goto bytes_per_pixel_found;
 						}
-					if(n) XFree(pfm);
+					if (n)
+						XFree(pfm);
 					continue;
 bytes_per_pixel_found:
 
 					/* test misordered flag */
-					switch(x_depth)
-					{
-						case 4:
-						case 8:
-						if (x_bitmap_bpp!=1)break;
-						if (vinfo.red_mask>=vinfo.green_mask&&vinfo.green_mask>=vinfo.blue_mask)
-						{
-							misordered=0;
+					switch(x_depth) {
+					case 4:
+					case 8:
+						if (x_bitmap_bpp != 1)
+							break;
+						if (vinfo.red_mask >= vinfo.green_mask
+						&& vinfo.green_mask>=vinfo.blue_mask) {
+							misordered = 0;
 							goto visual_found;
 						}
 						break;
 
-						case 15:
-						case 16:
-						if (x_bitmap_bpp!=2)break;
-						if (x_bitmap_bit_order==MSBFirst&&vinfo.red_mask>vinfo.green_mask&&vinfo.green_mask>vinfo.blue_mask)
-						{
-							misordered=256;
+					case 15:
+					case 16:
+						if (x_bitmap_bpp != 2)
+							break;
+						if (x_bitmap_bit_order == MSBFirst
+						&& vinfo.red_mask > vinfo.green_mask
+						&& vinfo.green_mask > vinfo.blue_mask) {
+							misordered = 256;
 							goto visual_found;
 						}
-						if (x_bitmap_bit_order==MSBFirst)break;
-						if (vinfo.red_mask>vinfo.green_mask&&vinfo.green_mask>vinfo.blue_mask)
-						{
-							misordered=0;
+						if (x_bitmap_bit_order == MSBFirst)
+							break;
+						if (vinfo.red_mask > vinfo.green_mask
+						&& vinfo.green_mask > vinfo.blue_mask) {
+							misordered = 0;
 							goto visual_found;
 						}
 						break;
 
-						case 24:
-						if (x_bitmap_bpp!=3&&x_bitmap_bpp!=4) break;
-						if (vinfo.red_mask<vinfo.green_mask&&vinfo.green_mask<vinfo.blue_mask)
-						{
-							misordered=256;
+					case 24:
+						if (x_bitmap_bpp != 3
+						&& x_bitmap_bpp != 4)
+							break;
+						if (vinfo.red_mask < vinfo.green_mask
+						&& vinfo.green_mask < vinfo.blue_mask) {
+							misordered = 256;
 							goto visual_found;
 						}
-						if (x_bitmap_bit_order==MSBFirst&&vinfo.red_mask>vinfo.green_mask&&vinfo.green_mask>vinfo.blue_mask)
-						{
-							misordered=512;
+						if (x_bitmap_bit_order == MSBFirst
+						&& vinfo.red_mask > vinfo.green_mask
+						&& vinfo.green_mask > vinfo.blue_mask) {
+							misordered = 512;
 							goto visual_found;
 						}
-						if (vinfo.red_mask>vinfo.green_mask&&vinfo.green_mask>vinfo.blue_mask)
-						{
-							misordered=0;
+						if (vinfo.red_mask > vinfo.green_mask
+						&&vinfo.green_mask > vinfo.blue_mask) {
+							misordered = 0;
 							goto visual_found;
 						}
 						break;
@@ -1228,115 +1133,122 @@ bytes_per_pixel_found:
 visual_found:;
 	}
 
-	x_driver.depth=0;
-	x_driver.depth|=x_bitmap_bpp;
-	x_driver.depth|=x_depth<<3;
-	x_driver.depth|=misordered;
+	x_driver.depth = 0;
+	x_driver.depth |= x_bitmap_bpp;
+	x_driver.depth |= x_depth << 3;
+	x_driver.depth |= misordered;
 
 	/* check if depth is sane */
-	if (x_driver.depth == 707) x_driver.depth = 195;
-	switch (x_driver.depth)
-	{
-		case 33:
-		case 65:
-		case 122:
-		case 130:
-		case 451:
-		case 195:
-		case 196:
-		case 378:
-		case 386:
-		case 452:
-		case 708:
-/*			printf("depth=%d visualid=%x\n",x_driver.depth, vinfo.visualid); */
+	if (x_driver.depth == 707)
+		x_driver.depth = 195;
+	switch (x_driver.depth) {
+	case 33:
+	case 65:
+	case 122:
+	case 130:
+	case 451:
+	case 195:
+	case 196:
+	case 378:
+	case 386:
+	case 452:
+	case 708:
 		break;
 
-		default:
+	default:
 		{
 			unsigned char nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno[MAX_STR_LEN];
 
-			snprintf(cast_char nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno,MAX_STR_LEN,
-			"Unsupported graphics mode: x_depth=%d, bits_per_pixel=%d, bytes_per_pixel=%d\n",x_driver.depth, x_depth, x_bitmap_bpp);
+			snprintf((char *)nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno,
+				MAX_STR_LEN,
+				"Unsupported graphics mode: x_depth = %d, bits_per_pixel = %d, bytes_per_pixel = %d\n",
+				x_driver.depth, x_depth, x_bitmap_bpp);
 			x_free_hash_table();
 			return stracpy(nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno);
 		}
 
 	}
 
-	x_get_color_function=get_color_fn(x_driver.depth);
-	if (!x_get_color_function) internal("Unknown bit depth: %d", x_driver.depth);
+	x_get_color_function = get_color_fn(x_driver.depth);
+	if (!x_get_color_function)
+		internal("Unknown bit depth: %d", x_driver.depth);
 
-#ifdef X_DEBUG
-	{
-		unsigned char txt[256];
-		sprintf(txt,"x_driver.depth=%d\n",x_driver.depth);
-		MESSAGE(txt);
-	}
-#endif
+	x_colors = 1 << x_depth;
+	x_have_palette = 0;
 
-	x_colors=1<<x_depth;
-	x_have_palette=0;
-	if (vinfo.class==DirectColor||vinfo.class==PseudoColor)
-	{
+	switch (vinfo.class) {
 		unsigned char *t;
-
-		x_have_palette=1;
-		if((t=x_set_palette())){x_free_hash_table(); return t;}
+	case DirectColor:
+	case PseudoColor:
+		x_have_palette = 1;
+		if ((t = x_set_palette())) {
+			x_free_hash_table();
+			return t;
+		}
+	case StaticColor:
+		if ((t = x_query_palette())) {
+			x_free_hash_table();
+			return t;
+		}
+	default:;
 	}
-	if (vinfo.class==StaticColor)
-	{
-		unsigned char *t;
-		if((t=x_query_palette())){x_free_hash_table(); return t;}
-	}
 
-	x_black_pixel=BlackPixel(x_display,x_screen);
+	x_black_pixel = BlackPixel(x_display, x_screen);
 
-	gcv.function=GXcopy;
-	gcv.graphics_exposures=True;  /* we want to receive GraphicsExpose events when uninitialized area is discovered during scroll */
-	gcv.fill_style=FillSolid;
-	gcv.background=x_black_pixel;
+	gcv.function = GXcopy;
+	/* we want to receive GraphicsExpose events when uninitialized area is discovered during scroll */
+	gcv.graphics_exposures = True;
+	gcv.fill_style = FillSolid;
+	gcv.background = x_black_pixel;
 
-	x_delete_window_atom = XInternAtom(x_display,"WM_DELETE_WINDOW", False);
-	x_wm_protocols_atom = XInternAtom(x_display,"WM_PROTOCOLS", False);
+	x_delete_window_atom = XInternAtom(x_display, "WM_DELETE_WINDOW", False);
+	x_wm_protocols_atom = XInternAtom(x_display, "WM_PROTOCOLS", False);
 	x_sel_atom = XInternAtom(x_display, "SEL_PROP", False);
 	x_targets_atom = XInternAtom(x_display, "TARGETS", False);
 	x_utf8_string_atom = XInternAtom(x_display, "UTF8_STRING", False);
 
-	if (x_have_palette) win_attr.colormap=x_colormap;
-	else win_attr.colormap=XCreateColormap(x_display, x_root_window, x_default_visual, AllocNone);
+	if (x_have_palette)
+		win_attr.colormap = x_colormap;
+	else
+		win_attr.colormap = XCreateColormap(x_display, x_root_window,
+						x_default_visual, AllocNone);
 
-	win_attr.border_pixel=x_black_pixel;
+	win_attr.border_pixel = x_black_pixel;
 
-	fake_window=XCreateWindow(
-		x_display,
-		x_root_window,
-		0,
-		0,
-		10,
-		10,
-		0,
-		x_depth,
-		CopyFromParent,
-		x_default_visual,
-		CWColormap|CWBorderPixel,
-		&win_attr
-	);
+	fake_window = XCreateWindow(x_display, x_root_window, 0, 0, 10, 10, 0,
+				x_depth, CopyFromParent, x_default_visual,
+				CWColormap | CWBorderPixel, &win_attr);
 
 	fake_window_initialized = 1;
 
-	x_normal_gc=XCreateGC(x_display,fake_window,GCFillStyle|GCBackground,&gcv);
-	if (!x_normal_gc) {x_free_hash_table(); return stracpy(cast_uchar "Cannot create graphic context.\n");}
+	x_normal_gc = XCreateGC(x_display, fake_window,
+			GCFillStyle | GCBackground, &gcv);
+	if (!x_normal_gc) {
+		x_free_hash_table();
+		return stracpy(cast_uchar "Cannot create graphic context.\n");
+	}
 
-	x_copy_gc=XCreateGC(x_display,fake_window,GCFunction,&gcv);
-	if (!x_copy_gc) {x_free_hash_table(); return stracpy(cast_uchar "Cannot create graphic context.\n");}
+	x_copy_gc = XCreateGC(x_display, fake_window, GCFunction, &gcv);
+	if (!x_copy_gc) {
+		x_free_hash_table();
+		return stracpy(cast_uchar "Cannot create graphic context.\n");
+	}
 
-	x_drawbitmap_gc=XCreateGC(x_display,fake_window,GCFunction,&gcv);
-	if (!x_drawbitmap_gc) {x_free_hash_table(); return stracpy(cast_uchar "Cannot create graphic context.\n");}
+	x_drawbitmap_gc = XCreateGC(x_display, fake_window, GCFunction, &gcv);
+	if (!x_drawbitmap_gc) {
+		x_free_hash_table();
+		return stracpy(cast_uchar "Cannot create graphic context.\n");
+	}
 
-	x_scroll_gc=XCreateGC(x_display,fake_window,GCGraphicsExposures|GCBackground,&gcv);
-	if (!x_scroll_gc) {x_free_hash_table(); return stracpy(cast_uchar "Cannot create graphic context.\n");}
+	x_scroll_gc = XCreateGC(x_display, fake_window,
+			GCGraphicsExposures | GCBackground, &gcv);
+	if (!x_scroll_gc) {
+		x_free_hash_table();
+		return stracpy(cast_uchar "Cannot create graphic context.\n");
+	}
 
-	XSetLineAttributes(x_display,x_normal_gc,1,LineSolid,CapRound,JoinRound);
+	XSetLineAttributes(x_display, x_normal_gc, 1, LineSolid, CapRound,
+			JoinRound);
 
 	{
 #if defined(LC_CTYPE)
@@ -1348,21 +1260,20 @@ visual_found:;
 		unsigned char *l, *m, *d;
 		int len;
 		l = cast_uchar setlocale(LC_CTYPE, "");
-		len = l ? (int)strlen(cast_const_char l) : 0;
-		if (l &&
-		    !(len >= 5 && !casestrcmp(l + len - 5, cast_uchar ".utf8")) &&
-		    !(len >= 6 && !casestrcmp(l + len - 6, cast_uchar ".utf-8"))
-		    ) {
+		len = l ? (int)strlen((char *)l) : 0;
+		if (l
+		&& !(len >= 5 && !casestrcmp(l + len - 5, cast_uchar ".utf8"))
+		&& !(len >= 6 && !casestrcmp(l + len - 6, cast_uchar ".utf-8"))) {
 			m = stracpy(l);
 			d = cast_uchar strchr(cast_const_char m, '.');
-			if (d) *d = 0;
+			if (d)
+				*d = 0;
 			add_to_strn(&m, cast_uchar ".UTF-8");
-			l = cast_uchar setlocale(LC_CTYPE, cast_const_char m);
+			l = cast_uchar setlocale(LC_CTYPE, (char *)m);
 			free(m);
 		}
-		if (!l) {
+		if (!l)
 			l = cast_uchar setlocale(LC_CTYPE, "en_US.UTF-8");
-		}
 #endif
 		xim = XOpenIM(x_display, NULL, NULL, NULL);
 #if defined(LC_CTYPE)
@@ -1373,9 +1284,9 @@ visual_found:;
 #endif
 		if (xim) {
 			XIC xic = x_open_xic(fake_window);
-			if (xic) {
+			if (xic)
 				XDestroyIC(xic);
-			} else {
+			else {
 				XCloseIM(xim);
 				xim = NULL;
 			}
@@ -1386,9 +1297,9 @@ visual_found:;
 	}
 
 	if (x_input_encoding < 0 && !xim)
-		x_driver.flags|=GD_NEED_CODEPAGE;
+		x_driver.flags |= GD_NEED_CODEPAGE;
 
-	x_fd=XConnectionNumber(x_display);
+	x_fd = XConnectionNumber(x_display);
 	set_handlers(x_fd, x_process_events, NULL, NULL);
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
@@ -1399,16 +1310,15 @@ visual_found:;
 /* close connection with the X server */
 static void x_shutdown_driver(void)
 {
-#ifdef X_DEBUG
-	MESSAGE("x_shutdown_driver\n");
-#endif
 	set_handlers(x_fd, NULL, NULL, NULL);
 	x_free_hash_table();
 }
 
 static XIC x_open_xic(Window w)
 {
-	return XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, w, XNFocusWindow, w, NULL);
+	return XCreateIC(xim, XNInputStyle,
+			XIMPreeditNothing | XIMStatusNothing, XNClientWindow,
+			w, XNFocusWindow, w, NULL);
 }
 
 /* create new window */
@@ -1422,97 +1332,95 @@ static struct graphics_device* x_init_device(void)
 	XSetWindowAttributes win_attr;
 	struct window_info *wi;
 
-#ifdef X_DEBUG
-	MESSAGE("x_init_device\n");
-#endif
 	gd = xmalloc(sizeof(struct graphics_device));
 
-	wi=mem_calloc(sizeof(struct window_info));
+	wi = mem_calloc(sizeof(struct window_info));
 
-	gd->size.x1=0;
-	gd->size.y1=0;
-	gd->size.x2=x_default_window_width;
-	gd->size.y2=x_default_window_height;
+	gd->size.x1 = 0;
+	gd->size.y1 = 0;
+	gd->size.x2 = x_default_window_width;
+	gd->size.y2 = x_default_window_height;
 
-	if (x_have_palette) win_attr.colormap=x_colormap;
-	else win_attr.colormap=XCreateColormap(x_display, x_root_window, x_default_visual, AllocNone);
-	win_attr.border_pixel=x_black_pixel;
+	if (x_have_palette)
+		win_attr.colormap = x_colormap;
+	else
+		win_attr.colormap = XCreateColormap(x_display, x_root_window,
+						x_default_visual, AllocNone);
+	win_attr.border_pixel = x_black_pixel;
 
-	wi->window=XCreateWindow(
-		x_display,
-		x_root_window,
-		gd->size.x1,
-		gd->size.y1,
-		gd->size.x2,
-		gd->size.y2,
-		X_BORDER_WIDTH,
-		x_depth,
-		InputOutput,
-		x_default_visual,
-		CWColormap|CWBorderPixel,
-		&win_attr
-	);
-	if (!x_icon)
-	{
+	wi->window = XCreateWindow(x_display, x_root_window, gd->size.x1,
+				gd->size.y1, gd->size.x2, gd->size.y2,
+				X_BORDER_WIDTH, x_depth, InputOutput,
+				x_default_visual, CWColormap | CWBorderPixel,
+				&win_attr);
+	if (!x_icon) {
 		XImage *img;
 		unsigned char *data;
-		int w,h,skip;
-		get_links_icon(&data,&w,&h,&skip,x_bitmap_scanline_pad);
+		int w, h, skip;
+		get_links_icon(&data, &w, &h, &skip, x_bitmap_scanline_pad);
 
-		img=XCreateImage(x_display,x_default_visual,x_depth,ZPixmap,0,0,w,h,x_bitmap_scanline_pad<<3,w*((x_driver.depth)&7));
-		if (!img){x_icon=0;goto nic_nebude_bobankove;}
-		img->data=cast_char data;
-		x_icon=XCreatePixmap(x_display,wi->window,w,h,x_depth);
-		if (!x_icon){XDestroyImage(img);x_icon=0;goto nic_nebude_bobankove;}
+		img = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap,
+				0, 0, w, h, x_bitmap_scanline_pad << 3,
+				w * ((x_driver.depth) & 7));
+		if (!img) {
+			x_icon = 0;
+			goto nic_nebude_bobankove;
+		}
+		img->data = (char *)data;
+		x_icon = XCreatePixmap(x_display, wi->window, w, h, x_depth);
+		if (!x_icon) {
+			XDestroyImage(img);
+			x_icon = 0;
+			goto nic_nebude_bobankove;
+		}
 
-		XPutImage(x_display,x_icon,x_copy_gc,img,0,0,0,0,w,h);
+		XPutImage(x_display, x_icon, x_copy_gc, img, 0, 0, 0, 0, w, h);
 		XDestroyImage(img);
 nic_nebude_bobankove:;
 	}
 
-	wm_hints.flags=InputHint;
-	wm_hints.input=True;
-	if (x_icon)
-	{
-		wm_hints.flags=InputHint|IconPixmapHint;
-		wm_hints.icon_pixmap=x_icon;
+	wm_hints.flags = InputHint;
+	wm_hints.input = True;
+	if (x_icon) {
+		wm_hints.flags = InputHint | IconPixmapHint;
+		wm_hints.icon_pixmap = x_icon;
 	}
 
 	XSetWMHints(x_display, wi->window, &wm_hints);
-	class_hints.res_name = cast_char links_name;
-	class_hints.res_class = cast_char links_name;
+	class_hints.res_name = (char *)links_name;
+	class_hints.res_class = (char *)links_name;
 	XSetClassHint(x_display, wi->window, &class_hints);
 	XStringListToTextProperty((char **)(void *)&links_name, 1, &windowName);
 	XSetWMName(x_display, wi->window, &windowName);
-	XStoreName(x_display,wi->window,cast_char links_name);
+	XStoreName(x_display, wi->window, (char *)links_name);
 	XSetWMIconName(x_display, wi->window, &windowName);
 	XFree(windowName.value);
 
 	XMapWindow(x_display,wi->window);
 
-	gd->clip.x1=gd->size.x1;
-	gd->clip.y1=gd->size.y1;
-	gd->clip.x2=gd->size.x2;
-	gd->clip.y2=gd->size.y2;
-	gd->driver_data=wi;
-	gd->user_data=0;
+	gd->clip.x1 = gd->size.x1;
+	gd->clip.y1 = gd->size.y1;
+	gd->clip.x2 = gd->size.x2;
+	gd->clip.y2 = gd->size.y2;
+	gd->driver_data = wi;
+	gd->user_data = 0;
 
 	XSetWindowBackgroundPixmap(x_display, wi->window, None);
-	if (x_have_palette) XSetWindowColormap(x_display,wi->window,x_colormap);
+	if (x_have_palette)
+		XSetWindowColormap(x_display,wi->window,x_colormap);
 	x_add_to_table(gd);
 
 	XSetWMProtocols(x_display,wi->window,&x_delete_window_atom,1);
 
-	XSelectInput(x_display,wi->window,
-		ExposureMask|
-		KeyPressMask|
-		ButtonPressMask|
-		ButtonReleaseMask|
-		PointerMotionMask|
-		ButtonMotionMask|
-		StructureNotifyMask|
-		0
-	);
+	XSelectInput(x_display, wi->window,
+		ExposureMask
+		| KeyPressMask
+		| ButtonPressMask
+		| ButtonReleaseMask
+		| PointerMotionMask
+		| ButtonMotionMask
+		| StructureNotifyMask
+		| 0);
 
 	if (xim)
 		wi->xic = x_open_xic(wi->window);
@@ -1524,13 +1432,9 @@ nic_nebude_bobankove:;
 }
 
 
-/* close window */
 static void x_shutdown_device(struct graphics_device *gd)
 {
 	struct window_info *wi = get_window_info(gd);
-#ifdef X_DEBUG
-	MESSAGE("x_shutdown_device\n");
-#endif
 
 	n_wins--;
 	XDestroyWindow(x_display, wi->window);
@@ -1559,13 +1463,11 @@ static void x_translate_colors(unsigned char *data, int x, int y, int skip)
 static int x_get_empty_bitmap(struct bitmap *bmp)
 {
 	int pad;
-#ifdef X_DEBUG
-	MESSAGE("x_get_empty_bitmap\n");
-#endif
-	pad=x_bitmap_scanline_pad-((bmp->x*x_bitmap_bpp)%x_bitmap_scanline_pad);
-	if (pad==x_bitmap_scanline_pad)pad=0;
-	bmp->skip=bmp->x*x_bitmap_bpp+pad;
-	bmp->flags=NULL;
+	pad = x_bitmap_scanline_pad - ((bmp->x * x_bitmap_bpp) % x_bitmap_scanline_pad);
+	if (pad == x_bitmap_scanline_pad)
+		pad = 0;
+	bmp->skip = bmp->x * x_bitmap_bpp + pad;
+	bmp->flags = NULL;
 	bmp->data = xmalloc(bmp->skip * bmp->y);
 	return 0;
 }
@@ -1574,15 +1476,12 @@ static void x_register_bitmap(struct bitmap *bmp)
 {
 	struct x_pixmapa *p;
 	XImage *image;
-	Pixmap *pixmap = NULL;	/* shut up warning */
+	Pixmap *pixmap = NULL;
 	int can_create_pixmap;
 
-#ifdef X_DEBUG
-	MESSAGE("x_register_bitmap\n");
-#endif
-
 	X_FLUSH();
-	if (!bmp->data||!bmp->x||!bmp->y) goto cant_create;
+	if (!bmp->data || !bmp->x || !bmp->y)
+		goto cant_create;
 
 	x_translate_colors(bmp->data, bmp->x, bmp->y, bmp->skip);
 
@@ -1590,19 +1489,20 @@ static void x_register_bitmap(struct bitmap *bmp)
 	p = xmalloc(sizeof(struct x_pixmapa));
 
 	/* alloc XImage in client's memory */
-	retry:
-	image=XCreateImage(x_display,x_default_visual,x_depth,ZPixmap,0,0,bmp->x,bmp->y,x_bitmap_scanline_pad<<3,bmp->skip);
+retry:
+	image = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
+			0, bmp->x, bmp->y, x_bitmap_scanline_pad << 3, bmp->skip);
 	if (!image){
 		if (out_of_memory())
 			goto retry;
 		free(p);
 		goto cant_create;
 	}
-	image->data=bmp->data;
+	image->data = bmp->data;
 
 
 	/* try to alloc XPixmap in server's memory */
-	can_create_pixmap=1;
+	can_create_pixmap = 1;
 
 	if (bmp->x >= 32768 || bmp->y >= 32768) {
 		can_create_pixmap = 0;
@@ -1611,49 +1511,39 @@ static void x_register_bitmap(struct bitmap *bmp)
 
 	x_prepare_for_failure();
 	pixmap = xmalloc(sizeof(Pixmap));
-	(*pixmap)=XCreatePixmap(x_display,fake_window,bmp->x,bmp->y,x_depth);
+	(*pixmap) = XCreatePixmap(x_display,fake_window,bmp->x,bmp->y,x_depth);
 	if (x_test_for_failure()) {
 		if (*pixmap) {
 			x_prepare_for_failure();
-			XFreePixmap(x_display,*pixmap);
+			XFreePixmap(x_display, *pixmap);
 			x_test_for_failure();
-			*pixmap=0;
+			*pixmap = 0;
 		}
 	}
-	if (!(*pixmap)) {
+	if (!*pixmap) {
 		free(pixmap);
-		can_create_pixmap=0;
+		can_create_pixmap = 0;
 	}
 
 no_pixmap:
 
-	if (can_create_pixmap)
-	{
-#ifdef X_DEBUG
-		MESSAGE("x_register_bitmap: creating pixmap\n");
-#endif
-		XPutImage(x_display,*pixmap,x_copy_gc,image,0,0,0,0,bmp->x,bmp->y);
+	if (can_create_pixmap) {
+		XPutImage(x_display, *pixmap, x_copy_gc, image, 0, 0, 0, 0,
+			bmp->x, bmp->y);
 		XDestroyImage(image);
-		p->type=X_TYPE_PIXMAP;
-		p->data.pixmap=pixmap;
+		p->type = X_TYPE_PIXMAP;
+		p->data.pixmap = pixmap;
+	} else {
+		p->type = X_TYPE_IMAGE;
+		p->data.image = image;
 	}
-	else
-	{
-#ifdef X_DEBUG
-		MESSAGE("x_register_bitmap: creating image\n");
-#endif
-		p->type=X_TYPE_IMAGE;
-		p->data.image=image;
-	}
-	bmp->flags=p;
-	bmp->data=NULL;
+	bmp->flags = p;
+	bmp->data = NULL;
 	return;
 
 cant_create:
-	if (bmp->data) {
-		free(bmp->data);
-		bmp->data = NULL;
-	}
+	free(bmp->data);
+	bmp->data = NULL;
 	bmp->flags=NULL;
 	return;
 }
@@ -1661,20 +1551,17 @@ cant_create:
 
 static void x_unregister_bitmap(struct bitmap *bmp)
 {
-#ifdef X_DEBUG
-	MESSAGE("x_unregister_bitmap\n");
-#endif
-	if (!bmp->flags) return;
+	if (!bmp->flags)
+		return;
 
-	switch(XPIXMAPP(bmp->flags)->type)
-	{
-		case X_TYPE_PIXMAP:
-		XFreePixmap(x_display,*(XPIXMAPP(bmp->flags)->data.pixmap));   /* free XPixmap from server's memory */
-		free(XPIXMAPP(bmp->flags)->data.pixmap);  /* XPixmap */
+	switch(XPIXMAPP(bmp->flags)->type) {
+	case X_TYPE_PIXMAP:
+		XFreePixmap(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap));
+		free(XPIXMAPP(bmp->flags)->data.pixmap);
 		break;
 
-		case X_TYPE_IMAGE:
-		XDestroyImage(XPIXMAPP(bmp->flags)->data.image);  /* free XImage from client's memory */
+	case X_TYPE_IMAGE:
+		XDestroyImage(XPIXMAPP(bmp->flags)->data.image);
 		break;
 	}
 	free(bmp->flags);  /* struct x_pixmap */
@@ -1685,100 +1572,76 @@ static long x_get_color(int rgb)
 	long block;
 	unsigned char *b;
 
-#ifdef X_DEBUG
-	MESSAGE("x_get_color\n");
-#endif
-	block=x_get_color_function(rgb);
+	block = x_get_color_function(rgb);
 	b = (unsigned char *)&block;
 	/*fprintf(stderr, "bitmap bpp %d\n", x_bitmap_bpp);*/
 	switch (x_bitmap_bpp) {
-		case 1:		if (static_color_table)
-					return static_color_table[b[0]];
-				return b[0];
-		case 2:		if (x_bitmap_bit_order == LSBFirst)
-					return (unsigned)b[0] | ((unsigned)b[1] << 8);
-				else
-					return (unsigned)b[1] | ((unsigned)b[0] << 8);
-		case 3:		return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16);
-		default:	if (x_bitmap_bit_order == LSBFirst)
-					return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16) | ((unsigned)b[3] << 24);
-				else
-					return (unsigned)b[3] | ((unsigned)b[2] << 8) | ((unsigned)b[1] << 16) | ((unsigned)b[0] << 24);
+	case 1:
+		if (static_color_table)
+			return static_color_table[b[0]];
+		return b[0];
+	case 2:
+		if (x_bitmap_bit_order == LSBFirst)
+			return (unsigned)b[0] | ((unsigned)b[1] << 8);
+		return (unsigned)b[1] | ((unsigned)b[0] << 8);
+	case 3:
+		return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16);
+	default:
+		if (x_bitmap_bit_order == LSBFirst)
+			return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16) | ((unsigned)b[3] << 24);
+		return (unsigned)b[3] | ((unsigned)b[2] << 8) | ((unsigned)b[1] << 16) | ((unsigned)b[0] << 24);
 	}
 }
 
 
 static void x_fill_area(struct graphics_device *gd, int x1, int y1, int x2, int y2, long color)
 {
-	/*int a;*/
+	if (x1 < gd->clip.x1)
+		x1 = gd->clip.x1;
+	if (x2 > gd->clip.x2)
+		x2 = gd->clip.x2;
+	if (y1 < gd->clip.y1)
+		y1 = gd->clip.y1;
+	if (y2 > gd->clip.y2)
+		y2 = gd->clip.y2;
+	if (x1 >= x2)
+		return;
+	if (y1 >= y2)
+		return;
 
-#ifdef X_DEBUG
-	{
-		unsigned char txt[256];
-		sprintf(txt,"x_fill_area (x1=%d y1=%d x2=%d y2=%d)\n",x1,y1,x2,y2);
-		MESSAGE(txt);
-	}
-#endif
-	/* Mikulas: v takovem pripade radsi neplnit nic ... */
-	/*
-	if (x1>x2){a=x2;x2=x1;x1=a;}
-	if (y1>y2){a=y2;y2=y1;y1=a;}
-	*/
-	if (x1 < gd->clip.x1) x1 = gd->clip.x1;
-	if (x2 > gd->clip.x2) x2 = gd->clip.x2;
-	if (y1 < gd->clip.y1) y1 = gd->clip.y1;
-	if (y2 > gd->clip.y2) y2 = gd->clip.y2;
-	if (x1>=x2) return;
-	if (y1>=y2) return;
-
-	XSetForeground(x_display,x_normal_gc,color);
-	XFillRectangle(
-		x_display,
-		get_window_info(gd)->window,
-		x_normal_gc,
-		x1,
-		y1,
-		x2-x1,
-		y2-y1
-	);
+	XSetForeground(x_display, x_normal_gc, color);
+	XFillRectangle(x_display, get_window_info(gd)->window, x_normal_gc, x1,
+		y1, x2 - x1, y2 - y1);
 	X_FLUSH();
 }
 
 
 static void x_draw_hline(struct graphics_device *gd, int left, int y, int right, long color)
 {
-#ifdef X_DEBUG
-	MESSAGE("x_draw_hline\n");
-#endif
-	if (left>=right)return;
-	if ((y>=gd->clip.y2)||(y<gd->clip.y1)) return;
-	if (right<=gd->clip.x1||left>=gd->clip.x2)return;
-	XSetForeground(x_display,x_normal_gc,color);
-	XDrawLine(
-		x_display,
-		get_window_info(gd)->window,
-		x_normal_gc,
-		left,y,right-1,y
-	);
+	if (left >= right)
+		return;
+	if (y >= gd->clip.y2 || y < gd->clip.y1)
+		return;
+	if (right <= gd->clip.x1 || left >= gd->clip.x2)
+		return;
+	XSetForeground(x_display, x_normal_gc, color);
+	XDrawLine(x_display, get_window_info(gd)->window, x_normal_gc, left, y,
+		right - 1, y);
 	X_FLUSH();
 }
 
 
 static void x_draw_vline(struct graphics_device *gd, int x, int top, int bottom, long color)
 {
-#ifdef X_DEBUG
-	MESSAGE("x_draw_vline\n");
-#endif
-	if (top>=bottom)return;
-	if ((x>=gd->clip.x2)||(x<gd->clip.x1)) return;
-	if (bottom<=gd->clip.y1||top>=gd->clip.y2)return;
-	XSetForeground(x_display,x_normal_gc,color);
-	XDrawLine(
-		x_display,
-		get_window_info(gd)->window,
-		x_normal_gc,
-		x,top,x,bottom-1
-	);
+	if (top >= bottom)
+		return;
+	if (x >= gd->clip.x2 || x < gd->clip.x1)
+		return;
+	if (bottom <= gd->clip.y1 || top >= gd->clip.y2)
+		return;
+	XSetForeground(x_display, x_normal_gc, color);
+	XDrawLine(x_display, get_window_info(gd)->window, x_normal_gc, x, top,
+		x, bottom - 1);
 	X_FLUSH();
 }
 
@@ -1787,23 +1650,16 @@ static void x_set_clip_area(struct graphics_device *gd, struct rect *r)
 {
 	XRectangle xr;
 
-#ifdef X_DEBUG
-	{
-		unsigned char txt[512];
-		snprintf(txt,512,"x_set_clip_area(x1=%d, y1=%d, x2=%d, y2=%d\n",r->x1,r->y1,r->x2,r->y2);
-		MESSAGE(txt);
-	}
-#endif
 	generic_set_clip_area(gd, r);
 
-	xr.x=gd->clip.x1;
-	xr.y=gd->clip.y1;
-	xr.width=(gd->clip.x2)-(gd->clip.x1);
-	xr.height=(gd->clip.y2)-(gd->clip.y1);
+	xr.x = gd->clip.x1;
+	xr.y = gd->clip.y1;
+	xr.width = gd->clip.x2 - gd->clip.x1;
+	xr.height = gd->clip.y2 - gd->clip.y1;
 
-	XSetClipRectangles(x_display,x_normal_gc,0,0,&xr,1,Unsorted);
-	XSetClipRectangles(x_display,x_scroll_gc,0,0,&xr,1,Unsorted);
-	XSetClipRectangles(x_display,x_drawbitmap_gc,0,0,&xr,1,Unsorted);
+	XSetClipRectangles(x_display, x_normal_gc, 0, 0, &xr, 1, Unsorted);
+	XSetClipRectangles(x_display, x_scroll_gc ,0, 0, &xr, 1, Unsorted);
+	XSetClipRectangles(x_display, x_drawbitmap_gc, 0, 0, &xr, 1, Unsorted);
 	X_FLUSH();
 }
 
@@ -1811,14 +1667,12 @@ static void x_set_clip_area(struct graphics_device *gd, struct rect *r)
 static void x_draw_bitmap(struct graphics_device *gd, struct bitmap *bmp, int x, int y)
 {
 	int bmp_off_x, bmp_off_y, bmp_size_x, bmp_size_y;
-#ifdef X_DEBUG
-	MESSAGE("x_draw_bitmap\n");
-#endif
-	if (!(bmp->flags)||!bmp->x||!bmp->y) {
+	if (!bmp->flags || !bmp->x || !bmp->y)
 		return;
-	}
-	if ((x>=gd->clip.x2)||(y>=gd->clip.y2)) return;
-	if ((x+(bmp->x)<=gd->clip.x1)||(y+(bmp->y)<=gd->clip.y1)) return;
+	if (x >= gd->clip.x2 || y >= gd->clip.y2)
+		return;
+	if (x + bmp->x <= gd->clip.x1 || y + bmp->y <= gd->clip.y1)
+		return;
 	bmp_off_x = 0;
 	bmp_off_y = 0;
 	bmp_size_x = bmp->x;
@@ -1828,89 +1682,92 @@ static void x_draw_bitmap(struct graphics_device *gd, struct bitmap *bmp, int x,
 		bmp_size_x -= gd->clip.x1 - x;
 		x = gd->clip.x1;
 	}
-	if (x + bmp_size_x > gd->clip.x2) {
+	if (x + bmp_size_x > gd->clip.x2)
 		bmp_size_x = gd->clip.x2 - x;
-	}
 	if (y < gd->clip.y1) {
 		bmp_off_y = gd->clip.y1 - y;
 		bmp_size_y -= gd->clip.y1 - y;
 		y = gd->clip.y1;
 	}
-	if (y + bmp_size_y > gd->clip.y2) {
+	if (y + bmp_size_y > gd->clip.y2)
 		bmp_size_y = gd->clip.y2 - y;
-	}
 
-	switch(XPIXMAPP(bmp->flags)->type)
-	{
-		case X_TYPE_PIXMAP:
-		XCopyArea(x_display,*(XPIXMAPP(bmp->flags)->data.pixmap),get_window_info(gd)->window,x_drawbitmap_gc,bmp_off_x,bmp_off_y,bmp_size_x,bmp_size_y,x,y);
+	switch(XPIXMAPP(bmp->flags)->type) {
+	case X_TYPE_PIXMAP:
+		XCopyArea(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
+			get_window_info(gd)->window, x_drawbitmap_gc, bmp_off_x,
+			bmp_off_y, bmp_size_x, bmp_size_y, x, y);
 		break;
 
-		case X_TYPE_IMAGE:
-		XPutImage(x_display,get_window_info(gd)->window,x_drawbitmap_gc,XPIXMAPP(bmp->flags)->data.image,bmp_off_x,bmp_off_y,x,y,bmp_size_x,bmp_size_y);
+	case X_TYPE_IMAGE:
+		XPutImage(x_display, get_window_info(gd)->window,
+			x_drawbitmap_gc, XPIXMAPP(bmp->flags)->data.image,
+			bmp_off_x, bmp_off_y, x, y, bmp_size_x, bmp_size_y);
 		break;
 	}
 	X_FLUSH();
 }
 
 
-static int x_hscroll(struct graphics_device *gd, struct rect_set **set, int sc)
+static int x_scroll(struct graphics_device *gd, struct rect_set **set, int sc, const int h)
 {
 	XEvent ev;
 	struct rect r;
 
-	*set=NULL;
-	if (!sc)return 0;
-	*set=init_rect_set();
-	if (!(*set))internal("Cannot allocate memory for rect set in scroll function.\n");
+	*set = NULL;
+	if (!sc)
+		return 0;
+	*set = init_rect_set();
+	if (!*set)
+		internal("Cannot allocate memory for rect set in scroll function.\n");
 
-	XCopyArea(
-		x_display,
-		get_window_info(gd)->window,
-		get_window_info(gd)->window,
-		x_scroll_gc,
-		gd->clip.x1,gd->clip.y1,
-		gd->clip.x2-gd->clip.x1,gd->clip.y2-gd->clip.y1,
-		gd->clip.x1+sc,gd->clip.y1
-	);
+	if (h)
+		XCopyArea(x_display, get_window_info(gd)->window,
+			get_window_info(gd)->window, x_scroll_gc, gd->clip.x1,
+			gd->clip.y1, gd->clip.x2 - gd->clip.x1,
+			gd->clip.y2 - gd->clip.y1, gd->clip.x1 + sc, gd->clip.y1);
+	else
+		XCopyArea(x_display, get_window_info(gd)->window,
+			get_window_info(gd)->window, x_scroll_gc, gd->clip.x1,
+			gd->clip.y1, gd->clip.x2 - gd->clip.x1,
+			gd->clip.y2 - gd->clip.y1, gd->clip.x1, gd->clip.y1 + sc);
+
 	XSync(x_display, False);
 	/* ten sync tady musi byt, protoze potrebuju zarucit, aby vsechny
 	 * graphics-expose vyvolane timto scrollem byly vraceny v rect-set */
 
 	/* take all graphics expose events for this window and put them into the rect set */
-	while (XCheckWindowEvent(x_display,get_window_info(gd)->window,ExposureMask,&ev)==True)
-	{
-		switch(ev.type)
-		{
-			case GraphicsExpose:
-			r.x1=ev.xgraphicsexpose.x;
-			r.y1=ev.xgraphicsexpose.y;
-			r.x2=ev.xgraphicsexpose.x+ev.xgraphicsexpose.width;
-			r.y2=ev.xgraphicsexpose.y+ev.xgraphicsexpose.height;
+	while (XCheckWindowEvent(x_display, get_window_info(gd)->window,
+			ExposureMask, &ev) == True) {
+		switch(ev.type) {
+		case GraphicsExpose:
+			r.x1 = ev.xgraphicsexpose.x;
+			r.y1 = ev.xgraphicsexpose.y;
+			r.x2 = ev.xgraphicsexpose.x + ev.xgraphicsexpose.width;
+			r.y2 = ev.xgraphicsexpose.y + ev.xgraphicsexpose.height;
 			break;
 
-			case Expose:
-			r.x1=ev.xexpose.x;
-			r.y1=ev.xexpose.y;
-			r.x2=ev.xexpose.x+ev.xexpose.width;
-			r.y2=ev.xexpose.y+ev.xexpose.height;
+		case Expose:
+			r.x1 = ev.xexpose.x;
+			r.y1 = ev.xexpose.y;
+			r.x2 = ev.xexpose.x + ev.xexpose.width;
+			r.y2 = ev.xexpose.y + ev.xexpose.height;
 			break;
 
-			default:
+		default:
 			continue;
 		}
-		if (r.x1 < gd->clip.x1 || r.x2 > gd->clip.x2 ||
-		    r.y1 < gd->clip.y1 || r.y2 > gd->clip.y2) {
-			switch(ev.type)
-			{
-				case GraphicsExpose:
+		if (r.x1 < gd->clip.x1 || r.x2 > gd->clip.x2
+		|| r.y1 < gd->clip.y1 || r.y2 > gd->clip.y2) {
+			switch(ev.type) {
+			case GraphicsExpose:
 				ev.xgraphicsexpose.x = 0;
 				ev.xgraphicsexpose.y = 0;
 				ev.xgraphicsexpose.width = gd->size.x2;
 				ev.xgraphicsexpose.height = gd->size.y2;
 				break;
 
-				case Expose:
+			case Expose:
 				ev.xexpose.x = 0;
 				ev.xexpose.y = 0;
 				ev.xexpose.width = gd->size.x2;
@@ -1927,118 +1784,23 @@ static int x_hscroll(struct graphics_device *gd, struct rect_set **set, int sc)
 
 	X_SCHEDULE_PROCESS_EVENTS();
 
-#ifdef SC_DEBUG
-	MESSAGE("hscroll\n");
-#endif
-
 	return 1;
 }
-
-
-static int x_vscroll(struct graphics_device *gd, struct rect_set **set, int sc)
-{
-	XEvent ev;
-	struct rect r;
-
-	*set=NULL;
-	if (!sc)return 0;
-	*set=init_rect_set();
-	if (!(*set))internal("Cannot allocate memory for rect set in scroll function.\n");
-
-	XCopyArea(
-		x_display,
-		get_window_info(gd)->window,
-		get_window_info(gd)->window,
-		x_scroll_gc,
-		gd->clip.x1,gd->clip.y1,
-		gd->clip.x2-gd->clip.x1,gd->clip.y2-gd->clip.y1,
-		gd->clip.x1,gd->clip.y1+sc
-	);
-	XSync(x_display, False);
-	/* ten sync tady musi byt, protoze potrebuju zarucit, aby vsechny
-	 * graphics-expose vyvolane timto scrollem byly vraceny v rect-set */
-
-	/* take all graphics expose events for this window and put them into the rect set */
-	while (XCheckWindowEvent(x_display,get_window_info(gd)->window,ExposureMask,&ev)==True)
-	{
-		switch(ev.type)
-		{
-			case GraphicsExpose:
-			r.x1=ev.xgraphicsexpose.x;
-			r.y1=ev.xgraphicsexpose.y;
-			r.x2=ev.xgraphicsexpose.x+ev.xgraphicsexpose.width;
-			r.y2=ev.xgraphicsexpose.y+ev.xgraphicsexpose.height;
-			break;
-
-			case Expose:
-			r.x1=ev.xexpose.x;
-			r.y1=ev.xexpose.y;
-			r.x2=ev.xexpose.x+ev.xexpose.width;
-			r.y2=ev.xexpose.y+ev.xexpose.height;
-			break;
-
-			default:
-			continue;
-		}
-		if (r.x1 < gd->clip.x1 || r.x2 > gd->clip.x2 ||
-		    r.y1 < gd->clip.y1 || r.y2 > gd->clip.y2) {
-			switch(ev.type)
-			{
-				case GraphicsExpose:
-				ev.xgraphicsexpose.x = 0;
-				ev.xgraphicsexpose.y = 0;
-				ev.xgraphicsexpose.width = gd->size.x2;
-				ev.xgraphicsexpose.height = gd->size.y2;
-				break;
-
-				case Expose:
-				ev.xexpose.x = 0;
-				ev.xexpose.y = 0;
-				ev.xexpose.width = gd->size.x2;
-				ev.xexpose.height = gd->size.y2;
-				break;
-			}
-			XPutBackEvent(x_display, &ev);
-			free(*set);
-			*set = NULL;
-			break;
-		}
-		add_to_rect_set(set,&r);
-	}
-
-	X_SCHEDULE_PROCESS_EVENTS();
-
-#ifdef SC_DEBUG
-	MESSAGE("vscroll\n");
-#endif
-
-	return 1;
-}
-
 
 static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 {
-	struct x_pixmapa *p=(struct x_pixmapa *)bmp->flags;
+	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
 	XImage *image;
 	void *x_data;
 
-	if (!p) return NULL;
-
-#ifdef DEBUG
-	if (lines <= 0) internal("x_prepare_strip: %d lines",lines);
-#endif
-
-#ifdef X_DEBUG
-	MESSAGE("x_prepare_strip\n");
-#endif
+	if (!p)
+		return NULL;
 
 	bmp->data = NULL;
 
-	switch (p->type)
-	{
-		case X_TYPE_PIXMAP:
-
-		retry:
+	switch (p->type) {
+	case X_TYPE_PIXMAP:
+retry:
 		x_data = xmalloc(bmp->skip * lines);
 		if (!x_data) {
 			if (out_of_memory())
@@ -2046,8 +1808,10 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 			return NULL;
 		}
 
-		retry2:
-		image=XCreateImage(x_display,x_default_visual,x_depth,ZPixmap,0,0,bmp->x,lines,x_bitmap_scanline_pad<<3,bmp->skip);
+retry2:
+		image = XCreateImage(x_display, x_default_visual, x_depth,
+				ZPixmap, 0, 0, bmp->x, lines,
+				x_bitmap_scanline_pad << 3, bmp->skip);
 		if (!image) {
 			if (out_of_memory())
 				goto retry2;
@@ -2055,10 +1819,10 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 			return NULL;
 		}
 		image->data = x_data;
-		bmp->data=image;
+		bmp->data = image;
 		return image->data;
 
-		case X_TYPE_IMAGE:
+	case X_TYPE_IMAGE:
 		return p->data.image->data+(bmp->skip*top);
 	}
 	internal("Unknown pixmap type found in x_prepare_strip. SOMETHING IS REALLY STRANGE!!!!\n");
@@ -2068,25 +1832,27 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 
 static void x_commit_strip(struct bitmap *bmp, int top, int lines)
 {
-	struct x_pixmapa *p=(struct x_pixmapa *)bmp->flags;
+	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
 
-	if (!p) return;
+	if (!p)
+		return;
 
-#ifdef X_DEBUG
-	MESSAGE("x_commit_strip\n");
-#endif
-	switch(p->type)
-	{
-		/* send image to pixmap in xserver */
-		case X_TYPE_PIXMAP:
-		if (!bmp->data) return;
-		x_translate_colors((unsigned char *)((XImage*)bmp->data)->data, bmp->x, lines, bmp->skip);
-		XPutImage(x_display,*(XPIXMAPP(bmp->flags)->data.pixmap),x_copy_gc,(XImage*)bmp->data,0,0,0,top,bmp->x,lines);
+	switch(p->type) {
+	/* send image to pixmap in xserver */
+	case X_TYPE_PIXMAP:
+		if (!bmp->data)
+			return;
+		x_translate_colors((unsigned char *)((XImage*)bmp->data)->data,
+				bmp->x, lines, bmp->skip);
+		XPutImage(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
+			x_copy_gc, (XImage*)bmp->data, 0, 0, 0, top, bmp->x,
+			lines);
 		XDestroyImage((XImage *)bmp->data);
 		return;
 
-		case X_TYPE_IMAGE:
-		x_translate_colors((unsigned char *)p->data.image->data+(bmp->skip*top), bmp->x, lines, bmp->skip);
+	case X_TYPE_IMAGE:
+		x_translate_colors((unsigned char *)p->data.image->data + (bmp->skip * top),
+				bmp->x, lines, bmp->skip);
 		/* everything has been done by user */
 		return;
 	}
@@ -2107,28 +1873,32 @@ static void x_set_window_title(struct graphics_device *gd, unsigned char *title)
 	int output_encoding;
 	Status ret;
 
-	if (XSupportsLocale()) {
+	if (XSupportsLocale())
 		output_encoding = x_input_encoding >= 0 ? x_input_encoding : 0;
-	} else
+	else {
 retry_encode_ascii:
-	{
 		output_encoding = 0;
 	}
 
-	if (!gd)internal("x_set_window_title called with NULL graphics_device pointer.\n");
+	if (!gd)
+		internal("x_set_window_title called with NULL graphics_device pointer.\n");
 	t = convert(utf8_table, output_encoding, title, NULL);
 	clr_white(t);
-	/*XStoreName(x_display,get_window_info(gd)->window,"blabla");*/
 
 	if (XSupportsLocale()) {
-		ret = XmbTextListToTextProperty(x_display, (char**)(void *)(&t), 1, XStdICCTextStyle, &windowName);
+		ret = XmbTextListToTextProperty(x_display, (char**)(void *)(&t),
+					1, XStdICCTextStyle, &windowName);
 #ifdef X_HAVE_UTF8_STRING
 		if (ret > 0) {
 			XFree(windowName.value);
-			ret = XmbTextListToTextProperty(x_display, (char**)(void *)(&t), 1, XUTF8StringStyle, &windowName);
-			if (ret < 0) {
-				ret = XmbTextListToTextProperty(x_display, (char**)(void *)(&t), 1, XStdICCTextStyle, &windowName);
-			}
+			ret = XmbTextListToTextProperty(x_display,
+						(char**)(void *)(&t), 1,
+						XUTF8StringStyle, &windowName);
+			if (ret < 0)
+				ret = XmbTextListToTextProperty(x_display,
+							(char**)(void *)(&t),
+							1, XStdICCTextStyle,
+							&windowName);
 		}
 #endif
 		if (ret < 0) {
@@ -2138,9 +1908,8 @@ retry_encode_ascii:
 			} else
 				goto retry_print_ascii;
 		}
-	} else
+	} else {
 retry_print_ascii:
-	{
 		ret = XStringListToTextProperty((char**)(void *)(&t), 1, &windowName);
 		if (!ret) {
 			free(t);
@@ -2155,14 +1924,15 @@ retry_print_ascii:
 }
 
 /* gets string in UTF8 */
-static void x_set_clipboard_text(struct graphics_device *gd, unsigned char * text)
+static void x_set_clipboard_text(struct graphics_device *gd, unsigned char *text)
 {
 	x_clear_clipboard();
 	if (text) {
 		x_my_clipboard = stracpy(text);
 
-		XSetSelectionOwner (x_display, XA_PRIMARY, get_window_info(gd)->window, CurrentTime);
-		XFlush (x_display);
+		XSetSelectionOwner(x_display, XA_PRIMARY,
+			get_window_info(gd)->window, CurrentTime);
+		XFlush(x_display);
 		X_SCHEDULE_PROCESS_EVENTS();
 	}
 }
@@ -2181,68 +1951,40 @@ static void selection_request(XEvent *event)
 	sel.property = req->property;
 	sel.time = req->time;
 	sel.display = req->display;
-#ifdef X_DEBUG
-	{
-	unsigned char txt[256];
-	sprintf (txt,"xselectionrequest from %i\n",(int)event.xselection.requestor);
-	MESSAGE(txt);
-	sprintf (txt,"property:%i target:%i selection:%i\n", req->property,req->target, req->selection);
-	MESSAGE(txt);
-	}
-#endif
 	if (req->target == XA_STRING) {
 		unsigned char *str, *p;
-		if (!x_my_clipboard) str = stracpy(cast_uchar "");
-		else str = convert(utf8_table, get_cp_index(cast_uchar "iso-8859-1"), x_my_clipboard, NULL);
-		for (p = cast_uchar strchr(cast_const_char str, 1); p; p = cast_uchar strchr(cast_const_char(str + 1), 1)) *p = 0xa0;
+		if (!x_my_clipboard)
+			str = stracpy(cast_uchar "");
+		else
+			str = convert(utf8_table,
+				get_cp_index(cast_uchar "iso-8859-1"),
+				x_my_clipboard, NULL);
+		for (p = cast_uchar strchr((char *)str, 1); p;
+		     p = cast_uchar strchr((char *)(str + 1), 1))
+			*p = 0xa0;
 		l = strlen(cast_const_char str);
-		if (l > X_MAX_CLIPBOARD_SIZE) l = X_MAX_CLIPBOARD_SIZE;
-		XChangeProperty (x_display,
-				 sel.requestor,
-				 sel.property,
-				 XA_STRING,
-				 8,
-				 PropModeReplace,
-				 str,
-				 (int)l
-		);
+		if (l > X_MAX_CLIPBOARD_SIZE)
+			l = X_MAX_CLIPBOARD_SIZE;
+		XChangeProperty(x_display, sel.requestor, sel.property,
+			XA_STRING, 8, PropModeReplace, str, l);
 		free(str);
 	} else if (req->target == x_utf8_string_atom) {
-		l = x_my_clipboard ? strlen(cast_const_char x_my_clipboard) : 0;
-		if (l > X_MAX_CLIPBOARD_SIZE) l = X_MAX_CLIPBOARD_SIZE;
-		XChangeProperty (x_display,
-				 sel.requestor,
-				 sel.property,
-				 x_utf8_string_atom,
-				 8,
-				 PropModeReplace,
-				 x_my_clipboard,
-				 (int)l
-		);
+		l = x_my_clipboard ? strlen((char *)x_my_clipboard) : 0;
+		if (l > X_MAX_CLIPBOARD_SIZE)
+			l = X_MAX_CLIPBOARD_SIZE;
+		XChangeProperty(x_display, sel.requestor, sel.property,
+			x_utf8_string_atom, 8, PropModeReplace, x_my_clipboard,
+			l);
 	} else if (req->target == x_targets_atom) {
 		unsigned tgt_atoms[3];
 		tgt_atoms[0] = (unsigned)x_targets_atom;
 		tgt_atoms[1] = XA_STRING;
 		tgt_atoms[2] = (unsigned)x_utf8_string_atom;
-		XChangeProperty (x_display,
-				 sel.requestor,
-				 sel.property,
-				 XA_ATOM,
-				 32,
-				 PropModeReplace,
-				 (unsigned char*)&tgt_atoms,
-				 3
-		);
-	} else {
-#ifdef X_DEBUG
-		{
-		    unsigned char txt[256];
-		    sprintf (txt,"Non-String wanted: %i\n",(int)req->target);
-		    MESSAGE(txt);
-		}
-#endif
+		XChangeProperty(x_display, sel.requestor, sel.property,
+			XA_ATOM, 32, PropModeReplace,
+			(unsigned char *)&tgt_atoms, 3);
+	} else
 		sel.property = None;
-	}
 	XSendEvent(x_display, sel.requestor, 0, 0, (XEvent*)&sel);
 	XFlush(x_display);
 	X_SCHEDULE_PROCESS_EVENTS();
@@ -2253,8 +1995,9 @@ static unsigned char *x_get_clipboard_text(void)
 	XEvent event;
 	Atom type_atom = x_utf8_string_atom;
 
-	retry:
-	XConvertSelection(x_display, XA_PRIMARY, type_atom, x_sel_atom, fake_window, CurrentTime);
+retry:
+	XConvertSelection(x_display, XA_PRIMARY, type_atom, x_sel_atom,
+			fake_window, CurrentTime);
 
 	while (1) {
 		XSync(x_display, False);
@@ -2262,7 +2005,8 @@ static unsigned char *x_get_clipboard_text(void)
 			selection_request(&event);
 			continue;
 		}
-		if (XCheckTypedEvent(x_display,SelectionNotify, &event)) break;
+		if (XCheckTypedEvent(x_display,SelectionNotify, &event))
+			break;
 		x_wait_for_event();
 	}
 	if (event.xselection.property) {
@@ -2276,57 +2020,39 @@ static unsigned char *x_get_clipboard_text(void)
 
 
 		/* Get size and type of property */
-		ret = XGetWindowProperty(
-			x_display,
-			fake_window,
-			event.xselection.property,
-			0,
-			0,
-			False,
-			AnyPropertyType,
-			&pty_type,
-			&pty_format,
-			&pty_items,
-			&pty_size,
-			&buffer);
-		if (ret != Success) goto no_new_sel;
+		ret = XGetWindowProperty(x_display, fake_window,
+				event.xselection.property, 0, 0, False,
+				AnyPropertyType, &pty_type, &pty_format,
+				&pty_items, &pty_size, &buffer);
+		if (ret != Success)
+			goto no_new_sel;
 		XFree(buffer);
 
-		ret = XGetWindowProperty(
-			x_display,
-			fake_window,
-			event.xselection.property,
-			0,
-			(long)pty_size,
-			True,
-			AnyPropertyType,
-			&pty_type,
-			&pty_format,
-			&pty_items,
-			&pty_size,
-			&buffer
-		);
-		if (ret != Success) goto no_new_sel;
+		ret = XGetWindowProperty(x_display, fake_window,
+				event.xselection.property, 0, (long)pty_size,
+				True, AnyPropertyType, &pty_type, &pty_format,
+				&pty_items, &pty_size, &buffer);
+		if (ret != Success)
+			goto no_new_sel;
 
-		pty_size = (pty_format>>3) * pty_items;
+		pty_size = (pty_format >> 3) * pty_items;
 
 		x_clear_clipboard();
-		if (type_atom == x_utf8_string_atom) {
+		if (type_atom == x_utf8_string_atom)
 			x_my_clipboard = stracpy(buffer);
-		} else {
-			x_my_clipboard = convert(get_cp_index(cast_uchar "iso-8859-1"), utf8_table, buffer, NULL);
-		}
+		else
+			x_my_clipboard = convert(get_cp_index(cast_uchar "iso-8859-1"),
+						utf8_table, buffer, NULL);
 		XFree(buffer);
-	} else {
-		if (type_atom == x_utf8_string_atom) {
+	} else if (type_atom == x_utf8_string_atom) {
 			type_atom = XA_STRING;
 			goto retry;
-		}
 	}
 
 no_new_sel:
 	X_SCHEDULE_PROCESS_EVENTS();
-	if (!x_my_clipboard) return NULL;
+	if (!x_my_clipboard)
+		return NULL;
 	return stracpy(x_my_clipboard);
 }
 
@@ -2335,10 +2061,13 @@ no_new_sel:
 static void addchr(unsigned char **str, size_t *l, unsigned char c)
 {
 	unsigned char *s;
-	if (!*str) return;
-	if ((*str)[*l]) *l = strlen(cast_const_char *str);
-	if (*l > MAXINT - 2) overalloc();
-	s = realloc(*str, *l + 2);
+	if (!*str)
+		return;
+	if ((*str)[*l])
+		*l = strlen((char *)*str);
+	if (*l > MAXINT - 2)
+		overalloc();
+	s = xrealloc(*str, *l + 2);
 	if (!s) {
 		free(*str);
 		*str = NULL;
@@ -2361,36 +2090,37 @@ static int x_exec(unsigned char *command, int fg)
 	}
 
 	l = 0;
-	if (*x_driver.shell) {
-		pattern = cast_uchar strdup(cast_const_char x_driver.shell);
-	} else {
-		pattern = cast_uchar strdup(cast_const_char links_xterm());
+	if (*x_driver.shell)
+		pattern = cast_uchar strdup((char *)x_driver.shell);
+	else {
+		pattern = cast_uchar strdup((char *)links_xterm());
 		if (*command) {
 			addchr(&pattern, &l, ' ');
 			addchr(&pattern, &l, '%');
 		}
 	}
-	if (!pattern) return -1;
+	if (!pattern)
+		return -1;
 
-	final = cast_uchar strdup("");
+	final = (unsigned char *)strdup("");
 	l = 0;
 	for (i = 0; pattern[i]; i++) {
-		if (pattern[i] == '%') {
-			for (j = 0; j < strlen(cast_const_char command); j++)
+		if (pattern[i] == '%')
+			for (j = 0; j < strlen((char *)command); j++)
 				addchr(&final, &l, command[j]);
-		} else {
+		else
 			addchr(&final, &l, pattern[i]);
-		}
 	}
 	free(pattern);
-	if (!final) return -1;
+	if (!final)
+		return -1;
 
-	retval = system(cast_const_char final);
+	retval = system((char *)final);
 	free(final);
 	return retval;
 }
 
-struct graphics_driver x_driver={
+struct graphics_driver x_driver = {
 	cast_uchar "x",
 	x_init_driver,
 	x_init_device,
@@ -2412,8 +2142,7 @@ struct graphics_driver x_driver={
 	x_fill_area,
 	x_draw_hline,
 	x_draw_vline,
-	x_hscroll,
-	x_vscroll,
+	x_scroll,
 	x_set_clip_area,
 	x_flush,
 	dummy_block,

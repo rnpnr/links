@@ -1216,7 +1216,7 @@ static void scroll_list(struct terminal *term, void *bla)
 		if (drv->flags & GD_DONT_USE_SCROLL && overwrite_instead_of_scroll)
 			goto redraw_all;
 		set=NULL;
-		drv->vscroll(dev,&set,top+bottom);
+		drv->scroll(dev, &set, top + bottom, 0);
 
 		if (set)	/* redraw rectangles in the set - we cannot redraw particular rectangles, we are only able to redraw whole window */
 		{

@@ -614,7 +614,7 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 	}
 	if (scr->xl != vx) {
 		rs = NULL;
-		r |= drv->hscroll(t->dev, &rs, scr->xl - vx);
+		r |= drv->scroll(t->dev, &rs, scr->xl - vx, 1);
 		if (rs) {
 			int j;
 			for (j = 0; j < rs->m; j++) {
@@ -631,7 +631,7 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 
 	if (scr->yl != vy) {
 		rs = NULL;
-		r |= drv->vscroll(t->dev, &rs, scr->yl - vy);
+		r |= drv->scroll(t->dev, &rs, scr->yl - vy, 0);
 		if (rs) {
 			int j;
 			for (j = 0; j < rs->m; j++) {

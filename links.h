@@ -1138,8 +1138,7 @@ struct graphics_driver {
 	void (*fill_area)(struct graphics_device *dev, int x1, int y1, int x2, int y2, long color);
 	void (*draw_hline)(struct graphics_device *dev, int left, int y, int right, long color);
 	void (*draw_vline)(struct graphics_device *dev, int x, int top, int bottom, long color);
-	int (*hscroll)(struct graphics_device *dev, struct rect_set **set, int sc);
-	int (*vscroll)(struct graphics_device *dev, struct rect_set **set, int sc);
+	int (*scroll)(struct graphics_device *dev, struct rect_set **set, int sc, const int h);
 	 /* When scrolling, the empty spaces will have undefined contents. */
 	 /* returns:
 	    0 - the caller should not care about redrawing, redraw will be sent
