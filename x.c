@@ -2145,8 +2145,6 @@ struct graphics_driver x_driver = {
 	x_scroll,
 	x_set_clip_area,
 	x_flush,
-	dummy_block,
-	dummy_unblock,
 	x_set_window_title,
 	x_exec,
 	x_set_clipboard_text,

@@ -1148,9 +1148,6 @@ struct graphics_driver {
 
 	void (*flush)(struct graphics_device *dev);
 
-	int (*block)(struct graphics_device *dev);	/* restore old videomode and disable drawing on terminal */
-	int (*unblock)(struct graphics_device *dev);	/* reenable the terminal (return -1 if failed) */
-
 	void (*set_title)(struct graphics_device *dev, unsigned char *title);
 		/* set window title. title is in utf-8 encoding -- you should recode it to device charset */
 		/* if device doesn't support titles (svgalib, framebuffer), this should be NULL, not empty function ! */
@@ -1226,9 +1223,6 @@ unsigned char *init_graphics(unsigned char *, unsigned char *, unsigned char *);
 void shutdown_graphics(void);
 void update_driver_param(void);
 int g_kbd_codepage(struct graphics_driver *drv);
-
-int dummy_block(struct graphics_device *);
-int dummy_unblock(struct graphics_device *);
 
 extern struct graphics_device **virtual_devices;
 extern int n_virtual_devices;

@@ -1320,10 +1320,6 @@ static void unblock_terminal(void *term_)
 		   event - so avoid double redraw */
 		term->dirty = 0;
 		/*redraw_terminal_cls(term);*/
-#ifdef G
-	} else {
-		drv->unblock(term->dev);
-#endif
 	}
 }
 
@@ -1370,24 +1366,11 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 			add_to_str(&param, &paraml, path);
 			add_chr_to_str(&param, &paraml, 0);
 			add_to_str(&param, &paraml, delet);
-			if (fg == 1) {
+			if (fg == 1)
 				if (!F) block_itrm(term->fdin);
-#ifdef G
-				else if (drv->block(term->dev)) {
-					free(param);
-					if (*delet)
-						EINTRLOOP(rs, unlink(cast_const_char delet));
-					return;
-				}
-#endif
-			}
 			if ((blockh = start_thread(exec_thread, param, paraml + 1, *delet != 0)) == -1) {
-				if (fg == 1) {
+				if (fg == 1)
 					if (!F) unblock_itrm(term->fdin);
-#ifdef G
-					else drv->unblock(term->dev);
-#endif
-				}
 				free(param);
 				return;
 			}

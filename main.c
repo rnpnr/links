@@ -84,11 +84,6 @@ void sig_tstp(void *t_)
 #endif
 	if (!F)
 		block_itrm(1);
-#ifdef G
-	else {
-		drv->block(NULL);
-	}
-#endif
 #if defined(SIGCONT) && defined(SIGTTOU)
 	EINTRLOOP(newpid, fork());
 	if (!newpid) {
@@ -123,7 +118,7 @@ static void poll_fg(void *t_)
 		r = unblock_itrm(1);
 #ifdef G
 	else
-		r = drv->unblock(NULL);
+		r = 0;
 #endif
 	if (r == -1)
 		fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
@@ -139,10 +134,6 @@ void sig_cont(void *t_)
 {
 	if (!F)
 		unblock_itrm(1);
-#ifdef G
-	else
-		drv->unblock(NULL);
-#endif
 }
 
 static void handle_basic_signals(struct terminal *term)

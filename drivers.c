@@ -18,16 +18,6 @@ static struct graphics_driver *graphics_drivers[] = {
 	NULL
 };
 
-int dummy_block(struct graphics_device *dev)
-{
-	return 0;
-}
-
-int dummy_unblock(struct graphics_device *dev)
-{
-	return 0;
-}
-
 /* Driver je jednorazovy argument, kterej se preda grafickymu driveru, nikde se dal
  * neuklada.  Param se skladuje v default_driver param a uklada se do konfiguraku. Pred
  * ukoncenim grafickeho driveru se nastavi default_driver_param podle
@@ -48,8 +38,7 @@ static unsigned char *init_graphics_driver(struct graphics_driver *gd, unsigned 
 		free(gd->shell);
 		gd->shell = NULL;
 		drv = NULL;
-	}
-	else
+	} else
 		F = 1;
 	return r;
 }
