@@ -1121,7 +1121,7 @@ again:
 		if (strlen((char *)d) > 6) {
 			d[5] = 0;
 			if (!(casestrcmp(d, cast_uchar "bytes")) && d[6] >= '0' && d[6] <= '9') {
-				my_strtoll_t f = my_strtoll(d + 6, NULL);
+				long f = strtol(d + 6, NULL, 10);
 				if (f >= 0 && (off_t)f >= 0 && (off_t)f == f)
 					c->from = f;
 			}

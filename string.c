@@ -149,15 +149,6 @@ long strtolx(unsigned char *c, unsigned char **end)
 	return l;
 }
 
-my_strtoll_t my_strtoll(unsigned char *string, unsigned char **end)
-{
-	my_strtoll_t f;
-	errno = 0;
-	f = strtoll(cast_const_char string, (char **)(void *)end, 10);
-	if (f < 0 || errno) return -1;
-	return f;
-}
-
 /* Copies at most dst_size chars into dst. Ensures null termination of dst. */
 void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size)
 {

@@ -296,8 +296,6 @@ void add_unsigned_long_num_to_str(unsigned char **s, int *l, long n);
 void add_num_to_str(unsigned char **s, int *l, off_t n);
 void add_knum_to_str(unsigned char **s, int *l, off_t n);
 long strtolx(unsigned char *c, unsigned char **end);
-#define my_strtoll_t	longlong
-my_strtoll_t my_strtoll(unsigned char *string, unsigned char **end);
 
 void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size);
 /* case insensitive compare of 2 strings */
