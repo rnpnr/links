@@ -1261,8 +1261,6 @@ void reset_settings_for_tor(void)
 	http_options.no_accept_charset = 0;
 	http_options.no_compression = 0;
 	http_options.retry_internal_errors = 0;
-	http_options.header.do_not_track = 0;
-	http_options.header.referer = proxies.only_proxies ? REFERER_NONE : REFERER_REAL_SAME_SERVER;
 	http_options.header.extra_header[0] = 0;
 
 	ftp_options.eprt_epsv = 0;
@@ -1671,7 +1669,7 @@ static unsigned char * const http_labels[] = { TEXT_(T_USE_HTTP_10), TEXT_(T_ALL
 	TEXT_(T_DO_NOT_ADVERTISE_COMPRESSION_SUPPORT),
 	TEXT_(T_RETRY_ON_INTERNAL_ERRORS), NULL };
 
-static unsigned char * const http_header_labels[] = { TEXT_(T_FAKE_FIREFOX), TEXT_(T_DO_NOT_TRACK), TEXT_(T_REFERER_NONE), TEXT_(T_REFERER_SAME_URL), TEXT_(T_REFERER_FAKE), TEXT_(T_REFERER_REAL_SAME_SERVER), TEXT_(T_REFERER_REAL), TEXT_(T_FAKE_REFERER), TEXT_(T_FAKE_USERAGENT), TEXT_(T_EXTRA_HEADER), NULL };
+static unsigned char * const http_header_labels[] = { TEXT_(T_FAKE_FIREFOX), TEXT_(T_FAKE_USERAGENT), TEXT_(T_EXTRA_HEADER), NULL };
 
 static void httpheadopt_fn(struct dialog_data *dlg)
 {
@@ -1733,54 +1731,21 @@ static int dlg_http_header_options(struct dialog_data *dlg, struct dialog_item_d
 	d->items[0].gid = 0;
 	d->items[0].dlen = sizeof(int);
 	d->items[0].data = (void *)&header->fake_firefox;
-	d->items[1].type = D_CHECKBOX;
-	d->items[1].gid = 0;
-	d->items[1].dlen = sizeof(int);
-	d->items[1].data = (void *)&header->do_not_track;
-	d->items[2].type = D_CHECKBOX;
-	d->items[2].gid = 1;
-	d->items[2].gnum = REFERER_NONE;
-	d->items[2].dlen = sizeof(int);
-	d->items[2].data = (void *)&header->referer;
-	d->items[3].type = D_CHECKBOX;
-	d->items[3].gid = 1;
-	d->items[3].gnum = REFERER_SAME_URL;
-	d->items[3].dlen = sizeof(int);
-	d->items[3].data = (void *)&header->referer;
-	d->items[4].type = D_CHECKBOX;
-	d->items[4].gid = 1;
-	d->items[4].gnum = REFERER_FAKE;
-	d->items[4].dlen = sizeof(int);
-	d->items[4].data = (void *)&header->referer;
-	d->items[5].type = D_CHECKBOX;
-	d->items[5].gid = 1;
-	d->items[5].gnum = REFERER_REAL_SAME_SERVER;
-	d->items[5].dlen = sizeof(int);
-	d->items[5].data = (void *)&header->referer;
-	d->items[6].type = D_CHECKBOX;
-	d->items[6].gid = 1;
-	d->items[6].gnum = REFERER_REAL;
-	d->items[6].dlen = sizeof(int);
-	d->items[6].data = (void *)&header->referer;
-
-	d->items[7].type = D_FIELD;
-	d->items[7].dlen = MAX_STR_LEN;
-	d->items[7].data = header->fake_referer;
-	d->items[8].type = D_FIELD;
-	d->items[8].dlen = MAX_STR_LEN;
-	d->items[8].data = header->fake_useragent;
-	d->items[9].type = D_FIELD;
-	d->items[9].dlen = MAX_STR_LEN;
-	d->items[9].data = header->extra_header;
-	d->items[10].type = D_BUTTON;
-	d->items[10].gid = B_ENTER;
-	d->items[10].fn = ok_dialog;
-	d->items[10].text = TEXT_(T_OK);
-	d->items[11].type = D_BUTTON;
-	d->items[11].gid = B_ESC;
-	d->items[11].fn = cancel_dialog;
-	d->items[11].text = TEXT_(T_CANCEL);
-	d->items[12].type = D_END;
+	d->items[1].type = D_FIELD;
+	d->items[1].dlen = MAX_STR_LEN;
+	d->items[1].data = header->fake_useragent;
+	d->items[2].type = D_FIELD;
+	d->items[2].dlen = MAX_STR_LEN;
+	d->items[2].data = header->extra_header;
+	d->items[3].type = D_BUTTON;
+	d->items[3].gid = B_ENTER;
+	d->items[3].fn = ok_dialog;
+	d->items[3].text = TEXT_(T_OK);
+	d->items[4].type = D_BUTTON;
+	d->items[4].gid = B_ESC;
+	d->items[4].fn = cancel_dialog;
+	d->items[4].text = TEXT_(T_CANCEL);
+	d->items[5].type = D_END;
 	do_dialog(dlg->win->term, d, getml(d, NULL));
 	return 0;
 }

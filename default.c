@@ -1534,7 +1534,7 @@ struct proxies proxies = { "", "", "", "", "", "", 0 };
 struct ssl_options ssl_options = { SSL_WARN_ON_INVALID_CERTIFICATE,
 	0,
 	"", "", "" };
-struct http_options http_options = { 0, 1, 1, 0, 0, 0, 0, { 0, 0, REFERER_REAL_SAME_SERVER, "", "", "" } };
+struct http_options http_options = { 0, 1, 1, 0, 0, 0, 0, { 0, "", "" } };
 struct ftp_options ftp_options = { "somebody@host.domain", 0, 0, 0, 1 };
 struct smb_options smb_options = { 0 };
 
@@ -1662,9 +1662,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.no_compression, "http_bugs.no_compression", "http-bugs.no-compression"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.retry_internal_errors, "http_bugs.retry_internal_errors", "http-bugs.retry-internal-errors"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.header.fake_firefox, "fake_firefox", "http.fake-firefox"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.header.do_not_track, "http_do_not_track", "http.do-not-track"},
-	{1, gen_cmd, num_rd, num_wr, 0, 4, &http_options.header.referer, "http_referer", "http.referer"},
-	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.fake_referer, "fake_referer", "http.fake-referer"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.fake_useragent, "fake_useragent", "http.fake-user-agent"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.extra_header, "http.extra_header", "http.extra-header"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, ftp_options.anon_pass, "ftp.anonymous_password", "ftp.anonymous-password"},

@@ -3554,12 +3554,6 @@ struct ipv6_options {
 
 extern struct ipv6_options ipv6_options;
 
-#define REFERER_NONE			0
-#define REFERER_SAME_URL		1
-#define REFERER_FAKE			2
-#define REFERER_REAL			3
-#define REFERER_REAL_SAME_SERVER	4
-
 struct proxies {
 	unsigned char http_proxy[MAX_STR_LEN];
 	unsigned char ftp_proxy[MAX_STR_LEN];
@@ -3588,9 +3582,6 @@ extern struct ssl_options ssl_options;
 
 struct http_header_options {
 	int fake_firefox;
-	int do_not_track;
-	int referer;
-	unsigned char fake_referer[MAX_STR_LEN];
 	unsigned char fake_useragent[MAX_STR_LEN];
 	unsigned char extra_header[MAX_STR_LEN];
 };
