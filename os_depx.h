@@ -138,7 +138,3 @@
 #define static_const	static const
 
 typedef const char *const_char_ptr;
-
-#if defined(HAVE_PTHREADS)
-#define EXEC_IN_THREADS
-#endif

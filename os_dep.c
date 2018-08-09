@@ -333,7 +333,6 @@ unsigned char *os_fixup_external_program(unsigned char *prog)
 /* UNIX */
 int exe(unsigned char *path, int fg)
 {
-#ifndef EXEC_IN_THREADS
 #ifdef SIGCHLD
 	do_signal(SIGCHLD, SIG_DFL);
 #endif
@@ -349,7 +348,6 @@ int exe(unsigned char *path, int fg)
 #endif
 #ifdef SIGWINCH
 	do_signal(SIGWINCH, SIG_DFL);
-#endif
 #endif
 #ifdef G
 	if (F && drv->exec) return drv->exec(path, fg);

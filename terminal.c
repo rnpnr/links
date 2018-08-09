@@ -1293,10 +1293,8 @@ void exec_thread(void *path_, int p)
 {
 	unsigned char *path = (unsigned char *)path_;
 	int rs;
-#if !defined(EXEC_IN_THREADS)
 	if (path[0] == 2)
 		EINTRLOOP(rs, setpgid(0, 0));
-#endif
 	exe(path + 1, path[0]);
 	if (path[1 + strlen(cast_const_char(path + 1)) + 1])
 		EINTRLOOP(rs, unlink(cast_const_char(path + 1 + strlen(cast_const_char(path + 1)) + 1)));
