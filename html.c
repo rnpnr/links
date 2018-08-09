@@ -328,7 +328,7 @@ struct color_spec {
 	int rgb;
 };
 
-static_const struct color_spec color_specs[] = {
+static const struct color_spec color_specs[] = {
 	{"aliceblue",		0xF0F8FF},
 	{"antiquewhite",	0xFAEBD7},
 	{"aqua",		0x00FFFF},

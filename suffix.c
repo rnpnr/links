@@ -4,7 +4,7 @@
 
 #include "suffix_x.inc"
 
-static int search_list(const_char_ptr const *list, int len, unsigned char *name)
+static int search_list(const char *const *list, int len, unsigned char *name)
 {
 	int result;
 #define T_EQUAL(n, k)		!casestrcmp(cast_uchar list[n], k)
@@ -13,7 +13,7 @@ static int search_list(const_char_ptr const *list, int len, unsigned char *name)
 	return result != -1;
 }
 
-static int search_list_and_wildcards(const_char_ptr const *list, int len, unsigned char *name)
+static int search_list_and_wildcards(const char *const *list, int len, unsigned char *name)
 {
 	unsigned char *dot, *x;
 	int sl;

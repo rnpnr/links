@@ -38,7 +38,7 @@ unsigned aspect=65536; /* aspect=65536 for 320x240
  * If you change them, don't wonder if the letters start to look strange.
  * The numers in the comments denote which height the line applies for.
  */
-static_const float fancy_constants[64]={
+static const float fancy_constants[64]={
 	(float)0,(float)3,	/*  1 */
 	(float).1,(float)3,	/*  2 */
 	(float).2,(float)3,	/*  3 */

@@ -2,7 +2,7 @@
 
 enum {arrow_width=32, arrow_height=32, arrow_area=1024};
 
-static_const unsigned int arrow[64]={
+static const unsigned int arrow[64]={
 	0xf0000000U,0x00000000U,
 	0x9c000000U,0x60000000U,
 	0x87000000U,0x78000000U,

@@ -470,7 +470,7 @@ void go_backwards(struct terminal *term, void *id_ptr, void *ses_)
 	go_back(ses, n);
 }
 
-static_const struct menu_item no_hist_menu[] = {
+static const struct menu_item no_hist_menu[] = {
 	{ TEXT_(T_NO_HISTORY), cast_uchar "", M_BAR, NULL, NULL, 0, 0 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
@@ -507,7 +507,7 @@ static void history_menu(struct terminal *term, void *ddd, void *ses_)
 	else do_menu_selected(term, mi, ses, selected, NULL, NULL);
 }
 
-static_const struct menu_item no_downloads_menu[] = {
+static const struct menu_item no_downloads_menu[] = {
 	{ TEXT_(T_NO_DOWNLOADS), cast_uchar "", M_BAR, NULL, NULL, 0, 0 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
@@ -2742,7 +2742,7 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static_const struct menu_item file_menu11[] = {
+static const struct menu_item file_menu11[] = {
 	{ TEXT_(T_GOTO_URL), cast_uchar "g", TEXT_(T_HK_GOTO_URL), menu_goto_url, NULL, 0, 1 },
 	{ TEXT_(T_GO_BACK), cast_uchar "z", TEXT_(T_HK_GO_BACK), menu_go_back, NULL, 0, 1 },
 	{ TEXT_(T_GO_FORWARD), cast_uchar "x", TEXT_(T_HK_GO_FORWARD), menu_go_forward, NULL, 0, 1 },
@@ -2751,7 +2751,7 @@ static_const struct menu_item file_menu11[] = {
 };
 
 #ifdef G
-static_const struct menu_item file_menu111[] = {
+static const struct menu_item file_menu111[] = {
 	{ TEXT_(T_GOTO_URL), cast_uchar "g", TEXT_(T_HK_GOTO_URL), menu_goto_url, NULL, 0, 1 },
 	{ TEXT_(T_GO_BACK), cast_uchar "z", TEXT_(T_HK_GO_BACK), menu_go_back, NULL, 0, 1 },
 	{ TEXT_(T_GO_FORWARD), cast_uchar "x", TEXT_(T_HK_GO_FORWARD), menu_go_forward, NULL, 0, 1 },
@@ -2760,11 +2760,11 @@ static_const struct menu_item file_menu111[] = {
 };
 #endif
 
-static_const struct menu_item file_menu12[] = {
+static const struct menu_item file_menu12[] = {
 	{ TEXT_(T_BOOKMARKS), cast_uchar "s", TEXT_(T_HK_BOOKMARKS), menu_bookmark_manager, NULL, 0, 1 },
 };
 
-static_const struct menu_item file_menu21[] = {
+static const struct menu_item file_menu21[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_AS), cast_uchar "", TEXT_(T_HK_SAVE_AS), save_as, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_URL_AS), cast_uchar "", TEXT_(T_HK_SAVE_URL_AS), menu_save_url_as, NULL, 0, 1 },
@@ -2772,7 +2772,7 @@ static_const struct menu_item file_menu21[] = {
 };
 
 #ifdef G
-static_const struct menu_item file_menu211[] = {
+static const struct menu_item file_menu211[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_AS), cast_uchar "", TEXT_(T_HK_SAVE_AS), save_as, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_URL_AS), cast_uchar "", TEXT_(T_HK_SAVE_URL_AS), menu_save_url_as, NULL, 0, 1 },
@@ -2780,7 +2780,7 @@ static_const struct menu_item file_menu211[] = {
 #endif
 
 #ifdef G
-static_const struct menu_item file_menu211_clipb[] = {
+static const struct menu_item file_menu211_clipb[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_AS), cast_uchar "", TEXT_(T_HK_SAVE_AS), save_as, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_URL_AS), cast_uchar "", TEXT_(T_HK_SAVE_URL_AS), menu_save_url_as, NULL, 0, 1 },
@@ -2788,7 +2788,7 @@ static_const struct menu_item file_menu211_clipb[] = {
 };
 #endif
 
-static_const struct menu_item file_menu22[] = {
+static const struct menu_item file_menu22[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1} ,
 	{ TEXT_(T_KILL_BACKGROUND_CONNECTIONS), cast_uchar "", TEXT_(T_HK_KILL_BACKGROUND_CONNECTIONS), menu_kill_background_connections, NULL, 0, 1 },
 	{ TEXT_(T_KILL_ALL_CONNECTIONS), cast_uchar "", TEXT_(T_HK_KILL_ALL_CONNECTIONS), menu_kill_all_connections, NULL, 0, 1 },
@@ -2797,7 +2797,7 @@ static_const struct menu_item file_menu22[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 };
 
-static_const struct menu_item file_menu3[] = {
+static const struct menu_item file_menu3[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 	{ TEXT_(T_EXIT), cast_uchar "q", TEXT_(T_HK_EXIT), exit_prog, NULL, 0, 1 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
@@ -2880,7 +2880,7 @@ static void (* const find_next_ptr)(struct session *ses, struct f_data_c *f, int
 static void (* const find_next_back_ptr)(struct session *ses, struct f_data_c *f, int a) = find_next_back;
 static void (* const set_frame_ptr)(struct session *ses, struct f_data_c *f, int a) = set_frame;
 
-static_const struct menu_item view_menu[] = {
+static const struct menu_item view_menu[] = {
 	{ TEXT_(T_SEARCH), cast_uchar "/", TEXT_(T_HK_SEARCH), menu_for_frame, (void *)&search_dlg_ptr, 0, 0 },
 	{ TEXT_(T_SEARCH_BACK), cast_uchar "?", TEXT_(T_HK_SEARCH_BACK), menu_for_frame, (void *)&search_back_dlg_ptr, 0, 0 },
 	{ TEXT_(T_FIND_NEXT), cast_uchar "n", TEXT_(T_HK_FIND_NEXT), menu_for_frame, (void *)&find_next_ptr, 0, 0 },
@@ -2896,7 +2896,7 @@ static_const struct menu_item view_menu[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-static_const struct menu_item view_menu_anon[] = {
+static const struct menu_item view_menu_anon[] = {
 	{ TEXT_(T_SEARCH), cast_uchar "/", TEXT_(T_HK_SEARCH), menu_for_frame, (void *)&search_dlg_ptr, 0, 0 },
 	{ TEXT_(T_SEARCH_BACK), cast_uchar "?", TEXT_(T_HK_SEARCH_BACK), menu_for_frame, (void *)&search_back_dlg_ptr, 0, 0 },
 	{ TEXT_(T_FIND_NEXT), cast_uchar "n", TEXT_(T_HK_FIND_NEXT), menu_for_frame, (void *)&find_next_ptr, 0, 0 },
@@ -2910,7 +2910,7 @@ static_const struct menu_item view_menu_anon[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-static_const struct menu_item view_menu_color[] = {
+static const struct menu_item view_menu_color[] = {
 	{ TEXT_(T_SEARCH), cast_uchar "/", TEXT_(T_HK_SEARCH), menu_for_frame, (void *)&search_dlg_ptr, 0, 0 },
 	{ TEXT_(T_SEARCH_BACK), cast_uchar "?", TEXT_(T_HK_SEARCH_BACK), menu_for_frame, (void *)&search_back_dlg_ptr, 0, 0 },
 	{ TEXT_(T_FIND_NEXT), cast_uchar "n", TEXT_(T_HK_FIND_NEXT), menu_for_frame, (void *)&find_next_ptr, 0, 0 },
@@ -2927,7 +2927,7 @@ static_const struct menu_item view_menu_color[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-static_const struct menu_item view_menu_anon_color[] = {
+static const struct menu_item view_menu_anon_color[] = {
 	{ TEXT_(T_SEARCH), cast_uchar "/", TEXT_(T_HK_SEARCH), menu_for_frame, (void *)&search_dlg_ptr, 0, 0 },
 	{ TEXT_(T_SEARCH_BACK), cast_uchar "?", TEXT_(T_HK_SEARCH_BACK), menu_for_frame, (void *)&search_back_dlg_ptr, 0, 0 },
 	{ TEXT_(T_FIND_NEXT), cast_uchar "n", TEXT_(T_HK_FIND_NEXT), menu_for_frame, (void *)&find_next_ptr, 0, 0 },
@@ -2955,7 +2955,7 @@ static void do_view_menu(struct terminal *term, void *xxx, void *ses_)
 }
 
 
-static_const struct menu_item help_menu[] = {
+static const struct menu_item help_menu[] = {
 	{ TEXT_(T_ABOUT), cast_uchar "", TEXT_(T_HK_ABOUT), menu_about, NULL, 0, 0 },
 	{ TEXT_(T_KEYS), cast_uchar "F1", TEXT_(T_HK_KEYS), menu_keys, NULL, 0, 0 },
 	{ TEXT_(T_MANUAL), cast_uchar "", TEXT_(T_HK_MANUAL), menu_url, TEXT_(T_URL_MANUAL), 0, 0 },
@@ -2965,7 +2965,7 @@ static_const struct menu_item help_menu[] = {
 };
 
 #ifdef G
-static_const struct menu_item help_menu_g[] = {
+static const struct menu_item help_menu_g[] = {
 	{ TEXT_(T_ABOUT), cast_uchar "", TEXT_(T_HK_ABOUT), menu_about, NULL, 0, 0 },
 	{ TEXT_(T_KEYS), cast_uchar "F1", TEXT_(T_HK_KEYS), menu_keys, NULL, 0, 0 },
 	{ TEXT_(T_MANUAL), cast_uchar "", TEXT_(T_HK_MANUAL), menu_url, TEXT_(T_URL_MANUAL), 0, 0 },
@@ -2976,7 +2976,7 @@ static_const struct menu_item help_menu_g[] = {
 };
 #endif
 
-static_const struct menu_item net_options_menu[] = {
+static const struct menu_item net_options_menu[] = {
 	{ TEXT_(T_CONNECTIONS), cast_uchar "", TEXT_(T_HK_CONNECTIONS), dlg_net_options, NULL, 0, 0 },
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
 	{ TEXT_(T_SSL_OPTIONS), cast_uchar "", TEXT_(T_HK_SSL_OPTIONS), dlg_ssl_options, NULL, 0, 0 },
@@ -2985,7 +2985,7 @@ static_const struct menu_item net_options_menu[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-static_const struct menu_item net_options_ipv6_menu[] = {
+static const struct menu_item net_options_ipv6_menu[] = {
 	{ TEXT_(T_CONNECTIONS), cast_uchar "", TEXT_(T_HK_CONNECTIONS), dlg_net_options, NULL, 0, 0 },
 	{ TEXT_(T_IPV6_OPTIONS), cast_uchar "", TEXT_(T_HK_IPV6_OPTIONS), dlg_ipv6_options, NULL, 0, 0 },
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
@@ -3008,30 +3008,30 @@ static void menu_write_config(struct terminal *term, void *xxx, void *yyy)
 	write_config(term);
 }
 
-static_const struct menu_item setup_menu_2[] = {
+static const struct menu_item setup_menu_2[] = {
 	{ TEXT_(T_CHARACTER_SET), cast_uchar ">", TEXT_(T_HK_CHARACTER_SET), charset_list, (void *)1, 1, 1 },
 	{ TEXT_(T_TERMINAL_OPTIONS), cast_uchar "", TEXT_(T_HK_TERMINAL_OPTIONS), terminal_options, NULL, 0, 1 },
 };
 
 #ifdef G
-static_const struct menu_item setup_menu_3[] = {
+static const struct menu_item setup_menu_3[] = {
 	{ TEXT_(T_VIDEO_OPTIONS), cast_uchar "", TEXT_(T_HK_VIDEO_OPTIONS), video_options, NULL, 0, 1 },
 };
 #endif
 
-static_const struct menu_item setup_menu_4[] = {
+static const struct menu_item setup_menu_4[] = {
 	{ TEXT_(T_SCREEN_MARGINS), cast_uchar "", TEXT_(T_HK_SCREEN_MARGINS), screen_margins, NULL, 0, 1 },
 };
 
-static_const struct menu_item setup_menu_5[] = {
+static const struct menu_item setup_menu_5[] = {
 	{ TEXT_(T_NETWORK_OPTIONS), cast_uchar ">", TEXT_(T_HK_NETWORK_OPTIONS), network_menu, NULL, 1, 1 },
 };
 
-static_const struct menu_item setup_menu_6[] = {
+static const struct menu_item setup_menu_6[] = {
 	{ TEXT_(T_MISCELANEOUS_OPTIONS), cast_uchar "", TEXT_(T_HK_MISCELANEOUS_OPTIONS), miscelaneous_options, NULL, 0, 1 },
 };
 
-static_const struct menu_item setup_menu_7[] = {
+static const struct menu_item setup_menu_7[] = {
 	{ TEXT_(T_CACHE), cast_uchar "", TEXT_(T_HK_CACHE), cache_opt, NULL, 0, 1 },
 	{ TEXT_(T_MAIL_AND_TELNEL), cast_uchar "", TEXT_(T_HK_MAIL_AND_TELNEL), net_programs, NULL, 0, 1 },
 	{ TEXT_(T_ASSOCIATIONS), cast_uchar "", TEXT_(T_HK_ASSOCIATIONS), menu_assoc_manager, NULL, 0, 1 },
@@ -3041,7 +3041,7 @@ static_const struct menu_item setup_menu_7[] = {
 	{ TEXT_(T_SAVE_OPTIONS), cast_uchar "", TEXT_(T_HK_SAVE_OPTIONS), menu_write_config, NULL, 0, 1 },
 };
 
-static_const struct menu_item setup_menu_8[] = {
+static const struct menu_item setup_menu_8[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
@@ -3102,7 +3102,7 @@ static void do_help_menu(struct terminal *term, void *xxx, void *ses_)
 }
 
 
-static_const struct menu_item main_menu[] = {
+static const struct menu_item main_menu[] = {
 	{ TEXT_(T_FILE), cast_uchar "", TEXT_(T_HK_FILE), do_file_menu, NULL, 1, 1 },
 	{ TEXT_(T_VIEW), cast_uchar "", TEXT_(T_HK_VIEW), do_view_menu, NULL, 1, 1 },
 	{ TEXT_(T_LINK), cast_uchar "", TEXT_(T_HK_LINK), link_menu, NULL, 1, 1 },

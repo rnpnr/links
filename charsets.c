@@ -24,7 +24,7 @@ struct codepage_desc {
 #include "upcase.inc"
 #include "locase.inc"
 
-static_const unsigned char strings[256][2] = {
+static const unsigned char strings[256][2] = {
 	"\000", "\001", "\002", "\003", "\004", "\005", "\006", "\007",
 	"\010", "\011", "\012", "\013", "\014", "\015", "\016", "\017",
 	"\020", "\021", "\022", "\023", "\024", "\025", "\026", "\033",
@@ -68,7 +68,7 @@ static void free_translation_table(struct conv_table *p)
 	free(p);
 }
 
-static_const unsigned char no_str[] = "*";
+static const unsigned char no_str[] = "*";
 
 static void new_translation_table(struct conv_table *p)
 {
@@ -86,7 +86,7 @@ static void new_translation_table(struct conv_table *p)
 	}
 }
 
-static_const unsigned short strange_chars[32] = {
+static const unsigned short strange_chars[32] = {
 	0x20ac, 0x0000, 0x002a, 0x0000, 0x201e, 0x2026, 0x2020, 0x2021,
 	0x005e, 0x2030, 0x0160, 0x003c, 0x0152, 0x0000, 0x0000, 0x0000,
 	0x0000, 0x0060, 0x0027, 0x0022, 0x0022, 0x002a, 0x2013, 0x2014,
@@ -271,7 +271,7 @@ unsigned char utf_8_1[256] = {
 	3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 6, 6,
 };
 
-static_const unsigned min_utf_8[8] = {
+static const unsigned min_utf_8[8] = {
 	0, 0x4000000, 0x200000, 0x10000, 0x800, 0x80, 0x100, 0x1,
 };
 

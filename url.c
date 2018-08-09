@@ -7,7 +7,7 @@
 
 #include "links.h"
 
-static_const struct {
+static const struct {
 	char *prot;
 	int port;
 	void (*func)(struct connection *);
@@ -821,8 +821,8 @@ void convert_file_charset(unsigned char **s, int *l, int start_l)
 {
 }
 
-static_const unsigned char xn[] = "xn--";
-static_const unsigned xn_l = sizeof(xn) - 1;
+static const unsigned char xn[] = "xn--";
+static const unsigned xn_l = sizeof(xn) - 1;
 
 #define puny_max_length	63
 #define puny_base	36

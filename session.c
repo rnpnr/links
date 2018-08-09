@@ -31,7 +31,7 @@ struct s_msg_dsc {
 	unsigned char *msg;
 };
 
-static_const struct s_msg_dsc msg_dsc[] = {
+static const struct s_msg_dsc msg_dsc[] = {
 	{S_WAIT,		TEXT_(T_WAITING_IN_QUEUE)},
 	{S_DNS,			TEXT_(T_LOOKING_UP_HOST)},
 	{S_CONN,		TEXT_(T_MAKING_CONNECTION)},

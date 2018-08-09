@@ -134,7 +134,3 @@
 #define float_double float
 #define fd_pow powf
 #endif
-
-#define static_const	static const
-
-typedef const char *const_char_ptr;
