@@ -291,20 +291,6 @@ Retry on internal server errors (50x).
 Fake that the browser is Firefox in the HTTP header.
 
 .TP
-\f3-http.do-not-track \f2<0>/<1>\f1
-(default 0)
-Send "do not track" request in the HTTP header.
-
-.TP
-\f3-http.referer \f2<0>/<1>/<2>/<3>/<4>\f1
-(default 0)
-0 - do not send referer.
-1 - send the requested URL as referer.
-2 - send fake referer.
-3 - send real referer.
-4 - send real referer only to the same server.
-
-.TP
 \f3-http.fake-referer \f2<string>\f1
 Fake referer value.
 
@@ -725,10 +711,6 @@ delete to the end of the line or delete line (in textarea)
 .TP
 .B ^W
 auto complete line
-
-
-
-
 
 .SH FILES
 .TP
