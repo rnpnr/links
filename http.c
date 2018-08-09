@@ -419,66 +419,9 @@ static void add_user_agent(unsigned char **hdr, int *l)
 
 static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigned char *prev_url)
 {
-
-	switch (http_options.header.referer) {
-	case REFERER_FAKE:
-		add_to_str(hdr, l, cast_uchar "Referer: ");
-		add_to_str(hdr, l, http_options.header.fake_referer);
-		add_to_str(hdr, l, cast_uchar "\r\n");
-		break;
-
-	case REFERER_SAME_URL:
-		add_to_str(hdr, l, cast_uchar "Referer: ");
-		add_url_to_str(hdr, l, url);
-		add_to_str(hdr, l, cast_uchar "\r\n");
-		break;
-
-	case REFERER_REAL_SAME_SERVER: {
-		unsigned char *h, *j;
-		int brk = 1;
-		if ((h = get_host_name(url))) {
-			if ((j = get_host_name(prev_url))) {
-				if (!casestrcmp(h, j))
-					brk = 0;
-				else if (!casestrcmp(h, cast_uchar "imageproxy.jxs.cz")) {
-					int l = strlen((char *)j);
-					int q = strlen(".blog.cz");
-					if (l > q && !casestrcmp((j + l - q), cast_uchar ".blog.cz"))
-						brk = 0;
-					else if (!casestrcmp(j, cast_uchar "blog.cz"))
-						brk = 0;
-				} else if (!casestrcmp(h, cast_uchar "www.google.com")) {
-					unsigned char *c = get_url_data(url);
-					if (c && !strncmp((char *)c, "recaptcha/api/", 14))
-						brk = 0;
-				}
-				free(j);
-			}
-			free(h);
-		}
-		if (brk)
-			break;
-		/*fallthrough*/
-	}
-	case REFERER_REAL: {
-		unsigned char *ref;
-		unsigned char *user, *ins;
-		int ulen;
-		if (!prev_url)
-			break;
-
-		ref = stracpy(prev_url);
-		if (!parse_url(ref, NULL, &user, &ulen, NULL, NULL, &ins, NULL,
-			NULL, NULL, NULL, NULL, NULL)
-		&& ulen && ins)
-			memmove(user, ins, strlen(cast_const_char ins) + 1);
-		add_to_str(hdr, l, cast_uchar "Referer: ");
-		add_url_to_str(hdr, l, ref);
-		add_to_str(hdr, l, cast_uchar "\r\n");
-		free(ref);
-		break;
-	}
-	}
+	add_to_str(hdr, l, cast_uchar "Referer: ");
+	add_url_to_str(hdr, l, url);
+	add_to_str(hdr, l, cast_uchar "\r\n");
 }
 
 static void add_accept(unsigned char **hdr, int *l)
