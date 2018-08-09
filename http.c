@@ -27,7 +27,6 @@ static void test_restart(struct connection *c);
 static void add_user_agent(unsigned char **hdr, int *l);
 static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigned char *prev_url);
 static void add_accept(unsigned char **hdr, int *l);
-static void add_accept_language(unsigned char **hdr, int *l, struct http_connection_info *info);
 static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url, struct connection *c);
 static void add_accept_charset(unsigned char **hdr, int *l, struct http_connection_info *info);
 static void add_connection(unsigned char **hdr, int *l, int http10, int proxy, int post);
@@ -339,7 +338,6 @@ added_connect:
 		test_restart(c);
 		add_referer(&hdr, &l, host, c->prev_url);
 		add_accept(&hdr, &l);
-		add_accept_language(&hdr, &l, info);
 		add_accept_encoding(&hdr, &l, host, c);
 		add_accept_charset(&hdr, &l, info);
 		/* Always add DNT */
@@ -430,25 +428,6 @@ static void add_accept(unsigned char **hdr, int *l)
 		add_to_str(hdr, l, cast_uchar "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
 	else
 		add_to_str(hdr, l, cast_uchar "Accept: */*\r\n");
-}
-
-static void add_accept_language(unsigned char **hdr, int *l, struct http_connection_info *info)
-{
-	if (!(info->bl_flags & BL_NO_ACCEPT_LANGUAGE)) {
-		add_to_str(hdr, l, cast_uchar "Accept-Language: ");
-		if (SCRUB_HEADERS)
-			add_to_str(hdr, l, cast_uchar "en-US,en;q=0.5\r\n");
-		else {
-			int la;
-			la = *l;
-			add_to_str(hdr, l, get_text_translation(TEXT_(T__ACCEPT_LANGUAGE), NULL));
-			add_to_str(hdr, l, cast_uchar ",");
-			if (!strstr((char *)(*hdr + la), "en,")
-			&& !strstr((char *)(*hdr + la), "en;"))
-				add_to_str(hdr, l, cast_uchar "en;q=0.2,");
-			add_to_str(hdr, l, cast_uchar "*;q=0.1\r\n");
-		}
-	}
 }
 
 static int advertise_compression(unsigned char *url, struct connection *c)
