@@ -1043,7 +1043,7 @@ again:
 		if (strlen((char *)d) > 6) {
 			d[5] = 0;
 			if (!(casestrcmp(d, cast_uchar "bytes")) && d[6] >= '0' && d[6] <= '9') {
-				long f = strtol(d + 6, NULL, 10);
+				long f = strtol((char *)(d + 6), NULL, 10);
 				if (f >= 0 && (off_t)f >= 0 && (off_t)f == f)
 					c->from = f;
 			}
@@ -1062,7 +1062,7 @@ again:
 	}
 	if ((d = parse_http_header(e->head, cast_uchar "Content-Length", NULL))) {
 		unsigned char *ep;
-		long l = strtol((char *)d, &ep, 10);
+		long l = strtol((char *)d, (char **)&ep, 10);
 		if (!*ep && l >= 0 && (off_t)l >= 0 && (off_t)l == l) {
 			if (!info->close || version >= 11)
 				info->length = l;
