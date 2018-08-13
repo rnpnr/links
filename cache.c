@@ -460,14 +460,15 @@ static int shrink_file_cache(int u)
 		goto ret;
 	foreachback(struct cache_entry, e, le, cache) {
 		if (e->refcount || is_entry_used(e)) {
-			if (ncs < (int)e->data_size) {
-				internal("cache_size underflow: %lu, %lu", (unsigned long)ncs, (unsigned long)e->data_size);
+			if (ncs < e->data_size) {
+				internal("cache_size underflow: %d, %d", ncs, e->data_size);
 			}
-			ncs -= (int)e->data_size;
+			ncs -= e->data_size;
 		} else if (u == SH_FREE_SOMETHING) {
 			if (e->decompressed_len)
 				free_decompressed_data(e);
-			else delete_cache_entry(e);
+			else
+				delete_cache_entry(e);
 			r = 1;
 			goto ret;
 		}
@@ -476,24 +477,22 @@ static int shrink_file_cache(int u)
 			free_decompressed_data(e);
 			r = 1;
 		}
-		ccs += (int)e->data_size;
+		ccs += e->data_size;
 		ccs2 += e->decompressed_len;
 	}
 	if (ccs != cache_size) {
-		internal("cache size badly computed: %lu != %lu",
-			(unsigned long)cache_size, (unsigned long)ccs);
+		internal("cache size badly computed: %d != %d", cache_size, ccs);
 		cache_size = ccs;
 	}
 	if (ccs2 != decompressed_cache_size) {
-		internal("decompressed cache size badly computed: %lu != %lu",
-			(unsigned long)decompressed_cache_size,
-			(unsigned long)ccs2);
+		internal("decompressed cache size badly computed: %d != %d",
+			decompressed_cache_size, ccs2);
 		decompressed_cache_size = ccs2;
 	}
 	if (u == SH_CHECK_QUOTA && ncs <= memory_cache_size)
 		goto ret;
 	foreachback(struct cache_entry, e, le, cache) {
-		if (u == SH_CHECK_QUOTA && (long)ncs <= (long)memory_cache_size * MEMORY_CACHE_GC_PERCENT)
+		if (u == SH_CHECK_QUOTA && ncs <= memory_cache_size * MEMORY_CACHE_GC_PERCENT)
 			goto g;
 		if (e->refcount || is_entry_used(e)) {
 			e->tgc = 0;
@@ -501,20 +500,22 @@ static int shrink_file_cache(int u)
 		}
 		e->tgc = 1;
 		if (ncs < (int)e->data_size) {
-			internal("cache_size underflow: %lu, %lu", (unsigned long)ncs, (unsigned long)e->data_size);
+			internal("cache_size underflow: %d, %d", ncs, e->data_size);
 		}
-		ncs -= (int)e->data_size;
+		ncs -= e->data_size;
 	}
-	if (ncs) internal("cache_size(%lu) is larger than size of all objects(%lu)", (unsigned long)cache_size, (unsigned long)(cache_size - ncs));
-	g:
+	if (ncs)
+		internal("cache_size(%d) is larger than size of all objects(%d)",
+			cache_size, (cache_size - ncs));
+g:
 	if (le->next == &cache)
 		goto ret;
 	le = le->next;
 	if (u == SH_CHECK_QUOTA) {
 		foreachfrom(struct cache_entry, f, lf, cache, le) {
 			if (f->data_size
-			&& (long)ncs + f->data_size <= (long)memory_cache_size * MEMORY_CACHE_GC_PERCENT) {
-				ncs += (int)f->data_size;
+			&& ncs + f->data_size <= memory_cache_size * MEMORY_CACHE_GC_PERCENT) {
+				ncs += f->data_size;
 				f->tgc = 0;
 			}
 		}
