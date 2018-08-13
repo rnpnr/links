@@ -98,7 +98,7 @@ void add_chr_to_str(unsigned char **s, int *l, unsigned char a)
 	add_bytes_to_str(s, l, &a, 1);
 }
 
-void add_unsigned_long_num_to_str(unsigned char **s, int *l, long n)
+void add_unsigned_long_num_to_str(unsigned char **s, int *l, unsigned long n)
 {
 	unsigned char a[64];
 	snprint(a, 64, n);
