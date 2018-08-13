@@ -1426,7 +1426,7 @@ struct links_event {
 	int ev;
 	int x;
 	int y;
-	int b;
+	long b;
 };
 
 #define EV_INIT		0
