@@ -1077,7 +1077,7 @@ void add_blacklist_entry(unsigned char *host, int flags)
 			return;
 		}
 	sl = strlen((const char *)host);
-	if (sl > MAXINT - sizeof(struct blacklist_entry))
+	if (sl > INT_MAX - sizeof(struct blacklist_entry))
 		overalloc();
 	b = xmalloc(sizeof(struct blacklist_entry) + sl);
 	b->flags = flags;

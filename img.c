@@ -27,7 +27,7 @@ static int is_image_size_sane(int x, int y)
 	unsigned a = (unsigned)x * (unsigned)y * 6;
 	if (y && a / (unsigned)y / 6 != (unsigned)x)
 		return 0;
-	return a < MAXINT;
+	return a < INT_MAX;
 }
 
 static void destroy_decoder (struct cached_image *cimg)
@@ -283,7 +283,7 @@ int header_dimensions_known(struct cached_image *cimg)
 			cimg->dregs = NULL;
 			goto skip_img;
 		}
-		if ((unsigned)cimg->width > MAXINT / sizeof(*buf_16) / 3) overalloc();
+		if ((unsigned)cimg->width > INT_MAX / sizeof(*buf_16) / 3) overalloc();
 		buf_16 = xmalloc(sizeof(*buf_16) * 3 * cimg->width);
 		round_color_sRGB_to_48(&red, &green, &blue
 			, cimg->background_color);
@@ -325,7 +325,7 @@ int header_dimensions_known(struct cached_image *cimg)
 		cimg->rows_added=1;
 		cimg->bmp_used=0;
 		if (cimg->width && (unsigned)cimg->width * (unsigned)cimg->height / (unsigned)cimg->width != (unsigned)cimg->height) overalloc();
-		if ((unsigned)cimg->width * (unsigned)cimg->height > (unsigned)MAXINT / cimg->buffer_bytes_per_pixel) overalloc();
+		if ((unsigned)cimg->width * (unsigned)cimg->height > (unsigned)INT_MAX / cimg->buffer_bytes_per_pixel) overalloc();
 		cimg->buffer = xmalloc((size_t)cimg->width * (size_t)cimg->height * (size_t)cimg->buffer_bytes_per_pixel);
 		if (!cimg->buffer)
 			return 1;
@@ -505,7 +505,7 @@ void buffer_to_bitmap_incremental(struct cached_image *cimg
 buffer_to_bitmap_incremental");
 	}
 #endif /* #ifdef DEBUG */
-	if ((unsigned)cimg->width > MAXINT / max_height / 3 / sizeof(*tmp)) overalloc();
+	if ((unsigned)cimg->width > INT_MAX / max_height / 3 / sizeof(*tmp)) overalloc();
 	tmp = xmalloc(cimg->width*(height<max_height?height:max_height)*3*sizeof(*tmp));
 	/* Prepare a fake bitmap for dithering */
 	tmpbmp.x=cimg->width;
@@ -587,7 +587,7 @@ buffer_to_bitmap");
 	else{
 		gonna_be_smart=0;
 		if (ix && (unsigned)ix * (unsigned)iy / (unsigned)ix != (unsigned)iy) overalloc();
-		if ((unsigned)ix * (unsigned)iy > MAXINT / sizeof(*tmp) / 3) overalloc();
+		if ((unsigned)ix * (unsigned)iy > INT_MAX / sizeof(*tmp) / 3) overalloc();
 		tmp = xmalloc(ix*iy*3*sizeof(*tmp));
 		if (tmp) buffer_to_16(tmp,cimg,cimg->buffer,iy);
 		if (!cimg->decoder) {
@@ -617,7 +617,7 @@ buffer_to_bitmap");
 	}
 	if (gonna_be_smart){
 		if (dither_images) {
-			if ((unsigned)cimg->width > MAXINT / 3 / sizeof(*dregs)) overalloc();
+			if ((unsigned)cimg->width > INT_MAX / 3 / sizeof(*dregs)) overalloc();
 			dregs = mem_calloc(sizeof(*dregs)*3*cimg->width);
 		} else {
 			dregs = NULL;

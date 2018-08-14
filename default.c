@@ -55,7 +55,7 @@ static unsigned char *p_arse_options(int argc, unsigned char *argv[], struct opt
 	unsigned char *e, *u = NULL;
 	int i;
 	for (i = 0; i < argc; i++) {
-		if (strlen(cast_const_char argv[i]) >= MAXINT) {
+		if (strlen(cast_const_char argv[i]) >= INT_MAX) {
 			fprintf(stderr, "Too long parameter\n");
 			return NULL;
 		}
@@ -253,7 +253,7 @@ try_new_count:
 	h = c_open3(tmp_name, O_WRONLY | O_NOCTTY | O_CREAT | O_TRUNC | O_EXCL, 0600);
 	if (h == -1) {
 		err = errno;
-		if (err == EEXIST && count < MAXINT) {
+		if (err == EEXIST && count < INT_MAX) {
 			count++;
 			free(tmp_name);
 			goto try_new_count;
@@ -816,7 +816,7 @@ struct driver_param *get_driver_param(unsigned char *n)
 	struct list_head *ldp;
 	foreach(struct driver_param, dp, ldp, driver_params) if (!casestrcmp(dp->name, n)) return dp;
 	sl = strlen(cast_const_char n);
-	if (sl > MAXINT - sizeof(struct driver_param)) overalloc();
+	if (sl > INT_MAX - sizeof(struct driver_param)) overalloc();
 	dp = mem_calloc(sizeof(struct driver_param) + sl);
 	dp->kbd_codepage = -1;
 	strcpy(cast_char dp->name, cast_const_char n);
@@ -1593,7 +1593,7 @@ static struct option links_options[] = {
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, default_target, NULL, "target"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_mode, NULL, "mode"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_display, NULL, "display"},
-	{1, gen_cmd, num_rd, NULL, 0, MAXINT, &base_session, NULL, "base-session"},
+	{1, gen_cmd, num_rd, NULL, 0, INT_MAX, &base_session, NULL, "base-session"},
 	{1, set_cmd, NULL, NULL, 0, 0, &force_html, NULL, "force-html"},
 	{1, dump_cmd, NULL, NULL, D_SOURCE, 0, NULL, NULL, "source"},
 	{1, dump_cmd, NULL, NULL, D_DUMP, 0, NULL, NULL, "dump"},
@@ -1611,9 +1611,9 @@ static struct option links_options[] = {
 	{1, set_cmd, NULL, NULL, 0, 0, &disable_libevent, NULL, "no-libevent"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &download_utime, "download_utime", "download-utime"},
 	{1, gen_cmd, num_rd, num_wr, 0, 999, &max_format_cache_entries, "format_cache_size", "format-cache-size"},
-	{1, gen_cmd, num_rd, num_wr, 0, MAXINT, &memory_cache_size, "memory_cache_size", "memory-cache-size"},
-	{1, gen_cmd, num_rd, num_wr, 0, MAXINT, &image_cache_size, "image_cache_size", "image-cache-size"},
-	{1, gen_cmd, num_rd, num_wr, 0, MAXINT, &font_cache_size, "font_cache_size", "font-cache-size"},
+	{1, gen_cmd, num_rd, num_wr, 0, INT_MAX, &memory_cache_size, "memory_cache_size", "memory-cache-size"},
+	{1, gen_cmd, num_rd, num_wr, 0, INT_MAX, &image_cache_size, "image_cache_size", "image-cache-size"},
+	{1, gen_cmd, num_rd, num_wr, 0, INT_MAX, &font_cache_size, "font_cache_size", "font-cache-size"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &aggressive_cache, "http_bugs.aggressive_cache", "aggressive-cache"},
 	{1, gen_cmd, num_rd, num_wr, 0, 4, &ipv6_options.addr_preference, "ipv6.address_preference", "address-preference"},
 	{1, proxy_cmd, str_rd, str_wr, 0, MAX_STR_LEN, proxies.http_proxy, "http_proxy", "http-proxy"},

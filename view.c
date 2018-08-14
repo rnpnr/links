@@ -115,7 +115,7 @@ void sort_links(struct f_data *f)
 	int i;
 	if (F) return;
 	if (f->nlinks) qsort(f->links, f->nlinks, sizeof(struct link), (int (*)(const void *, const void *))comp_links);
-	if ((unsigned)f->y > MAXINT / sizeof(struct link *)) overalloc();
+	if ((unsigned)f->y > INT_MAX / sizeof(struct link *)) overalloc();
 	f->lines1 = mem_calloc(f->y * sizeof(struct link *));
 	f->lines2 = mem_calloc(f->y * sizeof(struct link *));
 	for (i = 0; i < f->nlinks; i++) {
@@ -191,7 +191,7 @@ static struct line_info *format_text_uncached(unsigned char *text, int width, in
 			sk = 1;
 			put:
 			if (!(lnn & (ALLOC_GR-1))) {
-				if ((unsigned)lnn > MAXINT / sizeof(struct line_info) - ALLOC_GR)
+				if ((unsigned)lnn > INT_MAX / sizeof(struct line_info) - ALLOC_GR)
 					overalloc();
 				ln = xrealloc(ln, (lnn + ALLOC_GR) * sizeof(struct line_info));
 			}
@@ -269,7 +269,7 @@ struct line_info *format_text(unsigned char *text, int width, int wrap, int cp)
 		    ftce->cp == cp)
 			goto have_it;
 	}
-	if (text_len > MAXINT - sizeof(struct format_text_cache_entry)) overalloc();
+	if (text_len > INT_MAX - sizeof(struct format_text_cache_entry)) overalloc();
 	ftce = xmalloc(sizeof(struct format_text_cache_entry) + text_len);
 	memcpy(ftce->copied_text, text, text_len + 1);
 	ftce->text_ptr = text;
@@ -347,7 +347,7 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 				struct form_state *fs = find_form_state(scr, link->form);
 				q = area_cursor(scr, link->form, fs);
 			}
-			if ((unsigned)link->n > MAXINT / sizeof(struct link_bg)) overalloc();
+			if ((unsigned)link->n > INT_MAX / sizeof(struct link_bg)) overalloc();
 			scr->link_bg = xmalloc(link->n * sizeof(struct link_bg));
 			scr->link_bg_n = link->n;
 			for (i = 0; i < link->n; i++) {
@@ -444,7 +444,7 @@ static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int 
 	int found = 0;
 	int l;
 	int s1, s2;
-	*min = MAXINT;
+	*min = INT_MAX;
 	*max = 0;
 
 	if (!utf8)
@@ -553,7 +553,7 @@ c:
 				if (x >= xp && y >= yp && x < xp + xw && y < yp + yw) {
 					if (!(len & (ALLOC_GR - 1))) {
 						struct point *points2;
-						if ((unsigned)len > MAXINT / sizeof(struct point) - ALLOC_GR)
+						if ((unsigned)len > INT_MAX / sizeof(struct point) - ALLOC_GR)
 							goto ret;
 						points2 = xrealloc(points,
 								sizeof(struct point) * (len + ALLOC_GR));
@@ -680,7 +680,7 @@ struct form_state *find_form_state(struct f_data_c *f, struct form_control *form
 	if (n < vs->form_info_len)
 		fs = &vs->form_info[n];
 	else {
-		if ((unsigned)n > MAXINT / sizeof(struct form_state) - 1)
+		if ((unsigned)n > INT_MAX / sizeof(struct form_state) - 1)
 			overalloc();
 		fs = xrealloc(vs->form_info, (n + 1) * sizeof(struct form_state));
 		vs->form_info = fs;
@@ -1231,14 +1231,14 @@ static void set_pos_x(struct f_data_c *f, struct link *l)
 {
 	int i;
 	int xm = 0;
-	int xl = MAXINT;
+	int xl = INT_MAX;
 	for (i = 0; i < l->n; i++) {
 		if (l->pos[i].y >= f->vs->view_pos && l->pos[i].y < f->vs->view_pos + f->yw) {
 			if (l->pos[i].x >= xm) xm = l->pos[i].x + 1;
 			if (l->pos[i].x < xl) xl = l->pos[i].x;
 		}
 	}
-	if (xl == MAXINT) return;
+	if (xl == INT_MAX) return;
 	/*if ((f->vs->view_posx = xm - f->xw) > xl) f->vs->view_posx = xl;*/
 	if (f->vs->view_posx + f->xw < xm) f->vs->view_posx = xm - f->xw;
 	if (f->vs->view_posx > xl) f->vs->view_posx = xl;
@@ -1583,7 +1583,7 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 		bnd:
 		add_to_str(data, len, cast_uchar "--");
 		if (!(nbound_ptrs & (ALLOC_GR-1))) {
-			if ((unsigned)nbound_ptrs > MAXINT / sizeof(int) - ALLOC_GR)
+			if ((unsigned)nbound_ptrs > INT_MAX / sizeof(int) - ALLOC_GR)
 				overalloc();
 			bound_ptrs = xrealloc(bound_ptrs,
 					(nbound_ptrs + ALLOC_GR) * sizeof(int));
@@ -1808,7 +1808,7 @@ static struct menu_item *clone_select_menu(struct menu_item *m)
 	struct menu_item *n = NULL;
 	int i = 0;
 	do {
-		if ((unsigned)i > MAXINT / sizeof(struct menu_item) - 1)
+		if ((unsigned)i > INT_MAX / sizeof(struct menu_item) - 1)
 			overalloc();
 		n = xrealloc(n, (i + 1) * sizeof(struct menu_item));
 		n[i].text = stracpy(m->text);

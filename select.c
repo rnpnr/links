@@ -553,7 +553,7 @@ void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func
 			return;
 		}
 	if (fd >= n_threads) {
-		if ((unsigned)fd > (unsigned)MAXINT / sizeof(struct thread) - 1)
+		if ((unsigned)fd > (unsigned)INT_MAX / sizeof(struct thread) - 1)
 			overalloc();
 		threads = xrealloc(threads, (fd + 1) * sizeof(struct thread));
 		memset(threads + n_threads, 0, (fd + 1 - n_threads) * sizeof(struct thread));
@@ -881,7 +881,7 @@ void select_loop(void (*init)(void))
 			if (tt < 1000)
 #endif
 			{
-				tv.tv_sec = tt / 1000 < MAXINT ? (int)(tt / 1000) : MAXINT;
+				tv.tv_sec = tt / 1000 < INT_MAX ? (int)(tt / 1000) : INT_MAX;
 				tv.tv_usec = (tt % 1000) * 1000;
 				tm = &tv;
 			}

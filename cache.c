@@ -251,11 +251,11 @@ have_f:
 			goto ch_o;
 		}
 	}
-	if (C_ALIGN(length) > MAXINT - sizeof(struct fragment)
+	if (C_ALIGN(length) > INT_MAX - sizeof(struct fragment)
 	|| C_ALIGN(length) < 0)
 		overalloc();
 	ca = C_ALIGN(length);
-	if (ca > MAXINT - (int)sizeof(struct fragment) || ca < 0)
+	if (ca > INT_MAX - (int)sizeof(struct fragment) || ca < 0)
 		return S_LARGE_FILE;
 	nf = xmalloc(sizeof(struct fragment) + (size_t)ca);
 	sf(length);
@@ -333,7 +333,7 @@ int defrag_entry(struct cache_entry *e)
 			return S_LARGE_FILE;
 		l += list_struct(h, struct fragment)->length;
 	}
-	if (l > MAXINT - (int)sizeof(struct fragment))
+	if (l > INT_MAX - (int)sizeof(struct fragment))
 		return S_LARGE_FILE;
 	n = xmalloc(sizeof(struct fragment) + (size_t)l);
 	n->offset = 0;

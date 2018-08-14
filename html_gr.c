@@ -191,7 +191,7 @@ void flush_pending_line_to_obj(struct g_part *p, int minheight)
 	p->cy = safe_add(p->cy, w);
 	a->go.yw = p->cy;
 	if (!(a->n_lines & (a->n_lines + 1))) {
-		if ((unsigned)a->n_lines > ((MAXINT - sizeof(struct g_object_area)) / sizeof(struct g_object_text *) - 1) / 2)
+		if ((unsigned)a->n_lines > ((INT_MAX - sizeof(struct g_object_area)) / sizeof(struct g_object_text *) - 1) / 2)
 			overalloc();
 		a = xrealloc(a, sizeof(struct g_object_area)
 				+ sizeof(struct g_object_text *)
@@ -232,7 +232,7 @@ void add_object_to_line(struct g_part *pp, struct g_object_line **lp, struct g_o
 		if (!go)
 			return;
 		(*lp)->n_entries++;
-		if ((unsigned)(*lp)->n_entries > (MAXINT - sizeof(struct g_object_line)) / sizeof(struct g_object *))
+		if ((unsigned)(*lp)->n_entries > (INT_MAX - sizeof(struct g_object_line)) / sizeof(struct g_object *))
 			overalloc();
 		l = xrealloc(*lp, sizeof(struct g_object_line)
 				+ sizeof(struct g_object *)
@@ -281,7 +281,7 @@ static void split_line_object(struct g_part *p, struct g_object *text_go, unsign
 		return;
 	}
 	sl = strlen(cast_const_char ptr);
-	if (sl > MAXINT - sizeof(struct g_object_text))
+	if (sl > INT_MAX - sizeof(struct g_object_text))
 		overalloc();
 	t2 = mem_calloc(sizeof(struct g_object_text) + sl);
 	t2->goti.go.mouse_event = g_text_mouse;
@@ -554,7 +554,7 @@ static void do_image(struct g_part *p, struct image_description *im)
 		!casestrcmp(ld->shape, cast_uchar "polygon") ? SHAPE_POLY : -1;
 				if (shape == -1)
 					continue;
-				if ((unsigned)map->n_areas > (MAXINT - sizeof(struct image_map)) / sizeof(struct map_area) - 1)
+				if ((unsigned)map->n_areas > (INT_MAX - sizeof(struct image_map)) / sizeof(struct map_area) - 1)
 					overalloc();
 				map = xrealloc(map, sizeof(struct image_map)
 						+ (map->n_areas + 1)
@@ -586,7 +586,7 @@ static void do_image(struct g_part *p, struct image_description *im)
 						p++;
 					} else
 						num = num * d_opt->image_scale / 100;
-					if ((unsigned)a->ncoords > MAXINT / sizeof(int) - 1)
+					if ((unsigned)a->ncoords > INT_MAX / sizeof(int) - 1)
 						overalloc();
 					a->coords = xrealloc(a->coords,
 							(a->ncoords + 1) * sizeof(int));
@@ -664,7 +664,7 @@ static void *g_html_special(void *p_, int c, ...)
 		va_end(l);
 		/* not needed to convert %AB here because html_tag will be called anyway */
 		sl = strlen(cast_const_char t);
-		if (sl > MAXINT - sizeof(struct g_object_tag))
+		if (sl > INT_MAX - sizeof(struct g_object_tag))
 			overalloc();
 		tag = mem_calloc(sizeof(struct g_object_tag) + sl);
 		tag->go.mouse_event = g_dummy_mouse;
@@ -852,8 +852,8 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 	safe_add(safe_add(ptl, l), ALLOC_GR);
 	if (((ptl + ALLOC_GR - 1) & ~(ALLOC_GR - 1)) != ((ptl + l + ALLOC_GR - 1) & ~(ALLOC_GR - 1))) a1: {
 		struct g_object_text *t;
-		if ((unsigned)l > MAXINT
-		|| (unsigned)ptl + (unsigned)l > MAXINT - ALLOC_GR)
+		if ((unsigned)l > INT_MAX
+		|| (unsigned)ptl + (unsigned)l > INT_MAX - ALLOC_GR)
 			overalloc();
 		t = xrealloc(p->text, sizeof(struct g_object_text)
 				+ ((ptl + l + ALLOC_GR - 1) & ~(ALLOC_GR - 1)));

@@ -311,7 +311,7 @@ void file_func(struct connection *c)
 				if (strspn(cast_const_char n, dir_sep('\\') ? "/\\" : "/") == strlen(cast_const_char n))
 					continue;
 			}
-			if ((unsigned)dirl > MAXINT / sizeof(struct dirs) - 1)
+			if ((unsigned)dirl > INT_MAX / sizeof(struct dirs) - 1)
 				overalloc();
 			dir = xrealloc(dir, (dirl + 1) * sizeof(struct dirs));
 			dir[dirl].f = stracpy(cast_uchar de->d_name);
@@ -343,7 +343,7 @@ void file_func(struct connection *c)
 				do {
 					free(buf);
 					size += ALLOC_GR;
-					if ((unsigned)size > MAXINT) overalloc();
+					if ((unsigned)size > INT_MAX) overalloc();
 					buf = xmalloc(size);
 					EINTRLOOP(r, (int)readlink(cast_const_char n, cast_char buf, size));
 				} while (r == size);
@@ -393,7 +393,7 @@ void file_func(struct connection *c)
 		head = stracpy(cast_uchar "\r\nContent-Type: text/html\r\n");
 	} else {
 		free(name);
-		if (stt.st_size < 0 || stt.st_size > MAXINT) {
+		if (stt.st_size < 0 || stt.st_size > INT_MAX) {
 			EINTRLOOP(rs, close(h));
 			setcstate(c, S_LARGE_FILE); abort_connection(c);
 			return;

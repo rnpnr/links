@@ -104,7 +104,7 @@ retry:
 		}
 	}
 	if (w < len) {
-		if ((unsigned)itrm->eqlen + (unsigned)(len - w) > MAXINT)
+		if ((unsigned)itrm->eqlen + (unsigned)(len - w) > INT_MAX)
 			overalloc();
 		itrm->ev_queue = xrealloc(itrm->ev_queue, itrm->eqlen + len - w);
 		memcpy(itrm->ev_queue + itrm->eqlen, data + w, len - w);

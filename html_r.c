@@ -63,7 +63,7 @@ struct frameset_desc *copy_frameset_desc(struct frameset_desc *fd)
 {
 	int i;
 	struct frameset_desc *neww;
-	if ((unsigned)fd->n > MAXINT / sizeof(struct frame_desc)) overalloc();
+	if ((unsigned)fd->n > INT_MAX / sizeof(struct frame_desc)) overalloc();
 	neww = xmalloc(sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
 	memcpy(neww, fd, sizeof(struct frameset_desc) + fd->n * sizeof(struct frame_desc));
 	for (i = 0; i < neww->n; i++) {
@@ -247,7 +247,7 @@ static void xpand_lines(struct part *p, int y)
 		if ((y ^ p->data->y) > p->data->y) {
 			unsigned s;
 			for (s = 1; s < (unsigned)y; s = s * 2 + 1) {
-				if (s > MAXINT / sizeof(struct line))
+				if (s > INT_MAX / sizeof(struct line))
 					overalloc();
 			}
 			p->data->data = xrealloc(p->data->data,
@@ -280,7 +280,7 @@ static void xpand_line(struct part *p, int y, int x)
 		if (x >= ln->allocated) {
 			if (x >= 0x4000) ln->allocated = safe_add(x, x);
 			else ln->allocated = safe_add(x, 0x10) & ~0xf;
-			if ((unsigned)ln->allocated > MAXINT / sizeof(chr))
+			if ((unsigned)ln->allocated > INT_MAX / sizeof(chr))
 				overalloc();
 			ln->d = xrealloc(ln->d, ln->allocated*sizeof(chr));
 		}
@@ -295,7 +295,7 @@ static void xpand_line(struct part *p, int y, int x)
 static void r_xpand_spaces(struct part *p, int l)
 {
 	unsigned char *c;
-	if ((unsigned)l >= MAXINT)
+	if ((unsigned)l >= INT_MAX)
 		overalloc();
 	c = xrealloc(p->spaces, l + 1);
 	memset(c + p->spl, 0, l - p->spl + 1);
@@ -470,7 +470,7 @@ static inline void shift_chars(struct part *p, int y, int s)
 {
 	chr *a;
 	int l = LEN(y);
-	if ((unsigned)l > MAXINT / sizeof(chr)) overalloc();
+	if ((unsigned)l > INT_MAX / sizeof(chr)) overalloc();
 	a = xmalloc(l * sizeof(chr));
 	memcpy(a, &POS(0, y), l * sizeof(chr));
 	set_hchars(p, 0, y, s, ' ', p->attribute);
@@ -539,15 +539,15 @@ struct link *new_link(struct f_data *f)
 	if (!f)
 		return NULL;
 	if (!(f->nlinks & (ALLOC_GR - 1))) {
-		if ((unsigned)f->nlinks > MAXINT / sizeof(struct link) - ALLOC_GR)
+		if ((unsigned)f->nlinks > INT_MAX / sizeof(struct link) - ALLOC_GR)
 			overalloc();
 		f->links = xrealloc(f->links,
 				(f->nlinks + ALLOC_GR) * sizeof(struct link));
 	}
 	memset(&f->links[f->nlinks], 0, sizeof(struct link));
 #ifdef G
-	f->links[f->nlinks].r.x1 = MAXINT;
-	f->links[f->nlinks].r.y1 = MAXINT;
+	f->links[f->nlinks].r.x1 = INT_MAX;
+	f->links[f->nlinks].r.y1 = INT_MAX;
 #endif
 	return &f->links[f->nlinks++];
 }
@@ -563,7 +563,7 @@ void html_tag(struct f_data *f, unsigned char *t, int x, int y)
 	ll = 0;
 	add_conv_str(&tt, &ll, t, (int)strlen(cast_const_char t), -2);
 	sl = strlen(cast_const_char tt);
-	if (sl > MAXINT - sizeof(struct tag)) overalloc();
+	if (sl > INT_MAX - sizeof(struct tag)) overalloc();
 	tag = xmalloc(sizeof(struct tag) + sl);
 	tag->x = x;
 	tag->y = y;
@@ -639,7 +639,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		bad_utf:
 		p->utf8_part_len = 0;
 		if (!l) return;
-		if ((unsigned)l > (unsigned)MAXINT / sizeof(char_t)) overalloc();
+		if ((unsigned)l > (unsigned)INT_MAX / sizeof(char_t)) overalloc();
 		uni_c = xmalloc(l * sizeof(char_t));
 		ll = 0;
 		cc = c;
@@ -789,7 +789,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		link->sel_color = get_attribute(fg, bg);
 		link->n = 0;
 		set_link:
-		if ((unsigned)link->n + (unsigned)ll > MAXINT / sizeof(struct point))
+		if ((unsigned)link->n + (unsigned)ll > INT_MAX / sizeof(struct point))
 			overalloc();
 		pt = xrealloc(link->pos, (link->n + ll) * sizeof(struct point));
 		link->pos = pt;
@@ -902,7 +902,7 @@ struct frameset_desc *create_frameset(struct f_data *fda, struct frameset_param 
 		return NULL;
 	}
 	if (fp->x && (unsigned)fp->x * (unsigned)fp->y / (unsigned)fp->x != (unsigned)fp->y) overalloc();
-	if ((unsigned)fp->x * (unsigned)fp->y > (MAXINT - sizeof(struct frameset_desc)) / sizeof(struct frame_desc)) overalloc();
+	if ((unsigned)fp->x * (unsigned)fp->y > (INT_MAX - sizeof(struct frameset_desc)) / sizeof(struct frame_desc)) overalloc();
 	fd = mem_calloc(sizeof(struct frameset_desc) + fp->x * fp->y * sizeof(struct frame_desc));
 	fd->n = fp->x * fp->y;
 	fd->x = fp->x;
@@ -1042,7 +1042,7 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 		n = xmalloc(sizeof(struct node));
 		n->x = xs;
 		n->y = ys;
-		n->xw = !table_level ? MAXINT - 1 : width;
+		n->xw = !table_level ? INT_MAX - 1 : width;
 		add_to_list(data->nodes, n);
 	}
 	last_link_to_move = data ? data->nlinks : 0;
@@ -1356,8 +1356,8 @@ static int sort_srch(struct f_data *f)
 {
 	int i;
 	int *min, *max;
-	if ((unsigned)f->y > MAXINT / sizeof(struct search *)) overalloc();
-	if ((unsigned)f->y > MAXINT / sizeof(int)) overalloc();
+	if ((unsigned)f->y > INT_MAX / sizeof(struct search *)) overalloc();
+	if ((unsigned)f->y > INT_MAX / sizeof(int)) overalloc();
 	f->slines1 = xmalloc(f->y * sizeof(int));
 	f->slines2 = xmalloc(f->y * sizeof(int));
 	min = xmalloc(f->y * sizeof(int));
@@ -1374,7 +1374,7 @@ static int sort_srch(struct f_data *f)
 	for (i = 0; i < f->y; i++)
 		f->slines1[i] = f->slines2[i] = -1;
 	for (i = 0; i < f->y; i++) {
-		min[i] = MAXINT;
+		min[i] = INT_MAX;
 		max[i] = 0;
 	}
 	for (i = 0; i < f->nsearch_pos; i++) {
@@ -1424,7 +1424,7 @@ static int add_srch_chr(struct f_data *f, unsigned c, int x, int y, int nn)
 	}
 	srch_last_chr = c;
 	if (f->search_chr) f->search_chr[n_chr] = c;
-	if (n_chr == MAXINT) return -1;
+	if (n_chr == INT_MAX) return -1;
 	n_chr++;
 	if (srch_cont < 0xffff && x == srch_last_x + 1 && y == srch_last_y && nn == 1) {
 		srch_cont++;
@@ -1441,7 +1441,7 @@ static int add_srch_chr(struct f_data *f, unsigned c, int x, int y, int nn)
 			f->search_pos[n_pos].co = 1;
 		}
 		srch_cont = 1;
-		if (n_pos == MAXINT) return -1;
+		if (n_pos == INT_MAX) return -1;
 		n_pos++;
 	}
 	if (nn == 1) {

@@ -142,7 +142,7 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	if (c->newconn)
 		internal("already making a connection");
 	sl = strlen(cast_const_char host);
-	if (sl > MAXINT - sizeof(struct conn_info)) overalloc();
+	if (sl > INT_MAX - sizeof(struct conn_info)) overalloc();
 	b = mem_calloc(sizeof(struct conn_info) + sl);
 	b->func = func;
 	b->sock = sock;
@@ -823,7 +823,7 @@ static void write_select(void *c_)
 void write_to_socket(struct connection *c, int s, unsigned char *data, int len, void (*write_func)(struct connection *))
 {
 	struct write_buffer *wb;
-	if ((unsigned)len > MAXINT - sizeof(struct write_buffer)) overalloc();
+	if ((unsigned)len > INT_MAX - sizeof(struct write_buffer)) overalloc();
 	wb = xmalloc(sizeof(struct write_buffer) + len);
 	wb->sock = s;
 	wb->len = len;
@@ -853,7 +853,7 @@ static void read_select(void *c_)
 	set_handlers(rb->sock, NULL, NULL, NULL);
 
 read_more:
-	if ((unsigned)rb->len > MAXINT - sizeof(struct read_buffer) - READ_SIZE)
+	if ((unsigned)rb->len > INT_MAX - sizeof(struct read_buffer) - READ_SIZE)
 		overalloc();
 	rb = xrealloc(rb, sizeof(struct read_buffer) + rb->len + READ_SIZE);
 	c->buffer = rb;

@@ -105,7 +105,7 @@ int parse_element(unsigned char *e, unsigned char *eof, unsigned char **name, in
 #define add_chr(s, l, c)						\
 do {									\
 	if (!((l) & (32 - 1))) {					\
-		if ((unsigned)(l) > MAXINT - 32) overalloc();		\
+		if ((unsigned)(l) > INT_MAX - 32) overalloc();		\
 		(s) = xrealloc((s), (l) + 32);				\
 	}								\
 	(s)[(l)++] = (c);						\
@@ -1880,7 +1880,7 @@ static void html_input(unsigned char *a)
 		set_max_textarea_width(&size);
 	}
 	fc->size = size;
-	if ((fc->maxlength = get_num(a, cast_uchar "maxlength")) == -1) fc->maxlength = MAXINT / 4;
+	if ((fc->maxlength = get_num(a, cast_uchar "maxlength")) == -1) fc->maxlength = INT_MAX / 4;
 	if (fc->type == FC_CHECKBOX || fc->type == FC_RADIO) fc->default_state = has_attr(a, cast_uchar "checked");
 	fc->ro = has_attr(a, cast_uchar "disabled") ? 2 : has_attr(a, cast_uchar "readonly") ? 1 : 0;
 	if (fc->type == FC_IMAGE) {
@@ -2065,7 +2065,7 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 	if (menu_stack_size && name) {
 		top = item = menu_stack[menu_stack_size - 1];
 		while (item->text) item++;
-		if ((size_t)((unsigned char *)(item + 2) - (unsigned char *)top) > MAXINT)
+		if ((size_t)((unsigned char *)(item + 2) - (unsigned char *)top) > INT_MAX)
 			overalloc();
 		top = xrealloc(top, (unsigned char *)(item + 2)
 				- (unsigned char *)top);
@@ -2089,7 +2089,7 @@ static void new_menu_item(unsigned char *name, long data, int fullname)
 	} else
 		free(name);
 	if (name && data == -1) {
-		if ((unsigned)menu_stack_size > MAXINT / sizeof(struct menu_item *) - 1)
+		if ((unsigned)menu_stack_size > INT_MAX / sizeof(struct menu_item *) - 1)
 			overalloc();
 		menu_stack = xrealloc(menu_stack, (menu_stack_size + 1) * sizeof(struct menu_item *));
 		menu_stack[menu_stack_size++] = nmenu;
@@ -2288,7 +2288,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		if (preselect == -1 && has_attr(t_attr, cast_uchar "selected")) preselect = order;
 		v = get_exact_attr_val(t_attr, cast_uchar "value");
 		if (!(order & (ALLOC_GR - 1))) {
-			if ((unsigned)order > MAXINT / sizeof(unsigned char *) - ALLOC_GR)
+			if ((unsigned)order > INT_MAX / sizeof(unsigned char *) - ALLOC_GR)
 				overalloc();
 			val = xrealloc(val, (order + ALLOC_GR)
 					* sizeof(unsigned char *));
@@ -2338,7 +2338,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	*end = en;
 	if (!order) goto abort;
 	fc = mem_calloc(sizeof(struct form_control));
-	if ((unsigned)order > (unsigned)MAXINT / sizeof(unsigned char *))
+	if ((unsigned)order > (unsigned)INT_MAX / sizeof(unsigned char *))
 		overalloc();
 	lbls = mem_calloc(order * sizeof(unsigned char *));
 	fc->form_num = last_form_tag ? (int)(last_form_tag - startf) : 0;
@@ -2438,7 +2438,7 @@ static void do_html_textarea(unsigned char *attr, unsigned char *html, unsigned 
 		else if (!casestrcmp(w, cast_uchar "off")) fc->wrap = 0;
 		free(w);
 	}
-	if ((fc->maxlength = get_num(attr, cast_uchar "maxlength")) == -1) fc->maxlength = MAXINT / 4;
+	if ((fc->maxlength = get_num(attr, cast_uchar "maxlength")) == -1) fc->maxlength = INT_MAX / 4;
 	if (rows > 1) ln_break(1);
 	else put_chrs(cast_uchar " ", 1);
 	html_stack_dup();
@@ -2536,7 +2536,7 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 	if (*a == '%') q = q * ww / 100;
 	else if (*a != '*') q = (q + (www - 1) / 2) / (www ? www : 1);
 	else if (!(q = -q)) q = -1;
-	if ((unsigned)ol > MAXINT / sizeof(int) - 1)
+	if ((unsigned)ol > INT_MAX / sizeof(int) - 1)
 		overalloc();
 	o = xrealloc(o, (ol + 1) * sizeof(int));
 	o[ol++] = q;
@@ -2586,7 +2586,7 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 		int nn = 0;
 		for (i = 0; i < ol; i++) if (o[i] < 0) nn = 1;
 		if (!nn) goto distribute;
-		if ((unsigned)ol > MAXINT / sizeof(int))
+		if ((unsigned)ol > INT_MAX / sizeof(int))
 			overalloc();
 		oo = xmalloc(ol * sizeof(int));
 		memcpy(oo, o, ol * sizeof(int));
@@ -2685,7 +2685,7 @@ static void html_frameset(unsigned char *a)
 			continue;
 		}
 		if ((w = parse_width(d, 1)) != -1) {
-			if ((unsigned)fp->n > (MAXINT - sizeof(struct frameset_param)) / sizeof(int) - 1)
+			if ((unsigned)fp->n > (INT_MAX - sizeof(struct frameset_param)) / sizeof(int) - 1)
 				overalloc();
 			fp = xrealloc(fp, sizeof(struct frameset_param)
 					+ (fp->n + 1) * sizeof(int));
@@ -3434,7 +3434,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		&& !xstrcmp(ll->onclick, ld->onclick))
 			goto se2;
 	}
-	if ((unsigned)nmenu > MAXINT / sizeof(struct menu_item) - 2)
+	if ((unsigned)nmenu > INT_MAX / sizeof(struct menu_item) - 2)
 		overalloc();
 	nm = xrealloc(*menu, (nmenu + 2) * sizeof(struct menu_item));
 	*menu = nm;

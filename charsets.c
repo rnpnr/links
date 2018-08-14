@@ -440,7 +440,7 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 			put_c:
 			buffer[bp++] = c[pp++];
 			if (!(bp & (ALLOC_GR - 1))) {
-				if ((unsigned)bp > MAXINT - ALLOC_GR)
+				if ((unsigned)bp > INT_MAX - ALLOC_GR)
 					overalloc();
 				buffer = xrealloc(buffer, bp + ALLOC_GR);
 			}
@@ -473,7 +473,7 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 		if (!e[1]) {
 			buffer[bp++] = e[0];
 			if (!(bp & (ALLOC_GR - 1))) {
-				if ((unsigned)bp > MAXINT - ALLOC_GR)
+				if ((unsigned)bp > INT_MAX - ALLOC_GR)
 					overalloc();
 				buffer = xrealloc(buffer, bp + ALLOC_GR);
 			}
@@ -482,7 +482,7 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 		while (*e) {
 			buffer[bp++] = *(e++);
 			if (!(bp & (ALLOC_GR - 1))) {
-				if ((unsigned)bp > MAXINT - ALLOC_GR)
+				if ((unsigned)bp > INT_MAX - ALLOC_GR)
 					overalloc();
 				buffer = xrealloc(buffer, bp + ALLOC_GR);
 			}

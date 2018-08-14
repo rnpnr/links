@@ -100,7 +100,7 @@ a:
 	lp = 0;
 	while (y[lp] >= ' ' && y[lp] != u) {
 		lp++;
-		if (lp == MAXINT)
+		if (lp == INT_MAX)
 			overalloc();
 	}
 	return memacpy(y, lp);
@@ -720,7 +720,7 @@ next_chunk:
 				long n = 0;
 				if (l != -1)
 					n = strtol((char *)rb->data, (char **)(void *)&de, 16);
-				if (l == -1 || n < 0 || n >= MAXINT || de == rb->data) {
+				if (l == -1 || n < 0 || n >= INT_MAX || de == rb->data) {
 					setcstate(c, S_HTTP_ERROR);
 					abort_connection(c);
 					return;

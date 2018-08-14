@@ -555,7 +555,7 @@ static void g_get_search(struct f_data *f, unsigned char *s)
 		if (!len)
 			continue;
 		if (!(f->n_search_positions & (ALLOC_GR - 1))) {
-			if ((unsigned)f->n_search_positions > MAXINT / sizeof(int) - ALLOC_GR)
+			if ((unsigned)f->n_search_positions > INT_MAX / sizeof(int) - ALLOC_GR)
 				overalloc();
 			f->search_positions = xrealloc(f->search_positions,
 						(f->n_search_positions + ALLOC_GR) * sizeof(int));
@@ -1495,7 +1495,7 @@ static struct g_object_text * g_find_nearest_object(struct f_data *f, int x, int
 	fnd_obj = NULL;
 	fnd_x = x;
 	fnd_y = y;
-	fnd_obj_dist = MAXINT;
+	fnd_obj_dist = INT_MAX;
 
 	if (f->root) find_nearest_sub(NULL, f->root);
 	return fnd_obj;
@@ -1526,8 +1526,8 @@ static void find_next_sub(struct g_object *p, struct g_object *c)
 			get_object_pos(c, &x, &y);
 			y += t->goti.go.yw / 2;
 			yy = y;
-			if (yy < find_refline) yy += MAXINT / 2;
-			if (find_direction < 0) yy = MAXINT - yy;
+			if (yy < find_refline) yy += INT_MAX / 2;
+			if (find_direction < 0) yy = INT_MAX - yy;
 			if (find_opt_yy == -1 || yy > find_opt_yy) {
 				int sx, ex;
 				unsigned char *tt;

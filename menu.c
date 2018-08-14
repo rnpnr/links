@@ -447,7 +447,7 @@ static void flush_caches(struct terminal *term, void *d, void *e)
 void go_backwards(struct terminal *term, void *id_ptr, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	unsigned want_id = (int)(long)id_ptr;
+	unsigned want_id = (unsigned)(long)id_ptr;
 	struct location *l;
 	struct list_head *ll;
 	int n = 0;
@@ -484,7 +484,7 @@ static void add_history_menu_entry(struct terminal *term, struct menu_item **mi,
 	add_to_menu(mi, url, cast_uchar "", cast_uchar "", go_backwards,
 		(void *)(long)l->location_id, 0, *n);
 	(*n)++;
-	if (*n == MAXINT)
+	if (*n == INT_MAX)
 		overalloc();
 }
 
@@ -2058,7 +2058,7 @@ static void cache_opt(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].data = mc_str;
 	d->items[a].fn = check_number;
 	d->items[a].gid = 0;
-	d->items[a].gnum = MAXINT / 1024;
+	d->items[a].gnum = INT_MAX / 1024;
 	a++;
 #ifdef G
 	if (F)
@@ -2068,14 +2068,14 @@ static void cache_opt(struct terminal *term, void *xxx, void *yyy)
 		d->items[a].data = ic_str;
 		d->items[a].fn = check_number;
 		d->items[a].gid = 0;
-		d->items[a].gnum = MAXINT / 1024;
+		d->items[a].gnum = INT_MAX / 1024;
 		a++;
 		d->items[a].type = D_FIELD;
 		d->items[a].dlen = 8;
 		d->items[a].data = fc_str;
 		d->items[a].fn = check_number;
 		d->items[a].gid = 0;
-		d->items[a].gnum = MAXINT / 1024;
+		d->items[a].gnum = INT_MAX / 1024;
 		a++;
 	}
 #endif

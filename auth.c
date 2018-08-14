@@ -25,7 +25,7 @@ unsigned char *base64_encode(unsigned char *in, int inlen, unsigned char *prefix
 	int col;
 	int prefix_len = (int)strlen(cast_const_char prefix);
 	int suffix_len = (int)strlen(cast_const_char suffix);
-	if (inlen > MAXINT / 2) overalloc();
+	if (inlen > INT_MAX / 2) overalloc();
 	data_len = ((inlen + 2) / 3) * 4;
 	if (line_bits >= 0) {
 		line_mask = (1 << line_bits) - 1;

@@ -333,7 +333,7 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 		goto e;
 	check_dns_cache_addr_preference();
 	sl = strlen(cast_const_char q->name);
-	if (sl > MAXINT - sizeof(struct dnsentry))
+	if (sl > INT_MAX - sizeof(struct dnsentry))
 		overalloc();
 	dnsentry = xmalloc(sizeof(struct dnsentry) + sl);
 	strcpy(cast_char dnsentry->name, cast_const_char q->name);

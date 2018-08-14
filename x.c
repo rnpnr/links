@@ -604,7 +604,7 @@ static void x_add_to_table(struct graphics_device* gd)
 	if (!c)
 		x_hash_table[a].pointer = xmalloc(sizeof(struct graphics_device *));
 	else {
-		if ((unsigned)c > MAXINT / sizeof(struct graphics_device *) - 1)
+		if ((unsigned)c > INT_MAX / sizeof(struct graphics_device *) - 1)
 			overalloc();
 		x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer,
 						(c + 1) * sizeof(struct graphics_device *));
@@ -2065,7 +2065,7 @@ static void addchr(unsigned char **str, size_t *l, unsigned char c)
 		return;
 	if ((*str)[*l])
 		*l = strlen((char *)*str);
-	if (*l > MAXINT - 2)
+	if (*l > INT_MAX - 2)
 		overalloc();
 	s = xrealloc(*str, *l + 2);
 	if (!s) {

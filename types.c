@@ -1230,7 +1230,7 @@ struct assoc *get_type_assoc(struct terminal *term, unsigned char *type, int *n)
 		if (a->system == SYSTEM_ID
 		&& (term->environment & ENV_XWIN ? a->xwin : a->cons)
 		&& is_in_list(a->ct, type, (int)strlen(cast_const_char type))) {
-			if (count == MAXINT)
+			if (count == INT_MAX)
 				overalloc();
 			count++;
 		}
@@ -1238,7 +1238,7 @@ struct assoc *get_type_assoc(struct terminal *term, unsigned char *type, int *n)
 	*n = count;
 	if (!count)
 		return NULL;
-	if ((unsigned)count > MAXINT / sizeof(struct assoc))
+	if ((unsigned)count > INT_MAX / sizeof(struct assoc))
 		overalloc();
 	assoc_array = xmalloc(count * sizeof(struct assoc));
 	count = 0;

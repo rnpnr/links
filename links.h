@@ -2033,9 +2033,9 @@ struct background {
 
 struct f_data_c;
 
-#define G_OBJ_ALIGN_SPECIAL	(MAXINT - 2)
-#define G_OBJ_ALIGN_MIDDLE	(MAXINT - 2)
-#define G_OBJ_ALIGN_TOP		(MAXINT - 1)
+#define G_OBJ_ALIGN_SPECIAL	(INT_MAX - 2)
+#define G_OBJ_ALIGN_MIDDLE	(INT_MAX - 2)
+#define G_OBJ_ALIGN_TOP		(INT_MAX - 1)
 
 struct g_object {
 	/* public data --- must be same in all g_object* structures */

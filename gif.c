@@ -67,7 +67,7 @@ static void alloc_color_map(int colors)
  struct gif_decoder* deco=global_cimg->decoder;
 
 	free(deco->color_map);
- if ((unsigned)colors > MAXINT / 3 / sizeof(*(deco->color_map))) overalloc();
+ if ((unsigned)colors > INT_MAX / 3 / sizeof(*(deco->color_map))) overalloc();
  deco->color_map = xmalloc(colors * 3 * sizeof(*(deco->color_map)));
 }
 
@@ -444,7 +444,7 @@ gif_accept_byte(unsigned char c)
 				return; /* Bad dimensions */
 			}
 			if (global_cimg->width && (unsigned)global_cimg->width * (unsigned)global_cimg->buffer_bytes_per_pixel / (unsigned)global_cimg->width != (unsigned)global_cimg->buffer_bytes_per_pixel) overalloc();
-			if ((unsigned)global_cimg->width * (unsigned)global_cimg->buffer_bytes_per_pixel > MAXINT) overalloc();
+			if ((unsigned)global_cimg->width * (unsigned)global_cimg->buffer_bytes_per_pixel > INT_MAX) overalloc();
 			deco->actual_line=global_cimg->strip_optimized
 				?xmalloc((size_t)global_cimg->width * global_cimg
 				->buffer_bytes_per_pixel)

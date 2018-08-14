@@ -283,8 +283,8 @@ static void end_dump(struct object_request *r, void *p)
 				off_t l;
 				int w;
 				l = frag->length - (dump_pos - frag->offset);
-				if (l >= MAXINT)
-					l = MAXINT;
+				if (l >= INT_MAX)
+					l = INT_MAX;
 				w = hard_write(1, frag->data + dump_pos - frag->offset, (int)l);
 				if (w != l) {
 					detach_object_connection(r, dump_pos);

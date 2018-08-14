@@ -142,7 +142,7 @@ static void accept_cookie(struct cookie *c)
 		if (!casestrcmp(cd->domain, c->domain))
 			return;
 	sl = strlen((const char *)c->domain);
-	if (sl > MAXINT - sizeof(struct c_domain))
+	if (sl > INT_MAX - sizeof(struct c_domain))
 		overalloc();
 	cd = xmalloc(sizeof(struct c_domain) + sl);
 	strcpy(cast_char cd->domain, cast_const_char c->domain);

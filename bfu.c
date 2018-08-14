@@ -16,12 +16,12 @@ struct memory_list *getml(void *p, ...)
 	void *q = p;
 	va_start(ap, p);
 	while (q) {
-		if (n == MAXINT)
+		if (n == INT_MAX)
 			overalloc();
 		n++;
 		q = va_arg(ap, void *);
 	}
-	if ((unsigned)n > (MAXINT - sizeof(struct memory_list)) / sizeof(void *))
+	if ((unsigned)n > (INT_MAX - sizeof(struct memory_list)) / sizeof(void *))
 		overalloc();
 	ml = xmalloc(sizeof(struct memory_list) + n * sizeof(void *));
 	ml->n = n;
@@ -49,11 +49,11 @@ void add_to_ml(struct memory_list **ml, ...)
 	}
 	va_start(ap, ml);
 	while ((q = va_arg(ap, void *))) {
-		if (n == MAXINT)
+		if (n == INT_MAX)
 			overalloc();
 		n++;
 	}
-	if ((unsigned)n + (unsigned)((*ml)->n) > (MAXINT - sizeof(struct memory_list)) / sizeof(void *))
+	if ((unsigned)n + (unsigned)((*ml)->n) > (INT_MAX - sizeof(struct memory_list)) / sizeof(void *))
 		overalloc();
 	nml = xrealloc(*ml, sizeof(struct memory_list)
 			+ (n + (*ml)->n) * sizeof(void *));
@@ -177,7 +177,7 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 	int i;
 	struct menu *menu;
 	for (i = 0; items[i].text; i++)
-		if (i == (MAXINT - sizeof(struct menu)) / sizeof(unsigned))
+		if (i == (INT_MAX - sizeof(struct menu)) / sizeof(unsigned))
 			overalloc();
 	menu = xmalloc(sizeof(struct menu) + (!i ? 0 : i - 1) * sizeof(unsigned));
 	menu->selected = selected;
@@ -192,7 +192,7 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 					items[i].hotkey, menu->hotkeys, i);
 #ifdef G
 	if (F) {
-		if ((unsigned)menu->ni > MAXINT / sizeof(unsigned char *))
+		if ((unsigned)menu->ni > INT_MAX / sizeof(unsigned char *))
 			overalloc();
 		menu->hktxt1 = mem_calloc(menu->ni * sizeof(unsigned char *));
 		menu->hktxt2 = mem_calloc(menu->ni * sizeof(unsigned char *));
@@ -641,7 +641,7 @@ void do_mainmenu(struct terminal *term, struct menu_item *items, void *data, int
 {
 	int i;
 	struct mainmenu *menu;
-	for (i = 0; items[i].text; i++) if (i == (MAXINT - sizeof(struct mainmenu)) / sizeof(unsigned)) overalloc();
+	for (i = 0; items[i].text; i++) if (i == (INT_MAX - sizeof(struct mainmenu)) / sizeof(unsigned)) overalloc();
 	menu = xmalloc(sizeof(struct mainmenu) + (!i ? 0 : i - 1) * sizeof(unsigned));
 	menu->selected = sel == -1 ? 0 : sel;
 	menu->ni = i;
@@ -837,9 +837,9 @@ void add_to_menu(struct menu_item **mi, unsigned char *text, unsigned char *rtex
 		n = pos;
 		if ((*mi)[n].text) internal("invalid menu position %d", n);
 	} else {
-		for (n = 0; (*mi)[n].text; n++) if (n == MAXINT) overalloc();
+		for (n = 0; (*mi)[n].text; n++) if (n == INT_MAX) overalloc();
 	}
-	if (((unsigned)n + 2) > MAXINT / sizeof(struct menu_item))
+	if (((unsigned)n + 2) > INT_MAX / sizeof(struct menu_item))
 		overalloc();
 	mii = xrealloc(*mi, (n + 2) * sizeof(struct menu_item));
 	*mi = mii;
@@ -858,10 +858,10 @@ void do_dialog(struct terminal *term, struct dialog *dlg, struct memory_list *ml
 	struct dialog_item *d;
 	int n = 0;
 	for (d = dlg->items; d->type != D_END; d++) {
-		if (n == MAXINT) overalloc();
+		if (n == INT_MAX) overalloc();
 		n++;
 	}
-	if ((unsigned)n > (MAXINT - sizeof(struct dialog_data)) / sizeof(struct dialog_item_data)) overalloc();
+	if ((unsigned)n > (INT_MAX - sizeof(struct dialog_data)) / sizeof(struct dialog_item_data)) overalloc();
 	dd = mem_calloc(sizeof(struct dialog_data) + sizeof(struct dialog_item_data) * n);
 	dd->dlg = dlg;
 	dd->n = n;
@@ -1228,10 +1228,10 @@ static void do_tab_compl(struct terminal *term, struct list_head *history, struc
 	struct list_head *lhi;
 	struct menu_item *items = NULL;
 	foreach(struct history_item, hi, lhi, *history) {
-		unsigned char *s = dlg_get_history_string(term, hi, MAXINT);
+		unsigned char *s = dlg_get_history_string(term, hi, INT_MAX);
 		if (!strncmp(cast_const_char cdata, cast_const_char s, l)) {
 			if (!(n & (ALLOC_GR - 1))) {
-				if ((unsigned)n > MAXINT / sizeof(struct menu_item) - ALLOC_GR - 1)
+				if ((unsigned)n > INT_MAX / sizeof(struct menu_item) - ALLOC_GR - 1)
 					overalloc();
 				items = xrealloc(items,
 						(n + ALLOC_GR + 1)
@@ -1245,7 +1245,7 @@ static void do_tab_compl(struct terminal *term, struct list_head *history, struc
 			items[n].data = hi;
 			items[n].in_m = 0;
 			items[n].free_i = 3;
-			if (n == MAXINT) overalloc();
+			if (n == INT_MAX) overalloc();
 			n++;
 		} else
 			free(s);
@@ -1299,7 +1299,7 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 						foreach(struct history_item, j, lj, di->item->history->items) {
 							struct history_item *hi;
 							size_t sl = strlen(cast_const_char j->str);
-							if (sl > MAXINT - sizeof(struct history_item)) overalloc();
+							if (sl > INT_MAX - sizeof(struct history_item)) overalloc();
 							hi = xmalloc(sizeof(struct history_item) + sl);
 							strcpy(cast_char hi->str, cast_const_char j->str);
 							add_to_list(di->history, hi);
@@ -2212,14 +2212,14 @@ void msg_box(struct terminal *term, struct memory_list *ml, unsigned char *title
 	do {
 		text = va_arg(ap, unsigned char *);
 		udatan++;
-		if ((unsigned)udatan > MAXINT / sizeof(unsigned char *))
+		if ((unsigned)udatan > INT_MAX / sizeof(unsigned char *))
 			overalloc();
 		udata = xrealloc(udata, udatan * sizeof(unsigned char *));
 		udata[udatan - 1] = text;
 	} while (text);
 	udata2 = va_arg(ap, void *);
 	n = va_arg(ap, int);
-	if ((unsigned)n > (MAXINT - sizeof(struct dialog)) / sizeof(struct dialog_item) - 1) overalloc();
+	if ((unsigned)n > (INT_MAX - sizeof(struct dialog)) / sizeof(struct dialog_item) - 1) overalloc();
 	dlg = mem_calloc(sizeof(struct dialog) + (n + 1) * sizeof(struct dialog_item));
 	dlg->title = title;
 	dlg->fn = msg_box_fn;
@@ -2264,7 +2264,7 @@ void add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 		s = t;
 	}
 	l = strlen(cast_const_char s);
-	if (l > MAXINT - sizeof(struct history_item)) overalloc();
+	if (l > INT_MAX - sizeof(struct history_item)) overalloc();
 	hi = xmalloc(sizeof(struct history_item) + l);
 	memcpy(hi->str, s, l + 1);
 	if (term)
@@ -2353,8 +2353,8 @@ void input_field(struct terminal *term, struct memory_list *ml, unsigned char *t
 	unsigned char *field;
 	va_list va;
 	int i;
-	if ((unsigned)n > MAXINT / sizeof(struct dialog_item) - 2) overalloc();
-	if ((unsigned)l > MAXINT - sizeof(struct dialog) - (2 + n) * sizeof(struct dialog_item)) overalloc();
+	if ((unsigned)n > INT_MAX / sizeof(struct dialog_item) - 2) overalloc();
+	if ((unsigned)l > INT_MAX - sizeof(struct dialog) - (2 + n) * sizeof(struct dialog_item)) overalloc();
 	dlg = mem_calloc(sizeof(struct dialog) + (2 + n) * sizeof(struct dialog_item) + l);
 	*(field = (unsigned char *)dlg + sizeof(struct dialog) + (2 + n) * sizeof(struct dialog_item)) = 0;
 	if (def) {

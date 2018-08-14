@@ -523,7 +523,7 @@ struct open_in_new *get_open_in_new(int environment)
 		environment = ENV_G;
 	for (i = 0; i < (int)array_elements(oinw); i++)
 		if ((environment & oinw[i].env) == oinw[i].env) {
-			if ((unsigned)noin > MAXINT / sizeof(struct open_in_new) - 2)
+			if ((unsigned)noin > INT_MAX / sizeof(struct open_in_new) - 2)
 				overalloc();
 			oin = xrealloc(oin, (noin + 2) * sizeof(struct open_in_new));
 			oin[noin].text = oinw[i].text;

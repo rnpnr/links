@@ -277,7 +277,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 	unsigned char *inptr;
 
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > MAXINT) overalloc();
+	if ((unsigned)ox * (unsigned)y > INT_MAX) overalloc();
 	outptr = xmalloc(ox * y);
 	inptr=in;
 	*out=outptr;
@@ -291,7 +291,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 		free(in);
 	}else{
 		total=(ix-1)*(ox-1);
-		if ((unsigned)y > MAXINT / sizeof(*col_buf)) overalloc();
+		if ((unsigned)y > INT_MAX / sizeof(*col_buf)) overalloc();
 		col_buf = xmalloc(y * sizeof(*col_buf));
 		bias_buf_gray(col_buf, y, half);
 		out_pos=0;
@@ -343,7 +343,7 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > MAXINT / 3 / sizeof(*out)) overalloc();
+	if ((unsigned)ox * (unsigned)y > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
@@ -361,11 +361,11 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 
-	if ((unsigned)y > (MAXINT) / 3 / sizeof(*col_buf))
+	if ((unsigned)y > (INT_MAX) / 3 / sizeof(*col_buf))
 		overalloc();
 	alloc_size = (int)(y*3*sizeof(*col_buf));
 	alloc_size = (alloc_size) & ~(0);
-	if (alloc_size > MAXINT)
+	if (alloc_size > INT_MAX)
 		overalloc();
 	col_buf = xmalloc(alloc_size);
 	{
@@ -419,11 +419,11 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 		return;
 	}
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > MAXINT) overalloc();
+	if ((unsigned)ox * (unsigned)y > INT_MAX) overalloc();
 	outptr = xmalloc(ox * y);
 	inptr=in;
 	*out=outptr;
-	if ((unsigned)y > MAXINT / sizeof(*col_buf)) overalloc();
+	if ((unsigned)y > INT_MAX / sizeof(*col_buf)) overalloc();
 	col_buf = xmalloc(y * sizeof(*col_buf));
 	bias_buf_gray(col_buf, y, ix>>1);
 	out_pos=0;
@@ -481,7 +481,7 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > MAXINT / 3 / sizeof(*out)) overalloc();
+	if ((unsigned)ox * (unsigned)y > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
@@ -489,11 +489,11 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 
-	if ((unsigned)y > (MAXINT) / 3 / sizeof(*col_buf))
+	if ((unsigned)y > (INT_MAX) / 3 / sizeof(*col_buf))
 		overalloc();
 	alloc_size = (int)(y*3*sizeof(*col_buf));
 	alloc_size = (alloc_size) & ~(0);
-	if (alloc_size > MAXINT)
+	if (alloc_size > INT_MAX)
 		overalloc();
 	col_buf = xmalloc(alloc_size);
 	{
@@ -544,7 +544,7 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 
 	if (iy==1){
 		if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-		if ((unsigned)x * (unsigned)oy > MAXINT) overalloc();
+		if ((unsigned)x * (unsigned)oy > INT_MAX) overalloc();
 		outptr = xmalloc(oy * x);
 		*out=outptr;
 		for(;oy;oy--,outptr+=x)
@@ -555,12 +555,12 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 		*out=in;
 	}else{
 		if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-		if ((unsigned)x * (unsigned)oy > MAXINT) overalloc();
+		if ((unsigned)x * (unsigned)oy > INT_MAX) overalloc();
 		outptr = xmalloc(oy*x);
 		inptr=in;
 		*out=outptr;
 		total=(iy-1)*(oy-1);
-		if ((unsigned)x > MAXINT / sizeof(*row_buf)) overalloc();
+		if ((unsigned)x > INT_MAX / sizeof(*row_buf)) overalloc();
 		row_buf = xmalloc(x * sizeof(*row_buf));
 		bias_buf_gray(row_buf, x, half);
 		out_pos=0;
@@ -606,7 +606,7 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 	}
 	/* Rivendell */
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-	if ((unsigned)x * (unsigned)oy > MAXINT / 3 / sizeof(*out)) overalloc();
+	if ((unsigned)x * (unsigned)oy > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
@@ -622,11 +622,11 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 		return;
 	}
 
-	if ((unsigned)x > (MAXINT) / 3 / sizeof(*row_buf))
+	if ((unsigned)x > (INT_MAX) / 3 / sizeof(*row_buf))
 		overalloc();
 	alloc_size = (int)(x*3*sizeof(*row_buf));
 	alloc_size = (alloc_size) & ~(0);
-	if (alloc_size > MAXINT)
+	if (alloc_size > INT_MAX)
 		overalloc();
 	row_buf = xmalloc(alloc_size);
 	{
@@ -682,11 +682,11 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 		return;
 	}
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-	if ((unsigned)x * (unsigned)oy > MAXINT) overalloc();
+	if ((unsigned)x * (unsigned)oy > INT_MAX) overalloc();
 	outptr = xmalloc(x * oy);
 	inptr=in;
 	*out=outptr;
-	if ((unsigned)x > MAXINT / sizeof(*row_buf)) overalloc();
+	if ((unsigned)x > INT_MAX / sizeof(*row_buf)) overalloc();
 	row_buf=mem_calloc(x*sizeof(*row_buf));
 	bias_buf_gray(row_buf, x, iy>>1);
 	out_pos=0;
@@ -742,18 +742,18 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 		return;
 	}
 	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-	if ((unsigned)x * (unsigned)oy > MAXINT / 3 / sizeof(*out)) overalloc();
+	if ((unsigned)x * (unsigned)oy > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
 		free(in);
 		return;
 	}
-	if ((unsigned)x > (MAXINT) / 3 / sizeof(*row_buf))
+	if ((unsigned)x > (INT_MAX) / 3 / sizeof(*row_buf))
 		overalloc();
 	alloc_size = (int)(x*3*sizeof(*row_buf));
 	alloc_size = (alloc_size) & ~(0);
-	if (alloc_size > MAXINT)
+	if (alloc_size > INT_MAX)
 		overalloc();
 	row_buf = xmalloc(alloc_size);
 	{
@@ -803,7 +803,7 @@ static void scale_gray(unsigned char *in, int ix, int iy,
 	if (!ix||!iy){
 		free(in);
 		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
-		if ((unsigned)ox * (unsigned)oy > MAXINT) overalloc();
+		if ((unsigned)ox * (unsigned)oy > INT_MAX) overalloc();
 		*out=mem_calloc(ox*oy);
 		return;
 	}
@@ -831,7 +831,7 @@ static void decimate_3(unsigned short **data0, int x, int y)
 	if (!data)
 		return;
 	if (x && (unsigned)x * (unsigned)y / (unsigned)x != (unsigned)y) overalloc();
-	if ((unsigned)x * (unsigned)y > MAXINT / 3 / sizeof(**data0)) overalloc();
+	if ((unsigned)x * (unsigned)y > INT_MAX / 3 / sizeof(**data0)) overalloc();
 	futuresize=x*y*3*(int)sizeof(**data0);
 
 #ifdef DEBUG
@@ -906,7 +906,7 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 	if (!ix||!iy){
 		free(in);
 		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
-		if ((unsigned)ox * (unsigned)oy > MAXINT / 3 / sizeof(**out)) overalloc();
+		if ((unsigned)ox * (unsigned)oy > INT_MAX / 3 / sizeof(**out)) overalloc();
 		*out = mem_calloc(ox * oy * sizeof(**out) * 3);
 		return;
 	}
@@ -1539,9 +1539,9 @@ const unsigned char *png_data, int png_length)
 	number_of_passes=png_set_interlace_handling(png_ptr);
 	png_read_update_info(png_ptr,info_ptr);
 	if (*x && (unsigned)*x * (unsigned)*y / (unsigned)*x != (unsigned)*y) overalloc();
-	if ((unsigned)*x * (unsigned)*y > MAXINT) overalloc();
+	if ((unsigned)*x * (unsigned)*y > INT_MAX) overalloc();
 	*dest = xmalloc(*x * (*y));
-	if ((unsigned)*y > MAXINT / sizeof(*ptrs)) overalloc();
+	if ((unsigned)*y > INT_MAX / sizeof(*ptrs)) overalloc();
 	ptrs = xmalloc(*y * sizeof(*ptrs));
 	for (y1=0;y1<*y;y1++) ptrs[y1]=*dest+*x*y1;
 	for (;number_of_passes;number_of_passes--){
@@ -1575,7 +1575,7 @@ const unsigned char *png_data, int png_length, struct style *style)
 	ix=*x+2; /* There is one-pixel border around */
 	iy=y+2;
 	if (ix && (unsigned)ix * (unsigned)iy / (unsigned)ix != (unsigned)iy) overalloc();
-	if ((unsigned)ix * (unsigned)iy > MAXINT) overalloc();
+	if ((unsigned)ix * (unsigned)iy > INT_MAX) overalloc();
 	interm2 = xmalloc(ix * iy);
 	i2ptr=interm2+ix+1;
 	dptr=*dest;
@@ -1643,7 +1643,7 @@ static struct font_cache_entry *supply_color_cache_entry(struct style *style, st
 	neww->mono_height=style->mono_height;
 
 	if (neww->bitmap.x && (unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y / (unsigned)neww->bitmap.x != (unsigned)neww->bitmap.y) overalloc();
-	if ((unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y > MAXINT / 3 / sizeof(*primary_data)) overalloc();
+	if ((unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y > INT_MAX / 3 / sizeof(*primary_data)) overalloc();
 	primary_data = xmalloc(3 * neww->bitmap.x * neww->bitmap.y * sizeof(*primary_data));
 
 	/* We assume the gamma of HTML styles is in sRGB space */
@@ -2123,7 +2123,7 @@ struct style *g_invert_style(struct style *old)
 		st->underline_color=dip_get_color_sRGB(
 			(st->r1<<16)|(st->g1<<8)|(st->b1));
 	}
-	if ((unsigned)n_fonts > MAXINT / sizeof(*st->table)) overalloc();
+	if ((unsigned)n_fonts > INT_MAX / sizeof(*st->table)) overalloc();
 	length=(int)sizeof(*st->table)*(n_fonts-1);
 	st->table = xmalloc(length);
 	memcpy(st->table,old->table,length);
@@ -2171,7 +2171,7 @@ struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int fla
 		/* We have to get a foreground color for underlining */
 		st->underline_color=dip_get_color_sRGB(fg);
 	}
-	if ((unsigned)n_fonts > MAXINT / sizeof(*st->table)) overalloc();
+	if ((unsigned)n_fonts > INT_MAX / sizeof(*st->table)) overalloc();
 	st->table = xmalloc(sizeof(*st->table)*(n_fonts-1));
 	if(fill_style_table(st->table, font))
 		load_metric(&(st->mono_space), &(st->mono_height),' ',st->table);

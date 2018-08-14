@@ -784,7 +784,7 @@ void dither(unsigned short *in, struct bitmap *out)
 {
 	int *dregs;
 
-	if ((unsigned)out->x > MAXINT / 3 / sizeof(*dregs)) overalloc();
+	if ((unsigned)out->x > INT_MAX / 3 / sizeof(*dregs)) overalloc();
 	dregs=mem_calloc(out->x*3*sizeof(*dregs));
 	(*dither_fn_internal)(in, out, dregs);
 	free(dregs);
@@ -796,7 +796,7 @@ int *dither_start(unsigned short *in, struct bitmap *out)
 {
 	int *dregs;
 
-	if ((unsigned)out->x > MAXINT / 3 / sizeof(*dregs)) overalloc();
+	if ((unsigned)out->x > INT_MAX / 3 / sizeof(*dregs)) overalloc();
 	dregs=mem_calloc(out->x*3*sizeof(*dregs));
 	(*dither_fn_internal)(in, out, dregs);
 	return dregs;

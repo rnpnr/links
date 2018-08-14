@@ -139,7 +139,7 @@ unsigned char *get_err_msg(int state)
 have_error:
 	foreach(struct strerror_val, s, ls, strerror_buf) if (!strcmp(cast_const_char s->msg, cast_const_char e)) return s->msg;
 	sl = strlen(cast_const_char e);
-	if (sl > MAXINT - sizeof(struct strerror_val)) overalloc();
+	if (sl > INT_MAX - sizeof(struct strerror_val)) overalloc();
 	s = xmalloc(sizeof(struct strerror_val) + sl);
 	strcpy(cast_char s->msg, cast_const_char e);
 	add_to_list(strerror_buf, s);
@@ -855,7 +855,7 @@ static int download_write(struct download *down, void *ptr, off_t to_write)
 {
 	int w;
 	int err;
-	if (to_write != (int)to_write || (int)to_write < 0) to_write = MAXINT;
+	if (to_write != (int)to_write || (int)to_write < 0) to_write = INT_MAX;
 	try_write_again:
 	w = hard_write(down->handle, ptr, (int)to_write);
 	if (w >= 0) err = 0;
@@ -1636,8 +1636,8 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 	if (o.plain == 1 && !o.break_long_lines) {
 		o.xp = 0;
 		o.yp = 0;
-		o.xw = MAXINT;
-		o.yw = MAXINT;
+		o.xw = INT_MAX;
+		o.yw = INT_MAX;
 	} else {
 		o.xp = fd->xp;
 		o.yp = fd->yp;
@@ -1723,7 +1723,7 @@ struct additional_file *request_additional_file(struct f_data *f, unsigned char 
 		return af;
 	}
 	sl = strlen(cast_const_char url);
-	if (sl > MAXINT - sizeof(struct additional_file)) overalloc();
+	if (sl > INT_MAX - sizeof(struct additional_file)) overalloc();
 	af = xmalloc(sizeof(struct additional_file) + sl);
 	af->use_tag = 0;
 	af->use_tag2 = 0;
@@ -1752,7 +1752,7 @@ static void copy_additional_files(struct additional_files **a)
 	foreachback(struct additional_file, af, laf, (*a)->af) {
 		struct additional_file *afc;
 		size_t sl = strlen(cast_const_char af->url);
-		if (sl > MAXINT - sizeof(struct additional_file)) overalloc();
+		if (sl > INT_MAX - sizeof(struct additional_file)) overalloc();
 		afc = xmalloc(sizeof(struct additional_file) + sl);
 		memcpy(afc, af, sizeof(struct additional_file) + sl);
 		if (af->rq) clone_object(af->rq, &afc->rq);
@@ -2408,7 +2408,7 @@ static void type_query_multiple_programs(struct session *ses, unsigned char *ct,
 	text_array[4] = !anonymous ? TEXT_(T_DO_YOU_WANT_TO_OPEN_SAVE_OR_DISPLAY_THIS_FILE) : TEXT_(T_DO_YOU_WANT_TO_OPEN_OR_DISPLAY_THIS_FILE);
 	text_array[5] = NULL;
 
-	if ((unsigned)n > (MAXINT - sizeof(struct dialog)) / sizeof(struct dialog_item) - 4) overalloc();
+	if ((unsigned)n > (INT_MAX - sizeof(struct dialog)) / sizeof(struct dialog_item) - 4) overalloc();
 	d = mem_calloc(sizeof(struct dialog) + (n + 2 + (!anonymous)) * sizeof(struct dialog_item));
 	d->title = TEXT_(T_WHAT_TO_DO);
 	d->fn = msg_box_fn;
@@ -2802,7 +2802,7 @@ void *create_session_info(int cp, unsigned char *url, unsigned char *framename, 
 	int l = (int)sl;
 	int l1 = (int)sl1;
 	unsigned char *i;
-	if (sl > MAXINT || sl1 > MAXINT) overalloc();
+	if (sl > INT_MAX || sl1 > INT_MAX) overalloc();
 	if (framename && !strcmp(cast_const_char framename, "_blank")) l1 = 0;
 
 	i = init_str();
@@ -2843,7 +2843,7 @@ static int read_session_info(struct session *ses, void *data, int len)
 	if (sz1) {
 		unsigned char *tgt;
 		if (len<3*(int)sizeof(int)+sz+sz1) goto bla;
-		if ((unsigned)sz1 >= MAXINT) overalloc();
+		if ((unsigned)sz1 >= INT_MAX) overalloc();
 		tgt = xmalloc(sz1 + 1);
 		memcpy(tgt, (unsigned char*)((int*)data+3)+sz,sz1);
 		tgt[sz1] = 0;
@@ -2855,7 +2855,7 @@ static int read_session_info(struct session *ses, void *data, int len)
 	if (sz) {
 		unsigned char *u, *uu;
 		if (len < 3 * (int)sizeof(int) + sz) return -1;
-		if ((unsigned)sz >= MAXINT) overalloc();
+		if ((unsigned)sz >= INT_MAX) overalloc();
 		u = xmalloc(sz + 1);
 		memcpy(u, (int *)data + 3, sz);
 		u[sz] = 0;

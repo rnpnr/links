@@ -53,7 +53,7 @@ unsigned char *get_cwd(void)
 		if (gcr) return buf;
 		free(buf);
 		if (errno != ERANGE) break;
-		if ((unsigned)bufsize > MAXINT - 128) overalloc();
+		if ((unsigned)bufsize > INT_MAX - 128) overalloc();
 		bufsize += 128;
 	}
 	return NULL;
@@ -101,7 +101,7 @@ static void alloc_term_screen(struct terminal *term)
 	if (term->y < 0)
 		term->y = 1;
 	if ((term->x && (unsigned)term->x * (unsigned)term->y / (unsigned)term->x != (unsigned)term->y)
-	|| (unsigned)term->x * (unsigned)term->y > MAXINT / sizeof(*term->screen))
+	|| (unsigned)term->x * (unsigned)term->y > INT_MAX / sizeof(*term->screen))
 		overalloc();
 	s = xrealloc(term->screen, term->x * term->y * sizeof(*term->screen));
 	t = xrealloc(term->last_screen,
@@ -251,7 +251,7 @@ void add_to_rect_set(struct rect_set **s, struct rect *r)
 		if (i >= ss->m) ss->m = i + 1;
 		return;
 	}
-	if ((unsigned)ss->rl > (MAXINT - sizeof(struct rect_set)) / sizeof(struct rect) - R_GR)
+	if ((unsigned)ss->rl > (INT_MAX - sizeof(struct rect_set)) / sizeof(struct rect) - R_GR)
 		overalloc();
 	ss = xrealloc(ss,
 		sizeof(struct rect_set) + sizeof(struct rect) * (ss->rl + R_GR));
@@ -680,7 +680,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	term->blocked = -1;
 	term->x = dev->size.x2;
 	term->y = dev->size.y2;
-	term->last_mouse_x = term->last_mouse_y = term->last_mouse_b = MAXINT;
+	term->last_mouse_x = term->last_mouse_y = term->last_mouse_b = INT_MAX;
 	term->environment = !(drv->flags & GD_ONLY_1_WINDOW) ? ENV_G : 0;
 	if (!casestrcmp(drv->name, cast_uchar "x")) term->environment |= ENV_XWIN;
 	term->spec = &gfx_term;
@@ -706,7 +706,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 		struct links_event ev = { EV_INIT, 0, 0, 0 };
 		ev.x = dev->size.x2;
 		ev.y = dev->size.y2;
-		if ((unsigned)len > MAXINT - sizeof(int)) overalloc();
+		if ((unsigned)len > INT_MAX - sizeof(int)) overalloc();
 		ptr = xmalloc(sizeof(int) + len);
 		*ptr = len;
 		memcpy(ptr + 1, info, len);
@@ -786,7 +786,7 @@ void t_mouse(struct graphics_device *dev, int x, int y, int b)
 		term->last_mouse_y = y;
 		term->last_mouse_b = b;
 	} else {
-		term->last_mouse_x = term->last_mouse_y = term->last_mouse_b = MAXINT;
+		term->last_mouse_x = term->last_mouse_y = term->last_mouse_b = INT_MAX;
 	}
 	r.x2 = dev->size.x2;
 	r.y2 = dev->size.y2;
@@ -807,7 +807,7 @@ static void in_term(void *term_)
 	struct links_event *ev;
 	int r;
 	unsigned char *iq;
-	if ((unsigned)term->qlen + ALLOC_GR > MAXINT)
+	if ((unsigned)term->qlen + ALLOC_GR > INT_MAX)
 		overalloc();
 	iq = xrealloc(term->input_queue, term->qlen + ALLOC_GR);
 	term->input_queue = iq;
@@ -1014,7 +1014,7 @@ static void redraw_screen(struct terminal *term)
 {
 	int x, y, p = 0;
 	int cx = term->lcx, cy = term->lcy;
-	unsigned n_chars = MAXINT / 2;
+	unsigned n_chars = INT_MAX / 2;
 	unsigned char *a;
 	int attrib = -1;
 	int mode = -1;

@@ -211,7 +211,7 @@ void jpeg_restart(struct cached_image *cimg, unsigned char *data, int length)
 	 * chunks are so small the decoder can't move on on a single chunk
 	 * so it has to accumulate more chunks together. This is why the buffer
 	 * is there. */
-	if ((unsigned)global_cinfo->src->bytes_in_buffer + (unsigned)length > MAXINT) overalloc();
+	if ((unsigned)global_cinfo->src->bytes_in_buffer + (unsigned)length > INT_MAX) overalloc();
 	if ((unsigned)global_cinfo->src->bytes_in_buffer + (unsigned)length < (unsigned)length) overalloc();
 	if (deco->jdata){
 		/* If there is already some decoder buffer, we have to

@@ -40,7 +40,7 @@ void add_to_strn(unsigned char **s, unsigned char *a)
 {
 	unsigned char *p;
 	size_t l1 = strlen(cast_const_char *s), l2 = strlen(cast_const_char a);
-	if (((l1 | l2) | (l1 + l2 + 1)) > MAXINT)
+	if (((l1 | l2) | (l1 + l2 + 1)) > INT_MAX)
 		overalloc();
 	p = xrealloc(*s, l1 + l2 + 1);
 	strcat(cast_char p, cast_const_char a);
@@ -50,7 +50,7 @@ void add_to_strn(unsigned char **s, unsigned char *a)
 void extend_str(unsigned char **s, int n)
 {
 	size_t l = strlen(cast_const_char *s);
-	if (((l | n) | (l + n + 1)) > MAXINT)
+	if (((l | n) | (l + n + 1)) > INT_MAX)
 		overalloc();
 	*s = xrealloc(*s, l + n + 1);
 }
@@ -67,7 +67,7 @@ void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 
 	p = *s;
 	old_length = (unsigned)*l;
-	if (ll + old_length >= (unsigned)MAXINT / 2 || ll + old_length < ll) overalloc();
+	if (ll + old_length >= (unsigned)INT_MAX / 2 || ll + old_length < ll) overalloc();
 	new_length = old_length + ll;
 	*l = (int)new_length;
 	x = old_length ^ new_length;
@@ -136,14 +136,14 @@ long strtolx(unsigned char *c, unsigned char **end)
 	if (!*end) return l;
 	if (upcase(**end) == 'K') {
 		(*end)++;
-		if (l < -MAXINT / 1024) return -MAXINT;
-		if (l > MAXINT / 1024) return MAXINT;
+		if (l < -INT_MAX / 1024) return -INT_MAX;
+		if (l > INT_MAX / 1024) return INT_MAX;
 		return l * 1024;
 	}
 	if (upcase(**end) == 'M') {
 		(*end)++;
-		if (l < -MAXINT / (1024 * 1024)) return -MAXINT;
-		if (l > MAXINT / (1024 * 1024)) return MAXINT;
+		if (l < -INT_MAX / (1024 * 1024)) return -INT_MAX;
+		if (l > INT_MAX / (1024 * 1024)) return INT_MAX;
 		return l * (1024 * 1024);
 	}
 	return l;

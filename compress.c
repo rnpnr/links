@@ -18,7 +18,7 @@ static int display_error(struct terminal *term, unsigned char *msg, int *errp)
 
 static void decoder_memory_init(unsigned char **p, size_t *size, off_t init_length)
 {
-	if (init_length > 0 && init_length < MAXINT) *size = (int)init_length;
+	if (init_length > 0 && init_length < INT_MAX) *size = (int)init_length;
 	else *size = 4096;
 	*p = xmalloc(*size);
 }

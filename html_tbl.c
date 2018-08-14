@@ -300,15 +300,15 @@ static struct table_cell *new_cell(struct table *t, int x, int y)
 	nt.rx = t->rx;
 	nt.ry = t->ry;
 	while (x >= nt.rx) {
-		if ((unsigned)nt.rx > MAXINT / 2) overalloc();
+		if ((unsigned)nt.rx > INT_MAX / 2) overalloc();
 		nt.rx *= 2;
 	}
 	while (y >= nt.ry) {
-		if ((unsigned)nt.ry > MAXINT / 2) overalloc();
+		if ((unsigned)nt.ry > INT_MAX / 2) overalloc();
 		nt.ry *= 2;
 	}
 	if ((unsigned)nt.rx * (unsigned)nt.ry / (unsigned)nt.rx != (unsigned)nt.ry) overalloc();
-	if ((unsigned)nt.rx * (unsigned)nt.ry > MAXINT / sizeof(struct table_cell)) overalloc();
+	if ((unsigned)nt.rx * (unsigned)nt.ry > INT_MAX / sizeof(struct table_cell)) overalloc();
 	nt.cells = mem_calloc(nt.rx * nt.ry * sizeof(struct table_cell));
 	for (i = 0; i < t->x; i++)
 		for (j = 0; j < t->y; j++)
@@ -329,10 +329,10 @@ static void new_columns(struct table *t, int span, int width, int align, int val
 		int n = t->rc;
 		struct table_column *nc;
 		while (t->c + span > n) {
-			if ((unsigned)n > MAXINT / 2) overalloc();
+			if ((unsigned)n > INT_MAX / 2) overalloc();
 			n *= 2;
 		}
-		if ((unsigned)n > MAXINT / sizeof(struct table_column))
+		if ((unsigned)n > INT_MAX / sizeof(struct table_column))
 			overalloc();
 		nc = xrealloc(t->cols, n * sizeof(struct table_column));
 		t->rc = n;
@@ -354,10 +354,10 @@ static void set_td_width(struct table *t, int x, int width, int f)
 		int i;
 		int *nc;
 		while (x >= n) {
-			if ((unsigned)n > MAXINT / 2) overalloc();
+			if ((unsigned)n > INT_MAX / 2) overalloc();
 			n *= 2;
 		}
-		if ((unsigned)n > MAXINT / sizeof(int))
+		if ((unsigned)n > INT_MAX / sizeof(int))
 			overalloc();
 		nc = xrealloc(t->xcols, n * sizeof(int));
 		for (i = t->xc; i < n; i++)
@@ -435,7 +435,7 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 	html = en;
 	if (bad_html && !p && !lbhp) {
 		if (!(*bhp & (ALLOC_GR-1))) {
-			if ((unsigned)*bhp > MAXINT / sizeof(struct s_e) - ALLOC_GR)
+			if ((unsigned)*bhp > INT_MAX / sizeof(struct s_e) - ALLOC_GR)
 				overalloc();
 			*bad_html = xrealloc(*bad_html,
 					(*bhp + ALLOC_GR) * sizeof(struct s_e));
@@ -682,7 +682,7 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 		}
 	}
 
-	if ((unsigned)t->y > MAXINT / sizeof(int)) overalloc();
+	if ((unsigned)t->y > INT_MAX / sizeof(int)) overalloc();
 	t->r_heights = mem_calloc(t->y * sizeof(int));
 
 	for (x = 0; x < t->c; x++) if (t->cols[x].width != W_AUTO) set_td_width(t, x, t->cols[x].width, 1);
@@ -863,7 +863,7 @@ static int g_get_hline_pad(struct table *t, int row, int *plpos, int *plsize)
 static int get_column_widths(struct table *t)
 {
 	int i, j, s, ns;
-	if ((unsigned)t->x > MAXINT / sizeof(int)) overalloc();
+	if ((unsigned)t->x > INT_MAX / sizeof(int)) overalloc();
 	if (!t->min_c)
 		t->min_c = xmalloc(t->x * sizeof(int));
 	if (!t->max_c)
@@ -874,7 +874,7 @@ static int get_column_widths(struct table *t)
 	memset(t->max_c, 0, t->x * sizeof(int));
 	s = 1;
 	do {
-		ns = MAXINT;
+		ns = INT_MAX;
 		for (i = 0; i < t->x; i++) for (j = 0; j < t->y; j++) {
 			struct table_cell *c = CELL(t, i, j);
 			if (c->spanned || !c->used) continue;
@@ -904,7 +904,7 @@ static int get_column_widths(struct table *t)
 				for (k = 0; k < s; k++) if (t->min_c[i + k] > t->max_c[i + k]) t->max_c[i + k] = t->min_c[i + k];
 			} else if (c->colspan > s && c->colspan < ns) ns = c->colspan;
 		}
-	} while ((s = ns) != MAXINT);
+	} while ((s = ns) != INT_MAX);
 	return 0;
 }
 
@@ -961,7 +961,7 @@ static void distribute_widths(struct table *t, int width)
 	for (i = 0; i < t->x; i++) if (t->max_c[i] > mmax_c) mmax_c = t->max_c[i];
 	memcpy(t->w_c, t->min_c, t->x * sizeof(int));
 	t->rw = width;
-	if ((unsigned)t->x > MAXINT / sizeof(int)) overalloc();
+	if ((unsigned)t->x > INT_MAX / sizeof(int)) overalloc();
 	u = xmalloc(t->x);
 	w = xmalloc(t->x * sizeof(int));
 	mx = xmalloc(t->x * sizeof(int));
@@ -1008,12 +1008,12 @@ static void distribute_widths(struct table *t, int width)
 				case 5:
 					if (t->xcols[i] < 0) {
 						w[i] = t->xcols[i] <= -2 ? -2 - t->xcols[i] : 1;
-						mx[i] = MAXINT;
+						mx[i] = INT_MAX;
 					}
 					break;
 				case 6:
 					w[i] = 1;
-					mx[i] = MAXINT;
+					mx[i] = INT_MAX;
 					break;
 				default:
 					/*internal("could not expand table");*/
@@ -1070,7 +1070,7 @@ static void check_table_widths(struct table *t)
 	int i, j;
 	int s, ns;
 	int m, mi = 0; /* go away, warning! */
-	if ((unsigned)t->x > MAXINT / sizeof(int)) overalloc();
+	if ((unsigned)t->x > INT_MAX / sizeof(int)) overalloc();
 	w = mem_calloc(t->x * sizeof(int));
 	for (j = 0; j < t->y; j++) for (i = 0; i < t->x; i++) {
 		struct table_cell *c = CELL(t, i, j);
@@ -1089,7 +1089,7 @@ static void check_table_widths(struct table *t)
 	}
 	s = 1;
 	do {
-		ns = MAXINT;
+		ns = INT_MAX;
 		for (i = 0; i < t->x; i++) for (j = 0; j < t->y; j++) {
 			struct table_cell *c = CELL(t, i, j);
 			if (!c->start) continue;
@@ -1115,7 +1115,7 @@ static void check_table_widths(struct table *t)
 				}*/
 			} else if (c->colspan > s && c->colspan < ns) ns = c->colspan;
 		}
-	} while ((s = ns) != MAXINT);
+	} while ((s = ns) != INT_MAX);
 
 	s = 0; ns = 0;
 	for (i = 0; i < t->x; i++) {
@@ -1205,7 +1205,7 @@ static void get_table_heights(struct table *t)
 	}
 	s = 1;
 	do {
-		ns = MAXINT;
+		ns = INT_MAX;
 		for (j = 0; j < t->y; j++) {
 			for (i = 0; i < t->x; i++) {
 				struct table_cell *cell = CELL(t, i, j);
@@ -1228,7 +1228,7 @@ static void get_table_heights(struct table *t)
 				} else if (cell->rowspan > s && cell->rowspan < ns) ns = cell->rowspan;
 			}
 		}
-	} while ((s = ns) != MAXINT);
+	} while ((s = ns) != INT_MAX);
 	if (!F) {
 		t->rh = (!!(t->frame & F_ABOVE) + !!(t->frame & F_BELOW)) * !!t->border;
 		for (j = 0; j < t->y; j++) {
@@ -1384,10 +1384,10 @@ static void display_table_frames(struct table *t, int x, int y)
 	short *fh, *fv;
 	int i, j;
 	int cx, cy;
-	if ((unsigned)t->x > MAXINT) overalloc();
-	if ((unsigned)t->y > MAXINT) overalloc();
+	if ((unsigned)t->x > INT_MAX) overalloc();
+	if ((unsigned)t->y > INT_MAX) overalloc();
 	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) / ((unsigned)t->x + 2) != ((unsigned)t->y + 2)) overalloc();
-	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) > MAXINT) overalloc();
+	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) > INT_MAX) overalloc();
 	fh = xmalloc((t->x + 2) * (t->y + 1) * sizeof(short));
 	fv = xmalloc((t->x + 1) * (t->y + 2) * sizeof(short));
 	get_table_frame(t, fv, fh);
@@ -1663,7 +1663,7 @@ static void add_to_rect_sets(struct rect_set ***s, int *n, struct rect *r)
 	for (i = r->y1 >> RECT_BOUND_BITS; i <= (r->y2 - 1) >> RECT_BOUND_BITS; i++) {
 		if (i >= *n) {
 			struct rect_set **ns;
-			if ((unsigned)i > MAXINT / sizeof(struct rect_set *) - 1)
+			if ((unsigned)i > INT_MAX / sizeof(struct rect_set *) - 1)
 				overalloc();
 			ns = xrealloc(*s,
 				(i + 1) * sizeof(struct rect_set *));
@@ -1685,8 +1685,8 @@ static void add_to_cell_sets(struct table_cell ****s, int **nn, int *n, struct r
 		if (i >= *n) {
 			struct table_cell ***ns;
 			int *nnn;
-			if ((unsigned)i > MAXINT / sizeof(struct table_cell ***) - 1
-			|| (unsigned)i > MAXINT / sizeof(int *) - 1)
+			if ((unsigned)i > INT_MAX / sizeof(struct table_cell ***) - 1
+			|| (unsigned)i > INT_MAX / sizeof(int *) - 1)
 				overalloc();
 			ns = xrealloc(*s,
 				(i + 1) * sizeof(struct table_cell **));
@@ -1701,7 +1701,7 @@ static void add_to_cell_sets(struct table_cell ****s, int **nn, int *n, struct r
 		}
 		{
 			struct table_cell **nc;
-			if ((unsigned)(*nn)[i]  > MAXINT / sizeof(struct table_cell *) - 1)
+			if ((unsigned)(*nn)[i]  > INT_MAX / sizeof(struct table_cell *) - 1)
 				overalloc();
 			nc = xrealloc((*s)[i],
 				((*nn)[i] + 1) * sizeof(struct table_cell *));
@@ -1865,10 +1865,10 @@ static void process_g_table(struct g_part *gp, struct table *t)
 		}
 	}
 
-	if ((unsigned)t->x > MAXINT) overalloc();
-	if ((unsigned)t->y > MAXINT) overalloc();
+	if ((unsigned)t->x > INT_MAX) overalloc();
+	if ((unsigned)t->y > INT_MAX) overalloc();
 	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) / ((unsigned)t->x + 2) != ((unsigned)t->y + 2)) overalloc();
-	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) > MAXINT) overalloc();
+	if (((unsigned)t->x + 2) * ((unsigned)t->y + 2) > INT_MAX) overalloc();
 	fh = xmalloc((t->x + 2) * (t->y + 1) * sizeof(short));
 	fv = xmalloc((t->x + 1) * (t->y + 2) * sizeof(short));
 	get_table_frame(t, fv, fh);
@@ -1989,7 +1989,7 @@ static void process_g_table(struct g_part *gp, struct table *t)
 				struct g_object_tag *tag;
 				size_t sl;
 				sl = strlen(cast_const_char c->tag);
-				if (sl > MAXINT - sizeof(struct g_object_tag)) overalloc();
+				if (sl > INT_MAX - sizeof(struct g_object_tag)) overalloc();
 				tag = mem_calloc(sizeof(struct g_object_tag) + sl);
 				tag->go.mouse_event = g_dummy_mouse;
 				tag->go.draw = g_dummy_draw;
