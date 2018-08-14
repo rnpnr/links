@@ -10,9 +10,7 @@
 static struct list_head cache = {&cache, &cache};
 
 static int cache_size = 0;
-
 static tcount cache_count = 1;
-
 static void *cache_root = NULL;
 
 static int ce_compare(const void *p1, const void *p2)
@@ -167,8 +165,8 @@ int new_cache_entry(unsigned char *url, struct cache_entry **f)
 	struct cache_entry *e;
 	shrink_memory(SH_CHECK_QUOTA);
 	url = remove_proxy_prefix(url);
-	e = mem_calloc(sizeof(struct cache_entry) + strlen((const char *)url));
-	strcpy(cast_char e->url, cast_const_char url);
+	e = mem_calloc(sizeof(struct cache_entry) + strlen((char *)url));
+	strcpy((char *)e->url, (char *)url);
 	e->length = 0;
 	e->incomplete = 1;
 	e->data_size = 0;
@@ -253,7 +251,8 @@ have_f:
 			goto ch_o;
 		}
 	}
-	if (C_ALIGN(length) > MAXINT - sizeof(struct fragment) || C_ALIGN(length) < 0)
+	if (C_ALIGN(length) > MAXINT - sizeof(struct fragment)
+	|| C_ALIGN(length) < 0)
 		overalloc();
 	ca = C_ALIGN(length);
 	if (ca > MAXINT - (int)sizeof(struct fragment) || ca < 0)
@@ -267,7 +266,8 @@ have_f:
 	add_before_list_entry(lf, &nf->list_entry);
 	f = nf;
 	ch_o:
-	while (f->list_entry.next != &e->frag && f->offset + f->length > list_struct(f->list_entry.next, struct fragment)->offset) {
+	while (f->list_entry.next != &e->frag
+	&& f->offset + f->length > list_struct(f->list_entry.next, struct fragment)->offset) {
 		struct fragment *next = list_struct(f->list_entry.next, struct fragment);
 		if (f->offset + f->length < next->offset + next->length) {
 			f = xrealloc(f, sizeof(struct fragment)
@@ -280,14 +280,15 @@ have_f:
 			memcpy(f->data + f->length, next->data + f->offset + f->length - next->offset, (size_t)(next->offset + next->length - f->offset - f->length));
 			sf(next->offset + next->length - f->offset - f->length);
 			f->length = f->real_length = next->offset + next->length - f->offset;
-		} else
-			if (memcmp(f->data + next->offset - f->offset, next->data, (size_t)next->length))
+		} else if (memcmp(f->data + next->offset - f->offset,
+				next->data, (size_t)next->length))
 				trunc = 1;
 		del_from_list(next);
 		sf(-next->length);
 		free(next);
 	}
-	if (trunc) truncate_entry(e, offset + length, 0);
+	if (trunc)
+		truncate_entry(e, offset + length, 0);
 	if (e->length > e->max_length) {
 		e->max_length = e->length;
 		return 1;
@@ -305,10 +306,13 @@ int defrag_entry(struct cache_entry *e)
 	f = list_struct(e->frag.next, struct fragment);
 	if (f->offset)
 		return 0;
-	for (g = f->list_entry.next;
-		g != &e->frag &&
-		list_struct(g, struct fragment)->offset <= list_struct(g->prev, struct fragment)->offset + list_struct(g->prev, struct fragment)->length; g = g->next)
-			if (list_struct(g, struct fragment)->offset < list_struct(g->prev, struct fragment)->offset + list_struct(g->prev, struct fragment)->length) {
+	for (g = f->list_entry.next; g != &e->frag
+				&& list_struct(g, struct fragment)->offset
+				<= list_struct(g->prev, struct fragment)->offset
+				+ list_struct(g->prev, struct fragment)->length; g = g->next)
+			if (list_struct(g, struct fragment)->offset
+			< list_struct(g->prev, struct fragment)->offset
+			+ list_struct(g->prev, struct fragment)->length) {
 				internal("fragments overlay");
 				return S_INTERNAL;
 			}
@@ -405,7 +409,8 @@ void free_entry_to(struct cache_entry *e, off_t off)
 			memmove(f->data, f->data + (off - f->offset),
 				(size_t)(f->length -= off - f->offset));
 			f->offset = off;
-		} else break;
+		} else
+			break;
 	}
 }
 
@@ -456,13 +461,14 @@ static int shrink_file_cache(int u)
 	int ncs = cache_size;
 	int ccs = 0, ccs2 = 0;
 
-	if (u == SH_CHECK_QUOTA && cache_size + decompressed_cache_size <= memory_cache_size)
+	if (u == SH_CHECK_QUOTA
+	&& cache_size + decompressed_cache_size <= memory_cache_size)
 		goto ret;
 	foreachback(struct cache_entry, e, le, cache) {
 		if (e->refcount || is_entry_used(e)) {
-			if (ncs < e->data_size) {
-				internal("cache_size underflow: %d, %d", ncs, e->data_size);
-			}
+			if (ncs < e->data_size)
+				internal("cache_size underflow: %d, %d", ncs,
+					e->data_size);
 			ncs -= e->data_size;
 		} else if (u == SH_FREE_SOMETHING) {
 			if (e->decompressed_len)
@@ -514,7 +520,8 @@ g:
 	if (u == SH_CHECK_QUOTA) {
 		foreachfrom(struct cache_entry, f, lf, cache, le) {
 			if (f->data_size
-			&& ncs + f->data_size <= memory_cache_size * MEMORY_CACHE_GC_PERCENT) {
+			&& ncs + f->data_size
+			<= memory_cache_size * MEMORY_CACHE_GC_PERCENT) {
 				ncs += f->data_size;
 				f->tgc = 0;
 			}
