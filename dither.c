@@ -118,7 +118,7 @@ static long color_555(int);
 static long color_565be(int);
 static long color_565(int);
 /*static void make_8_table(int *, double);*/
-static void make_16_table(int *, int, int, float_double, int, int);
+static void make_16_table(int *, int, int, float, int, int);
 static void make_red_table(int, int, int, int);
 static void make_green_table(int, int, int, int);
 static void make_blue_table(int, int, int, int);
@@ -658,11 +658,11 @@ long (*get_color_fn(int depth))(int rgb)
 static void make_8_table(int *table, double gamma)
 {
 	int i,light0;
-	float_double light;
-	const float_double inv_255=1/255.;
+	float light;
+	const float inv_255=1/255.;
 
 	for (i=0;i<256;i++){
-		light=fd_pow((float_double)i*inv_255,gamma);
+		light=fd_pow((float)i*inv_255,gamma);
 		/* Long live the Nipkow Disk */
 		light0=65535*light;
 		if (light0<0) light0=0;
@@ -676,13 +676,13 @@ static void make_8_table(int *table, double gamma)
 /* dump_t2c means memory organization defined in comment for
  * red_table on the top of dither.c */
 /* dump_t2c is taken into account only if t2c is defined. */
-static void make_16_table(int *table, int bits, int pos, float_double gamma, int dump_t2c,
+static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t2c,
 	int bigendian)
 {
 	int j,light_val,grades=(1<<bits)-1,grade;
-	float_double voltage;
-	float_double rev_gamma=1/gamma;
-	const float_double inv_65535=(float_double)(1/65535.);
+	float voltage;
+	float rev_gamma=1/gamma;
+	const float inv_65535=(float)(1/65535.);
 	int last_grade, last_content;
 	uttime start_time = get_time();
 	int sample_state = 0;
@@ -722,13 +722,13 @@ static void make_16_table(int *table, int bits, int pos, float_double gamma, int
 		 * to said photon flux level
 		 */
 
-		grade=(int)(voltage*grades+(float_double)0.5);
+		grade=(int)(voltage*grades+(float)0.5);
 		if (grade==last_grade){
 			table[j]=last_content;
 			continue;
 		}
 		last_grade=grade;
-		voltage=(float_double)grade/grades;
+		voltage=(float)grade/grades;
 		/* Find nearest voltage to this voltage. Finding nearest voltage, not
 		 * nearest photon flux ensures the dithered pixels will be perceived to be
 		 * near. The voltage input into the monitor was intentionally chosen by
@@ -738,7 +738,7 @@ static void make_16_table(int *table, int bits, int pos, float_double gamma, int
 		 * kool ;-) (and is kool)
 		 */
 
-		light_val=(int)(fd_pow(voltage,gamma)*65535+(float_double)0.5);
+		light_val=(int)(fd_pow(voltage,gamma)*65535+(float)0.5);
 		/* Find out what photon flux this index represents */
 
 		if (light_val<0) light_val=0;
@@ -765,19 +765,19 @@ static void make_16_table(int *table, int bits, int pos, float_double gamma, int
 static void make_red_table(int bits, int pos, int dump_t2c, int be)
 {
 	red_table = xrealloc(red_table, 65536 * sizeof(*red_table));
-	make_16_table(red_table,bits,pos,(float_double)display_red_gamma,dump_t2c, be);
+	make_16_table(red_table,bits,pos,(float)display_red_gamma,dump_t2c, be);
 }
 
 static void make_green_table(int bits, int pos, int dump_t2c, int be)
 {
 	green_table = xrealloc(green_table, 65536 * sizeof(*green_table));
-	make_16_table(green_table,bits,pos,(float_double)display_green_gamma,dump_t2c, be);
+	make_16_table(green_table,bits,pos,(float)display_green_gamma,dump_t2c, be);
 }
 
 static void make_blue_table(int bits, int pos,int dump_t2c, int be)
 {
 	blue_table = xrealloc(blue_table, 65536 * sizeof(*blue_table));
-	make_16_table(blue_table,bits,pos,(float_double)display_blue_gamma, dump_t2c, be);
+	make_16_table(blue_table,bits,pos,(float)display_blue_gamma, dump_t2c, be);
 }
 
 void dither(unsigned short *in, struct bitmap *out)
