@@ -868,23 +868,11 @@ void select_loop(void (*init)(void))
 		check_signals();
 		check_timers();
 		if (!F) redraw_all_terminals();
-#ifdef OS_BAD_SIGNALS
-	/* Cygwin has buggy signals that sometimes don't interrupt select.
-	   So don't wait indefinitely in it. */
-		tv.tv_sec = 1;
-		tv.tv_usec = 0;
-		tm = &tv;
-#endif
 		if (!list_empty(timers)) {
 			uttime tt = list_struct(timers.next, struct timer)->interval + 1;
-#ifdef OS_BAD_SIGNALS
-			if (tt < 1000)
-#endif
-			{
 				tv.tv_sec = tt / 1000 < INT_MAX ? (int)(tt / 1000) : INT_MAX;
 				tv.tv_usec = (tt % 1000) * 1000;
 				tm = &tv;
-			}
 		}
 		memcpy(&x_read, &w_read, sizeof(fd_set));
 		memcpy(&x_write, &w_write, sizeof(fd_set));
