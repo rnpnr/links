@@ -1506,7 +1506,7 @@ int get_search_data(struct f_data *f)
 {
 	if (f->search_pos) return 0;
 	if (get_srch(f)) return -1;
-	if ((size_t)n_chr > MAX_SIZE_T / sizeof(char_t) || (size_t)n_pos > MAX_SIZE_T / sizeof(struct search)) return -1;
+	if ((size_t)n_chr > ((size_t) - 1) / sizeof(char_t) || (size_t)n_pos > ((size_t) - 1) / sizeof(struct search)) return -1;
 	f->search_chr = xmalloc(n_chr * sizeof(char_t));
 	if (!f->search_chr) return -1;
 	f->search_pos = xmalloc(n_pos * sizeof(struct search));
