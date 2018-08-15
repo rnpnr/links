@@ -37,7 +37,6 @@
 #include <utime.h>
 
 #include "os_dep.h"
-#include "os_depx.h"
 #include "setup.h"
 
 #if defined(__linux__) && !defined(FALLOC_FL_KEEP_SIZE)
