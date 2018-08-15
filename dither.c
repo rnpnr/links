@@ -662,7 +662,7 @@ static void make_8_table(int *table, double gamma)
 	const float inv_255=1/255.;
 
 	for (i=0;i<256;i++){
-		light=fd_pow((float)i*inv_255,gamma);
+		light=powf((float)i*inv_255,gamma);
 		/* Long live the Nipkow Disk */
 		light0=65535*light;
 		if (light0<0) light0=0;
@@ -717,7 +717,7 @@ static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t
 				}
 			}
 		}
-		voltage=fd_pow(j*inv_65535,rev_gamma);
+		voltage=powf(j*inv_65535,rev_gamma);
 		/* Determine which monitor input voltage is equivalent
 		 * to said photon flux level
 		 */
@@ -738,7 +738,7 @@ static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t
 		 * kool ;-) (and is kool)
 		 */
 
-		light_val=(int)(fd_pow(voltage,gamma)*65535+(float)0.5);
+		light_val=(int)(powf(voltage,gamma)*65535+(float)0.5);
 		/* Find out what photon flux this index represents */
 
 		if (light_val<0) light_val=0;

@@ -1051,9 +1051,9 @@ void agx_and_uc_32_to_48(unsigned short *restrict dest,
 		r*=inv_255;
 		g*=inv_255;
 		b*=inv_255;
-		r=fd_pow(r,red_gamma);
-		g=fd_pow(g,green_gamma);
-		b=fd_pow(b,blue_gamma);
+		r=powf(r,red_gamma);
+		g=powf(g,green_gamma);
+		b=powf(b,blue_gamma);
 		ri=(unsigned)((r*65535)+(float)0.5);
 		gi=(unsigned)((g*65535)+(float)0.5);
 		bi=(unsigned)((b*65535)+(float)0.5);
@@ -1102,9 +1102,9 @@ void agx_and_uc_64_to_48(unsigned short *restrict dest,
 		r*=inv_65535;
 		g*=inv_65535;
 		b*=inv_65535;
-		r=fd_pow(r,red_gamma);
-		g=fd_pow(g,green_gamma);
-		b=fd_pow(b,blue_gamma);
+		r=powf(r,red_gamma);
+		g=powf(g,green_gamma);
+		b=powf(b,blue_gamma);
 		ri=(unsigned short)(r*65535+(float)0.5);
 		gi=(unsigned short)(g*65535+(float)0.5);
 		bi=(unsigned short)(b*65535+(float)0.5);
@@ -1182,15 +1182,15 @@ void agx_48_to_48(unsigned short *restrict dest,
 	{
 		a=*src;
 		a*=inv_65535;
-		a=fd_pow(a,red_gamma);
+		a=powf(a,red_gamma);
 		dest[0]=(unsigned short)((a*65535)+(float)0.5);
 		a=src[1];
 		a*=inv_65535;
-		a=fd_pow(a,green_gamma);
+		a=powf(a,green_gamma);
 		dest[1]=(unsigned short)((a*65535)+(float)0.5);
 		a=src[2];
 		a*=inv_65535;
-		a=fd_pow(a,blue_gamma);
+		a=powf(a,blue_gamma);
 		dest[2]=(unsigned short)((a*65535)+(float)0.5);
 	}
 }
@@ -1225,15 +1225,15 @@ void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict s
 	{
 		a=*src;
 		a*=inv_255;
-		a=fd_pow(a,red_gamma);
+		a=powf(a,red_gamma);
 		dest[0]=(unsigned short)((a*65535)+(float)0.5);
 		a=src[1];
 		a*=inv_255;
-		a=fd_pow(a,green_gamma);
+		a=powf(a,green_gamma);
 		dest[1]=(unsigned short)((a*65535)+(float)0.5);
 		a=src[2];
 		a*=inv_255;
-		a=fd_pow(a,blue_gamma);
+		a=powf(a,blue_gamma);
 		dest[2]=(unsigned short)((a*65535)+(float)0.5);
 	}
 }
@@ -1257,15 +1257,15 @@ void make_gamma_table(struct cached_image *cimg)
 		ptr_16 = xmalloc(768 * sizeof(*(cimg->gamma_table)));
 		cimg->gamma_table=ptr_16;
 		for (a=0;a<256;a++,ptr_16++){
-			last_val = (unsigned short)(65535*fd_pow((float)a*inv_255,rg)+(float)0.5);
+			last_val = (unsigned short)(65535*powf((float)a*inv_255,rg)+(float)0.5);
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<256;a++,ptr_16++){
-			last_val = (unsigned short)(65535*fd_pow((float)a*inv_255,gg)+(float)0.5);
+			last_val = (unsigned short)(65535*powf((float)a*inv_255,gg)+(float)0.5);
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<256;a++,ptr_16++){
-			last_val = (unsigned short)(65535*fd_pow((float)a*inv_255,bg)+(float)0.5);
+			last_val = (unsigned short)(65535*powf((float)a*inv_255,bg)+(float)0.5);
 			*ptr_16 = last_val;
 		}
 	}else{
@@ -1280,17 +1280,17 @@ void make_gamma_table(struct cached_image *cimg)
 		cimg->gamma_table=ptr_16;
 		for (a=0;a<0x10000;a++,ptr_16++){
 			if (!x_slow_fpu || !(a & 0xff))
-				last_val = (unsigned short)(65535*fd_pow((float)a*inv_65535,rg)+(float)0.5);
+				last_val = (unsigned short)(65535*powf((float)a*inv_65535,rg)+(float)0.5);
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<0x10000;a++,ptr_16++){
 			if (!x_slow_fpu || !(a & 0xff))
-				last_val = (unsigned short)(65535*fd_pow((float)a*inv_65535,gg)+(float)0.5);
+				last_val = (unsigned short)(65535*powf((float)a*inv_65535,gg)+(float)0.5);
 			*ptr_16 = last_val;
 		}
 		for (a=0;a<0x10000;a++,ptr_16++){
 			if (!x_slow_fpu || !(a & 0xff))
-				last_val = (unsigned short)(65535*fd_pow((float)a*inv_65535,bg)+(float)0.5);
+				last_val = (unsigned short)(65535*powf((float)a*inv_65535,bg)+(float)0.5);
 			*ptr_16 = last_val;
 		}
 	}
@@ -1313,7 +1313,7 @@ void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *rest
 unsigned char ags_8_to_8(unsigned char input, float gamma)
 {
 	const float inv_255=1/255.;
-	return 255*fd_pow((float)input*inv_255,gamma)+(float)0.5;
+	return 255*powf((float)input*inv_255,gamma)+(float)0.5;
 }
 #endif
 
@@ -1326,7 +1326,7 @@ unsigned short ags_8_to_16(unsigned char input, float gamma)
 	const float inv_255=(float)(1/255.);
 
 	a*=inv_255;
-	a=fd_pow(a,gamma);
+	a=powf(a,gamma);
 	a*=65535;
 	retval = (unsigned short)(a+(float)0.5);
 	return retval;
@@ -1337,7 +1337,7 @@ unsigned short ags_8_to_16(unsigned char input, float gamma)
 unsigned char ags_16_to_8(unsigned short input, float gamma)
 {
 	const float inv_65535=(float)(1/65535.);
-	return (unsigned char)(fd_pow((float)input*inv_65535,gamma)*255+(float)0.5);
+	return (unsigned char)(powf((float)input*inv_65535,gamma)*255+(float)0.5);
 }
 
 /* Input is 0-65535 (16-bit). Output is 0-255 (8-bit)*/
@@ -1346,7 +1346,7 @@ unsigned short ags_16_to_16(unsigned short input, float gamma)
 	unsigned short retval;
 	const float inv_65535=(float)(1/65535.);
 
-	retval = (unsigned short)(65535*fd_pow((float)input*inv_65535,gamma)+(float)0.5);
+	retval = (unsigned short)(65535*powf((float)input*inv_65535,gamma)+(float)0.5);
 	return retval;
 }
 
