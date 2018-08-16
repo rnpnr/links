@@ -17,9 +17,6 @@ static unsigned char * const version_texts[] = {
 	TEXT_(T_COMPRESSION_METHODS),
 	TEXT_(T_ENCRYPTION),
 	TEXT_(T_UTF8_TERMINAL),
-#if defined(__linux__) || defined(__LINUX__)
-	TEXT_(T_GPM_MOUSE_DRIVER),
-#endif
 	TEXT_(T_GRAPHICS_MODE),
 #ifdef G
 	TEXT_(T_IMAGE_LIBRARIES),
@@ -108,13 +105,6 @@ static void menu_version(void *term_)
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
 	add_to_str(&s, &l, cast_uchar "\n");
-
-#if defined(__linux__) || defined(__LINUX__)
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-	add_to_str(&s, &l, cast_uchar "\n");
-#endif
-
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 #ifdef G
 	i = l;

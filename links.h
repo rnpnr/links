@@ -39,10 +39,6 @@
 #include "os_dep.h"
 #include "setup.h"
 
-#if defined(__linux__) && !defined(FALLOC_FL_KEEP_SIZE)
-#include <linux/falloc.h>
-#endif
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
