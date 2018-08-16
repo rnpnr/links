@@ -20,14 +20,11 @@ unsigned char dummyarray[T__N_TEXTS];
 
 static unsigned char **translation_array[N_CODEPAGES];
 
-static int current_lang_charset;
-
 void init_trans(void)
 {
 	int j;
 	for (j = 0; j < N_CODEPAGES; j++)
 		translation_array[j] = NULL;
-	set_language();
 }
 
 void shutdown_trans(void)
@@ -132,7 +129,6 @@ unsigned char *get_text_translation(unsigned char *text, struct terminal *term)
 		unsigned char *tt;
 		if ((trn = current_tra[text - dummyarray]))
 			return trn;
-tr:
 		if (!(tt = cast_uchar translations[0].t[text - dummyarray].name))
 			trn = cast_uchar translation_english[text - dummyarray].name;
 		else {
@@ -140,23 +136,15 @@ tr:
 			memset(&l_opt, 0, sizeof(l_opt));
 			l_opt.plain = 0;
 			l_opt.cp = charset;
-			trn = convert(current_lang_charset, charset, tt, &l_opt);
+			trn = convert(0, charset, tt, &l_opt);
 			if (!strcmp(cast_const_char trn, cast_const_char tt)) {
 				free(trn);
 				trn = tt;
 			}
 		}
 		current_tra[text - dummyarray] = trn;
-	} else {
-		if (current_lang_charset && charset != current_lang_charset) {
-			current_tra = translation_array[charset] = xmalloc(sizeof (unsigned char *) * T__N_TEXTS);
-			memset(current_tra, 0, sizeof (unsigned char *) * T__N_TEXTS);
-			goto tr;
-		}
-		if (!(trn = cast_uchar translations[0].t[text - dummyarray].name)) {
-			trn = cast_uchar translation_english[text - dummyarray].name;
-		}
-	}
+	} else if (!(trn = (u_char *)translations[0].t[text - dummyarray].name))
+		trn = (u_char *)translation_english[text - dummyarray].name;
 	return trn;
 }
 
@@ -165,14 +153,4 @@ unsigned char *get_english_translation(unsigned char *text)
 	if (is_direct_text(text))
 		return text;
 	return cast_uchar translation_english[text - dummyarray].name;
-}
-
-void set_language(void)
-{
-	const unsigned char *cp = (unsigned char *)translations[0].t[T__CHAR_SET].name;
-	if ((current_lang_charset = get_cp_index(cp)) == -1) {
-		internal("Unknown charset for language %s.",
-				translations[0].t[T__LANGUAGE].name);
-		current_lang_charset = 0;
-	}
 }

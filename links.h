@@ -1643,7 +1643,6 @@ int get_default_charset(void);
 int get_commandline_charset(void);
 unsigned char *get_text_translation(unsigned char *, struct terminal *term);
 unsigned char *get_english_translation(unsigned char *);
-void set_language(void);
 
 #define TEXT_(x) (dummyarray + x) /* TEXT causes name clash on windows */
 
