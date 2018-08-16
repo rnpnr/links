@@ -247,7 +247,7 @@ static void http_send_header(struct connection *c)
 		proxy = 0;
 	hdr = init_str();
 	if (!host) {
-		http_bad_url:
+http_bad_url:
 		free(hdr);
 		http_end_request(c, 0, 1, S_BAD_URL);
 		return;
@@ -267,11 +267,13 @@ static void http_send_header(struct connection *c)
 	if (info->https_forward) {
 		add_to_str(&hdr, &l, cast_uchar "CONNECT ");
 		h = get_host_name(host);
-		if (!h) goto http_bad_url;
+		if (!h)
+			goto http_bad_url;
 		add_to_str(&hdr, &l, h);
 		free(h);
 		h = get_port_str(host);
-		if (!h) h = stracpy(cast_uchar "443");
+		if (!h)
+			h = stracpy(cast_uchar "443");
 		add_chr_to_str(&hdr, &l, ':');
 		add_to_str(&hdr, &l, h);
 		free(h);
@@ -308,8 +310,10 @@ static void http_send_header(struct connection *c)
 	if (u2 != u)
 		free(u2);
 added_connect:
-	if (!http10) add_to_str(&hdr, &l, cast_uchar " HTTP/1.1\r\n");
-	else add_to_str(&hdr, &l, cast_uchar " HTTP/1.0\r\n");
+	if (!http10)
+		add_to_str(&hdr, &l, cast_uchar " HTTP/1.1\r\n");
+	else
+		add_to_str(&hdr, &l, cast_uchar " HTTP/1.0\r\n");
 	if (!info->https_forward && (h = get_host_name(host))) {
 		add_to_str(&hdr, &l, cast_uchar "Host: ");
 		if (*h && h[strlen((char *)h) - 1] == '.') {
@@ -357,9 +361,11 @@ added_connect:
 		while (post[0] && post[1]) {
 			int h1, h2;
 			h1 = post[0] <= '9' ? (unsigned)post[0] - '0' : post[0] >= 'A' ? upcase(post[0]) - 'A' + 10 : 0;
-			if (h1 < 0 || h1 >= 16) h1 = 0;
+			if (h1 < 0 || h1 >= 16)
+				h1 = 0;
 			h2 = post[1] <= '9' ? (unsigned)post[1] - '0' : post[1] >= 'A' ? upcase(post[1]) - 'A' + 10 : 0;
-			if (h2 < 0 || h2 >= 16) h2 = 0;
+			if (h2 < 0 || h2 >= 16)
+				h2 = 0;
 			add_chr_to_str(&hdr, &l, h1 * 16 + h2);
 			post += 2;
 		}
@@ -425,7 +431,8 @@ static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigne
 static void add_accept(unsigned char **hdr, int *l)
 {
 	if (SCRUB_HEADERS)
-		add_to_str(hdr, l, cast_uchar "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
+		add_to_str(hdr, l,
+			cast_uchar "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
 	else
 		add_to_str(hdr, l, cast_uchar "Accept: */*\r\n");
 }
@@ -443,7 +450,7 @@ static int advertise_compression(unsigned char *url, struct connection *c)
 	if (strstr((char *)url, "/attachment.cgi?"))
 		return 0;
 
-	extd = cast_uchar strrchr(cast_const_char url, '.');
+	extd = cast_uchar strrchr((char *)url, '.');
 	if (extd && get_compress_by_extension(extd + 1, cast_uchar strchr((char *)(extd + 1), 0)))
 		return 0;
 	return 1;
@@ -525,9 +532,9 @@ static void add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 {
 	struct cache_entry *e;
 	if ((e = c->cache)) {
-		int code = 0;	/* against warning */
+		int code = 0;
 		if (get_http_code(e->head, &code, NULL) || code >= 400)
-			goto skip_ifmod;
+			return;
 		if (!e->incomplete && e->head && c->no_cache <= NC_IF_MOD) {
 			unsigned char *m;
 			if (e->last_modified)
@@ -537,13 +544,12 @@ static void add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 			else if ((m = parse_http_header(e->head, cast_uchar "Expires", NULL)))
 				;
 			else
-				goto skip_ifmod;
+				return;
 			add_to_str(hdr, l, cast_uchar "If-Modified-Since: ");
 			add_to_str(hdr, l, m);
 			add_to_str(hdr, l, cast_uchar "\r\n");
 			free(m);
 		}
-skip_ifmod:;
 	}
 }
 
@@ -552,7 +558,7 @@ static void add_range(unsigned char **hdr, int *l, unsigned char *url, struct co
 	struct cache_entry *e;
 	struct http_connection_info *info = c->info;
 	if ((e = c->cache)) {
-		int code = 0;	/* against warning */
+		int code = 0;
 		if (!get_http_code(e->head, &code, NULL) && code >= 300)
 			return;
 	}
@@ -566,7 +572,8 @@ static void add_range(unsigned char **hdr, int *l, unsigned char *url, struct co
 static void add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache)
 {
 	if (no_cache >= NC_PR_NO_CACHE)
-		add_to_str(hdr, l, cast_uchar "Pragma: no-cache\r\nCache-Control: no-cache\r\n");
+		add_to_str(hdr, l,
+			cast_uchar "Pragma: no-cache\r\nCache-Control: no-cache\r\n");
 }
 
 static void add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *url)
@@ -732,7 +739,8 @@ next_chunk:
 			}
 		} else {
 			int l = info->chunk_remaining;
-			if (l > rb->len) l = rb->len;
+			if (l > rb->len)
+				l = rb->len;
 			if ((off_t)(0UL + c->from + l) < 0) {
 				setcstate(c, S_LARGE_FILE);
 				abort_connection(c);
@@ -769,7 +777,7 @@ next_chunk:
 			}
 		}
 	}
-	read_more:
+read_more:
 	read_from_socket(c, c->sock1, rb, read_http_data);
 	setcstate(c, S_TRANS);
 }
@@ -957,15 +965,17 @@ again:
 	e = c->cache;
 	previous_http_code = e->http_code;
 	e->http_code = h;
-	if (e->head) free(e->head);
+	free(e->head);
 	e->head = head;
 	if ((d = parse_http_header(head, cast_uchar "Expires", NULL))) {
 		time_t t = parse_http_date(d);
-		if (t && e->expire_time != 1) e->expire_time = t;
+		if (t && e->expire_time != 1)
+			e->expire_time = t;
 		free(d);
 	}
 	if ((d = parse_http_header(head, cast_uchar "Pragma", NULL))) {
-		if (!casecmp(d, cast_uchar "no-cache", 8)) e->expire_time = 1;
+		if (!casecmp(d, cast_uchar "no-cache", 8))
+			e->expire_time = 1;
 		free(d);
 	}
 	if ((d = parse_http_header(head, cast_uchar "Cache-Control", NULL))) {
