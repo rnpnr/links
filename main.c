@@ -66,25 +66,19 @@ static void sig_ctrl_c(void *t_)
 		kbd_ctrl_c();
 }
 
-#ifdef SIGTTOU
 static void sig_ign(void *x)
 {
 }
-#endif
 
 static struct timer *fg_poll_timer = NULL;
 
 void sig_tstp(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
-#if defined(SIGSTOP) && !defined(NO_CTRL_Z)
-#if defined(SIGCONT) && defined(SIGTTOU)
 	pid_t pid, newpid;
 	EINTRLOOP(pid, getpid());
-#endif
 	if (!F)
 		block_itrm(1);
-#if defined(SIGCONT) && defined(SIGTTOU)
 	EINTRLOOP(newpid, fork());
 	if (!newpid) {
 		while (1) {
@@ -93,18 +87,14 @@ void sig_tstp(void *t_)
 			EINTRLOOP(rr, kill(pid, SIGCONT));
 		}
 	}
-#endif
 	{
 		int rr;
 		EINTRLOOP(rr, raise(SIGSTOP));
 	}
-#if defined(SIGCONT) && defined(SIGTTOU)
 	if (newpid != -1) {
 		int rr;
 		EINTRLOOP(rr, kill(newpid, SIGKILL));
 	}
-#endif
-#endif
 	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer);
 	fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
 }
@@ -124,9 +114,7 @@ static void poll_fg(void *t_)
 		fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
 	if (r == -2) {
 		/* This will unblock externally spawned viewer, if it exists */
-#ifdef SIGCONT
 		EINTRLOOP(r, kill(0, SIGCONT));
-#endif
 	}
 }
 
@@ -141,36 +129,20 @@ static void handle_basic_signals(struct terminal *term)
 	install_signal_handler(SIGHUP, sig_intr, term, 0);
 	if (!F) install_signal_handler(SIGINT, sig_ctrl_c, term, 0);
 	/*install_signal_handler(SIGTERM, sig_terminate, term, 0);*/
-#ifdef SIGTSTP
 	if (!F) install_signal_handler(SIGTSTP, sig_tstp, term, 0);
-#endif
-#ifdef SIGTTIN
 	if (!F) install_signal_handler(SIGTTIN, sig_tstp, term, 0);
-#endif
-#ifdef SIGTTOU
 	install_signal_handler(SIGTTOU, sig_ign, term, 0);
-#endif
-#ifdef SIGCONT
 	if (!F) install_signal_handler(SIGCONT, sig_cont, term, 0);
-#endif
 }
 
 void unhandle_terminal_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
 	if (!F) install_signal_handler(SIGINT, NULL, NULL, 0);
-#ifdef SIGTSTP
 	install_signal_handler(SIGTSTP, NULL, NULL, 0);
-#endif
-#ifdef SIGTTIN
 	install_signal_handler(SIGTTIN, NULL, NULL, 0);
-#endif
-#ifdef SIGTTOU
 	install_signal_handler(SIGTTOU, NULL, NULL, 0);
-#endif
-#ifdef SIGCONT
 	install_signal_handler(SIGCONT, NULL, NULL, 0);
-#endif
 	if (fg_poll_timer != NULL) {
 		kill_timer(fg_poll_timer);
 		fg_poll_timer = NULL;
@@ -182,18 +154,10 @@ static void unhandle_basic_signals(struct terminal *term)
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
 	if (!F) install_signal_handler(SIGINT, NULL, NULL, 0);
 	/*install_signal_handler(SIGTERM, NULL, NULL, 0);*/
-#ifdef SIGTSTP
 	install_signal_handler(SIGTSTP, NULL, NULL, 0);
-#endif
-#ifdef SIGTTIN
 	install_signal_handler(SIGTTIN, NULL, NULL, 0);
-#endif
-#ifdef SIGTTOU
 	install_signal_handler(SIGTTOU, NULL, NULL, 0);
-#endif
-#ifdef SIGCONT
 	install_signal_handler(SIGCONT, NULL, NULL, 0);
-#endif
 	if (fg_poll_timer != NULL) {
 		kill_timer(fg_poll_timer);
 		fg_poll_timer = NULL;
