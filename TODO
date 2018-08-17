@@ -4,13 +4,11 @@
 
 - xembed support
 
-- pledge(2) for OpenBSD
+- pledge(2) and unveil(2) for OpenBSD
 
 - cleanup empty functions
 
 - finish language cleanup
-
-- UTF-8 only?
 
 - sane/secure defaults:
   - configure through config.h (for appropriate options)
