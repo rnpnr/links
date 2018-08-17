@@ -2825,8 +2825,6 @@ extern tcount gamma_stamp;
 
 /* charsets.c */
 
-#include "codepage.h"
-
 extern int utf8_table;
 
 struct conv_table {

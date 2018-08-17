@@ -18,19 +18,19 @@ unsigned char dummyarray[T__N_TEXTS];
 
 #include "language.inc"
 
-static unsigned char **translation_array[N_CODEPAGES];
+static unsigned char **translation_array[1];
 
 void init_trans(void)
 {
 	int j;
-	for (j = 0; j < N_CODEPAGES; j++)
+	for (j = 0; j < 1; j++)
 		translation_array[j] = NULL;
 }
 
 void shutdown_trans(void)
 {
 	int j, k;
-	for (j = 0; j < N_CODEPAGES; j++)
+	for (j = 0; j < 1; j++)
 		if (translation_array[j]) {
 			for (k = 0; k < T__N_TEXTS; k++) {
 				unsigned char *txt = translation_array[j][k];
