@@ -424,7 +424,6 @@ static void init(void)
 static void initialize_all_subsystems(void)
 {
 	init_charset();
-	init_trans();
 	set_sigcld();
 	init_home();
 	init_dns();
@@ -474,7 +473,6 @@ static void terminate_all_subsystems(void)
 	check_bottom_halves();
 	end_config();
 	free_strerror_buf();
-	shutdown_trans();
 	GF(free_dither());
 	GF(shutdown_graphics());
 	os_free_clipboard();

@@ -1636,9 +1636,6 @@ extern unsigned char dummyarray[];
 
 extern int current_language;
 
-void init_trans(void);
-void shutdown_trans(void);
-int get_language_from_lang(unsigned char *);
 int get_default_charset(void);
 int get_commandline_charset(void);
 unsigned char *get_text_translation(unsigned char *, struct terminal *term);
