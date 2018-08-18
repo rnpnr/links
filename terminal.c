@@ -684,7 +684,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	term->environment = !(drv->flags & GD_ONLY_1_WINDOW) ? ENV_G : 0;
 	if (!casestrcmp(drv->name, cast_uchar "x")) term->environment |= ENV_XWIN;
 	term->spec = &gfx_term;
-	term->default_character_set = get_default_charset();
+	term->default_character_set = 0;
 	safe_strncpy(term->cwd, cwd, MAX_CWD_LEN);
 	gfx_term.character_set = utf8_table;
 	if (gfx_term.character_set == -1) gfx_term.character_set = 0;

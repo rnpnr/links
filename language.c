@@ -15,37 +15,9 @@ struct translation {
 
 unsigned char dummyarray[T__N_TEXTS];
 
-int get_default_charset(void)
-{
-	char *lang, *p;
-	int r;
-
-	if (!(lang = getenv("LC_CTYPE")))
-		if (!(lang = getenv("LANG")))
-			return 0;
-
-	if ((p = strchr(lang, '.')))
-		p++;
-	else {
-		if (strlen(lang) > 5
-		&& !casestrcmp((unsigned char *)(strchr(lang, 0) - 5),
-				(unsigned char *)"@euro"))
-			p = "ISO-8859-15";
-		else {
-			p = (char *)translation[T__DEFAULT_CHAR_SET].name;
-			if (!p)
-				p = "";
-		}
-	}
-	if ((r = get_cp_index((unsigned char *)p)) < 0)
-		return 0;
-
-	return r;
-}
-
 int get_commandline_charset(void)
 {
-	return dump_codepage == -1 ? get_default_charset() : dump_codepage;
+	return dump_codepage == -1 ? 0 : dump_codepage;
 }
 
 static inline int is_direct_text(unsigned char *text)

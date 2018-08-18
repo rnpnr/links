@@ -113,7 +113,7 @@ int g_kbd_codepage(struct graphics_driver *drv)
 {
 	if (drv->kbd_codepage >= 0)
 		return drv->kbd_codepage;
-	return get_default_charset();
+	return 0;
 }
 
 void generic_set_clip_area(struct graphics_device *dev, struct rect *r)

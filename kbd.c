@@ -335,7 +335,7 @@ void handle_trm(int sock_out, void *init_string, int init_len)
 	}
 	free(ts);
 	queue_event(itrm, (unsigned char *)&xwin, sizeof(int));
-	def_charset = get_default_charset();
+	def_charset = 0;
 	queue_event(itrm, (unsigned char *)&def_charset, sizeof(int));
 	queue_event(itrm, (unsigned char *)&init_len, sizeof(int));
 	queue_event(itrm, (unsigned char *)init_string, init_len);
