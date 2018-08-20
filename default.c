@@ -960,7 +960,7 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 	if (*argc >= 2) return cast_uchar "Too many parameters";
 	h = *(*argv)++;
 	(*argc)--;
-	h2 = convert(get_commandline_charset(), utf8_table, h, NULL);
+	h2 = convert(get_commandline_charset(), 0, h, NULL);
 	h3 = idn_encode_host(h2, (int)strlen(cast_const_char h2), cast_uchar ".", 0);
 	if (!h3) h3 = stracpy(h2);
 	free(h2);
@@ -1548,7 +1548,6 @@ unsigned G_SCROLL_BAR_BAR_COLOR = G_DEFAULT_SCROLL_BAR_BAR_COLOR;
 unsigned G_SCROLL_BAR_FRAME_COLOR = G_DEFAULT_SCROLL_BAR_FRAME_COLOR;
 
 unsigned char bookmarks_file[MAX_STR_LEN]="";
-int bookmarks_codepage=0; /* changed to utf-8 table in init_charset() */
 
 int save_history = 1;
 
@@ -1654,7 +1653,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_SCROLL_BAR_BAR_COLOR, "scroll_bar_bar_color", "scroll-bar-bar-color"},
 	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_SCROLL_BAR_FRAME_COLOR, "scroll_bar_frame_color", "scroll-bar-frame-color"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, bookmarks_file, "bookmarks_file", "bookmarks-file"},
-	{1, gen_cmd, cp_rd, cp_wr, 0, 0, &bookmarks_codepage, "bookmarks_codepage", "bookmarks-codepage"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &save_history, "save_url_history", "save-url-history"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &display_red_gamma, "display_red_gamma", "display-red-gamma"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &display_green_gamma, "display_green_gamma", "display-green-gamma"},

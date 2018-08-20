@@ -227,7 +227,7 @@ static unsigned char *get_url_val(unsigned char *e, unsigned char *name)
 	get_attr_val_nl = 0;
 	if (!a)
 		return NULL;
-	if (d_opt->real_cp != utf8_table) {
+	if (d_opt->real_cp) {
 		if (url_non_ascii(a))
 			goto need_convert;
 	}
@@ -649,11 +649,12 @@ static int put_chars_conv(unsigned char *c, int l)
 		if (c[pp] != '&') {
 			struct conv_table *t;
 			int i;
-			if (pp + 3 <= l && c[pp] == 0xef && c[pp + 1] == 0xbb && c[pp + 2] == 0xbf && d_opt->real_cp == utf8_table) {
+			if (pp + 3 <= l && c[pp] == 0xef && c[pp + 1] == 0xbb && c[pp + 2] == 0xbf && !d_opt->real_cp) {
 				pp += 3;
 				continue;
 			}
-			if ((d_opt->real_cp == d_opt->cp && d_opt->real_cp == utf8_table) || !convert_table) goto put_c;
+			if ((d_opt->real_cp == d_opt->cp && !d_opt->real_cp) || !convert_table)
+				goto put_c;
 			t = convert_table;
 			i = pp;
 			decode:
@@ -688,7 +689,7 @@ static int put_chars_conv(unsigned char *c, int l)
 		if (bp + sl > CH_BUF) {
 			flush1:
 			put_chars_f(ff, buffer, bp);
-			if (d_opt->cp == utf8_table) {
+			if (!d_opt->cp) {
 				while (bp) if ((buffer[--bp] & 0xc0) != 0x80) total++;
 			} else {
 				total += bp;
@@ -701,7 +702,7 @@ static int put_chars_conv(unsigned char *c, int l)
 		if (bp == CH_BUF) goto flush;
 	}
 	if (bp) put_chars_f(ff, buffer, bp);
-	if (d_opt->cp == utf8_table) {
+	if (!d_opt->cp) {
 		while (bp) if ((buffer[--bp] & 0xc0) != 0x80) total++;
 	} else {
 		total += bp;

@@ -572,7 +572,8 @@ static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct 
 	mi = new_menu(5);
 	for (i = -def; (n = get_cp_name(i)); i++) {
 		unsigned char *n, *r, *p;
-		if (!utf && i == utf8_table) continue;
+		if (!utf && !i)
+			continue;
 		if (i == -1) {
 			n = TEXT_(T_DEFAULT_CHARSET);
 			r = stracpy(get_cp_name(term->default_character_set));
@@ -1342,7 +1343,7 @@ int save_proxy(int charset, unsigned char *result, unsigned char *proxy)
 		return 0;
 	}
 
-	proxy = convert(charset, utf8_table, proxy, NULL);
+	proxy = convert(charset, 0, proxy, NULL);
 
 	url = stracpy(cast_uchar "proxy://");
 	add_to_strn(&url, proxy);
@@ -1383,7 +1384,7 @@ int save_noproxy_list(int charset, unsigned char *result, unsigned char *noproxy
 {
 	unsigned char *res;
 
-	noproxy_list = convert(charset, utf8_table, noproxy_list, NULL);
+	noproxy_list = convert(charset, 0, noproxy_list, NULL);
 	res = idn_encode_host(noproxy_list, (int)strlen(cast_const_char noproxy_list), cast_uchar ".,", 0);
 	free(noproxy_list);
 	if (!res) {
@@ -2452,7 +2453,7 @@ static void menu_color(struct terminal *term, void *xxx, void *ses_)
 }
 
 static unsigned char new_bookmarks_file[MAX_STR_LEN];
-static int new_bookmarks_codepage;
+static int new_bookmarks_codepage = 0;
 
 #ifdef G
 static unsigned char menu_font_str[4];
@@ -2485,10 +2486,8 @@ static void refresh_misc(void *ses_)
 		}
 	}
 #endif
-	if (strcmp(cast_const_char new_bookmarks_file, cast_const_char bookmarks_file) || new_bookmarks_codepage != bookmarks_codepage)
-	{
-		reinit_bookmarks(ses, new_bookmarks_file, new_bookmarks_codepage);
-	}
+	if (strcmp((char *)new_bookmarks_file, (char *)bookmarks_file))
+		reinit_bookmarks(ses, new_bookmarks_file);
 }
 
 #ifdef G
@@ -2615,7 +2614,6 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 	if (anonymous&&!F) return;	/* if you add something into text mode (or both text and graphics), remove this (and enable also miscelaneous_options in do_setup_menu) */
 
 	safe_strncpy(new_bookmarks_file,bookmarks_file,MAX_STR_LEN);
-	new_bookmarks_codepage=bookmarks_codepage;
 	if (!F) {
 		d = mem_calloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
 	}
@@ -3295,7 +3293,7 @@ void query_file(struct session *ses, unsigned char *url, unsigned char *head, vo
 	h = xmalloc(sizeof(struct does_file_exist_s));
 
 	fc = get_filename_from_url(url, head, 0);
-	file = convert(utf8_table, 0, fc, NULL);
+	file = stracpy(fc);
 	free(fc);
 	check_filename(&file);
 

@@ -79,14 +79,14 @@ static inline int is_utf_8(struct terminal *term)
 	if (F)
 		return 1;
 #endif
-	if (term_charset(term) == utf8_table)
+	if (!term_charset(term))
 		return 1;
 	return 0;
 }
 
 static inline int ttxtlen(struct terminal *term, unsigned char *s)
 {
-	if (term_charset(term) == utf8_table)
+	if (!term_charset(term))
 		return strlen_utf8(s);
 	return (int)strlen(cast_const_char s);
 }
@@ -1096,10 +1096,10 @@ static unsigned char *dlg_get_history_string(struct terminal *term, struct histo
 {
 	unsigned char *s;
 	int ch = term_charset(term);
-	s = convert(utf8_table, ch, hi->str, NULL);
+	s = convert(0, ch, hi->str, NULL);
 	if (strlen(cast_const_char s) >= (size_t)l)
 		s[l - 1] = 0;
-	if (ch == utf8_table) {
+	if (!ch) {
 		int r = (int)strlen(cast_const_char s);
 		unsigned char *p = s;
 		while (r) {
@@ -2259,7 +2259,7 @@ void add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 	size_t l;
 	if (!h || !t || !*t) return;
 	if (term) {
-		s = convert(term_charset(term), utf8_table, t, NULL);
+		s = convert(term_charset(term), 0, t, NULL);
 	} else {
 		s = t;
 	}

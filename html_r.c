@@ -611,7 +611,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	if (c[0] != ' ' || (c[1] && c[1] != ' ')) {
 		last_tag_for_newline = &p->data->tags;
 	}
-	if (d_opt->cp == utf8_table && !(format_.attr & AT_GRAPHICS)) {
+	if (!d_opt->cp && !(format_.attr & AT_GRAPHICS)) {
 		int pl;
 		unsigned char *cc;
 		if (p->utf8_part_len) {
@@ -684,7 +684,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		free(uni_c);
 		return;
 	}
-	if (d_opt->cp == utf8_table && !(format_.attr & AT_GRAPHICS)) {
+	if (!d_opt->cp && !(format_.attr & AT_GRAPHICS)) {
 		set_hline_uni(p, p->cx, p->cy, ll, uni_c, ((fg&0x08)<<3)|(bg<<3)|(fg&0x07));
 	} else
 	{
@@ -1215,9 +1215,9 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	if (d_opt->break_long_lines) implicit_pre_wrap = 1;
 	if (d_opt->plain) *t = 0;
 	if (screen->opt.plain == 2) {
-		screen->cp = utf8_table;
+		screen->cp = 0;
 		screen->ass = -1;
-		convert_table = get_translation_table(utf8_table, screen->opt.cp);
+		convert_table = get_translation_table(0, screen->opt.cp);
 	} else {
 		convert_table = get_convert_table(head, screen->opt.cp, screen->opt.assume_cp, &screen->cp, &screen->ass, screen->opt.hard_assume);
 	}

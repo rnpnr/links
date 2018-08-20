@@ -56,8 +56,8 @@ static struct list_description bookmark_ld = {
 	bookmark_type_item,	/* no codepage translations (bookmarks are internally in UTF8) */
 	bookmark_find_item,
 	&bookmark_search_history,
-	0,		/* this is set in init_bookmarks function */
-	15,  /* # of items in main window */
+	0,			/* codepage */
+	15,			/* # of items in main window */
 	T_BOOKMARK,
 	T_BOOKMARKS_ALREADY_IN_USE,
 	T_BOOKMARK_MANAGER,
@@ -124,7 +124,7 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 	{
 		if (ses->screen->f_data)
 		{
-			zelena->url=convert(term_charset(ses->term),bookmark_ld.codepage,txt,NULL);
+			zelena->url = convert(term_charset(ses->term), 0, txt, NULL);
 			clr_white(zelena->url);
 		}
 		else
@@ -132,7 +132,7 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 	}
 	if (get_current_title(ses->screen,txt,MAX_STR_LEN))  /* ses->screen->f_data must exist here */
 	{
-		zelena->title=convert(term_charset(ses->term),bookmark_ld.codepage,txt,NULL);
+		zelena->title = convert(term_charset(ses->term), 0, txt, NULL);
 		clr_white(zelena->title);
 	}
 
@@ -220,11 +220,11 @@ static void bookmark_edit_done(void *data)
 	url = title + MAX_STR_LEN;
 
 	free(item->title);
-	item->title = convert(term_charset(s->dlg->win->term), bookmark_ld.codepage, title, NULL);
+	item->title = convert(term_charset(s->dlg->win->term), 0, title, NULL);
 	clr_white(item->title);
 
 	free(item->url);
-	item->url = convert(term_charset(s->dlg->win->term), bookmark_ld.codepage, url, NULL);
+	item->url = convert(term_charset(s->dlg->win->term), 0, url, NULL);
 	clr_white(item->url);
 
 	s->fn(s->dlg, s->data, &item->head, &bookmark_ld);
@@ -269,12 +269,12 @@ static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void 
 	{
 		unsigned char *txt;
 
-		txt = convert(bookmark_ld.codepage, term_charset(dlg->win->term), item->title, NULL);
+		txt = convert(0, term_charset(dlg->win->term), item->title, NULL);
 		clr_white(txt);
 		safe_strncpy(title, txt, MAX_STR_LEN);
 		free(txt);
 
-		txt = convert(bookmark_ld.codepage, term_charset(dlg->win->term), item->url, NULL);
+		txt = convert(0, term_charset(dlg->win->term), item->url, NULL);
 		clr_white(txt);
 		safe_strncpy(url, txt, MAX_STR_LEN);
 		free(txt);
@@ -380,7 +380,7 @@ static unsigned char *bookmark_type_item(struct terminal *term, struct list *dat
 		add_to_strn(&txt, cast_uchar ")");
 	}
 
-	txt1 = convert(bookmark_ld.codepage, term_charset(term), txt, NULL);
+	txt1 = convert(0, term_charset(term), txt, NULL);
 	clr_white(txt1);
 	free(txt);
 	return txt1;
@@ -479,13 +479,13 @@ static void add_bookmark(unsigned char *title, unsigned char *url, int depth)
 	b = xmalloc(sizeof(struct bookmark_list));
 
 	dop = mem_calloc(sizeof(struct document_options));
-	dop->cp = bookmark_ld.codepage;
+	dop->cp = 0;
 
-	b->title = convert(bookmarks_codepage, bookmark_ld.codepage, title, dop);
+	b->title = convert(0, 0, title, dop);
 	clr_white(b->title);
 
 	if (url) {
-		b->url = convert(bookmarks_codepage, bookmark_ld.codepage, url, NULL);
+		b->url = stracpy(url);
 		clr_white(b->url);
 		b->head.type = 0;
 	} else {
@@ -632,11 +632,10 @@ void init_bookmarks(void)
 		safe_strncpy(e, cast_uchar "bookmarks.html", MAX_STR_LEN - (e - bookmarks_file));
 	}
 
-	bookmark_ld.codepage = utf8_table;
 	load_bookmarks(NULL);
 }
 
-void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file, int new_bookmarks_codepage)
+void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file)
 {
 	unsigned char *buf;
 	if (test_list_window_in_use(&bookmark_ld, ses->term))
@@ -651,13 +650,11 @@ void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file, in
 		free(buf);
 		free_bookmarks();
 		safe_strncpy(bookmarks_file, new_bookmarks_file, MAX_STR_LEN);
-		bookmarks_codepage = new_bookmarks_codepage;
 		load_bookmarks(ses);
 		reinit_list_window(&bookmark_ld);
 	} else {
 		save_only:
 		safe_strncpy(bookmarks_file, new_bookmarks_file, MAX_STR_LEN);
-		bookmarks_codepage = new_bookmarks_codepage;
 		bookmark_ld.modified = 1;
 		save_bookmarks(ses);
 	}
@@ -738,7 +735,7 @@ static void save_bookmarks(struct session *ses)
 
 		if (b->head.type & 1) {
 			unsigned char *txt, *txt1;
-			txt = convert(bookmark_ld.codepage, bookmarks_codepage, b->title, NULL);
+			txt = stracpy(b->title);
 			clr_white(txt);
 			txt1 = convert_to_entity_string(txt);
 			add_to_str(&data, &l, cast_uchar "    <DT><H3>");
@@ -749,9 +746,9 @@ static void save_bookmarks(struct session *ses)
 			depth++;
 		} else {
 			unsigned char *txt1, *txt2, *txt11;
-			txt1 = convert(bookmark_ld.codepage, bookmarks_codepage, b->title, NULL);
+			txt1 = stracpy(b->title);
 			clr_white(txt1);
-			txt2 = convert(bookmark_ld.codepage, bookmarks_codepage, b->url, NULL);
+			txt2 = stracpy(b->url);
 			clr_white(txt2);
 			txt11 = convert_to_entity_string(txt1);
 			add_to_str(&data, &l, cast_uchar "    <DT><A HREF=\"");

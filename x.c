@@ -320,7 +320,7 @@ static unsigned char *x_query_palette(void)
 
 static inline int trans_key(unsigned char * str, int table)
 {
-	if (table == utf8_table) {
+	if (!table) {
 		int a;
 		GET_UTF_8(str,a);
 		return a;
@@ -344,10 +344,8 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 
 	if (get_window_info(gd)->xic) {
 		Status status;
-		{
-			len = Xutf8LookupString(get_window_info(gd)->xic, e, cast_char str, str_size, &ks, &status);
-		}
-		table = utf8_table;
+		len = Xutf8LookupString(get_window_info(gd)->xic, e, cast_char str, str_size, &ks, &status);
+		table = 0;
 		/*fprintf(stderr, "len: %d, ks %ld, status %d\n", len, ks, status);*/
 	} else
 		len = XLookupString(e,cast_char str,str_size,&ks,&comp);
@@ -1882,7 +1880,7 @@ retry_encode_ascii:
 
 	if (!gd)
 		internal("x_set_window_title called with NULL graphics_device pointer.\n");
-	t = convert(utf8_table, output_encoding, title, NULL);
+	t = convert(0, output_encoding, title, NULL);
 	clr_white(t);
 
 	if (XSupportsLocale()) {
@@ -1956,7 +1954,7 @@ static void selection_request(XEvent *event)
 		if (!x_my_clipboard)
 			str = stracpy(cast_uchar "");
 		else
-			str = convert(utf8_table,
+			str = convert(0,
 				get_cp_index(cast_uchar "iso-8859-1"),
 				x_my_clipboard, NULL);
 		for (p = cast_uchar strchr((char *)str, 1); p;
@@ -2042,7 +2040,7 @@ retry:
 			x_my_clipboard = stracpy(buffer);
 		else
 			x_my_clipboard = convert(get_cp_index(cast_uchar "iso-8859-1"),
-						utf8_table, buffer, NULL);
+						0, buffer, NULL);
 		XFree(buffer);
 	} else if (type_atom == x_utf8_string_atom) {
 			type_atom = XA_STRING;

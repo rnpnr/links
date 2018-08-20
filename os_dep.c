@@ -365,7 +365,7 @@ unsigned char *get_clipboard_text(struct terminal *term)
 #endif
 	if (!clipboard)
 		return NULL;
-	return convert(utf8_table, term_charset(term), clipboard, NULL);
+	return convert(0, term_charset(term), clipboard, NULL);
 }
 
 /* links -> clipboard */
@@ -378,7 +378,7 @@ void set_clipboard_text(struct terminal *term, unsigned char *data)
 	}
 #endif
 	free(clipboard);
-	clipboard = convert(term_charset(term), utf8_table, data, NULL);
+	clipboard = convert(term_charset(term), 0, data, NULL);
 }
 
 int clipboard_support(struct terminal *term)

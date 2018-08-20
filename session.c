@@ -2628,7 +2628,7 @@ void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned 
 void goto_url(void *ses_, unsigned char *url)
 {
 	struct session *ses = (struct session *)ses_;
-	unsigned char *u = convert(term_charset(ses->term), utf8_table, url, NULL);
+	unsigned char *u = convert(term_charset(ses->term), 0, url, NULL);
 	goto_url_utf8(ses, u);
 	free(u);
 }

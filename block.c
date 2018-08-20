@@ -344,7 +344,7 @@ int is_url_blocked(unsigned char *url)
 
 void init_blocks(void)
 {
-	blocks_ld.codepage = utf8_table;
+	blocks_ld.codepage = 0;
 }
 
 void free_blocks(void)

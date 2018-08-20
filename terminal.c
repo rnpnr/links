@@ -625,11 +625,11 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 static int process_utf_8(struct terminal *term, struct links_event *ev)
 {
 	if (ev->ev == EV_KBD) {
-		if ((!F && term_charset(term) == utf8_table)
+		if ((!F && !term_charset(term))
 #ifdef G
-		    || (F && !(drv->flags & GD_UNICODE_KEYS) && g_kbd_codepage(drv) == utf8_table)
+		|| (F && !(drv->flags & GD_UNICODE_KEYS) && !g_kbd_codepage(drv))
 #endif
-		    ) {
+		) {
 			size_t l;
 			unsigned char *p;
 			unsigned c;
@@ -686,7 +686,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	term->spec = &gfx_term;
 	term->default_character_set = 0;
 	safe_strncpy(term->cwd, cwd, MAX_CWD_LEN);
-	gfx_term.character_set = utf8_table;
+	gfx_term.character_set = 0;
 	if (gfx_term.character_set == -1) gfx_term.character_set = 0;
 	init_list(term->windows);
 	term->handle_to_close = -1;
@@ -981,8 +981,8 @@ static unsigned char frame_restrict[48] = {
 		add_to_str(&a, &l, cast_uchar "m");			\
 	}								\
 	if (c >= ' ' && c != 127 && (c != 155 ||			\
-	    (term_charset(term) != utf8_table && cp2u(155, term_charset(term)) != -1))) {\
-		if (c < 128 || frm || term_charset(term) != utf8_table) {\
+	    (term_charset(term) && cp2u(155, term_charset(term)) != -1))) {\
+		if (c < 128 || frm || term_charset(term)) {		\
 			add_chr_to_str(&a, &l, (unsigned char)c);	\
 		} else {						\
 		/*							\
@@ -1427,7 +1427,7 @@ void set_terminal_title(struct terminal *term, unsigned char *title)
 #ifdef SET_WINDOW_TITLE_UTF_8
 	{
 		free(title);
-		title = convert(term_charset(term), utf8_table, term->title, NULL);
+		title = convert(term_charset(term), 0, term->title, NULL);
 	}
 #endif
 	if (!F) do_terminal_function(term, TERM_FN_TITLE, title);

@@ -411,7 +411,7 @@ static void init(void)
 			retval = RET_SYNTAX;
 			goto tttt;
 		}
-		uu = convert(get_commandline_charset(), utf8_table, u, NULL);
+		uu = convert(get_commandline_charset(), 0, u, NULL);
 		if (!(uuu = translate_url(uu, wd = get_cwd()))) uuu = stracpy(uu);
 		free(uu);
 		request_object(NULL, uuu, NULL, PRI_MAIN, NC_RELOAD, ALLOW_ALL, end_dump, NULL, &dump_obj);
@@ -423,7 +423,6 @@ static void init(void)
 /* Is called before gaphics driver init */
 static void initialize_all_subsystems(void)
 {
-	init_charset();
 	set_sigcld();
 	init_home();
 	init_dns();

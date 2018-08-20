@@ -1200,9 +1200,9 @@ static unsigned char *display_url_or_host(struct terminal *term, unsigned char *
 	else
 		url_dec = idn_encode_host(url, (int)strlen((char *)url), separator, 1);
 	is_idn = strcmp((char *)url_dec, (char *)url);
-	url_conv = convert(utf8_table, term_charset(term), url_dec, NULL);
+	url_conv = convert(0, term_charset(term), url_dec, NULL);
 	free(url_dec);
-	url_conv2 = convert(term_charset(term), utf8_table, url_conv, NULL);
+	url_conv2 = convert(term_charset(term), 0, url_conv, NULL);
 	if (!just_host)
 		url_enc = idn_encode_url(url_conv2, 0);
 	else
@@ -1217,7 +1217,7 @@ static unsigned char *display_url_or_host(struct terminal *term, unsigned char *
 			url_conv = NULL;
 		}
 	} else
-		ret = convert(utf8_table, term_charset(term), url, NULL);
+		ret = convert(0, term_charset(term), url, NULL);
 	free(url);
 	free(url_conv);
 	free(url_enc);

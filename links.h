@@ -2821,8 +2821,6 @@ extern tcount gamma_stamp;
 
 /* charsets.c */
 
-extern int utf8_table;
-
 struct conv_table {
 	int t;
 	union {
@@ -2831,7 +2829,7 @@ struct conv_table {
 	} u;
 };
 
-struct conv_table *get_translation_table(int, int);
+struct conv_table *get_translation_table(const int, const int);
 int get_entity_number(unsigned char *st, int l);
 unsigned char *get_entity_string(unsigned char *, int, int);
 unsigned char *convert_string(struct conv_table *, unsigned char *, int, struct document_options *);
@@ -2853,7 +2851,6 @@ unsigned char *to_utf8_upcase(unsigned char *str, int cp);
 int compare_case_utf8(unsigned char *u1, unsigned char *u2);
 int strlen_utf8(unsigned char *s);
 unsigned char *cp_strchr(int charset, unsigned char *str, unsigned chr);
-void init_charset(void);
 
 unsigned get_utf_8(unsigned char **p);
 #define GET_UTF_8(s, c)							\
@@ -2896,7 +2893,7 @@ static inline int utf8chrlen(unsigned char c)
 static inline unsigned GET_TERM_CHAR(struct terminal *term, unsigned char **str)
 {
 	unsigned ch;
-	if (term_charset(term) == utf8_table)
+	if (!term_charset(term))
 		GET_UTF_8(*str, ch);
 	else
 		ch = *(*str)++;
@@ -3620,7 +3617,6 @@ extern int menu_font_size;
 extern unsigned G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_SCROLL_BAR_AREA_COLOR, G_SCROLL_BAR_BAR_COLOR, G_SCROLL_BAR_FRAME_COLOR;
 
 extern unsigned char bookmarks_file[MAX_STR_LEN];
-extern int bookmarks_codepage;
 
 extern int save_history;
 
@@ -3793,7 +3789,7 @@ extern struct list bookmarks;
 
 void finalize_bookmarks(void);   /* called, when exiting links */
 void init_bookmarks(void);   /* called at start */
-void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file, int new_bookmarks_codepage);
+void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file);
 
 /* Launches bookmark manager */
 void menu_bookmark_manager(struct terminal *, void *, void *);

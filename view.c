@@ -157,7 +157,7 @@ void sort_links(struct f_data *f)
 
 unsigned char *textptr_add(unsigned char *t, int i, int cp)
 {
-	if (cp != utf8_table) {
+	if (cp) {
 		if ((size_t)i <= strlen(cast_const_char t)) return t + i;
 		else return t + strlen(cast_const_char t);
 	} else {
@@ -168,7 +168,8 @@ unsigned char *textptr_add(unsigned char *t, int i, int cp)
 
 int textptr_diff(unsigned char *t2, unsigned char *t1, int cp)
 {
-	if (cp != utf8_table) return (int)(t2 - t1);
+	if (cp)
+		return (int)(t2 - t1);
 	else {
 		int i = 0;
 		while (t2 > t1) {
@@ -201,7 +202,8 @@ static struct line_info *format_text_uncached(unsigned char *text, int width, in
 			continue;
 		}
 		if (!wrap || textptr_diff(text, b, cp) < width) {
-			if (cp != utf8_table) text++;
+			if (cp)
+				text++;
 			else FWD_UTF_8(text);
 			continue;
 		}
@@ -440,7 +442,7 @@ static int get_range(struct f_data *f, int y, int yw, int l, int *s1, int *s2)
 
 static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int *min, int *max)
 {
-	int utf8 = f->opt.cp == utf8_table;
+	int utf8 = f->opt.cp == 0;
 	int found = 0;
 	int l;
 	int s1, s2;
@@ -494,7 +496,7 @@ cont:;
 
 static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 {
-	int utf8 = term_charset(scr->ses->term) == utf8_table;
+	int utf8 = term_charset(scr->ses->term) == 0;
 	struct f_data *f = scr->f_data;
 	int xp = scr->xp;
 	int yp = scr->yp;
@@ -747,7 +749,7 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 				if (!*s) {
 					ch = '_';
 				} else {
-					if (f->f_data->opt.cp != utf8_table) {
+					if (f->f_data->opt.cp) {
 						ch = *s++;
 					} else {
 						GET_UTF_8(s, ch);
@@ -779,7 +781,7 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 					if (s >= ln->en) {
 						ch = '_';
 					} else {
-						if (f->f_data->opt.cp != utf8_table) {
+						if (f->f_data->opt.cp) {
 							ch = *s++;
 						} else {
 							GET_UTF_8(s, ch);
@@ -821,7 +823,7 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 				if (!*s) {
 					chr = '_';
 				} else {
-					if (term_charset(t) == utf8_table) {
+					if (!term_charset(t)) {
 						GET_UTF_8(s, chr);
 					} else
 					chr = *s++;
@@ -1095,14 +1097,12 @@ int dump_to_file(struct f_data *fd, int h)
 			if (c == 1) c = ' ';
 			if (fd->data[y].d[x].at & ATTR_FRAME && c >= 176 && c < 224) c = frame_dumb[c - 176];
 		}
-		if (fd->opt.cp == utf8_table && c >= 0x80) {
+		if (!fd->opt.cp && c >= 0x80) {
 			unsigned char *enc = encode_utf_8(c);
 			strcpy(cast_char(buf + bptr), cast_const_char enc);
 			bptr += (int)strlen(cast_const_char enc);
 		} else
-		{
 			buf[bptr++] = (unsigned char)c;
-		}
 		if (bptr >= D_BUF - 7) {
 			if (hard_write(h, buf, bptr) != bptr) goto fail;
 			bptr = 0;
@@ -2101,7 +2101,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				int ll;
 				v = fs->value = xrealloc(fs->value,
 							strlen(cast_const_char fs->value) + 12);
-				if (f->f_data->opt.cp != utf8_table) {
+				if (f->f_data->opt.cp) {
 					nw = a_;
 					a_[0] = (unsigned char)ev->x;
 					a_[1] = 0;
@@ -2134,7 +2134,8 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			goto done;
 		}
 		if (ev->x == KBD_LEFT) {
-			if (f->f_data->opt.cp != utf8_table) fs->state = fs->state ? fs->state - 1 : 0;
+			if (f->f_data->opt.cp)
+				fs->state = fs->state ? fs->state - 1 : 0;
 			else {
 				unsigned char *p = fs->value + fs->state;
 				BACK_UTF_8(p, fs->value);
@@ -2142,7 +2143,8 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			}
 		} else if (ev->x == KBD_RIGHT) {
 			if ((size_t)fs->state < strlen(cast_const_char fs->value)) {
-				if (f->f_data->opt.cp != utf8_table) fs->state = fs->state + 1;
+				if (f->f_data->opt.cp)
+					fs->state = fs->state + 1;
 				else {
 					unsigned char *p = fs->value + fs->state;
 					FWD_UTF_8(p);
@@ -2253,7 +2255,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			set_br_pos(f, l);
 			if (!form->ro && fs->state) {
 				int ll = 1;
-				if (f->f_data->opt.cp == utf8_table) {
+				if (!f->f_data->opt.cp) {
 					unsigned char *p = fs->value + fs->state;
 					BACK_UTF_8(p, fs->value);
 					ll = (int)(fs->value + fs->state - p);
@@ -2266,7 +2268,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			if (!F && ev->x == KBD_DEL && !f->last_captured)
 				return 0;
 			set_br_pos(f, l);
-			if (f->f_data->opt.cp == utf8_table) {
+			if (!f->f_data->opt.cp) {
 				unsigned char *p = fs->value + fs->state;
 				FWD_UTF_8(p);
 				ll = (int)(p - (fs->value + fs->state));
@@ -3185,7 +3187,7 @@ void save_url(void *ses_, unsigned char *url)
 {
 	struct session *ses = (struct session *)ses_;
 	unsigned char *u1, *u2;
-	u1 = convert(term_charset(ses->term), utf8_table, url, NULL);
+	u1 = convert(term_charset(ses->term), 0, url, NULL);
 	u2 = translate_url(u1, ses->term->cwd);
 	free(u1);
 	if (!u2) {
