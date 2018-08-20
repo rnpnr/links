@@ -70,11 +70,11 @@ static void new_translation_table(struct conv_table *p)
 			free_translation_table(p[i].u.tbl);
 	for (i = 0; i < 128; i++) {
 		p[i].t = 0;
-		p[i].u.str = cast_uchar strings[i];
+		p[i].u.str = (unsigned char *)strings[i];
 	}
 	for (; i < 256; i++) {
 		p[i].t = 0;
-		p[i].u.str = cast_uchar no_str;
+		p[i].u.str = (unsigned char *)no_str;
 	}
 }
 
@@ -89,13 +89,13 @@ static int is_nbsp(int u)
 unsigned char *u2cp(int u, int to, int fallback)
 {
 	if (u < 0)
-		return cast_uchar "";
+		return (unsigned char *)"";
 	if (u < 128)
-		return cast_uchar strings[u];
+		return (unsigned char *)strings[u];
 	if (is_nbsp(u))
-		return cast_uchar strings[1];
+		return (unsigned char *)strings[1];
 	if (u == 0xad)
-		return cast_uchar strings[0];
+		return (unsigned char *)strings[0];
 
 	return encode_utf_8(u);
 }
@@ -196,18 +196,21 @@ static struct conv_table *get_translation_table_to_utf_8(int from)
 	lfr = from;
 	if (utf_table_init) {
 		memset(utf_table, 0, sizeof(struct conv_table) * 256);
-		for (i = 0; i < 128; i++) utf_table[i].u.str = cast_uchar strings[i];
+		for (i = 0; i < 128; i++)
+			utf_table[i].u.str = cast_uchar strings[i];
 		utf_table_init = 0;
 	} else
 		free_utf_table();
 	if (!from) {
-		for (i = 128; i < 256; i++) utf_table[i].u.str = stracpy(strings[i]);
+		for (i = 128; i < 256; i++)
+			utf_table[i].u.str = stracpy(strings[i]);
 		return utf_table;
 	}
 	for (i = 128; i < 256; i++)
 		utf_table[i].u.str = NULL;
 	for (i = 128; i < 256; i++)
-		if (!utf_table[i].u.str) utf_table[i].u.str = stracpy(no_str);
+		if (!utf_table[i].u.str)
+			utf_table[i].u.str = stracpy(no_str);
 	return utf_table;
 }
 
@@ -315,21 +318,30 @@ int get_entity_number(unsigned char *st, int l)
 	if (upcase(st[0]) == 'X') {
 		st++;
 		l--;
-		if (!l) return -1;
+		if (!l)
+			return -1;
 		do {
 			unsigned char c = upcase(*(st++));
-			if (c >= '0' && c <= '9') n = n * 16 + c - '0';
-			else if (c >= 'A' && c <= 'F') n = n * 16 + c - 'A' + 10;
-			else return -1;
-			if (n > 0x10FFFF) return -1;
+			if (c >= '0' && c <= '9')
+				n = n * 16 + c - '0';
+			else if (c >= 'A' && c <= 'F')
+				n = n * 16 + c - 'A' + 10;
+			else
+				return -1;
+			if (n > 0x10FFFF)
+				return -1;
 		} while (--l);
 	} else {
-		if (!l) return -1;
+		if (!l)
+			return -1;
 		do {
 			unsigned char c = *(st++);
-			if (c >= '0' && c <= '9') n = n * 10 + c - '0';
-			else return -1;
-			if (n > 0x10FFFF) return -1;
+			if (c >= '0' && c <= '9')
+				n = n * 10 + c - '0';
+			else
+				return -1;
+			if (n > 0x10FFFF)
+				return -1;
 		} while (--l);
 	}
 	return n;
@@ -338,11 +350,13 @@ int get_entity_number(unsigned char *st, int l)
 unsigned char *get_entity_string(unsigned char *st, int l, int encoding)
 {
 	int n;
-	if (l <= 0) return NULL;
+	if (l <= 0)
+		return NULL;
 	if (st[0] == '#') {
-		if (l == 1) return NULL;
-		if ((n = get_entity_number(st + 1, l - 1)) == -1) return NULL;
-		if (n < 32 && get_attr_val_nl != 2) n = 32;
+		if ((n = get_entity_number(st + 1, l - 1)) == -1 || l == 1)
+			return NULL;
+		if (n < 32 && get_attr_val_nl != 2)
+			n = 32;
 	} else {
 		int s = 0, e = N_ENTITIES - 1;
 		while (s <= e) {
@@ -370,15 +384,17 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 	int pp = 0;
 	if (!ct) {
 		int i;
-		for (i = 0; i < l; i++) if (c[i] == '&') goto xx;
+		for (i = 0; i < l; i++)
+			if (c[i] == '&')
+				goto xx;
 		return memacpy(c, l);
-		xx:;
+xx:;
 	}
 	buffer = xmalloc(ALLOC_GR);
 	while (pp < l) {
-		unsigned char *e = NULL;	/* against warning */
+		unsigned char *e = NULL;
 		if (c[pp] < 128 && c[pp] != '&') {
-			put_c:
+put_c:
 			buffer[bp++] = c[pp++];
 			if (!(bp & (ALLOC_GR - 1))) {
 				if ((unsigned)bp > INT_MAX - ALLOC_GR)
@@ -390,10 +406,11 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 		if (c[pp] != '&') {
 			struct conv_table *t;
 			int i;
-			if (!ct) goto put_c;
+			if (!ct)
+				goto put_c;
 			t = ct;
 			i = pp;
-			decode:
+decode:
 			if (!t[c[i]].t) {
 				e = t[c[i]].u.str;
 			} else {
@@ -406,7 +423,8 @@ unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, st
 			int i = pp + 1;
 			if (!dopt || dopt->plain) goto put_c;
 			while (i < l && c[i] != ';' && c[i] != '&' && c[i] > ' ') i++;
-			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1, dopt->cp))) goto put_c;
+			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1, dopt->cp)))
+				goto put_c;
 			pp = i + (i < l && c[i] == ';');
 		}
 		if (!e[0])
@@ -454,20 +472,20 @@ need_table:
 int get_cp_index(const unsigned char *n)
 {
 	int a, p, q, sl, ii = -1, ll = 0;
-		for (a = 0; codepages[0].aliases[a]; a++)
-			for (p = 0; n[p]; p++) {
-				if (upcase(n[p]) == upcase(codepages[0].aliases[a][0])) {
-					for (q = 1; codepages[0].aliases[a][q]; q++)
-						if (upcase(n[p+q]) != upcase(codepages[0].aliases[a][q]))
-							goto fail;
-					sl = strlen((char *)codepages[0].aliases[a]);
-					if (sl > ll) {
-						ll = sl;
-						ii = 0;
-					}
+	for (a = 0; codepages[0].aliases[a]; a++)
+		for (p = 0; n[p]; p++) {
+			if (upcase(n[p]) == upcase(codepages[0].aliases[a][0])) {
+				for (q = 1; codepages[0].aliases[a][q]; q++)
+					if (upcase(n[p+q]) != upcase(codepages[0].aliases[a][q]))
+						goto fail;
+				sl = strlen((char *)codepages[0].aliases[a]);
+				if (sl > ll) {
+					ll = sl;
+					ii = 0;
 				}
-fail:;
 			}
+fail:;
+		}
 	return ii;
 }
 
@@ -479,8 +497,10 @@ unsigned char *get_cp_name(int index)
 
 unsigned char *get_cp_mime_name(int index)
 {
-	if (index < 0) return cast_uchar "none";
-	if (!codepages[index].aliases) return NULL;
+	if (index < 0)
+		return cast_uchar "none";
+	if (!codepages[index].aliases)
+		return NULL;
 	return cast_uchar codepages[index].aliases[0];
 }
 
@@ -491,7 +511,8 @@ unsigned uni_locase(unsigned ch)
 {
 	int res;
 	BIN_SEARCH(array_elements(unicode_locase), LO_EQUAL, LO_ABOVE, ch, res);
-	if (res == -1) return ch;
+	if (res == -1)
+		return ch;
 	return unicode_locase[res].n;
 }
 
@@ -503,14 +524,17 @@ unsigned charset_upcase(unsigned ch, int cp)
 	unsigned u;
 	int res;
 	unsigned char *str;
-	if (ch < 0x80) return upcase(ch);
+	if (ch < 0x80)
+		return upcase(ch);
 	u = cp2u(ch, cp);
 	BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, u, res);
-	if (res == -1) return ch;
+	if (res == -1)
+		return ch;
 	if (!cp)
 		return unicode_upcase[res].n;
 	str = u2cp(unicode_upcase[res].n, cp, 0);
-	if (!str || !str[0] || str[1]) return ch;
+	if (!str || !str[0] || str[1])
+		return ch;
 	return str[0];
 }
 
@@ -527,9 +551,9 @@ void charset_upcase_string(unsigned char **chp, int cp)
 		ch = unicode_upcase_string(ch);
 		free(*chp);
 		*chp = ch;
-	} else {
-		for (i = 0; ch[i]; i++) ch[i] = charset_upcase(ch[i], cp);
-	}
+	} else
+		for (i = 0; ch[i]; i++)
+			ch[i] = charset_upcase(ch[i], cp);
 }
 
 unsigned char *unicode_upcase_string(unsigned char *ch)
@@ -540,9 +564,11 @@ unsigned char *unicode_upcase_string(unsigned char *ch)
 		unsigned c;
 		int res;
 		GET_UTF_8(ch, c);
-		if (!c) break;
+		if (!c)
+			break;
 		BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, c, res);
-		if (res != -1) c = unicode_upcase[res].n;
+		if (res != -1)
+			c = unicode_upcase[res].n;
 		add_to_str(&r, &rl, encode_utf_8(c));
 	}
 	return r;
@@ -564,20 +590,25 @@ int compare_case_utf8(unsigned char *u1, unsigned char *u2)
 	int cc1;
 	while (1) {
 		GET_UTF_8(u2, c2);
-		if (!c2) return (int)(u1 - uu1);
-		skip_discr:
+		if (!c2)
+			return (int)(u1 - uu1);
+skip_discr:
 		GET_UTF_8(u1, c1);
 		BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, c1, cc1);
-		if (cc1 != -1) c1 = unicode_upcase[cc1].n;
-		if (c1 == 0xad) goto skip_discr;
-		if (c1 != c2) return 0;
+		if (cc1 != -1)
+			c1 = unicode_upcase[cc1].n;
+		if (c1 == 0xad)
+			goto skip_discr;
+		if (c1 != c2)
+			return 0;
 		if (c1 == ' ') {
 			unsigned char *x1;
 			do {
 				x1 = u1;
 				GET_UTF_8(u1, c1);
 				BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, c1, cc1);
-				if (cc1 >= 0) c1 = unicode_upcase[cc1].n;
+				if (cc1 >= 0)
+					c1 = unicode_upcase[cc1].n;
 			} while (c1 == ' ');
 			u1 = x1;
 		}
@@ -590,7 +621,8 @@ int strlen_utf8(unsigned char *s)
 	while (1) {
 		unsigned c;
 		GET_UTF_8(s, c);
-		if (!c) return len;
+		if (!c)
+			return len;
 		len++;
 	}
 }
@@ -599,7 +631,7 @@ int cp_len(int cp, unsigned char *s)
 {
 	if (!cp)
 		return strlen_utf8(s);
-	return (int)strlen(cast_const_char s);
+	return strlen((char *)s);
 }
 
 unsigned char *cp_strchr(int charset, unsigned char *str, unsigned chr)
@@ -607,13 +639,15 @@ unsigned char *cp_strchr(int charset, unsigned char *str, unsigned chr)
 	if (charset) {
 		if (chr >= 0x100)
 			return NULL;
-		return cast_uchar strchr(cast_const_char str, chr);
+		return cast_uchar strchr((char *)str, chr);
 	}
 	while (1) {
 		unsigned char *o_str = str;
 		unsigned c;
 		GET_UTF_8(str, c);
-		if (!c) return NULL;
-		if (c == chr) return o_str;
+		if (!c)
+			return NULL;
+		if (c == chr)
+			return o_str;
 	}
 }
