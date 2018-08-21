@@ -1511,14 +1511,6 @@ struct smb_options smb_options = { 0 };
 unsigned char download_dir[MAX_STR_LEN] = "";
 
 static int sink;
-int js_enable=1;   /* 0=disable javascript */
-int js_verbose_errors=0;   /* 1=create dialog on every javascript error, 0=be quiet and continue */
-int js_verbose_warnings=0;   /* 1=create dialog on every javascript warning, 0=be quiet and continue */
-int js_all_conversions=1;
-int js_global_resolve=1;	/* resolvovani v globalnim adresnim prostoru, kdyz BFU vomitne document */
-int js_manual_confirmation=1; /* !0==annoying dialog on every goto url etc. */
-int js_fun_depth=100;
-int js_memory_limit=5*1024;  /* in kilobytes, should be in range 1M-20M (1MB=1024*1024B) */
 
 double display_red_gamma=2.2; /* Red gamma exponent of the display */
 double display_green_gamma=2.2; /* Green gamma exponent of the display */
@@ -1658,14 +1650,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &dither_images, "dither_images", "dither-images"},
 	{1, gen_cmd, num_rd, num_wr, 0, 2, &gamma_bits, "gamma_correction", "gamma-correction"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &overwrite_instead_of_scroll, "overwrite_instead_of_scroll", "overwrite-instead-of-scroll"},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &js_enable, "enable_javascript", NULL},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &js_verbose_errors, "verbose_javascript_errors", NULL},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &js_verbose_warnings, "verbose_javascript_warnings", NULL},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &js_all_conversions, "enable_all_conversions", NULL},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &js_global_resolve, "enable_global_resolution", NULL},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &js_manual_confirmation, "javascript_manual_confirmation", NULL},
-	{1, gen_cmd, num_rd, NULL, 0, 999999, &js_fun_depth, "js_recursion_depth", NULL},
-	{1, gen_cmd, num_rd, NULL, 1024, 30*1024, &js_memory_limit, "js_memory_limit", NULL},
 	{1, gen_cmd, cp_rd, NULL, 0, 0, &dds.assume_cp, "assume_codepage", NULL},
 	{1, NULL, term_rd, term_wr, 0, 0, NULL, "terminal", NULL},
 	{1, NULL, term2_rd, NULL, 0, 0, NULL, "terminal2", NULL},

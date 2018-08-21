@@ -577,7 +577,6 @@ unsigned char *last_link = NULL;
 unsigned char *last_target = NULL;
 unsigned char *last_image = NULL;
 struct form_control *last_form = NULL;
-struct js_event_spec *last_js_event = NULL;
 
 static int nobreak;
 
@@ -670,9 +669,9 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	{
 		ll = l;
 	}
-	if (last_link || last_image || last_form || format_.link || format_.image
-	|| format_.form || format_.js_event || last_js_event
-	) goto process_link;
+	if (last_link || last_image || last_form || format_.link
+	|| format_.image || format_.form)
+		goto process_link;
 	no_l:
 	/*printf("%d %d\n",p->cx, p->cy);*/
 	if (memcmp(&ta_cache, &format_, sizeof(struct text_attrib_beginning))) goto format_change;
@@ -687,9 +686,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	if (!d_opt->cp && !(format_.attr & AT_GRAPHICS)) {
 		set_hline_uni(p, p->cx, p->cy, ll, uni_c, ((fg&0x08)<<3)|(bg<<3)|(fg&0x07));
 	} else
-	{
 		set_hline(p, p->cx, p->cy, l, c, ((fg&0x08)<<3)|(bg<<3)|(fg&0x07));
-	}
 	p->cx += ll;
 	nobreak = 0;
 	if (par_format.align != AL_NO)
@@ -726,16 +723,13 @@ static void put_chars(void *p_, unsigned char *c, int l)
 		free(last_image);
 		last_link = last_target = last_image = NULL;
 		last_form = NULL;
-		last_js_event = NULL;
-		if (!(format_.link || format_.image || format_.form || format_.js_event)) goto no_l;
+		if (!(format_.link || format_.image || format_.form)) goto no_l;
 		if (d_opt->num_links) {
 			unsigned char s[64];
 			unsigned char *fl = format_.link, *ft = format_.target, *fi = format_.image;
 			struct form_control *ff = format_.form;
-			struct js_event_spec *js = format_.js_event;
 			format_.link = format_.target = format_.image = NULL;
 			format_.form = NULL;
-			format_.js_event = NULL;
 			if (d_opt->num_links) {
 				s[0] = '[';
 				snzprint(s + 1, 62, p->link_num);
@@ -756,7 +750,6 @@ static void put_chars(void *p_, unsigned char *c, int l)
 			format_.target = ft;
 			format_.image = fi;
 			format_.form = ff;
-			format_.js_event = js;
 		}
 		p->link_num++;
 		last_link = stracpy(format_.link);
@@ -1055,7 +1048,6 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	free(last_target);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
-	last_js_event = NULL;
 	nobreak = align != AL_NO && align != AL_NO_BREAKABLE;
 	p = mem_calloc(sizeof(struct part));
 	/*p->x = p->y = 0;*/
@@ -1116,7 +1108,6 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	empty_format = ef;
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
-	last_js_event = NULL;
 
 	if (table_level > 1 && !data) {
 		add_table_cache_entry(start, end, align, m, width, xs, link_num, p);
@@ -1211,7 +1202,7 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	head = init_str();
 	hdl = 0;
 	if (ce->head) add_to_str(&head, &hdl, ce->head);
-	scan_http_equiv(start, end, &head, &hdl, &t, d_opt->plain ? NULL : &bg, d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor, &implicit_pre_wrap, NULL );
+	scan_http_equiv(start, end, &head, &hdl, &t, d_opt->plain ? NULL : &bg, d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor, &implicit_pre_wrap);
 	if (d_opt->break_long_lines) implicit_pre_wrap = 1;
 	if (d_opt->plain) *t = 0;
 	if (screen->opt.plain == 2) {
@@ -1312,7 +1303,6 @@ int compare_opt(struct document_options *o1, struct document_options *o2)
 	    o1->images == o2->images &&
 	    o1->image_names == o2->image_names &&
 	    o1->margin == o2->margin &&
-	    o1->js_enable == o2->js_enable &&
 	    o1->plain == o2->plain &&
 	    o1->num_links == o2->num_links &&
 	    o1->table_order == o2->table_order &&

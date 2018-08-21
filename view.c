@@ -45,11 +45,6 @@ void destroy_vs(struct view_state *vs)
 	free(vs);
 }
 
-unsigned char *print_js_event_spec(struct js_event_spec *j)
-{
-	return stracpy(cast_uchar "");
-}
-
 void check_vs(struct f_data_c *f)
 {
 	struct view_state *vs = f->vs;
@@ -3409,27 +3404,15 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 			m = display_url(term, l->where, 1);
 			goto p;
 		}
-		m = print_js_event_spec(l->js_event);
+		m = stracpy((unsigned char *)"");
 		goto p;
 	}
 	if (!l->form) return NULL;
 	if (l->type == L_BUTTON) {
 		if (l->form->type == FC_BUTTON) {
-			unsigned char *n;
-			unsigned char *txt;
 			m = init_str();
 			ll = 0;
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_BUTTON), term));
-			if (!l->js_event) goto p;
-			add_to_str(&m, &ll, cast_uchar " ");
-			n=print_js_event_spec(l->js_event);
-			if (fd->f_data) {
-				txt=convert(fd->f_data->cp,fd->f_data->opt.cp, n, NULL);
-				free(n);
-			} else
-				txt = n;
-			add_to_str(&m, &ll, txt);
-			free(txt);
 			goto p;
 		}
 		if (l->form->type == FC_RESET) {
@@ -3522,7 +3505,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			add_to_str(&m, &ll, d);
 			free(d);
 		}
-		spc = print_js_event_spec(l->js_event);
+		spc = stracpy((unsigned char *)"");
 		if (spc&&*spc)
 		{
 			add_to_str(&m, &ll, cast_uchar "\n");
@@ -3567,21 +3550,9 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 	if (!l->form) return NULL;
 	if (l->type == L_BUTTON) {
 		if (l->form->type == FC_BUTTON) {
-			unsigned char *n;
-			unsigned char *txt;
 			m = init_str();
 			ll = 0;
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_BUTTON), term));
-			if (!l->js_event) goto p;
-			add_to_str(&m, &ll, cast_uchar " ");
-			n=print_js_event_spec(l->js_event);
-			if (fd->f_data) {
-				txt=convert(fd->f_data->cp, fd->f_data->opt.cp, n, NULL);
-				free(n);
-			} else
-				txt = n;
-			add_to_str(&m, &ll, txt);
-			free(txt);
 			goto p;
 		}
 		if (l->form->type == FC_RESET) {
@@ -3639,7 +3610,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 		}
 		goto p;
 	}
-	p:
+p:
 	return m;
 }
 

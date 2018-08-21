@@ -1812,8 +1812,6 @@ struct form_state {
 	int vypos;
 };
 
-struct js_event_spec;
-
 struct link {
 	int type;   /* one of L_XXX constants */
 	int num;    /* link number (used when user turns on link numbering) */
@@ -1826,7 +1824,6 @@ struct link {
 	int n;   /* number of points */
 	int first_point_to_move;
 	struct point *pos;
-	struct js_event_spec *js_event;
 	int obj_order;
 #ifdef G
 	struct rect r;
@@ -1898,7 +1895,6 @@ struct document_options {
 	int scrolling;
 	int col, cp, assume_cp, hard_assume;
 	int tables, frames, break_long_lines, images, image_names, margin;
-	int js_enable;
 	int plain;
 	int num_links, table_order;
 	int auto_refresh;
@@ -2221,10 +2217,6 @@ void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm);
 #endif
 
 struct additional_file *request_additional_file(struct f_data *f, unsigned char *url);
-
-struct js_event_spec {
-	char dummy;
-};
 
 /*
  * warning: if you add more additional file stuctures, you must
@@ -2956,8 +2948,6 @@ void reset_form(struct f_data_c *f, int form_num);
 void set_textarea(struct session *, struct f_data_c *, int);
 void free_format_text_cache(void);
 
-unsigned char *print_js_event_spec(struct js_event_spec *);
-
 /* font_inc.c */
 
 #ifdef G
@@ -3187,7 +3177,6 @@ struct text_attrib {
 	unsigned char *link;
 	unsigned char *target;
 	unsigned char *image;
-	struct js_event_spec *js_event;
 	struct form_control *form;
 	struct rgb clink;
 	unsigned char *href_base;
@@ -3269,9 +3258,6 @@ extern unsigned char *last_link;
 extern unsigned char *last_image;
 extern unsigned char *last_target;
 extern struct form_control *last_form;
-extern struct js_event_spec *last_js_event;
-extern int js_fun_depth;
-extern int js_memory_limit;
 
 int parse_element(unsigned char *, unsigned char *, unsigned char **, int *, unsigned char **, unsigned char **);
 unsigned char *get_attr_val(unsigned char *, unsigned char *);
@@ -3286,7 +3272,7 @@ int should_skip_script(unsigned char *);
 unsigned char *skip_comment(unsigned char *, unsigned char *);
 void parse_html(unsigned char *, unsigned char *, void (*)(void *, unsigned char *, int), void (*)(void *), void *(*)(void *, int, ...), void *, unsigned char *);
 int get_image_map(unsigned char *, unsigned char *, unsigned char *, unsigned char *a, struct menu_item **, struct memory_list **, unsigned char *, unsigned char *, int, int, int, int gfx);
-void scan_http_equiv(unsigned char *, unsigned char *, unsigned char **, int *, unsigned char **, unsigned char **, unsigned char **, int *, struct js_event_spec **);
+void scan_http_equiv(unsigned char *, unsigned char *, unsigned char **, int *, unsigned char **, unsigned char **, unsigned char **, int *);
 
 int decode_color(unsigned char *, struct rgb *);
 

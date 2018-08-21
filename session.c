@@ -1626,7 +1626,6 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 	if (fd->parent && fd->parent->f_data && !o.hard_assume) {
 		o.assume_cp = fd->parent->f_data->cp;
 	}
-	o.js_enable=0;
 #ifdef G
 	o.bfu_aspect=bfu_aspect;
 #else

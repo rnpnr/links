@@ -820,8 +820,7 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 		}
 		check_link:
 		if (last_link || last_image || last_form || format_.link
-		|| format_.image || format_.form
-		|| format_.js_event || last_js_event)
+		|| format_.image || format_.form)
 			goto process_link;
 		back_link:
 		if (putchars_link_ptr) {
@@ -907,8 +906,7 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 			free(last_image);
 		last_link = last_target = last_image = NULL;
 		last_form = NULL;
-		last_js_event = NULL;
-		if (!(format_.link || format_.image || format_.form || format_.js_event))
+		if (!(format_.link || format_.image || format_.form))
 			goto back_link;
 		p->link_num++;
 		last_link = stracpy(format_.link);
@@ -982,7 +980,6 @@ struct g_part *g_format_html_part(unsigned char *start, unsigned char *end, int 
 		free(last_target);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
-	last_js_event = NULL;
 
 	cached_font_face = to_je_ale_prasarna;
 	p = mem_calloc(sizeof(struct g_part));
@@ -1064,7 +1061,6 @@ struct g_part *g_format_html_part(unsigned char *start, unsigned char *end, int 
 		free(last_target);
 	last_link = last_image = last_target = NULL;
 	last_form = NULL;
-	last_js_event = NULL;
 
 	if (table_level > 1 && !f_d)
 		add_table_cache_entry(start, end, align, m, width, 0, link_num, p);

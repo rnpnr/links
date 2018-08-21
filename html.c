@@ -1304,11 +1304,6 @@ static void html_style(unsigned char *a)
 	html_top.invisible = INVISIBLE_STYLE;
 }
 
-static void html_noscript(unsigned char *a)
-{
-	if (d_opt->js_enable) html_skip(a);
-}
-
 static void html_center(unsigned char *a)
 {
 	par_format.align = AL_CENTER;
@@ -2834,7 +2829,6 @@ static struct element_info elements[] = {
 /*	{"HEAD",	html_skip,	0, 0},*/
 	{"TITLE",	html_title,	0, 0},
 	{"SCRIPT",	html_script,	0, 0},
-	{"NOSCRIPT",	html_noscript,	0, 0},
 	{"STYLE",	html_style,	0, 0},
 	{"NOEMBED",	html_skip,	0, 0},
 
@@ -3258,7 +3252,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	int hdl = 0;
 	struct conv_table *ct;
 	if (head) add_to_str(&hd, &hdl, head);
-	scan_http_equiv(s, eof, &hd, &hdl, NULL, NULL, NULL, NULL, NULL);
+	scan_http_equiv(s, eof, &hd, &hdl, NULL, NULL, NULL, NULL);
 	if (!gfx) ct = get_convert_table(hd, to, def, NULL, NULL, hdef);
 	else ct = convert_table;
 	free(hd);
@@ -3452,7 +3446,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 	return 0;
 }
 
-void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head, int *hdl, unsigned char **title, unsigned char **background, unsigned char **bgcolor, int *pre_wrap, struct js_event_spec **j)
+void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head, int *hdl, unsigned char **title, unsigned char **background, unsigned char **bgcolor, int *pre_wrap)
 {
 	unsigned char *name, *attr, *he, *c;
 	int namelen;

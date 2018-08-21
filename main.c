@@ -280,7 +280,6 @@ static void end_dump(struct object_request *r, void *p)
 		ds2do(&dds, &o, 0);
 		o.plain = 0;
 		o.frames = 0;
-		o.js_enable = 0;
 		o.framename = cast_uchar "";
 		if (!casecmp(r->url, cast_uchar "file://", 7) && !o.hard_assume) {
 			o.assume_cp = get_commandline_charset();
