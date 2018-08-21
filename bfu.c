@@ -84,13 +84,6 @@ static inline int is_utf_8(struct terminal *term)
 	return 0;
 }
 
-static inline int ttxtlen(struct terminal *term, unsigned char *s)
-{
-	if (!term_charset(term))
-		return strlen_utf8(s);
-	return (int)strlen(cast_const_char s);
-}
-
 static inline int txtlen(struct terminal *term, unsigned char *s)
 {
 #ifdef G
@@ -98,7 +91,7 @@ static inline int txtlen(struct terminal *term, unsigned char *s)
 		return g_text_width(bfu_style_wb, s);
 	else
 #endif
-		return ttxtlen(term, s);
+		return strlen((char *)s);
 }
 
 #ifdef G
@@ -165,7 +158,7 @@ static unsigned select_hotkey(struct terminal *term, unsigned char *text, unsign
 		for (i = 0; i < n; i++)
 			if (hotkeys[i] == c)
 				continue;
-		if (!text || cp_strchr(term_charset(term), text, c))
+		if (!text || strchr((char *)text, c))
 			break;
 	}
 	free(text);
@@ -204,7 +197,7 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 				unsigned u;
 				txt2 = txt3;
 				GET_UTF_8(txt3, u);
-				u = uni_upcase(u);
+				u = charset_upcase(u, 0);
 				if (u == menu->hotkeys[i]) {
 					menu->hktxt1[i] = memacpy(txt, txt2 - txt);
 					menu->hktxt2[i] = memacpy(txt2, txt3 - txt2);
@@ -347,7 +340,7 @@ static void display_menu_txt(struct terminal *term, void *menu_)
 		}
 		if (menu->items[p].hotkey != M_BAR || (tmptext[0])) {
 			unsigned char *rt = get_text_translation(get_rtext(menu->items[p].rtext), term);
-			int l = ttxtlen(term, rt);
+			int l = strlen((char *)rt);
 			for (x = 0;; x++) {
 				c = GET_TERM_CHAR(term, &rt);
 				if (!c) break;
@@ -889,8 +882,8 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 		case D_FIELD_PASS:
 			fill_area(term, di->x, di->y, di->l, 1, ' ', COLOR_DIALOG_FIELD);
 			if (di->vpos > di->cpos) di->vpos = di->cpos;
-			vposlen = ttxtlen(term, di->cdata + di->vpos);
-			cposlen = ttxtlen(term, di->cdata + di->cpos);
+			vposlen = strlen((char *)(di->cdata + di->vpos));
+			cposlen = strlen((char *)(di->cdata + di->cpos));
 			if (!di->l) {
 				di->vpos = di->cpos;
 				vposlen = cposlen;
@@ -921,8 +914,8 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 			co = sel ? COLOR_DIALOG_BUTTON_SELECTED : COLOR_DIALOG_BUTTON;
 			text = get_text_translation(di->item->text, term);
 			print_text(term, di->x, di->y, 2, cast_uchar "[ ", co);
-			print_text(term, di->x + 2, di->y, ttxtlen(term, text), text, co);
-			print_text(term, di->x + 2 + ttxtlen(term, text), di->y, 2, cast_uchar " ]", co);
+			print_text(term, di->x + 2, di->y, strlen((char *)text), text, co);
+			print_text(term, di->x + 2 + strlen((char *)text), di->y, 2, cast_uchar " ]", co);
 			if (sel) {
 				set_cursor(term, di->x + 2, di->y, di->x + 2, di->y);
 				set_window_ptr(dlg->win, di->x, di->y);
@@ -1130,7 +1123,7 @@ static int dlg_mouse(struct dialog_data *dlg, struct dialog_item_data *di, struc
 {
 	switch (di->item->type) {
 		case D_BUTTON:
-			if (gf_val(ev->y != di->y, ev->y < di->y || ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x || ev->x >= di->x + gf_val(ttxtlen(dlg->win->term, get_text_translation(di->item->text, dlg->win->term)) + 4, di->l)) return 0;
+			if (gf_val(ev->y != di->y, ev->y < di->y || ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x || ev->x >= di->x + gf_val(strlen((char *)get_text_translation(di->item->text, dlg->win->term)) + 4, di->l)) return 0;
 			if (dlg->selected != di - dlg->items) {
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
 				dlg->selected = (int)(di - dlg->items);
@@ -1691,7 +1684,7 @@ void draw_dlg(struct dialog_data *dlg)
 		struct terminal *term = dlg->win->term;
 		fill_area(term, dlg->x, dlg->y, dlg->xw, dlg->yw, ' ', COLOR_DIALOG);
 		draw_frame(term, dlg->x + DIALOG_LEFT_BORDER, dlg->y + DIALOG_TOP_BORDER, dlg->xw - 2 * DIALOG_LEFT_BORDER, dlg->yw - 2 * DIALOG_TOP_BORDER, COLOR_DIALOG_FRAME, DIALOG_FRAME);
-		i = ttxtlen(term, get_text_translation(dlg->dlg->title, term));
+		i = strlen((char *)get_text_translation(dlg->dlg->title, term));
 		tpos = (dlg->xw - i) / 2;
 		print_text(term, tpos + dlg->x - 1, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
 		print_text(term, tpos + dlg->x, dlg->y + DIALOG_TOP_BORDER, i, get_text_translation(dlg->dlg->title, term), COLOR_DIALOG_TITLE);
@@ -2061,7 +2054,7 @@ void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned c
 			(*y) += gf_val(2, G_BFU_FONT_SIZE * 2);
 		}
 		if (term) {
-			if (!F) print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, ttxtlen(term, get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
+			if (!F) print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, strlen((char *)get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
 #ifdef G
 			else {
 				int l, ll;

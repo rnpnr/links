@@ -2844,13 +2844,10 @@ int cp2u(unsigned, int);
 
 unsigned uni_locase(unsigned);
 unsigned charset_upcase(unsigned, int);
-unsigned uni_upcase(unsigned);
 void charset_upcase_string(unsigned char **, int);
 unsigned char *unicode_upcase_string(unsigned char *ch);
 unsigned char *to_utf8_upcase(unsigned char *str, int cp);
 int compare_case_utf8(unsigned char *u1, unsigned char *u2);
-int strlen_utf8(unsigned char *s);
-unsigned char *cp_strchr(int charset, unsigned char *str, unsigned chr);
 
 unsigned get_utf_8(unsigned char **p);
 #define GET_UTF_8(s, c)							\
@@ -2878,8 +2875,6 @@ do {									\
 			break;						\
 	}								\
 } while (0)
-
-int cp_len(int cp, unsigned char *s);
 
 extern unsigned char utf_8_1[256];
 

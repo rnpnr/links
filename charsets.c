@@ -181,8 +181,12 @@ static int utf_table_init = 1;
 static void free_utf_table(void)
 {
 	int i;
-	for (i = 128; i < 256; i++)
+	for (i = 128; i < 256; i += 4) {
 		free(utf_table[i].u.str);
+		free(utf_table[i + 1].u.str);
+		free(utf_table[i + 2].u.str);
+		free(utf_table[i + 3].u.str);
+	}
 }
 
 static struct conv_table *get_translation_table_to_utf_8(int from)
@@ -196,21 +200,30 @@ static struct conv_table *get_translation_table_to_utf_8(int from)
 	lfr = from;
 	if (utf_table_init) {
 		memset(utf_table, 0, sizeof(struct conv_table) * 256);
-		for (i = 0; i < 128; i++)
-			utf_table[i].u.str = cast_uchar strings[i];
+		for (i = 0; i < 128; i += 4) {
+			utf_table[i].u.str = (unsigned char *)strings[i];
+			utf_table[i + 1].u.str = (unsigned char *)strings[i + 1];
+			utf_table[i + 2].u.str = (unsigned char *)strings[i + 2];
+			utf_table[i + 3].u.str = (unsigned char *)strings[i + 3];
+		}
 		utf_table_init = 0;
 	} else
 		free_utf_table();
 	if (!from) {
-		for (i = 128; i < 256; i++)
+		for (i = 128; i < 256; i += 4) {
 			utf_table[i].u.str = stracpy(strings[i]);
+			utf_table[i + 1].u.str = stracpy(strings[i + 1]);
+			utf_table[i + 2].u.str = stracpy(strings[i + 2]);
+			utf_table[i + 3].u.str = stracpy(strings[i + 3]);
+		}
 		return utf_table;
 	}
-	for (i = 128; i < 256; i++)
-		utf_table[i].u.str = NULL;
-	for (i = 128; i < 256; i++)
-		if (!utf_table[i].u.str)
-			utf_table[i].u.str = stracpy(no_str);
+	for (i = 128; i < 256; i += 4) {
+		utf_table[i].u.str = stracpy(no_str);
+		utf_table[i + 1].u.str = stracpy(no_str);
+		utf_table[i + 2].u.str = stracpy(no_str);
+		utf_table[i + 3].u.str = stracpy(no_str);
+	}
 	return utf_table;
 }
 
@@ -415,7 +428,8 @@ decode:
 				e = t[c[i]].u.str;
 			} else {
 				t = t[c[i++]].u.tbl;
-				if (i >= l) goto put_c;
+				if (i >= l)
+					goto put_c;
 				goto decode;
 			}
 			pp = i + 1;
@@ -491,17 +505,18 @@ fail:;
 
 unsigned char *get_cp_name(int index)
 {
-	if (index < 0) return cast_uchar "none";
-	return cast_uchar codepages[index].name;
+	if (index < 0)
+		return (unsigned char *)"none";
+	return (unsigned char *)codepages[index].name;
 }
 
 unsigned char *get_cp_mime_name(int index)
 {
 	if (index < 0)
-		return cast_uchar "none";
+		return (unsigned char *)"none";
 	if (!codepages[index].aliases)
 		return NULL;
-	return cast_uchar codepages[index].aliases[0];
+	return (unsigned char *)codepages[index].aliases[0];
 }
 
 #define LO_EQUAL(a, b) unicode_locase[a].o == (b)
@@ -523,44 +538,28 @@ unsigned charset_upcase(unsigned ch, int cp)
 {
 	unsigned u;
 	int res;
-	unsigned char *str;
 	if (ch < 0x80)
 		return upcase(ch);
 	u = cp2u(ch, cp);
 	BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, u, res);
 	if (res == -1)
 		return ch;
-	if (!cp)
-		return unicode_upcase[res].n;
-	str = u2cp(unicode_upcase[res].n, cp, 0);
-	if (!str || !str[0] || str[1])
-		return ch;
-	return str[0];
-}
-
-unsigned uni_upcase(unsigned ch)
-{
-	return charset_upcase(ch, 0);
+	return unicode_upcase[res].n;
 }
 
 void charset_upcase_string(unsigned char **chp, int cp)
 {
 	unsigned char *ch = *chp;
-	int i;
-	if (!cp) {
-		ch = unicode_upcase_string(ch);
-		free(*chp);
-		*chp = ch;
-	} else
-		for (i = 0; ch[i]; i++)
-			ch[i] = charset_upcase(ch[i], cp);
+	ch = unicode_upcase_string(ch);
+	free(*chp);
+	*chp = ch;
 }
 
 unsigned char *unicode_upcase_string(unsigned char *ch)
 {
 	unsigned char *r = init_str();
 	int rl = 0;
-	while (1) {
+	for (;;) {
 		unsigned c;
 		int res;
 		GET_UTF_8(ch, c);
@@ -588,7 +587,7 @@ int compare_case_utf8(unsigned char *u1, unsigned char *u2)
 	unsigned char *uu1 = u1;
 	unsigned c1, c2;
 	int cc1;
-	while (1) {
+	for (;;) {
 		GET_UTF_8(u2, c2);
 		if (!c2)
 			return (int)(u1 - uu1);
@@ -612,42 +611,5 @@ skip_discr:
 			} while (c1 == ' ');
 			u1 = x1;
 		}
-	}
-}
-
-int strlen_utf8(unsigned char *s)
-{
-	int len = 0;
-	while (1) {
-		unsigned c;
-		GET_UTF_8(s, c);
-		if (!c)
-			return len;
-		len++;
-	}
-}
-
-int cp_len(int cp, unsigned char *s)
-{
-	if (!cp)
-		return strlen_utf8(s);
-	return strlen((char *)s);
-}
-
-unsigned char *cp_strchr(int charset, unsigned char *str, unsigned chr)
-{
-	if (charset) {
-		if (chr >= 0x100)
-			return NULL;
-		return cast_uchar strchr((char *)str, chr);
-	}
-	while (1) {
-		unsigned char *o_str = str;
-		unsigned c;
-		GET_UTF_8(str, c);
-		if (!c)
-			return NULL;
-		if (c == chr)
-			return o_str;
 	}
 }

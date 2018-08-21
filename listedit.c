@@ -1069,7 +1069,7 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 	if (!F)
 	{
 		print_text(term,dlg->x+x+DIALOG_LB,y,w-x,txt,color);
-		x+=cp_len(term_charset(term), txt);
+		x += strlen((char *)txt);
 		fill_area(term,dlg->x+DIALOG_LB+x,y,w-x,1,' ',0);
 		set_line_color(term,dlg->x+DIALOG_LB+x,y,w-x,color);
 	}

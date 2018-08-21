@@ -28,7 +28,7 @@ static unsigned char * const version_texts[] = {
 static void add_and_pad(unsigned char **s, int *l, struct terminal *term, unsigned char *str, int maxlen)
 {
 	unsigned char *x = get_text_translation(str, term);
-	int len = cp_len(term_charset(term), x);
+	int len = strlen((char *)x);
 	add_to_str(s, l, x);
 	add_to_str(s, l, cast_uchar ":  ");
 	while (len++ < maxlen) add_chr_to_str(s, l, ' ');
@@ -44,7 +44,7 @@ static void menu_version(void *term_)
 	unsigned char * const *text_ptr;
 	for (i = 0; version_texts[i]; i++) {
 		unsigned char *t = get_text_translation(version_texts[i], term);
-		int tl = cp_len(term_charset(term), t);
+		int tl = strlen((char *)t);
 		if (tl > maxlen)
 			maxlen = tl;
 	}

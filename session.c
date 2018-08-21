@@ -294,9 +294,9 @@ static void x_print_screen_title(struct terminal *term, void *ses_)
 	unsigned char color = get_attribute(ses->ds.t_text_color, ses->ds.t_background_color);
 	fill_area(term, 0, 0, term->x, 1, ' ', color);
 	if ((m = print_current_title(ses))) {
-		int p = term->x - 1 - cp_len(term_charset(ses->term), m);
+		int p = term->x - 1 - strlen((char *)m);
 		if (p < 0) p = 0;
-		print_text(term, p, 0, cp_len(term_charset(ses->term), m), m, color);
+		print_text(term, p, 0, strlen((char *)m), m, color);
 		free(m);
 	}
 }

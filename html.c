@@ -2368,7 +2368,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 	format_.attr |= AT_BOLD | AT_FIXED;
 	format_.fontsize = 3;
 	mw = 0;
-	for (i = 0; i < order; i++) if (lbls[i] && cp_len(d_opt->cp, lbls[i]) > mw) mw = cp_len(d_opt->cp, lbls[i]);
+	for (i = 0; i < order; i++) if (lbls[i] && strlen((char *)lbls[i]) > mw) mw = strlen((char *)lbls[i]);
 	for (i = 0; i < mw; i++) put_chrs(cast_uchar "_", 1);
 	kill_html_stack_item(&html_top);
 	put_chrs(cast_uchar "]", 1);

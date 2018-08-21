@@ -485,17 +485,15 @@ static void add_accept_charset(unsigned char **hdr, int *l, struct http_connecti
 		return;
 
 	if (!accept_charset) {
-		int i;
 		unsigned char *cs, *ac;
 		int aclen = 0;
 		ac = init_str();
-		for (i = 0; (cs = get_cp_mime_name(i)); i++) {
-			if (aclen)
-				add_to_str(&ac, &aclen, cast_uchar ",");
-			else
-				add_to_str(&ac, &aclen, cast_uchar "Accept-Charset: ");
-			add_to_str(&ac, &aclen, cs);
-		}
+		cs = get_cp_mime_name(0);
+		if (aclen)
+			add_to_str(&ac, &aclen, cast_uchar ",");
+		else
+			add_to_str(&ac, &aclen, cast_uchar "Accept-Charset: ");
+		add_to_str(&ac, &aclen, cs);
 		if (aclen)
 			add_to_str(&ac, &aclen, cast_uchar "\r\n");
 		if (!(accept_charset = cast_uchar strdup((char *)ac))) {

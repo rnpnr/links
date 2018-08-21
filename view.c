@@ -449,10 +449,7 @@ static int is_in_range(struct f_data *f, int y, int yw, unsigned char *txt, int 
 	*min = INT_MAX;
 	*max = 0;
 
-	if (!utf8)
-		l = (int)strlen((const char *)txt);
-	else
-		l = strlen_utf8(txt);
+	l = strlen((char *)txt);
 
 	if (get_range(f, y, yw, l, &s1, &s2))
 		return 0;
@@ -518,14 +515,9 @@ static int get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 		scr->ses->search_word = NULL;
 		return -1;
 	}
-	if (!utf8) {
-		l = (int)strlen((const char *)w);
-		c = w[0];
-	} else {
-		l = strlen_utf8(w);
-		ww = w;
-		GET_UTF_8(ww, c);
-	}
+	l = strlen((char *)w);
+	ww = w;
+	GET_UTF_8(ww, c);
 	if (get_range(f, scr->vs->view_pos, scr->yw, l, &s1, &s2))
 		goto ret;
 	for (; s1 <= s2; s1++) {
@@ -2094,7 +2086,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			if (cp2u(ev->x, term_charset(ses->term)) == -1)
 				goto done;
 			set_br_pos(f, l);
-			if (!form->ro && cp_len(term_charset(ses->term), fs->value) < form->maxlength) {
+			if (!form->ro && strlen((char *)fs->value) < form->maxlength) {
 				unsigned char *v;
 				unsigned char a_[2];
 				unsigned char *nw;
@@ -2239,7 +2231,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				unsigned char *nl = clipboard;
 				while ((nl = cast_uchar strchr(cast_const_char nl, '\n'))) *nl = ' ';
 			}
-			if (!form->ro && cp_len(term_charset(ses->term), fs->value) + cp_len(term_charset(ses->term), clipboard) <= form->maxlength) {
+			if (!form->ro && strlen((char *)fs->value) + strlen((char *)clipboard) <= form->maxlength) {
 				unsigned char *v;
 				v = xrealloc(fs->value,
 					strlen(cast_const_char fs->value) + strlen(cast_const_char clipboard) +1);
@@ -3361,8 +3353,8 @@ static unsigned char *print_current_titlex(struct f_data_c *fd, int w)
 	if (!fd->f_data->title) return p;
 	m = init_str();
 	add_to_str(&m, &ml, fd->f_data->title);
-	mul = cp_len(term_charset(fd->ses->term), m);
-	pul = cp_len(term_charset(fd->ses->term), p);
+	mul = strlen((char *)m);
+	pul = strlen((char *)p);
 	if (mul + pul > w) {
 		unsigned char *mm;
 		if ((mul = w - pul) < 0) mul = 0;
