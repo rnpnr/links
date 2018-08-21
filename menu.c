@@ -548,52 +548,9 @@ static void menu_toggle(struct terminal *term, void *ddd, void *ses_)
 	toggle(ses, ses->screen, 0);
 }
 
-static void set_display_codepage(struct terminal *term, void *pcp, void *ptr)
-{
-	int cp = (int)(long)pcp;
-	struct term_spec *t = new_term_spec(term->term);
-	t->character_set = cp;
-	cls_redraw_all_terminals();
-}
-
 static void set_val(struct terminal *term, void *ip, void *d)
 {
 	*(int *)d = (int)(long)ip;
-}
-
-static void charset_sel_list(struct terminal *term, int ini, void (*set)(struct terminal *term, void *ip, void *ptr), void *ptr, int utf, int def)
-{
-	int i;
-	unsigned char *n;
-	struct menu_item *mi;
-#ifdef OS_NO_SYSTEM_CHARSET
-	def = 0;
-#endif
-	mi = new_menu(5);
-	for (i = -def; (n = get_cp_name(i)); i++) {
-		unsigned char *n, *r, *p;
-		if (!utf && !i)
-			continue;
-		if (i == -1) {
-			n = TEXT_(T_DEFAULT_CHARSET);
-			r = stracpy(get_cp_name(term->default_character_set));
-			p = cast_uchar strstr(cast_const_char r, " (");
-			if (p) *p = 0;
-		} else {
-			n = get_cp_name(i);
-			r = stracpy(cast_uchar "");
-		}
-		add_to_menu(&mi, n, r, cast_uchar "", set, &i, 0, i + def);
-	}
-	ini += def;
-	if (ini < 0)
-		ini = term->default_character_set;
-	do_menu_selected(term, mi, ptr, ini, NULL, NULL);
-}
-
-static void charset_list(struct terminal *term, void *xxx, void *ses_)
-{
-	charset_sel_list(term, term->spec->character_set, set_display_codepage, NULL, 1, 1);
 }
 
 static void terminal_options_ok(void *p)
@@ -2181,16 +2138,12 @@ static unsigned char * const html_texts[] = {
 
 static int dlg_assume_cp(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-	charset_sel_list(dlg->win->term, *(int *)di->cdata, set_val, (void *)di->cdata, 1, 0);
 	return 0;
 }
 
 #ifdef G
 static int dlg_kb_cp(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-	charset_sel_list(dlg->win->term, *(int *)di->cdata, set_val, (void *)di->cdata,
-		1
-		, 1);
 	return 0;
 }
 #endif
@@ -2997,7 +2950,6 @@ static void menu_write_config(struct terminal *term, void *xxx, void *yyy)
 }
 
 static const struct menu_item setup_menu_2[] = {
-	{ TEXT_(T_CHARACTER_SET), cast_uchar ">", TEXT_(T_HK_CHARACTER_SET), charset_list, (void *)1, 1, 1 },
 	{ TEXT_(T_TERMINAL_OPTIONS), cast_uchar "", TEXT_(T_HK_TERMINAL_OPTIONS), terminal_options, NULL, 0, 1 },
 };
 
