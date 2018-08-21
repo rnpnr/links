@@ -929,7 +929,7 @@ static unsigned char *x_proxy_cmd(struct option *o, unsigned char ***argv, int *
 	unsigned char *result, *ret;
 	if (!*argc) return cast_uchar "Parameter expected";
 	result = xmalloc(MAX_STR_LEN);
-	if (save(get_commandline_charset(), result, **argv)) {
+	if (save(0, result, **argv)) {
 		free(result);
 		return err;
 	}
@@ -960,7 +960,7 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 	if (*argc >= 2) return cast_uchar "Too many parameters";
 	h = *(*argv)++;
 	(*argc)--;
-	h2 = convert(get_commandline_charset(), 0, h, NULL);
+	h2 = stracpy(h);
 	h3 = idn_encode_host(h2, (int)strlen(cast_const_char h2), cast_uchar ".", 0);
 	if (!h3) h3 = stracpy(h2);
 	free(h2);

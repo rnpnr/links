@@ -276,13 +276,13 @@ static void end_dump(struct object_request *r, void *p)
 		o.xw = screen_width;
 		o.yw = 25;
 		o.col = 0;
-		o.cp = get_commandline_charset();
+		o.cp = 0;
 		ds2do(&dds, &o, 0);
 		o.plain = 0;
 		o.frames = 0;
 		o.framename = cast_uchar "";
 		if (!casecmp(r->url, cast_uchar "file://", 7) && !o.hard_assume) {
-			o.assume_cp = get_commandline_charset();
+			o.assume_cp = 0;
 		}
 		if (!(fd->f_data = cached_format_html(fd, r, r->url, &o, NULL, 0))) goto term_1;
 		dump_to_file(fd->f_data, 1);
@@ -292,7 +292,7 @@ static void end_dump(struct object_request *r, void *p)
 	}
 	if (r->state != O_OK) {
 		unsigned char *m = get_err_msg(r->stat.state);
-		fprintf(stderr, "%s\n", get_english_translation(m));
+		fprintf(stderr, "%s\n", get_text_translation(m, NULL));
 		retval = RET_ERROR;
 		goto terminate;
 	}
@@ -410,7 +410,7 @@ static void init(void)
 			retval = RET_SYNTAX;
 			goto tttt;
 		}
-		uu = convert(get_commandline_charset(), 0, u, NULL);
+		uu = stracpy(u);
 		if (!(uuu = translate_url(uu, wd = get_cwd()))) uuu = stracpy(uu);
 		free(uu);
 		request_object(NULL, uuu, NULL, PRI_MAIN, NC_RELOAD, ALLOW_ALL, end_dump, NULL, &dump_obj);
