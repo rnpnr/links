@@ -1352,7 +1352,7 @@ static struct graphics_device* x_init_device(void)
 				&win_attr);
 	if (!x_icon) {
 		XImage *img;
-		unsigned char *data;
+		char *data;
 		int w, h, skip;
 		get_links_icon(&data, &w, &h, &skip, x_bitmap_scanline_pad);
 
@@ -1363,7 +1363,7 @@ static struct graphics_device* x_init_device(void)
 			x_icon = 0;
 			goto nic_nebude_bobankove;
 		}
-		img->data = (char *)data;
+		img->data = data;
 		x_icon = XCreatePixmap(x_display, wi->window, w, h, x_depth);
 		if (!x_icon) {
 			XDestroyImage(img);

@@ -40,3 +40,5 @@
 
 - remove DUMMY from http[,s].c and connect.c, changing to NULL breaks https
   sites
+
+- remove get_links_icon() in dip.c

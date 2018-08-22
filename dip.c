@@ -2218,13 +2218,9 @@ long real_dip_get_color_sRGB(int rgb)
 	return gamma_cache_color = drv->get_color(new_rgb);
 }
 
-#include "links_ic.inc"
-
-void get_links_icon(unsigned char **data, int *width, int *height, int *skip, int pad)
+void get_links_icon(char **data, int *width, int *height, int *skip, int pad)
 {
 	struct bitmap b;
-	unsigned short *tmp1;
-	float g=(float)((float)user_gamma/(float)sRGB_gamma);
 
 	b.x=48;
 	b.y=48;
@@ -2234,10 +2230,6 @@ void get_links_icon(unsigned char **data, int *width, int *height, int *skip, in
 	while (b.skip % pad) b.skip++;
 	*skip=b.skip;
 	b.data = *data = xmalloc(b.skip * b.y);
-	tmp1 = xmalloc(6 * b.y * b.x);
-	agx_24_to_48(tmp1,links_icon,b.x*b.y,g,g,g);
-	dither(tmp1, &b);
-	free(tmp1);
 }
 
 static inline void qb_palette(unsigned r_max, unsigned g_max, unsigned b_max, unsigned r, unsigned g, unsigned b, unsigned scale, unsigned rgb[3])
