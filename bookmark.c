@@ -5,12 +5,6 @@
 
 #include "links.h"
 
-#define SEARCH_IN_URL
-
-#ifdef SEARCH_IN_URL
-#define SHOW_URL
-#endif
-
 static struct stat bookmarks_st;
 
 static struct list *bookmark_new_item(void *);
@@ -118,20 +112,16 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 
 	zelena = xmalloc(sizeof(struct kawasaki));
 
-	zelena->url=NULL;
-	zelena->title=NULL;
-	if (get_current_url(ses,txt,MAX_STR_LEN))
-	{
-		if (ses->screen->f_data)
-		{
+	zelena->url = NULL;
+	zelena->title = NULL;
+	if (get_current_url(ses, txt, MAX_STR_LEN)) {
+		if (ses->screen->f_data) {
 			zelena->url = convert(term_charset(ses->term), 0, txt, NULL);
 			clr_white(zelena->url);
-		}
-		else
-			zelena->url=stracpy(txt);
+		} else
+			zelena->url = stracpy(txt);
 	}
-	if (get_current_title(ses->screen,txt,MAX_STR_LEN))  /* ses->screen->f_data must exist here */
-	{
+	if (get_current_title(ses->screen, txt, MAX_STR_LEN)) {  /* ses->screen->f_data must exist here */
 		zelena->title = convert(term_charset(ses->term), 0, txt, NULL);
 		clr_white(zelena->title);
 	}
@@ -173,24 +163,27 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 
 	term = dlg->win->term;
 
-	for (a=0;a<dlg->n-2;a++)
-	{
+	for (a = 0; a < dlg->n - 2; a++) {
 		max_text_width(term, bm_add_msg[a], &max, AL_LEFT);
 		min_text_width(term, bm_add_msg[a], &min, AL_LEFT);
 	}
-	max_buttons_width(term, dlg->items + dlg->n-2, 2, &max);
-	min_buttons_width(term, dlg->items + dlg->n-2, 2, &min);
+	max_buttons_width(term, dlg->items + dlg->n - 2, 2, &max);
+	min_buttons_width(term, dlg->items + dlg->n - 2, 2, &min);
 	w = term->x * 9 / 10 - 2 * DIALOG_LB;
 
-	if (w < min) w = min;
+	if (w < min)
+		w = min;
 
 	rw = w;
 
 	for (a = 0; a < dlg->n - 2; a++) {
-		dlg_format_text_and_field(dlg, NULL, bm_add_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+		dlg_format_text_and_field(dlg, NULL, bm_add_msg[a],
+			&dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT,
+			AL_LEFT);
 		y += gf_val(1, 1 * G_BFU_FONT_SIZE);
 	}
-	dlg_format_buttons(dlg, NULL, dlg->items+dlg->n-2, 2, 0, &y, w, &rw, AL_CENTER);
+	dlg_format_buttons(dlg, NULL, dlg->items+dlg->n-2, 2, 0, &y, w, &rw,
+		AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
@@ -198,10 +191,13 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
 	for (a = 0; a < dlg->n - 2; a++) {
-		dlg_format_text_and_field(dlg, term, bm_add_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+		dlg_format_text_and_field(dlg, term, bm_add_msg[a],
+			&dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL,
+			COLOR_DIALOG_TEXT, AL_LEFT);
 		y += gf_val(1, G_BFU_FONT_SIZE);
 	}
-	dlg_format_buttons(dlg, term, &dlg->items[dlg->n-2], 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
+	dlg_format_buttons(dlg, term, &dlg->items[dlg->n-2], 2,
+		dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
 
 
@@ -214,8 +210,10 @@ static void bookmark_edit_done(void *data)
 	struct bookmark_ok_struct *s = (struct bookmark_ok_struct *)d->udata2;
 	int a;
 
-	if (item->head.type & 1) a = 4; /* folder */
-	else a = 5;
+	if (item->head.type & 1)
+		a = 4;
+	else
+		a = 5;
 	title = (unsigned char *)&d->items[a];
 	url = title + MAX_STR_LEN;
 
@@ -239,7 +237,8 @@ static void bookmark_edit_abort(struct dialog_data *data)
 	struct dialog *dlg = data->dlg;
 
 	free(dlg->udata2);
-	if (item) bookmark_delete_item(&item->head);
+	if (item)
+		bookmark_delete_item(&item->head);
 }
 
 
@@ -248,7 +247,7 @@ static void bookmark_edit_abort(struct dialog_data *data)
 static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_fn)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *ok_arg, unsigned char dlg_title)
 {
 	struct bookmark_list *item = get_struct(data, struct bookmark_list, head);
-	unsigned char *title, *url;
+	unsigned char *title, *url, *txt;
 	struct dialog *d;
 	struct bookmark_ok_struct *s;
 	int a;
@@ -266,37 +265,34 @@ static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void 
 	title = (unsigned char *)&d->items[a];
 	url = title + MAX_STR_LEN;
 
-	{
-		unsigned char *txt;
+	txt = convert(0, term_charset(dlg->win->term), item->title, NULL);
+	clr_white(txt);
+	safe_strncpy(title, txt, MAX_STR_LEN);
+	free(txt);
 
-		txt = convert(0, term_charset(dlg->win->term), item->title, NULL);
-		clr_white(txt);
-		safe_strncpy(title, txt, MAX_STR_LEN);
-		free(txt);
+	txt = convert(0, term_charset(dlg->win->term), item->url, NULL);
+	clr_white(txt);
+	safe_strncpy(url, txt, MAX_STR_LEN);
+	free(txt);
 
-		txt = convert(0, term_charset(dlg->win->term), item->url, NULL);
-		clr_white(txt);
-		safe_strncpy(url, txt, MAX_STR_LEN);
-		free(txt);
-	}
-
-	switch (dlg_title)
-	{
-		case TITLE_EDIT:
-			if (item->head.type & 1) d->title = TEXT_(T_EDIT_FOLDER);
-			else d->title = TEXT_(T_EDIT_BOOKMARK);
-			break;
-
-		case TITLE_ADD:
-			if (item->head.type & 1) d->title = TEXT_(T_ADD_FOLDER);
-			else d->title = TEXT_(T_ADD_BOOKMARK);
-			break;
-
-		default:
-			internal("Unsupported dialog title.\n");
+	switch (dlg_title) {
+	case TITLE_EDIT:
+		if (item->head.type & 1)
+			d->title = TEXT_(T_EDIT_FOLDER);
+		else
+			d->title = TEXT_(T_EDIT_BOOKMARK);
+		break;
+	case TITLE_ADD:
+		if (item->head.type & 1)
+			d->title = TEXT_(T_ADD_FOLDER);
+		else
+			d->title = TEXT_(T_ADD_BOOKMARK);
+		break;
+	default:
+		internal("Unsupported dialog title.\n");
 	}
 	d->fn = bookmark_edit_item_fn;
-	d->udata = item;  /* item */
+	d->udata = item;
 	d->udata2 = s;
 	d->refresh = bookmark_edit_done;
 	d->abort = bookmark_edit_abort;
@@ -308,8 +304,7 @@ static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void 
 	d->items[0].fn = check_nonempty;
 
 	a = 0;
-	if (!(item->head.type & 1))  /* item */
-	{
+	if (!(item->head.type & 1)) {
 		d->items[1].type = D_FIELD;
 		d->items[1].dlen = MAX_STR_LEN;
 		d->items[1].data = url;
@@ -371,10 +366,7 @@ static unsigned char *bookmark_type_item(struct terminal *term, struct list *dat
 	item = get_struct(data, struct bookmark_list, head);
 	txt = stracpy(item->title);
 
-#ifdef SHOW_URL
-	x = 0;
-#endif
-	if (!x && !(item->head.type & 1)) {
+	if (!(item->head.type & 1)) {
 		add_to_strn(&txt, cast_uchar "   (");
 		add_to_strn(&txt, item->url);
 		add_to_strn(&txt, cast_uchar ")");
@@ -412,7 +404,7 @@ static int substr_utf8(unsigned char *string, unsigned char *substr)
 	int r;
 	string = unicode_upcase_string(string);
 	substr = unicode_upcase_string(substr);
-	r = !!strstr(cast_const_char string, cast_const_char substr);
+	r = !!strstr((char *)string, (char *)substr);
 	free(string);
 	free(substr);
 	return r;
@@ -423,11 +415,7 @@ static int test_entry(struct list *e, unsigned char *str)
 	struct bookmark_list *list = get_struct(e, struct bookmark_list, head);
 	if (substr_utf8(list->title, str))
 		return 1;
-#ifdef SEARCH_IN_URL
 	return casestrstr(list->url, str);
-#else
-	return 0;
-#endif
 }
 
 static struct list *bookmark_find_item(struct list *s, unsigned char *str, int direction)
@@ -440,10 +428,9 @@ static struct list *bookmark_find_item(struct list *s, unsigned char *str, int d
 				return e;
 		}
 	} else {
-		for (e = list_prev(s); e != s; e = list_prev(e)) {
+		for (e = list_prev(s); e != s; e = list_prev(e))
 			if (e->depth >= 0 && test_entry(e, str))
 				return e;
-		}
 	}
 
 	if (e->depth >= 0 && test_entry(e, str))
@@ -459,8 +446,7 @@ static struct list *previous_on_this_level(struct list *item)
 {
 	struct list *p;
 
-	for (p = list_prev(item); p->depth > item->depth; p = p->fotr)
-		;
+	for (p = list_prev(item); p->depth > item->depth; p = p->fotr);
 	return p;
 }
 
@@ -474,7 +460,8 @@ static void add_bookmark(unsigned char *title, unsigned char *url, int depth)
 	struct list *p;
 	struct document_options *dop;
 
-	if (!title) return;
+	if (!title)
+		return;
 
 	b = xmalloc(sizeof(struct bookmark_list));
 
@@ -498,8 +485,11 @@ static void add_bookmark(unsigned char *title, unsigned char *url, int depth)
 	add_to_list_end(bookmarks.list_entry, &b->head);
 
 	p = previous_on_this_level(&b->head);
-	if (p->depth < b->head.depth) b->head.fotr = p;   /* directory b belongs into */
-	else b->head.fotr = p->fotr;
+	if (p->depth < b->head.depth)
+		/* directory b belongs into */
+		b->head.fotr = p;
+	else
+		b->head.fotr = p->fotr;
 
 	free(dop);
 }
@@ -565,26 +555,37 @@ static void load_bookmarks(struct session *ses)
 	d_opt = &dop;
 	while (1) {
 		unsigned char *s;
+		
+		/* find start of html tag */
+		for (; p < end && *p != '<'; p++);
 
-		while (p < end && *p != '<') p++;  /* find start of html tag */
-		if (p >= end) break;   /* parse end */
+		if (p >= end)
+			break;
 		s = p;
-		if (p + 2 <= end && (p[1] == '!' || p[1]== '?')) { p = skip_comment(p,end); continue; }
-		if (parse_element(p, end, &name, &namelen, &attr, &p)) { p++; continue; }
+		if (p + 2 <= end && (p[1] == '!' || p[1]== '?')) {
+			p = skip_comment(p,end);
+			continue;
+		}
+		if (parse_element(p, end, &name, &namelen, &attr, &p)) {
+			p++;
+			continue;
+		}
 
 		switch (status) {
-			case 0:  /* <dt> or </dl> */
+		case 0:  /* <dt> or </dl> */
 			if (namelen == 2 && !casecmp(name, cast_uchar "dt", 2))
 				status = 1;
 			else if (namelen == 3 && !casecmp(name, cast_uchar "/dl", 3)) {
 				depth--;
-				if (depth == -1) goto smitec;
+				if (depth == -1)
+					goto smitec;
 			}
 			continue;
 
-			case 1:   /* find "a" element */
+		case 1:   /* find "a" element */
 			if (namelen == 1 && !casecmp(name, cast_uchar "a", 1)) {
-				if (!(url = get_attr_val(attr, cast_uchar "href"))) continue;
+				if (!(url = get_attr_val(attr, cast_uchar "href")))
+					continue;
 				status = 2;
 				title = p;
 			} else if (namelen == 2 && !casecmp(name, cast_uchar "h3", 1)) {
@@ -593,7 +594,7 @@ static void load_bookmarks(struct session *ses)
 			}
 			continue;
 
-			case 2:   /* find "/a" element */
+		case 2:   /* find "/a" element */
 			if (namelen != 2 || casecmp(name, cast_uchar "/a", 2)) continue;   /* ignore all other elements */
 			*s = 0;
 			add_bookmark(title, url, depth);
@@ -601,8 +602,10 @@ static void load_bookmarks(struct session *ses)
 			status = 0;
 			continue;
 
-			case 3:   /* find "/h3" element */
-			if (namelen !=3 || casecmp(name, cast_uchar "/h3", 2)) continue;   /* ignore all other elements */
+		case 3:   /* find "/h3" element */
+			if (namelen !=3 || casecmp(name, cast_uchar "/h3", 2))
+				/* ignore all other elements */
+				continue;
 			*s = 0;
 			add_bookmark(title, NULL, depth);
 			status = 0;
@@ -617,7 +620,7 @@ smitec:
 	d_opt = &dd_opt;
 	bookmark_ld.modified = 0;
 
-	EINTRLOOP(rs, stat(cast_const_char bookmarks_file, &bookmarks_st));
+	EINTRLOOP(rs, stat((char *)bookmarks_file, &bookmarks_st));
 	if (rs)
 		memset(&bookmarks_st, -1, sizeof bookmarks_st);
 }
@@ -628,7 +631,7 @@ void init_bookmarks(void)
 	if (!*bookmarks_file) {
 		unsigned char *e;
 		safe_strncpy(bookmarks_file, links_home ? links_home : (unsigned char*)"", MAX_STR_LEN);
-		e = cast_uchar strchr(cast_const_char bookmarks_file, 0);
+		e = cast_uchar strchr((char *) bookmarks_file, 0);
 		safe_strncpy(e, cast_uchar "bookmarks.html", MAX_STR_LEN - (e - bookmarks_file));
 	}
 
@@ -641,9 +644,8 @@ void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file)
 	if (test_list_window_in_use(&bookmark_ld, ses->term))
 		return;
 
-	if (!strcmp(cast_const_char bookmarks_file, cast_const_char new_bookmarks_file)) {
+	if (!strcmp((char *)bookmarks_file, (char *)new_bookmarks_file))
 		goto save_only;
-	}
 
 	buf = read_config_file(new_bookmarks_file);
 	if (buf) {
@@ -672,32 +674,30 @@ static unsigned char *convert_to_entity_string(unsigned char *str)
 	dst = init_str();
 	dstl = 0;
 
-	for (p = str; *p; p++) {
+	for (p = str; *p; p++)
 		switch(*p) {
-			case '<':
-				add_to_str(&dst, &dstl, cast_uchar "&lt;");
-				break;
-			case '>':
-				add_to_str(&dst, &dstl, cast_uchar "&gt;");
-				break;
+		case '<':
+			add_to_str(&dst, &dstl, cast_uchar "&lt;");
+			break;
+		case '>':
+			add_to_str(&dst, &dstl, cast_uchar "&gt;");
+			break;
 
-			case '=':
-				add_to_str(&dst, &dstl, cast_uchar "&equals;");
-				break;
+		case '=':
+			add_to_str(&dst, &dstl, cast_uchar "&equals;");
+			break;
 
-			case '&':
-				add_to_str(&dst, &dstl, cast_uchar "&amp;");
-				break;
+		case '&':
+			add_to_str(&dst, &dstl, cast_uchar "&amp;");
+			break;
 
-			case '"':
-				add_to_str(&dst, &dstl, cast_uchar "&quot;");
-				break;
+		case '"':
+			add_to_str(&dst, &dstl, cast_uchar "&quot;");
+			break;
 
-			default:
-				add_chr_to_str(&dst, &dstl, *p);
-				break;
+		default:
+			add_chr_to_str(&dst, &dstl, *p);
 		}
-	}
 	return dst;
 }
 
