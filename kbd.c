@@ -396,9 +396,6 @@ static void free_trm(struct itrm *itrm)
 void fatal_tty_exit(void)
 {
 	if (ditrm) setcooked(ditrm->ctl_in);
-#ifdef G
-	if (drv && drv->emergency_shutdown) drv->emergency_shutdown();
-#endif
 }
 
 static void resize_terminal_x(unsigned char *text)

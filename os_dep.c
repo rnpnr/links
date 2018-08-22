@@ -294,9 +294,6 @@ void close_fork_tty(void)
 	EINTRLOOP(rs, close(signal_pipe[0]));
 	EINTRLOOP(rs, close(signal_pipe[1]));
 #endif
-#ifdef G
-	if (drv && drv->after_fork) drv->after_fork();
-#endif
 	if (terminal_pipe[1] != -1) EINTRLOOP(rs, close(terminal_pipe[1]));
 	foreach(struct terminal, t, lt, terminals) {
 		if (t->fdin > 0)

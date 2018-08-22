@@ -1099,15 +1099,8 @@ struct graphics_driver {
 
 	void (*shutdown_driver)(void);
 
-	void (*emergency_shutdown)(void);
-
-	void (*after_fork)(void);
-
 	unsigned char *(*get_driver_param)(void);	/* returns allocated string with parameter given to init_driver function */
 	unsigned char *(*get_af_unix_name)(void);
-
-	void (*get_margin)(int *left, int *right, int *top, int *bottom);
-	int (*set_margin)(int left, int right, int top, int bottom);
 
 	/* dest must have x and y filled in when get_empty_bitmap is called */
 	int (*get_empty_bitmap)(struct bitmap *dest);

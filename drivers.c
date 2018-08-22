@@ -28,13 +28,14 @@ static unsigned char *init_graphics_driver(struct graphics_driver *gd, unsigned 
 	unsigned char *r;
 	unsigned char *p = param;
 	struct driver_param *dp = get_driver_param(gd->name);
-	if (!param || !*param) p = dp->param;
+	if (!param || !*param)
+		p = dp->param;
 	gd->kbd_codepage = dp->kbd_codepage;
 	gd->shell = mem_calloc(MAX_STR_LEN);
-	if (dp->shell) safe_strncpy(gd->shell, dp->shell, MAX_STR_LEN);
+	if (dp->shell)
+		safe_strncpy(gd->shell, dp->shell, MAX_STR_LEN);
 	drv = gd;
-	r = gd->init_driver(p,display);
-	if (r) {
+	if ((r = gd->init_driver(p, display))) {
 		free(gd->shell);
 		gd->shell = NULL;
 		drv = NULL;
@@ -46,35 +47,28 @@ static unsigned char *init_graphics_driver(struct graphics_driver *gd, unsigned 
 
 void add_graphics_drivers(unsigned char **s, int *l)
 {
-	struct graphics_driver **gd;
-	for (gd = graphics_drivers; *gd; gd++) {
-		if (gd != graphics_drivers) add_to_str(s, l, cast_uchar ", ");
-		add_to_str(s, l, (*gd)->name);
-	}
+	add_to_str(s, l, graphics_drivers[0]->name);
 }
 
 unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsigned char *display)
 {
 	unsigned char *s = init_str();
 	int l = 0;
-	struct graphics_driver **gd;
-	for (gd = graphics_drivers; *gd; gd++) {
-		if (!driver || !*driver || !casestrcmp((*gd)->name, driver)) {
-			unsigned char *r;
-			if ((!driver || !*driver) && (*gd)->flags & GD_NOAUTO) continue;
-			if (!(r = init_graphics_driver(*gd, param, display))) {
-				free(s);
-				return NULL;
-			}
-			if (!l) {
-				if (!driver || !*driver) add_to_str(&s, &l, cast_uchar "Could not initialize any graphics driver. Tried the following drivers:\n");
-				else add_to_str(&s, &l, cast_uchar "Could not initialize graphics driver ");
-			}
-			add_to_str(&s, &l, (*gd)->name);
-			add_to_str(&s, &l, cast_uchar ":\n");
-			add_to_str(&s, &l, r);
-			free(r);
+	struct graphics_driver **gd = graphics_drivers;
+	if (!driver || !*driver || !casestrcmp((*gd)->name, driver)) {
+		unsigned char *r;
+		if (!(r = init_graphics_driver(*gd, param, display))) {
+			free(s);
+			return NULL;
 		}
+		if (!driver || !*driver)
+			add_to_str(&s, &l, cast_uchar "Could not initialize any graphics driver. Tried the following drivers:\n");
+		else
+			add_to_str(&s, &l, cast_uchar "Could not initialize graphics driver ");
+		add_to_str(&s, &l, (*gd)->name);
+		add_to_str(&s, &l, cast_uchar ":\n");
+		add_to_str(&s, &l, r);
+		free(r);
 	}
 	if (!l) {
 		add_to_str(&s, &l, cast_uchar "Unknown graphics driver ");

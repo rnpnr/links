@@ -510,8 +510,7 @@ static void x_free_hash_table(void)
 	for (a = 0; a < X_HASH_TABLE_SIZE; a++) {
 		for (b = 0; b < x_hash_table[a].count; b++)
 			free(x_hash_table[a].pointer[b]);
-		if (x_hash_table[a].pointer)
-			free(x_hash_table[a].pointer);
+		free(x_hash_table[a].pointer);
 	}
 
 	x_clear_clipboard();
@@ -2124,12 +2123,8 @@ struct graphics_driver x_driver = {
 	x_init_device,
 	x_shutdown_device,
 	x_shutdown_driver,
-	NULL,
-	NULL,
 	x_get_driver_param,
 	x_get_af_unix_name,
-	NULL,
-	NULL,
 	x_get_empty_bitmap,
 	x_register_bitmap,
 	x_prepare_strip,

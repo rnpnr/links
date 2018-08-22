@@ -646,11 +646,6 @@ static void margins_ok(void *xxx)
 		ts->top_margin = top;
 		ts->bottom_margin = bottom;
 		cls_redraw_all_terminals();
-#ifdef G
-	} else {
-		if (drv->set_margin(left, right, top, bottom))
-			goto error;
-#endif
 	}
 	return;
 
@@ -680,16 +675,12 @@ static void screen_margins(struct terminal *term, void *xxx, void *ses_)
 	struct term_spec *ts = term->spec;
 	int string_len = !F ? 4 : 5;
 	int max_value = !F ? 999 : 9999;
-	int l, r, t, b;
+	int l = 0, r = 0, t = 0, b = 0;
 	if (!F) {
 		l = ts->left_margin;
 		r = ts->right_margin;
 		t = ts->top_margin;
 		b = ts->bottom_margin;
-#ifdef G
-	} else {
-		drv->get_margin(&l, &r, &t, &b);
-#endif
 	}
 	snprint(left_margin_str, string_len, l);
 	snprint(right_margin_str, string_len, r);
@@ -3010,11 +3001,7 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 		e += sizeof(setup_menu_3) / sizeof(struct menu_item);
 #endif
 	}
-	if (!F
-#ifdef G
-	    || (drv->get_margin && drv->set_margin)
-#endif
-	      ) {
+	if (!F) {
 		memcpy(e, setup_menu_4, sizeof(setup_menu_4));
 		e += sizeof(setup_menu_4) / sizeof(struct menu_item);
 	}
