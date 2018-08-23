@@ -8,10 +8,8 @@
 
 static unsigned char * const version_texts[] = {
 	TEXT_(T_LINKS_VERSION),
-	TEXT_(T_OPERATING_SYSTEM_TYPE),
 	TEXT_(T_OPERATING_SYSTEM_VERSION),
 	TEXT_(T_WORD_SIZE),
-	TEXT_(T_DEBUGGING_LEVEL),
 	TEXT_(T_EVENT_HANDLER),
 	TEXT_(T_IPV6),
 	TEXT_(T_COMPRESSION_METHODS),
@@ -58,10 +56,6 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, cast_uchar SYSTEM_NAME);
-	add_to_str(&s, &l, cast_uchar "\n");
-
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 	add_to_str(&s, &l, system_name);
 	add_to_str(&s, &l, cast_uchar "\n");
 
@@ -74,10 +68,6 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, cast_uchar " ");
 	add_num_to_str(&s, &l, sizeof(off_t) * 8 /*- ((off_t)-1 < 0)*/);
 	add_to_str(&s, &l, cast_uchar "-bit");
-	add_to_str(&s, &l, cast_uchar "\n");
-
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_num_to_str(&s, &l, 0);
 	add_to_str(&s, &l, cast_uchar "\n");
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
