@@ -1523,9 +1523,6 @@ struct term_spec {
 
 #define TERM_DUMB	0
 #define TERM_VT100	1
-#define TERM_LINUX	2
-#define TERM_KOI8	3
-#define TERM_FREEBSD	4
 
 #define ATTR_FRAME	0x80
 

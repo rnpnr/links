@@ -558,13 +558,13 @@ static void terminal_options_ok(void *p)
 	cls_redraw_all_terminals();
 }
 
-static unsigned char * const td_labels[] = { TEXT_(T_NO_FRAMES), TEXT_(T_VT_100_FRAMES), TEXT_(T_LINUX_OR_OS2_FRAMES), TEXT_(T_KOI8R_FRAMES), TEXT_(T_FREEBSD_FRAMES), TEXT_(T_USE_11M), TEXT_(T_RESTRICT_FRAMES_IN_CP850_852), TEXT_(T_BLOCK_CURSOR), TEXT_(T_COLOR), NULL };
+static unsigned char * const td_labels[] = { TEXT_(T_NO_FRAMES), TEXT_(T_VT_100_FRAMES), TEXT_(T_USE_11M), TEXT_(T_RESTRICT_FRAMES_IN_CP850_852), TEXT_(T_BLOCK_CURSOR), TEXT_(T_COLOR), NULL };
 
 static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 {
 	struct dialog *d;
 	struct term_spec *ts = new_term_spec(term->term);
-	d = mem_calloc(sizeof(struct dialog) + 12 * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + 8 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_TERMINAL_OPTIONS);
 	d->fn = checkbox_list_fn;
 	d->udata = (void *)td_labels;
@@ -580,45 +580,30 @@ static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 	d->items[1].dlen = sizeof(int);
 	d->items[1].data = (void *)&ts->mode;
 	d->items[2].type = D_CHECKBOX;
-	d->items[2].gid = 1;
-	d->items[2].gnum = TERM_LINUX;
+	d->items[2].gid = 0;
 	d->items[2].dlen = sizeof(int);
-	d->items[2].data = (void *)&ts->mode;
+	d->items[2].data = (void *)&ts->m11_hack;
 	d->items[3].type = D_CHECKBOX;
-	d->items[3].gid = 1;
-	d->items[3].gnum = TERM_KOI8;
+	d->items[3].gid = 0;
 	d->items[3].dlen = sizeof(int);
-	d->items[3].data = (void *)&ts->mode;
+	d->items[3].data = (void *)&ts->restrict_852;
 	d->items[4].type = D_CHECKBOX;
-	d->items[4].gid = 1;
-	d->items[4].gnum = TERM_FREEBSD;
+	d->items[4].gid = 0;
 	d->items[4].dlen = sizeof(int);
-	d->items[4].data = (void *)&ts->mode;
+	d->items[4].data = (void *)&ts->block_cursor;
 	d->items[5].type = D_CHECKBOX;
 	d->items[5].gid = 0;
 	d->items[5].dlen = sizeof(int);
-	d->items[5].data = (void *)&ts->m11_hack;
-	d->items[6].type = D_CHECKBOX;
-	d->items[6].gid = 0;
-	d->items[6].dlen = sizeof(int);
-	d->items[6].data = (void *)&ts->restrict_852;
-	d->items[7].type = D_CHECKBOX;
-	d->items[7].gid = 0;
-	d->items[7].dlen = sizeof(int);
-	d->items[7].data = (void *)&ts->block_cursor;
-	d->items[8].type = D_CHECKBOX;
-	d->items[8].gid = 0;
-	d->items[8].dlen = sizeof(int);
-	d->items[8].data = (void *)&ts->col;
-	d->items[9].type = D_BUTTON;
-	d->items[9].gid = B_ENTER;
-	d->items[9].fn = ok_dialog;
-	d->items[9].text = TEXT_(T_OK);
-	d->items[10].type = D_BUTTON;
-	d->items[10].gid = B_ESC;
-	d->items[10].fn = cancel_dialog;
-	d->items[10].text = TEXT_(T_CANCEL);
-	d->items[11].type = D_END;
+	d->items[5].data = (void *)&ts->col;
+	d->items[6].type = D_BUTTON;
+	d->items[6].gid = B_ENTER;
+	d->items[6].fn = ok_dialog;
+	d->items[6].text = TEXT_(T_OK);
+	d->items[7].type = D_BUTTON;
+	d->items[7].gid = B_ESC;
+	d->items[7].fn = cancel_dialog;
+	d->items[7].text = TEXT_(T_CANCEL);
+	d->items[8].type = D_END;
 	do_dialog(term, d, getml(d, NULL));
 }
 

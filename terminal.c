@@ -891,30 +891,6 @@ static inline int getcompcode(int c)
 
 unsigned char frame_dumb[49] =	"   ||||++||++++++--|-+||++--|-+----++++++++     ";
 static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmllnnjla    ";
-static unsigned char frame_koi[48] = {
-	144,145,146,129,135,178,180,167,
-	166,181,161,168,174,173,172,131,
-	132,137,136,134,128,138,175,176,
-	171,165,187,184,177,160,190,185,
-	186,182,183,170,169,162,164,189,
-	188,133,130,141,140,142,143,139,
-};
-static unsigned char frame_freebsd[48] = {
-	130,138,128,153,150,150,150,140,
-	140,150,153,140,139,139,139,140,
-	142,151,152,149,146,143,149,149,
-	142,141,151,152,149,146,143,151,
-	151,152,152,142,142,141,141,143,
-	143,139,141,128,128,128,128,128,
-};
-static unsigned char frame_restrict[48] = {
-	  0,  0,  0,  0,  0,179,186,186,
-	205,  0,  0,  0,  0,186,205,  0,
-	  0,  0,  0,  0,  0,  0,179,186,
-	  0,  0,  0,  0,  0,  0,  0,205,
-	196,205,196,186,205,205,186,186,
-	179,  0,  0,  0,  0,  0,  0,  0,
-};
 
 #define utf8_hack(x)	(x)
 
@@ -933,24 +909,12 @@ static unsigned char frame_restrict[48] = {
 	char_t c = term->screen[p].ch;					\
 	unsigned char A = term->screen[p].at & 0x7f;			\
 	unsigned char frm = !!(term->screen[p].at & ATTR_FRAME);	\
-	if (s->mode == TERM_LINUX) {					\
-		if (s->m11_hack) {					\
-			if (frm != mode) {				\
-				if (!(mode = frm)) add_to_str(&a, &l, cast_uchar "\033[10m");\
-				else add_to_str(&a, &l, cast_uchar "\033[11m");\
-			}						\
-		}							\
-		if (s->restrict_852 && frm && c >= 176 && c < 224) {	\
-			if (frame_restrict[c - 176]) c = frame_restrict[c - 176];\
-		}							\
-	} else if (s->mode == TERM_VT100) {				\
+	if (s->mode == TERM_VT100) {					\
 		if (frm != mode) {					\
 			if (!(mode = frm)) add_to_str(&a, &l, cast_uchar "\017");\
 			else add_to_str(&a, &l, cast_uchar "\016");	\
 		}							\
 		if (frm && c >= 176 && c < 224) c = frame_vt100[c - 176];\
-	} else if (s->mode == TERM_KOI8 && frm && c >= 176 && c < 224) { c = frame_koi[c - 176];\
-	} else if (s->mode == TERM_FREEBSD && frm && c >= 176 && c < 224) { c = frame_freebsd[c - 176];\
 	} else if (s->mode == TERM_DUMB && frm && c >= 176 && c < 224) c = frame_dumb[c - 176];\
 	if (!(A & 0100) && (A >> 3) == (A & 7)) A = (A & 070) | 7 * !(A & 020);\
 	if (A != attrib) {						\
@@ -1046,7 +1010,6 @@ static void redraw_screen(struct terminal *term)
 	if (l) {
 		if (s->col) add_to_str(&a, &l, cast_uchar "\033[37;40m");
 		add_to_str(&a, &l, cast_uchar "\033[0m");
-		if (s->mode == TERM_LINUX && s->m11_hack) add_to_str(&a, &l, cast_uchar "\033[10m");
 		if (s->mode == TERM_VT100) add_to_str(&a, &l, cast_uchar "\017");
 	}
 	term->lcx = cx;
