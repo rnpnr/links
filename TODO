@@ -42,3 +42,5 @@
   sites
 
 - remove get_links_icon() in dip.c
+
+- remove remaining terminal margin modifying code

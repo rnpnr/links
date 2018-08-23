@@ -114,21 +114,6 @@ static unsigned char *get_token(unsigned char **line)
 	return s;
 }
 
-static int get_token_num(unsigned char **line)
-{
-	long l;
-	unsigned char *end;
-	unsigned char *t = get_token(line);
-	if (!t) return -1;
-	l = strtolx(t, &end);
-	if (*end || end == t || l < 0 || l != (int)l) {
-		free(t);
-		return -1;
-	}
-	free(t);
-	return (int)l;
-}
-
 static void parse_config_file(unsigned char *name, unsigned char *file, struct option **opt)
 {
 	struct option *options;
@@ -689,7 +674,7 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 {
 	struct term_spec *ts;
 	unsigned char *w;
-	int i, l;
+	int i;
 	if (!(w = get_token(&c))) goto err;
 	ts = new_term_spec(w);
 	free(w);
@@ -715,23 +700,10 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 			goto err_f;
 	ts->character_set = i;
 	free(w);
-	l = get_token_num(&c);
-	if (l < 0) goto ret;
-	if (l > 999) goto err;
-	ts->left_margin = l;
-	l = get_token_num(&c);
-	if (l < 0) goto err;
-	if (l > 999) goto err;
-	ts->right_margin = l;
-	l = get_token_num(&c);
-	if (l < 0) goto err;
-	if (l > 999) goto err;
-	ts->top_margin = l;
-	l = get_token_num(&c);
-	if (l < 0) goto err;
-	if (l > 999) goto err;
-	ts->bottom_margin = l;
-	ret:
+	ts->left_margin = 0;
+	ts->right_margin = 0;
+	ts->top_margin = 0;
+	ts->bottom_margin = 0;
 	return NULL;
 	err_f:
 	free(w);

@@ -622,112 +622,6 @@ static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static unsigned char left_margin_str[5];
-static unsigned char right_margin_str[5];
-static unsigned char top_margin_str[5];
-static unsigned char bottom_margin_str[5];
-
-static void margins_ok(void *xxx)
-{
-	struct terminal *term = xxx;
-	int left, right, top, bottom;
-	left = atoi(cast_const_char left_margin_str);
-	right = atoi(cast_const_char right_margin_str);
-	top = atoi(cast_const_char top_margin_str);
-	bottom = atoi(cast_const_char bottom_margin_str);
-	if (!F) {
-		struct term_spec *ts = new_term_spec(term->term);
-		if (left + right >= term->real_x ||
-		    top + bottom >= term->real_y) {
-			goto error;
-		}
-		ts->left_margin = left;
-		ts->right_margin = right;
-		ts->top_margin = top;
-		ts->bottom_margin = bottom;
-		cls_redraw_all_terminals();
-	}
-	return;
-
-error:
-	msg_box(
-		term,
-		NULL,
-		TEXT_(T_MARGINS_TOO_LARGE),
-		AL_CENTER,
-		TEXT_(T_THE_ENTERED_VALUES_ARE_TOO_LARGE_FOR_THE_CURRENT_SCREEN), MSG_BOX_END,
-		NULL,
-		1,
-		TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC
-	);
-}
-
-static unsigned char * const margins_labels[] = {
-	TEXT_(T_LEFT_MARGIN),
-	TEXT_(T_RIGHT_MARGIN),
-	TEXT_(T_TOP_MARGIN),
-	TEXT_(T_BOTTOM_MARGIN),
-};
-
-static void screen_margins(struct terminal *term, void *xxx, void *ses_)
-{
-	struct dialog *d;
-	struct term_spec *ts = term->spec;
-	int string_len = !F ? 4 : 5;
-	int max_value = !F ? 999 : 9999;
-	int l = 0, r = 0, t = 0, b = 0;
-	if (!F) {
-		l = ts->left_margin;
-		r = ts->right_margin;
-		t = ts->top_margin;
-		b = ts->bottom_margin;
-	}
-	snprint(left_margin_str, string_len, l);
-	snprint(right_margin_str, string_len, r);
-	snprint(top_margin_str, string_len, t);
-	snprint(bottom_margin_str, string_len, b);
-	d = mem_calloc(sizeof(struct dialog) + 6 * sizeof(struct dialog_item));
-	d->title = TEXT_(T_SCREEN_MARGINS);
-	d->fn = group_fn;
-	d->udata = (void *)margins_labels;
-	d->refresh = margins_ok;
-	d->refresh_data = term;
-	d->items[0].type = D_FIELD;
-	d->items[0].dlen = string_len;
-	d->items[0].data = left_margin_str;
-	d->items[0].fn = check_number;
-	d->items[0].gid = 0;
-	d->items[0].gnum = max_value;
-	d->items[1].type = D_FIELD;
-	d->items[1].dlen = string_len;
-	d->items[1].data = right_margin_str;
-	d->items[1].fn = check_number;
-	d->items[1].gid = 0;
-	d->items[1].gnum = max_value;
-	d->items[2].type = D_FIELD;
-	d->items[2].dlen = string_len;
-	d->items[2].data = top_margin_str;
-	d->items[2].fn = check_number;
-	d->items[2].gid = 0;
-	d->items[2].gnum = max_value;
-	d->items[3].type = D_FIELD;
-	d->items[3].dlen = string_len;
-	d->items[3].data = bottom_margin_str;
-	d->items[3].fn = check_number;
-	d->items[3].gid = 0;
-	d->items[3].gnum = max_value;
-	d->items[4].type = D_BUTTON;
-	d->items[4].gid = B_ENTER;
-	d->items[4].fn = ok_dialog;
-	d->items[4].text = TEXT_(T_OK);
-	d->items[5].type = D_BUTTON;
-	d->items[5].gid = B_ESC;
-	d->items[5].fn = cancel_dialog;
-	d->items[5].text = TEXT_(T_CANCEL);
-	d->items[6].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-}
-
 #ifndef G
 
 static inline void reinit_video(void) { }
@@ -2950,10 +2844,6 @@ static const struct menu_item setup_menu_3[] = {
 };
 #endif
 
-static const struct menu_item setup_menu_4[] = {
-	{ TEXT_(T_SCREEN_MARGINS), cast_uchar "", TEXT_(T_HK_SCREEN_MARGINS), screen_margins, NULL, 0, 1 },
-};
-
 static const struct menu_item setup_menu_5[] = {
 	{ TEXT_(T_NETWORK_OPTIONS), cast_uchar ">", TEXT_(T_HK_NETWORK_OPTIONS), network_menu, NULL, 1, 1 },
 };
@@ -2985,7 +2875,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 #ifdef G
 		sizeof(setup_menu_3) +
 #endif
-		sizeof(setup_menu_4) +
 		sizeof(setup_menu_5) +
 		sizeof(setup_menu_6) +
 		sizeof(setup_menu_7) +
@@ -3000,10 +2889,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 		memcpy(e, setup_menu_3, sizeof(setup_menu_3));
 		e += sizeof(setup_menu_3) / sizeof(struct menu_item);
 #endif
-	}
-	if (!F) {
-		memcpy(e, setup_menu_4, sizeof(setup_menu_4));
-		e += sizeof(setup_menu_4) / sizeof(struct menu_item);
 	}
 	if (!anonymous) {
 		memcpy(e, setup_menu_5, sizeof(setup_menu_5));

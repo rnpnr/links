@@ -75,21 +75,10 @@ struct list_head terminals = {&terminals, &terminals};
 
 static void set_margin(struct terminal *term)
 {
-	struct term_spec *ts = term->spec;
-	if (term->real_x <= ts->left_margin + ts->right_margin) {
-		term->left_margin = 0;
-		term->x = term->real_x;
-	} else {
-		term->left_margin = ts->left_margin;
-		term->x = term->real_x - (ts->left_margin + ts->right_margin);
-	}
-	if (term->real_y <= ts->top_margin + ts->bottom_margin) {
-		term->top_margin = 0;
-		term->y = term->real_y;
-	} else {
-		term->top_margin = ts->top_margin;
-		term->y = term->real_y - (ts->top_margin + ts->bottom_margin);
-	}
+	term->left_margin = 0;
+	term->x = term->real_x;
+	term->top_margin = 0;
+	term->y = term->real_y;
 }
 
 
