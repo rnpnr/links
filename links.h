@@ -692,7 +692,6 @@ extern struct list_head keepalive_connections;
 #define S_STATE			(-2000000014)
 #define S_CYCLIC_REDIRECT	(-2000000015)
 #define S_LARGE_FILE		(-2000000016)
-#define S_BLOCKED_URL		(-2000000017)
 #define S_SMB_NOT_ALLOWED	(-2000000018)
 #define S_FILE_NOT_ALLOWED	(-2000000019)
 #define S_NO_PROXY		(-2000000020)
@@ -3733,23 +3732,6 @@ unsigned char *get_prog(struct list_head *);
 void create_initial_extensions(void);
 
 void free_types(void);
-
-/* block.c */
-
-/* URL blocking calls */
-struct block {
-	list_head_1st
-	unsigned char *url;
-	list_head_last
-};
-
-extern struct list blocks;
-int is_url_blocked(unsigned char* url);
-void block_url_query(struct session *ses, unsigned char *u);
-void* block_url_add(void *ses_, unsigned char *url);
-void block_manager(struct terminal *term, void *fcp, void *ses_);
-void init_blocks(void);
-void free_blocks(void);
 
 /* bookmark.c */
 

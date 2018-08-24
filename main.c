@@ -427,7 +427,6 @@ static void initialize_all_subsystems(void)
 	init_dns();
 	init_session_cache();
 	init_cache();
-	init_blocks();
 	memset(&dd_opt, 0, sizeof dd_opt);
 }
 
@@ -462,7 +461,6 @@ static void terminate_all_subsystems(void)
 	free_history_lists();
 	free_term_specs();
 	free_types();
-	free_blocks();
 	finalize_bookmarks();
 	free_conv_table();
 	free_blacklist();

@@ -724,14 +724,6 @@ void load_url(unsigned char *url, unsigned char *prev_url, struct status *stat,
 		stat->prev_error = 0;
 		stat->pri = pri;
 	}
-	if (is_url_blocked(url)) {
-		if (stat) {
-			stat->state = S_BLOCKED_URL;
-			if (stat->end)
-				stat->end(stat, stat->data);
-		}
-		goto ret;
-	}
 	if (err) {
 		if (stat) {
 			stat->state = err;

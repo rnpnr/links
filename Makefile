@@ -5,7 +5,6 @@ include config.mk
 SRC = \
 	auth.c\
 	bfu.c\
-	block.c\
 	bookmark.c\
 	cache.c\
 	charsets.c\

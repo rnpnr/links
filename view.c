@@ -2983,18 +2983,6 @@ static void send_download_image(struct terminal *term, void *xxx, void *ses_)
 	}
 }
 
-#ifdef G
-static void send_block_image(struct terminal *term, void *xxx, void *ses_)
-{
-	struct session *ses = (struct session *)ses_;
-	struct f_data_c *fd = current_frame(ses);
-	struct link *link = get_current_link(fd);
-	if (!link) return;
-	if (!link->where_img) return;
-	block_url_query(ses, link->where_img);
-}
-#endif
-
 static void send_download(struct terminal *term, void *xxx, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
@@ -3312,9 +3300,6 @@ void link_menu(struct terminal *term, void *xxx, void *ses_)
 		else add_to_menu(&mi, TEXT_(T_SCALE_IMAGE_TO_FULL_SCREEN), cast_uchar "Enter", TEXT_(T_HK_SCALE_IMAGE_TO_FULL_SCREEN), send_scale, NULL, 0, -1);
 #endif
 		if (!anonymous) add_to_menu(&mi, TEXT_(T_DOWNLOAD_IMAGE), cast_uchar "I", TEXT_(T_HK_DOWNLOAD_IMAGE), send_download_image, NULL, 0, -1);
-#ifdef G
-		if (F && !anonymous) add_to_menu(&mi, TEXT_(T_BLOCK_URL), cast_uchar "", TEXT_(T_HK_BLOCK_URL), send_block_image, NULL, 0, -1);
-#endif
 	}
 	no_l:
 	if (!mi->text) add_to_menu(&mi, TEXT_(T_NO_LINK_SELECTED), cast_uchar "", M_BAR, NULL, NULL, 0, -1);

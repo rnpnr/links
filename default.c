@@ -597,32 +597,6 @@ static unsigned char *type_rd(struct option *o, unsigned char *c)
 	goto err;
 }
 
-static unsigned char *block_rd(struct option *o, unsigned char *c)
-{
-	unsigned char *err = cast_uchar "Error reading image block specification";
-	unsigned char* url;
-
-	if (!(url = get_token(&c)))
-		return err;
-
-	block_url_add(NULL, url);
-
-	free(url);
-
-	return NULL;
-}
-
-static void block_wr(struct option *o, unsigned char **s, int *l)
-{
-	struct list *a;
-	struct list_head *la;
-	foreachback(struct list, a, la, blocks.list_entry) {
-		struct block *b = get_struct(a, struct block, head);
-		add_nm(o, s, l);
-		add_quoted_to_str(s, l, b->url);
-	}
-}
-
 static void type_wr(struct option *o, unsigned char **s, int *l)
 {
 	struct list *a;
@@ -1627,7 +1601,6 @@ static struct option links_options[] = {
 	{1, NULL, term2_rd, NULL, 0, 0, NULL, "terminal2", NULL},
 	{1, NULL, type_rd, type_wr, 0, 0, NULL, "association", NULL},
 	{1, NULL, ext_rd, ext_wr, 0, 0, NULL, "extension", NULL},
-	{1, NULL, block_rd, block_wr, 0, 0, NULL, "imageblock", NULL},
 	{1, NULL, dp_rd, dp_wr, 0, 0, NULL, "video_driver", NULL},
 	{0, NULL, NULL, NULL, 0, 0, NULL, NULL, NULL},
 };

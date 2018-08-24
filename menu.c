@@ -2832,7 +2832,6 @@ static const struct menu_item setup_menu_7[] = {
 	{ TEXT_(T_MAIL_AND_TELNEL), cast_uchar "", TEXT_(T_HK_MAIL_AND_TELNEL), net_programs, NULL, 0, 1 },
 	{ TEXT_(T_ASSOCIATIONS), cast_uchar "", TEXT_(T_HK_ASSOCIATIONS), menu_assoc_manager, NULL, 0, 1 },
 	{ TEXT_(T_FILE_EXTENSIONS), cast_uchar "", TEXT_(T_HK_FILE_EXTENSIONS), menu_ext_manager, NULL, 0, 1 },
-	{ TEXT_(T_BLOCK_LIST), cast_uchar "", TEXT_(T_HK_BLOCK_LIST), block_manager, NULL, 0, 0 },
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_OPTIONS), cast_uchar "", TEXT_(T_HK_SAVE_OPTIONS), menu_write_config, NULL, 0, 1 },
 };
