@@ -14,8 +14,10 @@ static int display_error(struct terminal *term, unsigned char *msg, int *errp)
 
 static void decoder_memory_init(unsigned char **p, size_t *size, off_t init_length)
 {
-	if (init_length > 0 && init_length < INT_MAX) *size = (int)init_length;
-	else *size = 4096;
+	if (init_length > 0 && init_length < INT_MAX)
+		*size = (int)init_length;
+	else
+		*size = 4096;
 	*p = xmalloc(*size);
 }
 
@@ -24,8 +26,10 @@ static int decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize
 	unsigned char *pp;
 	size_t add = size / 4 + 1;
 	if (size + add < size) {
-		if (add > 1) add >>= 1;
-		else overalloc();
+		if (add > 1)
+			add >>= 1;
+		else
+			overalloc();
 	}
 	pp = xrealloc(*p, size + add);
 	if (!pp) {
@@ -47,9 +51,13 @@ static void decompress_error(struct terminal *term, struct cache_entry *ce, unsi
 			free(server);
 		}
 	}
-	if (!display_error(term, TEXT_(T_DECOMPRESSION_ERROR), errp)) return;
+	if (!display_error(term, TEXT_(T_DECOMPRESSION_ERROR), errp))
+		return;
 	u = display_url(term, ce->url, 1);
-	msg_box(term, getml(u, NULL), TEXT_(T_DECOMPRESSION_ERROR), AL_CENTER, TEXT_(T_ERROR_DECOMPRESSING_), u, TEXT_(T__wITH_), lib, cast_uchar ": ", msg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	msg_box(term, getml(u, NULL), TEXT_(T_DECOMPRESSION_ERROR), AL_CENTER,
+		TEXT_(T_ERROR_DECOMPRESSING_), u, TEXT_(T__wITH_), lib,
+		cast_uchar ": ", msg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL),
+		msg_box_null, B_ENTER | B_ESC);
 }
 
 static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, int *errp)
@@ -73,7 +81,7 @@ init_again:
 	err = 0;
 	skip_gzip_header = 0;
 	old_zlib = 0;
-	memset(&z, 0, sizeof z);
+	memset(&z, 0, sizeof(z));
 	z.next_in = NULL;
 	z.avail_in = 0;
 	z.next_out = p;
