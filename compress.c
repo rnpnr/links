@@ -2,10 +2,6 @@
 
 #include <zlib.h>
 
-#ifdef write
-#undef write
-#endif
-
 int decompressed_cache_size = 0;
 
 static int display_error(struct terminal *term, unsigned char *msg, int *errp)
@@ -378,11 +374,6 @@ void free_decompressed_data(struct cache_entry *e)
 
 void add_compress_methods(unsigned char **s, int *l)
 {
-	int cl = 0;
-	if (!cl)
-		cl = 1;
-	else
-		add_to_str(s, l, cast_uchar ", ");
 	add_to_str(s, l, cast_uchar "ZLIB");
 #ifdef zlib_version
 	add_to_str(s, l, cast_uchar " (");
