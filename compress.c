@@ -23,7 +23,6 @@ static void decoder_memory_init(unsigned char **p, size_t *size, off_t init_leng
 
 static int decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize)
 {
-	unsigned char *pp;
 	size_t add = size / 4 + 1;
 	if (size + add < size) {
 		if (add > 1)
@@ -31,13 +30,8 @@ static int decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize
 		else
 			overalloc();
 	}
-	pp = xrealloc(*p, size + add);
-	if (!pp) {
-		*addsize = 0;
-		return -1;
-	}
+	*p = xrealloc(*p, size + add);
 	*addsize = add;
-	*p = pp;
 	return 0;
 }
 
@@ -230,7 +224,6 @@ repeat_frag:
 			err = 1;
 			goto finish;
 		case Z_MEM_ERROR:
-mem_error:
 			memory_error = 1;
 			err = 1;
 			goto finish;
@@ -244,8 +237,7 @@ mem_error:
 		}
 		if (!z.avail_out) {
 			size_t addsize;
-			if (decoder_memory_expand(&p, size, &addsize) < 0)
-				goto mem_error;
+			decoder_memory_expand(&p, size, &addsize);
 			z.next_out = p + size;
 			z.avail_out = (unsigned)addsize;
 			size += addsize;
