@@ -35,35 +35,6 @@ static SSL_CTX *contexts[N_SSL_CONTEXTS];
 #define file_line_arg
 #define pass_file_line
 
-static unsigned in_ssl_malloc_hook = 0;
-
-static void *malloc_hook(size_t size file_line_arg)
-{
-	void *p;
-	in_ssl_malloc_hook++;
-	if (!size) size = 1;
-	do p = malloc(size); while (!p && out_of_memory());
-	in_ssl_malloc_hook--;
-	return p;
-}
-
-static void *realloc_hook(void *ptr, size_t size file_line_arg)
-{
-	void *p;
-	if (!ptr) return malloc_hook(size pass_file_line);
-	in_ssl_malloc_hook++;
-	if (!size) size = 1;
-	do p = realloc(ptr, size); while (!p && out_of_memory());
-	in_ssl_malloc_hook--;
-	return p;
-}
-
-static void free_hook(void *ptr file_line_arg)
-{
-	if (!ptr) return;
-	free(ptr);
-}
-
 #define ssl_set_private_paths(c)		(-1)
 
 int ssl_asked_for_password;
@@ -83,7 +54,6 @@ links_ssl *getSSL(void)
 	links_ssl *ssl;
 	if (!ssl_initialized) {
 		memset(contexts, 0, sizeof contexts);
-		CRYPTO_set_mem_functions(malloc_hook, realloc_hook, free_hook);
 
 #if defined(HAVE_RAND_EGD)
 		{
@@ -375,8 +345,6 @@ static int shrink_session_cache(int u)
 	struct session_cache_entry *d;
 	struct list_head *ld;
 	int f = 0;
-	if (in_ssl_malloc_hook++)
-		goto ret;
 	if (u == SH_FREE_SOMETHING && !list_empty(session_cache)) {
 		d = list_struct(session_cache.prev, struct session_cache_entry);
 		goto delete_last;
@@ -389,8 +357,6 @@ delete_last:
 		free(d);
 		f = ST_SOMETHING_FREED;
 	}
-ret:
-	in_ssl_malloc_hook--;
 	return f | (list_empty(session_cache) ? ST_CACHE_EMPTY : 0);
 }
 
