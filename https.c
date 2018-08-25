@@ -21,10 +21,6 @@
 
 #include "links.h"
 
-#ifndef LINKS_CRT_FILE
-#define LINKS_CRT_FILE		links.crt
-#endif
-
 static int ssl_initialized = 0;
 static SSL_CTX *contexts = NULL;
 int ssl_asked_for_password;
@@ -67,24 +63,7 @@ links_ssl *getSSL(void)
 		contexts = ctx = SSL_CTX_new(m);
 		if (!ctx)
 			return NULL;
-#ifndef SSL_OP_NO_COMPRESSION
-#define SSL_OP_NO_COMPRESSION	0
-#endif
-		SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_NO_COMPRESSION);
-#ifdef SSL_MODE_ENABLE_PARTIAL_WRITE
-		SSL_CTX_set_mode(ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
-#endif
-#ifdef SSL_CTX_set_min_proto_version
-#if defined(SSL3_VERSION)
-		SSL_CTX_set_min_proto_version(ctx, SSL3_VERSION);
-#elif defined(TLS1_VERSION)
-		SSL_CTX_set_min_proto_version(ctx, TLS1_VERSION);
-#elif defined(TLS1_1_VERSION)
-		SSL_CTX_set_min_proto_version(ctx, TLS1_1_VERSION);
-#elif defined(TLS1_2_VERSION)
 		SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
-#endif
-#endif
 		SSL_CTX_set_default_verify_paths(ctx);
 		SSL_CTX_set_default_passwd_cb(ctx, ssl_password_callback);
 	}
@@ -124,9 +103,6 @@ void ssl_finish(void)
 	contexts = NULL;
 	if (ssl_initialized) {
 		clear_ssl_errors(__LINE__);
-#ifdef HAVE_OPENSSL_CLEANUP
-		OPENSSL_cleanup();
-#endif
 		ssl_initialized = 0;
 	}
 }
