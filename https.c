@@ -33,8 +33,8 @@ int ssl_asked_for_password;
 static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata)
 {
 	ssl_asked_for_password = 1;
-	if (size > (int)strlen(cast_const_char ssl_options.client_cert_password))
-		size = (int)strlen(cast_const_char ssl_options.client_cert_password);
+	if (size > strlen((char *)ssl_options.client_cert_password))
+		size = strlen((char *)ssl_options.client_cert_password);
 	memcpy(buf, ssl_options.client_cert_password, size);
 	return size;
 }
@@ -53,9 +53,11 @@ links_ssl *getSSL(void)
 		const SSL_METHOD *m;
 
 		m = SSLv23_client_method();
-		if (!m) return NULL;
+		if (!m)
+			return NULL;
 		contexts = ctx = SSL_CTX_new(m);
-		if (!ctx) return NULL;
+		if (!ctx)
+			return NULL;
 #ifndef SSL_OP_NO_COMPRESSION
 #define SSL_OP_NO_COMPRESSION	0
 #endif
@@ -95,15 +97,16 @@ links_ssl *getSSL(void)
 
 void freeSSL(links_ssl *ssl)
 {
+	int r;
+
 	if (!ssl || ssl == DUMMY)
 		return;
-	{
-		int r;
-		SSL_set_quiet_shutdown(ssl->ssl, 1);
-		r = SSL_shutdown(ssl->ssl);
-		if (r < 0)
-			clear_ssl_errors(__LINE__);
-	}
+
+	SSL_set_quiet_shutdown(ssl->ssl, 1);
+	r = SSL_shutdown(ssl->ssl);
+	if (r < 0)
+		clear_ssl_errors(__LINE__);
+
 	SSL_free(ssl->ssl);
 	free(ssl);
 }
@@ -191,11 +194,11 @@ int ssl_not_reusable(links_ssl *ssl)
 	ssl->bytes_written = (ssl->bytes_written + 4095) & ~4095;
 	cipher = cast_uchar SSL_get_cipher_name(ssl->ssl);
 	if (cipher) {
-		if (strstr(cast_const_char cipher, "RC4-") ||
-		    strstr(cast_const_char cipher, "DES-") ||
-		    strstr(cast_const_char cipher, "RC2-") ||
-		    strstr(cast_const_char cipher, "IDEA-") ||
-		    strstr(cast_const_char cipher, "GOST-")) {
+		if (strstr(cast_const_char cipher, "RC4-")
+		|| strstr(cast_const_char cipher, "DES-")
+		|| strstr(cast_const_char cipher, "RC2-")
+		|| strstr(cast_const_char cipher, "IDEA-")
+		|| strstr(cast_const_char cipher, "GOST-")) {
 			return ssl->bytes_read + ssl->bytes_written >= 1 << 20;
 		}
 	}
@@ -241,7 +244,7 @@ static struct session_cache_entry *find_session_cache_entry(SSL_CTX *ctx, unsign
 	struct session_cache_entry *sce;
 	struct list_head *lsce;
 	foreach(struct session_cache_entry, sce, lsce, session_cache)
-		if (sce->ctx == ctx && !strcmp(cast_const_char sce->host, cast_const_char host))
+		if (sce->ctx == ctx && !strcmp((char *)sce->host, (char *)host))
 			return sce;
 	return NULL;
 }
@@ -262,9 +265,9 @@ static void set_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port,
 	size_t sl;
 	if (sce) {
 		SSL_SESSION_free(sce->session);
-		if (s) {
+		if (s)
 			sce->session = s;
-		} else {
+		else {
 			del_from_list(sce);
 			free(sce);
 		}
@@ -272,7 +275,7 @@ static void set_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port,
 	}
 	if (!s)
 		return;
-	sl = strlen(cast_const_char host);
+	sl = strlen((char *)host);
 	if (sl > INT_MAX - sizeof(sizeof(struct session_cache_entry))) return;
 	sce = xmalloc(sizeof(struct session_cache_entry) + sl);
 	sce->absolute_time = get_absolute_time();
@@ -293,9 +296,8 @@ void retrieve_ssl_session(struct connection *c)
 		if (c->no_tls /*|| SSL_session_reused(c->ssl->ssl)*/) {
 			s = NULL;
 			c->ssl->session_retrieved = 1;
-		} else {
+		} else
 			s = SSL_get1_session(c->ssl->ssl);
-		}
 		orig_url = remove_proxy_prefix(c->url);
 		h = get_host_name(orig_url);
 		p = get_port(orig_url);
@@ -317,24 +319,25 @@ static int shrink_session_cache(int u)
 		d = list_struct(session_cache.prev, struct session_cache_entry);
 		goto delete_last;
 	}
-	foreach(struct session_cache_entry, d, ld, session_cache) if (u == SH_FREE_ALL || now - d->absolute_time > SESSION_TIMEOUT) {
+	foreach(struct session_cache_entry, d, ld, session_cache)
+		if (u == SH_FREE_ALL || now - d->absolute_time > SESSION_TIMEOUT) {
 delete_last:
-		ld = d->list_entry.prev;
-		del_from_list(d);
-		SSL_SESSION_free(d->session);
-		free(d);
-		f = ST_SOMETHING_FREED;
-	}
+			ld = d->list_entry.prev;
+			del_from_list(d);
+			SSL_SESSION_free(d->session);
+			free(d);
+			f = ST_SOMETHING_FREED;
+		}
 	return f | (list_empty(session_cache) ? ST_CACHE_EMPTY : 0);
 }
 
 unsigned long session_info(int type)
 {
 	switch (type) {
-		case CI_FILES:
-			return list_size(&session_cache);
-		default:
-			internal("session_info: bad request");
+	case CI_FILES:
+		return list_size(&session_cache);
+	default:
+		internal("session_info: bad request");
 	}
 	return 0;
 }
