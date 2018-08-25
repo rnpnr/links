@@ -54,18 +54,6 @@ links_ssl *getSSL(void)
 	links_ssl *ssl;
 	if (!ssl_initialized) {
 		memset(contexts, 0, sizeof contexts);
-
-#if defined(HAVE_RAND_EGD)
-		{
-			unsigned char f_randfile[PATH_MAX];
-			const unsigned char *f = (const unsigned char *)RAND_file_name(cast_char f_randfile, sizeof(f_randfile));
-			if (f && RAND_egd(cast_const_char f) < 0) {
-				/* Not an EGD, so read and write to it */
-				if (RAND_load_file(cast_const_char f_randfile, -1))
-					RAND_write_file(cast_const_char f_randfile);
-			}
-		}
-#endif
 		OPENSSL_init_ssl(0, NULL);
 		ssl_initialized = 1;
 	}
