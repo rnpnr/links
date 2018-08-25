@@ -17,25 +17,16 @@
  * files in the program, then also delete it here.
  */
 
-#include "links.h"
+#include <openssl/ssl.h>
 
-#ifndef PATH_MAX
-#define PATH_MAX 255
-#endif
+#include "links.h"
 
 #ifndef LINKS_CRT_FILE
 #define LINKS_CRT_FILE		links.crt
 #endif
 
-#define N_SSL_CONTEXTS	1
-
 static int ssl_initialized = 0;
-static SSL_CTX *contexts[N_SSL_CONTEXTS];
-
-#define file_line_arg
-#define pass_file_line
-
-#define ssl_set_private_paths(c)		(-1)
+static SSL_CTX *contexts = NULL;
 
 int ssl_asked_for_password;
 
@@ -50,22 +41,20 @@ static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata
 
 links_ssl *getSSL(void)
 {
-	int idx;
 	links_ssl *ssl;
 	if (!ssl_initialized) {
-		memset(contexts, 0, sizeof contexts);
+		contexts = NULL;
 		OPENSSL_init_ssl(0, NULL);
 		ssl_initialized = 1;
 	}
 
-	idx = 0;
-	if (!contexts[idx]) {
+	if (!contexts) {
 		SSL_CTX *ctx;
 		const SSL_METHOD *m;
 
 		m = SSLv23_client_method();
 		if (!m) return NULL;
-		contexts[idx] = ctx = SSL_CTX_new((void *)m);
+		contexts = ctx = SSL_CTX_new(m);
 		if (!ctx) return NULL;
 #ifndef SSL_OP_NO_COMPRESSION
 #define SSL_OP_NO_COMPRESSION	0
@@ -85,17 +74,13 @@ links_ssl *getSSL(void)
 		SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
 #endif
 #endif
-		if (!idx) {
-			if (ssl_set_private_paths(ctx))
-				SSL_CTX_set_default_verify_paths(ctx);
-		} else {
-		}
+		SSL_CTX_set_default_verify_paths(ctx);
 		SSL_CTX_set_default_passwd_cb(ctx, ssl_password_callback);
 	}
 	ssl = xmalloc(sizeof(links_ssl));
 	if (!ssl)
 		return NULL;
-	ssl->ctx = contexts[idx];
+	ssl->ctx = contexts;
 	ssl->ssl = SSL_new(ssl->ctx);
 	clear_ssl_errors(__LINE__);
 	if (!ssl->ssl) {
@@ -125,13 +110,8 @@ void freeSSL(links_ssl *ssl)
 
 void ssl_finish(void)
 {
-	int i;
-	for (i = 0; i < N_SSL_CONTEXTS; i++) {
-		if (contexts[i]) {
-			SSL_CTX_free(contexts[i]);
-			contexts[i] = NULL;
-		}
-	}
+	SSL_CTX_free(contexts);
+	contexts = NULL;
 	if (ssl_initialized) {
 		clear_ssl_errors(__LINE__);
 #ifdef HAVE_OPENSSL_CLEANUP
