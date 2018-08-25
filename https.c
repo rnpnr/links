@@ -27,8 +27,19 @@
 
 static int ssl_initialized = 0;
 static SSL_CTX *contexts = NULL;
-
 int ssl_asked_for_password;
+
+struct session_cache_entry {
+	list_entry_1st
+	uttime absolute_time;
+	SSL_CTX *ctx;
+	SSL_SESSION *session;
+	int port;
+	list_entry_last
+	char *host;
+};
+
+static struct list_head session_cache = { &session_cache, &session_cache };
 
 static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata)
 {
@@ -80,8 +91,6 @@ links_ssl *getSSL(void)
 		SSL_CTX_set_default_passwd_cb(ctx, ssl_password_callback);
 	}
 	ssl = xmalloc(sizeof(links_ssl));
-	if (!ssl)
-		return NULL;
 	ssl->ctx = contexts;
 	ssl->ssl = SSL_new(ssl->ctx);
 	clear_ssl_errors(__LINE__);
@@ -130,18 +139,18 @@ void https_func(struct connection *c)
 	http_func(c);
 }
 
-static int verify_ssl_host_name(X509 *server_cert, unsigned char *host)
+static int verify_ssl_host_name(X509 *server_cert, char *host)
 {
 	int v;
 	unsigned char ipv4_address[4];
 	unsigned char ipv6_address[16];
 
-	if (!numeric_ip_address(host, ipv4_address))
+	if (!numeric_ip_address((unsigned char *)host, ipv4_address))
 		v = X509_check_ip(server_cert, ipv4_address, 4, 0);
-	else if (!numeric_ipv6_address(host, ipv6_address, NULL))
+	else if (!numeric_ipv6_address((unsigned char *)host, ipv6_address, NULL))
 		v = X509_check_ip(server_cert, ipv6_address, 16, 0);
 	else
-		v = X509_check_host(server_cert, cast_const_char host, strlen(cast_const_char host), 0, NULL);
+		v = X509_check_host(server_cert, host, strlen(host), 0, NULL);
 
 	return v == 1 ? 0 : S_INVALID_CERTIFICATE;
 }
@@ -160,7 +169,7 @@ int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 		clear_ssl_errors(__LINE__);
 		return S_INVALID_CERTIFICATE;
 	}
-	ret = verify_ssl_host_name(server_cert, host);
+	ret = verify_ssl_host_name(server_cert, (char *)host);
 	X509_free(server_cert);
 	clear_ssl_errors(__LINE__);
 	return ret;
@@ -168,90 +177,69 @@ int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 
 int verify_ssl_cipher(links_ssl *ssl)
 {
-	unsigned char *method;
-	unsigned char *cipher;
-	method = cast_uchar SSL_get_version(ssl->ssl);
-	if (!strncmp(cast_const_char method, "SSL", 3))
+	const char *method, *cipher;
+	method = SSL_get_version(ssl->ssl);
+	if (!strncmp(method, "SSL", 3))
 		return S_INSECURE_CIPHER;
 	if (SSL_get_cipher_bits(ssl->ssl, NULL) < 112)
 		return S_INSECURE_CIPHER;
-	cipher = cast_uchar SSL_get_cipher_name(ssl->ssl);
-	if (cipher) {
-		if (strstr(cast_const_char cipher, "RC4"))
+	if ((cipher = SSL_get_cipher_name(ssl->ssl)))
+		if (strstr(cipher, "RC4")
+		|| strstr(cipher, "NULL"))
 			return S_INSECURE_CIPHER;
-		if (strstr(cast_const_char cipher, "NULL"))
-			return S_INSECURE_CIPHER;
-	}
 	return 0;
 }
 
 int ssl_not_reusable(links_ssl *ssl)
 {
-	unsigned char *cipher;
+	const char *cipher;
 	if (!ssl || ssl == DUMMY)
 		return 0;
 	ssl->bytes_read = (ssl->bytes_read + 4095) & ~4095;
 	ssl->bytes_written = (ssl->bytes_written + 4095) & ~4095;
-	cipher = cast_uchar SSL_get_cipher_name(ssl->ssl);
-	if (cipher) {
-		if (strstr(cast_const_char cipher, "RC4-")
-		|| strstr(cast_const_char cipher, "DES-")
-		|| strstr(cast_const_char cipher, "RC2-")
-		|| strstr(cast_const_char cipher, "IDEA-")
-		|| strstr(cast_const_char cipher, "GOST-")) {
+	if ((cipher = SSL_get_cipher_name(ssl->ssl)))
+		if (strstr(cipher, "RC4-")
+		|| strstr(cipher, "DES-")
+		|| strstr(cipher, "RC2-")
+		|| strstr(cipher, "IDEA-")
+		|| strstr(cipher, "GOST-"))
 			return ssl->bytes_read + ssl->bytes_written >= 1 << 20;
-		}
-	}
 	return 0;
 }
 
 unsigned char *get_cipher_string(links_ssl *ssl)
 {
-	unsigned char *version, *cipher;
+	const char *version, *cipher;
 	unsigned char *s = init_str();
 	int l = 0;
 
 	add_num_to_str(&s, &l, SSL_get_cipher_bits(ssl->ssl, NULL));
 	add_to_str(&s, &l, cast_uchar "-bit");
 
-	version = cast_uchar SSL_get_version(ssl->ssl);
-	if (version) {
+	if ((version = SSL_get_version(ssl->ssl))) {
 		add_chr_to_str(&s, &l, ' ');
-		add_to_str(&s, &l, version);
+		add_to_str(&s, &l, (unsigned char *)version);
 	}
-	cipher = cast_uchar SSL_get_cipher_name(ssl->ssl);
-	if (cipher) {
+	if ((cipher = SSL_get_cipher_name(ssl->ssl))) {
 		add_chr_to_str(&s, &l, ' ');
-		add_to_str(&s, &l, cipher);
+		add_to_str(&s, &l, (unsigned char *)cipher);
 	}
 	return s;
 }
 
-struct session_cache_entry {
-	list_entry_1st
-	uttime absolute_time;
-	SSL_CTX *ctx;
-	SSL_SESSION *session;
-	int port;
-	list_entry_last
-	unsigned char host[1];
-};
-
-static struct list_head session_cache = { &session_cache, &session_cache };
-
-static struct session_cache_entry *find_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port)
+static struct session_cache_entry *find_session_cache_entry(SSL_CTX *ctx, char *host, int port)
 {
 	struct session_cache_entry *sce;
 	struct list_head *lsce;
 	foreach(struct session_cache_entry, sce, lsce, session_cache)
-		if (sce->ctx == ctx && !strcmp((char *)sce->host, (char *)host))
+		if (sce->ctx == ctx && !strcmp(sce->host, host))
 			return sce;
 	return NULL;
 }
 
 SSL_SESSION *get_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port)
 {
-	struct session_cache_entry *sce = find_session_cache_entry(ctx, host, port);
+	struct session_cache_entry *sce = find_session_cache_entry(ctx, (char *)host, port);
 	if (!sce)
 		return NULL;
 	if (get_absolute_time() - sce->absolute_time > SESSION_TIMEOUT)
@@ -259,7 +247,7 @@ SSL_SESSION *get_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port
 	return sce->session;
 }
 
-static void set_session_cache_entry(SSL_CTX *ctx, unsigned char *host, int port, SSL_SESSION *s)
+static void set_session_cache_entry(SSL_CTX *ctx, char *host, int port, SSL_SESSION *s)
 {
 	struct session_cache_entry *sce = find_session_cache_entry(ctx, host, port);
 	size_t sl;
@@ -290,7 +278,8 @@ void retrieve_ssl_session(struct connection *c)
 {
 	if (c->ssl && !c->ssl->session_retrieved && !proxies.only_proxies) {
 		SSL_SESSION *s;
-		unsigned char *orig_url, *h;
+		unsigned char *orig_url;
+		char *h;
 		int p;
 
 		if (c->no_tls /*|| SSL_session_reused(c->ssl->ssl)*/) {
@@ -299,7 +288,7 @@ void retrieve_ssl_session(struct connection *c)
 		} else
 			s = SSL_get1_session(c->ssl->ssl);
 		orig_url = remove_proxy_prefix(c->url);
-		h = get_host_name(orig_url);
+		h = (char *)get_host_name(orig_url);
 		p = get_port(orig_url);
 		if (s)
 			c->ssl->session_retrieved = 1;
