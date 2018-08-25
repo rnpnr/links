@@ -214,7 +214,7 @@ unsigned char *get_cipher_string(links_ssl *ssl)
 	int l = 0;
 
 	add_num_to_str(&s, &l, SSL_get_cipher_bits(ssl->ssl, NULL));
-	add_to_str(&s, &l, cast_uchar "-bit");
+	add_to_str(&s, &l, (unsigned char *)"-bit");
 
 	if ((version = SSL_get_version(ssl->ssl))) {
 		add_chr_to_str(&s, &l, ' ');
@@ -263,14 +263,14 @@ static void set_session_cache_entry(SSL_CTX *ctx, char *host, int port, SSL_SESS
 	}
 	if (!s)
 		return;
-	sl = strlen((char *)host);
+	sl = strlen(host);
 	if (sl > INT_MAX - sizeof(sizeof(struct session_cache_entry))) return;
 	sce = xmalloc(sizeof(struct session_cache_entry) + sl);
 	sce->absolute_time = get_absolute_time();
 	sce->ctx = ctx;
 	sce->session = s;
 	sce->port = port;
-	strcpy(cast_char sce->host, cast_const_char host);
+	strcpy(sce->host, host);
 	add_to_list(session_cache, sce);
 }
 
@@ -333,5 +333,5 @@ unsigned long session_info(int type)
 
 void init_session_cache(void)
 {
-	register_cache_upcall(shrink_session_cache, 0, cast_uchar "session");
+	register_cache_upcall(shrink_session_cache, 0, (unsigned char *)"session");
 }
