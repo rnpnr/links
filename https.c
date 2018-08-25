@@ -55,7 +55,6 @@ links_ssl *getSSL(void)
 	links_ssl *ssl;
 	if (!ssl_initialized) {
 		contexts = NULL;
-		OPENSSL_init_ssl(0, NULL);
 		ssl_initialized = 1;
 	}
 
