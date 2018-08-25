@@ -36,7 +36,7 @@ struct session_cache_entry {
 	SSL_SESSION *session;
 	int port;
 	list_entry_last
-	char *host;
+	char host[1];
 };
 
 static struct list_head session_cache = { &session_cache, &session_cache };
