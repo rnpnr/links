@@ -63,8 +63,7 @@ links_ssl *getSSL(void)
 		SSL_CTX *ctx;
 		const SSL_METHOD *m;
 
-		m = SSLv23_client_method();
-		if (!m)
+		if (!(m = TLS_client_method()))
 			return NULL;
 		contexts = ctx = SSL_CTX_new(m);
 		if (!ctx)
