@@ -57,7 +57,15 @@ XSRC = \
 	x.c
 XOBJ = $(XSRC:.c=.o)
 
-all: linksg
+all: options linksg
+
+options:
+	@echo "CFLAGS  = $(CFLAGS)"
+	@echo "LDFLAGS = $(LDFLAGS)"
+	@echo "CC      = $(CC)"
+
+.c.o:
+	$(CC) $(CFLAGS) -c $<
 
 links: $(OBJ)
 	$(CC) -o $@ $(OBJ) $(LDFLAGS)

@@ -10,7 +10,7 @@ INCS = -I. -I/usr/include -I$(X11INC)
 LIBS = -L$(X11LIB) -L/usr/lib -lX11 -levent -lpng -ljpeg -lcrypto -lssl -lz
 
 CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_BSD_SOURCE
-CFLAGS = -O2 -std=c99 -Wall -pedantic \
+CFLAGS = -O2 -std=c99 -Wall -pedantic $(CPPFLAGS) \
 	-DG=1 \
 	-DHAVE_JPEG=1 -DHAVE_LIBJPEG=1 -DHAVE_JPEGLIB_H=1 \
 	-DHAVE_PNG_H=1 -DHAVE_LIBPNG=1 -DHAVE_LIBPNG_PNG_H=1
