@@ -21,9 +21,7 @@
 
 #include "links.h"
 
-static int ssl_initialized = 0;
 static SSL_CTX *contexts = NULL;
-int ssl_asked_for_password;
 
 struct session_cache_entry {
 	list_entry_1st
@@ -39,7 +37,6 @@ static struct list_head session_cache = { &session_cache, &session_cache };
 
 static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata)
 {
-	ssl_asked_for_password = 1;
 	if (size > strlen((char *)ssl_options.client_cert_password))
 		size = strlen((char *)ssl_options.client_cert_password);
 	memcpy(buf, ssl_options.client_cert_password, size);
@@ -49,10 +46,6 @@ static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata
 links_ssl *getSSL(void)
 {
 	links_ssl *ssl;
-	if (!ssl_initialized) {
-		contexts = NULL;
-		ssl_initialized = 1;
-	}
 
 	if (!contexts) {
 		SSL_CTX *ctx;
@@ -101,10 +94,6 @@ void ssl_finish(void)
 {
 	SSL_CTX_free(contexts);
 	contexts = NULL;
-	if (ssl_initialized) {
-		clear_ssl_errors(__LINE__);
-		ssl_initialized = 0;
-	}
 }
 
 void https_func(struct connection *c)

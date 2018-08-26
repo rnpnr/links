@@ -1333,9 +1333,7 @@ static int check_file(struct dialog_data *dlg, struct dialog_item_data *di, int 
 		return 0;
 #if !defined(OPENSSL_NO_STDIO)
 	if (!type) {
-		ssl_asked_for_password = 0;
 		r = SSL_use_PrivateKey_file(ssl->ssl, cast_const_char p, SSL_FILETYPE_PEM);
-		if (!r && ssl_asked_for_password) r = 1;
 		r = r != 1;
 	} else {
 		r = SSL_use_certificate_file(ssl->ssl, cast_const_char p, SSL_FILETYPE_PEM);
