@@ -5,7 +5,7 @@
 
 #include "links.h"
 
-static void log_ssl_error(unsigned char *url, int line, int ret1, int ret2)
+static void log_ssl_error(void)
 {
 	unsigned long err;
 	while ((err = ERR_get_error())) ;
@@ -14,7 +14,7 @@ static void log_ssl_error(unsigned char *url, int line, int ret1, int ret2)
 void clear_ssl_errors(int line)
 {
 	if (ERR_peek_error())
-		log_ssl_error(cast_uchar "", line, 0, 0);
+		log_ssl_error();
 }
 
 static void connected(void *);
@@ -104,7 +104,7 @@ struct conn_info {
 	int socks_byte_count;
 	int socks_handled;
 	unsigned char socks_reply[8];
-	unsigned char host[1];
+	char host[1];
 };
 
 void make_connection(struct connection *c, int port, int *sock, void (*func)(struct connection *))
@@ -148,7 +148,7 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	b->sock = sock;
 	b->l.socks_port = socks_port;
 	b->l.target_port = port;
-	strcpy(cast_char b->host, cast_const_char host);
+	strcpy(b->host, cast_const_char host);
 	c->newconn = b;
 	if (c->last_lookup_state.addr.n) {
 		b->l.addr = c->last_lookup_state.addr;
@@ -368,7 +368,7 @@ static void ssl_want_io(void *c_)
 			set_handlers(*b->sock, NULL, ssl_want_io, c);
 			break;
 		default:
-			log_ssl_error(c->url, __LINE__, ret1, ret2);
+			log_ssl_error();
 			ssl_downgrade_dance(c);
 			break;
 	}
@@ -483,11 +483,8 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 {
 	struct conn_info *b = c->newconn;
 	if (!b->l.addr_index) b->first_error = err;
-	if (c->ssl) {
-		freeSSL(c->ssl);
-		if (is_proxy_url(c->url)) c->ssl = NULL;
-		else c->ssl = DUMMY;
-	}
+	freeSSL(c->ssl);
+	c->ssl = NULL;
 	if (ssl_downgrade) {
 		close_socket(b->sock);
 		try_connect(c);
@@ -503,7 +500,7 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 	} else
 #endif
 	{
-		dns_clear_host(b->host);
+		dns_clear_host((unsigned char *)b->host);
 		setcstate(c, b->first_error);
 		retry_connection(c);
 	}
@@ -677,7 +674,7 @@ skip_numeric_address:
 				break;
 			default:
 			ssl_error:
-				log_ssl_error(c->url, __LINE__, ret1, ret2);
+				log_ssl_error();
 				ssl_downgrade_dance(c);
 				return;
 		}
@@ -693,8 +690,8 @@ static void update_dns_priority(struct connection *c)
 		if (b->l.addr_index) {
 			int i;
 			for (i = 0; i < b->l.addr_index; i++)
-				dns_set_priority(b->host, &b->l.addr.a[i], 0);
-			dns_set_priority(b->host, &b->l.addr.a[i], 1);
+				dns_set_priority((unsigned char *)b->host, &b->l.addr.a[i], 0);
+			dns_set_priority((unsigned char *)b->host, &b->l.addr.a[i], 1);
 		}
 		b->l.dont_try_more_servers = 1;
 	}
@@ -796,7 +793,7 @@ static void write_select(void *c_)
 				return;
 			}
 			setcstate(c, wr ? (err == SSL_ERROR_SYSCALL ? get_error_from_errno(errno) : S_SSL_ERROR) : S_CANT_WRITE);
-			log_ssl_error(c->url, __LINE__, wr, err);
+			log_ssl_error();
 			if (!wr || err == SSL_ERROR_SYSCALL) retry_connection(c);
 			else abort_connection(c);
 			return;
@@ -877,7 +874,7 @@ read_more:
 				return;
 			}
 			setcstate(c, rd ? (err == SSL_ERROR_SYSCALL ? get_error_from_errno(errno) : S_SSL_ERROR) : S_CANT_READ);
-			log_ssl_error(c->url, __LINE__, rd, err);
+			log_ssl_error();
 			if (!rd || err == SSL_ERROR_SYSCALL) retry_connection(c);
 			else abort_connection(c);
 			return;
