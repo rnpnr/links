@@ -52,11 +52,7 @@
 
 #if defined(G)
 #if defined(HAVE_PNG_H)
-#define PNG_THREAD_UNSAFE_OK
 #include <png.h>
-#elif defined(HAVE_LIBPNG_PNG_H)
-#define PNG_THREAD_UNSAFE_OK
-#include <libpng/png.h>
 #endif /* #if defined(HAVE_PNG_H) */
 #ifndef png_jmpbuf
 #define png_jmpbuf(png_ptr)	((png_ptr)->jmpbuf)
