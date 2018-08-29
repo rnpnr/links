@@ -3561,12 +3561,6 @@ struct ftp_options {
 
 extern struct ftp_options ftp_options;
 
-struct smb_options {
-	int allow_hyperlinks_to_smb;
-};
-
-extern struct smb_options smb_options;
-
 extern unsigned char download_dir[];
 
 #define SCRUB_HEADERS	(proxies.only_proxies || http_options.header.fake_firefox)

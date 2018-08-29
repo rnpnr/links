@@ -1214,11 +1214,6 @@ fprintf(stdout, "%s%s%s%s%s%s\n",
 " -ftp.set-iptos <0>/<1>\n"
 "  Set IP Type-of-service to high throughput on ftp connections.\n"
 "\n"
-" -smb.allow-hyperlinks-to-smb <0>/<1>\n"
-"  Allow hyperlinks to SMB protocol.\n"
-"    Disabling this improves security, because internet sites cannot\n"
-"    exploit possible bugs in the SMB client.\n"
-"\n"
 " -menu-font-size <size>\n"
 "  Size of font in menu.\n"
 "\n"
@@ -1452,7 +1447,6 @@ struct ssl_options ssl_options = { SSL_WARN_ON_INVALID_CERTIFICATE,
 	"", "", "" };
 struct http_options http_options = { 0, 1, 1, 0, 0, 0, 0, { 0, "", "" } };
 struct ftp_options ftp_options = { "somebody@host.domain", 0, 0, 0, 1 };
-struct smb_options smb_options = { 0 };
 
 unsigned char download_dir[MAX_STR_LEN] = "";
 
@@ -1576,7 +1570,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.eprt_epsv, "ftp.use_eprt_epsv", "ftp.use-eprt-epsv"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.fast_ftp, "ftp.fast", "ftp.fast"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.set_tos, "ftp.set_iptos", "ftp.set-iptos"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &smb_options.allow_hyperlinks_to_smb, "smb.allow_hyperlinks_to_smb", "smb.allow-hyperlinks-to-smb"},
 	{1, gen_cmd, num_rd, num_wr, 1, MAX_FONT_SIZE, &menu_font_size, "menu_font_size", "menu-font-size"},
 	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_BFU_BG_COLOR, "background_color", "menu-background-color"},
 	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_BFU_FG_COLOR, "foreground_color", "menu-foreground-color"},

@@ -696,8 +696,7 @@ int get_allow_flags(unsigned char *url)
 
 int disallow_url(unsigned char *url, int allow_flags)
 {
-	if (!casecmp(url, cast_uchar "smb://", 6) && !(allow_flags & ALLOW_SMB)
-	&& !smb_options.allow_hyperlinks_to_smb)
+	if (!casecmp(url, cast_uchar "smb://", 6) && !(allow_flags & ALLOW_SMB))
 		return S_SMB_NOT_ALLOWED;
 	if (!casecmp(url, cast_uchar "file://", 7)
 	&& !(allow_flags & ALLOW_FILE))
