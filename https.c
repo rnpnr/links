@@ -30,7 +30,7 @@ struct session_cache_entry {
 	SSL_SESSION *session;
 	int port;
 	list_entry_last
-	char host[1];
+	char host;
 };
 
 static struct list_head session_cache = { &session_cache, &session_cache };
@@ -195,7 +195,7 @@ static struct session_cache_entry *find_session_cache_entry(SSL_CTX *ctx, char *
 	struct session_cache_entry *sce;
 	struct list_head *lsce;
 	foreach(struct session_cache_entry, sce, lsce, session_cache)
-		if (sce->ctx == ctx && !strcmp(sce->host, host))
+		if (sce->ctx == ctx && !strcmp(&sce->host, host))
 			return sce;
 	return NULL;
 }
@@ -233,7 +233,7 @@ static void set_session_cache_entry(SSL_CTX *ctx, char *host, int port, SSL_SESS
 	sce->ctx = ctx;
 	sce->session = s;
 	sce->port = port;
-	strcpy(sce->host, host);
+	strcpy(&sce->host, host);
 	add_to_list(session_cache, sce);
 }
 
