@@ -904,7 +904,6 @@ void proxy_func(struct connection *);
 /* https.c */
 
 void https_func(struct connection *c);
-extern int ssl_asked_for_password;
 void ssl_finish(void);
 links_ssl *getSSL(void);
 void freeSSL(links_ssl *);
