@@ -76,14 +76,10 @@ links_ssl *getSSL(void)
 
 void freeSSL(links_ssl *ssl)
 {
-	int r;
-
 	if (!ssl || ssl == DUMMY)
 		return;
 
-	SSL_set_quiet_shutdown(ssl->ssl, 1);
-	r = SSL_shutdown(ssl->ssl);
-	if (r < 0)
+	if (SSL_shutdown(ssl->ssl) < 0)
 		clear_ssl_errors(__LINE__);
 
 	SSL_free(ssl->ssl);
