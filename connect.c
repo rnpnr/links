@@ -36,7 +36,7 @@ int socket_and_bind(int pf, unsigned char *address)
 		case PF_INET: {
 			struct sockaddr_in sa;
 			unsigned char addr[4];
-			if (numeric_ip_address(address, addr) == -1) {
+			if (numeric_ip_address((char *)address, (char *)addr) == -1) {
 				EINTRLOOP(rs, close(s));
 				errno = EINVAL;
 				return -1;
@@ -58,7 +58,7 @@ int socket_and_bind(int pf, unsigned char *address)
 			struct sockaddr_in6 sa;
 			unsigned char addr[16];
 			unsigned scope;
-			if (numeric_ipv6_address(address, addr, &scope) == -1) {
+			if (numeric_ipv6_address((char *)address, (char *)addr, &scope) == -1) {
 				EINTRLOOP(rs, close(s));
 				errno = EINVAL;
 				return -1;
@@ -654,8 +654,8 @@ static void connected(void *c_)
 		SSL_set_fd(c->ssl->ssl, *b->sock);
 		ssl_setup_downgrade(c);
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-		if (h[0] == '[' || !numeric_ip_address(h, NULL)
-		    || !numeric_ipv6_address(h, NULL, NULL)
+		if (h[0] == '[' || !numeric_ip_address((char *)h, NULL)
+		    || !numeric_ipv6_address((char *)h, NULL, NULL)
 		    ) goto skip_numeric_address;
 		SSL_set_tlsext_host_name(c->ssl->ssl, h);
 skip_numeric_address:

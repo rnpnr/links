@@ -31,38 +31,37 @@ static struct list_head dns_cache = {&dns_cache, &dns_cache};
 static void end_dns_lookup(struct dnsquery *q, int a);
 static int shrink_dns_cache(int u);
 
-static int get_addr_byte(unsigned char **ptr, unsigned char *res, unsigned char stp)
+static int get_addr_byte(const char *p, char *res, const char stp)
 {
-	unsigned u = 0;
-	if (!(**ptr >= '0' && **ptr <= '9')) return -1;
-	while (**ptr >= '0' && **ptr <= '9') {
-		u = u * 10 + **ptr - '0';
-		if (u >= 256) return -1;
-		(*ptr)++;
+	char u = 0;
+	if (!(*p >= '0' && *p <= '9'))
+		return -1;
+	while (*p >= '0' && *p <= '9') {
+		u = u * 10 + *p - '0';
+		if (u >= 256)
+			return -1;
+		p++;
 	}
-	if (stp != 255 && **ptr != stp) return -1;
-	(*ptr)++;
-	*res = (unsigned char)u;
+	if (stp != 255 && *p != stp) return -1;
+	p++;
+	*res = u;
 	return 0;
 }
 
-int numeric_ip_address(unsigned char *name, unsigned char address[4])
+int numeric_ip_address(const char *name, char address[4])
 {
-	unsigned char dummy[4];
+	char dummy[4];
 	if (!address)
 		address = dummy;
-	if (get_addr_byte(&name, address + 0, '.'))
-		return -1;
-	if (get_addr_byte(&name, address + 1, '.'))
-		return -1;
-	if (get_addr_byte(&name, address + 2, '.'))
-		return -1;
-	if (get_addr_byte(&name, address + 3, 0))
+	if (get_addr_byte(name, address + 0, '.')
+	|| get_addr_byte(name, address + 1, '.')
+	|| get_addr_byte(name, address + 2, '.')
+	|| get_addr_byte(name, address + 3, 0))
 		return -1;
 	return 0;
 }
 
-static int extract_ipv6_address(struct addrinfo *p, unsigned char address[16], unsigned *scope_id)
+static int extract_ipv6_address(struct addrinfo *p, char address[16], unsigned *scope_id)
 {
 	if (p->ai_family == AF_INET6
 	&& (socklen_t)p->ai_addrlen >= (socklen_t)sizeof(struct sockaddr_in6)
@@ -74,9 +73,9 @@ static int extract_ipv6_address(struct addrinfo *p, unsigned char address[16], u
 	return -1;
 }
 
-int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigned *scope_id)
+int numeric_ipv6_address(const char *name, char address[16], unsigned *scope_id)
 {
-	unsigned char dummy_a[16];
+	char dummy_a[16];
 	unsigned dummy_s;
 	int r;
 	struct in6_addr i6a;
@@ -86,7 +85,7 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	if (!scope_id)
 		scope_id = &dummy_s;
 
-	if (inet_pton(AF_INET6, cast_const_char name, &i6a) == 1) {
+	if (inet_pton(AF_INET6, name, &i6a) == 1) {
 		memcpy(address, &i6a, 16);
 		*scope_id = 0;
 		return 0;
@@ -97,7 +96,7 @@ int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigne
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET6;
 	hints.ai_flags = AI_NUMERICHOST;
-	if (getaddrinfo(cast_const_char name, NULL, &hints, &res))
+	if (getaddrinfo(name, NULL, &hints, &res))
 		return -1;
 	r = extract_ipv6_address(res, address, scope_id);
 	freeaddrinfo(res);
@@ -168,7 +167,7 @@ static int use_getaddrinfo(unsigned char *name, struct addrinfo *hints, int pref
 		{
 			unsigned char address[16];
 			unsigned scope_id;
-			if (!extract_ipv6_address(p, address, &scope_id)) {
+			if (!extract_ipv6_address(p, (char *)address, &scope_id)) {
 				add_address(host, AF_INET6, address, scope_id,
 					preference);
 				continue;
@@ -222,7 +221,7 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 	if (!support_ipv6)
 		preference = ADDR_PREFERENCE_IPV4_ONLY;
 
-	if (!numeric_ip_address(name, address)) {
+	if (!numeric_ip_address((char *)name, (char *)address)) {
 		add_address(host, AF_INET, address, 0, preference);
 		goto ret;
 	}
@@ -232,7 +231,7 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 		if (n2) {
 			unsigned scope_id;
 			n2[nl - 2] = 0;
-			if (!numeric_ipv6_address(n2, address, &scope_id)) {
+			if (!numeric_ipv6_address((char *)n2, (char *)address, &scope_id)) {
 				free(n2);
 				add_address(host, AF_INET6, address, scope_id, preference);
 				goto ret;
@@ -241,7 +240,7 @@ void do_real_lookup(unsigned char *name, int preference, struct lookup_result *h
 		}
 	} else {
 		unsigned scope_id;
-		if (!numeric_ipv6_address(name, address, &scope_id)) {
+		if (!numeric_ipv6_address((char *)name, (char *)address, &scope_id)) {
 			add_address(host, AF_INET6, address, scope_id, preference);
 			goto ret;
 		}

@@ -490,8 +490,8 @@ struct lookup_state {
 
 extern int support_ipv6;
 
-int numeric_ip_address(unsigned char *name, unsigned char address[4]);
-int numeric_ipv6_address(unsigned char *name, unsigned char address[16], unsigned *scope_id);
+int numeric_ip_address(const char *name, char address[4]);
+int numeric_ipv6_address(const char *name, char address[16], unsigned *scope_id);
 void rotate_addresses(struct lookup_result *);
 void do_real_lookup(unsigned char *, int, struct lookup_result *);
 int find_host(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);

@@ -101,13 +101,13 @@ void https_func(struct connection *c)
 static int verify_ssl_host_name(X509 *server_cert, char *host)
 {
 	int v;
-	unsigned char ipv4_address[4];
-	unsigned char ipv6_address[16];
+	char ipv4_address[4];
+	char ipv6_address[16];
 
-	if (!numeric_ip_address((unsigned char *)host, ipv4_address))
-		v = X509_check_ip(server_cert, ipv4_address, 4, 0);
-	else if (!numeric_ipv6_address((unsigned char *)host, ipv6_address, NULL))
-		v = X509_check_ip(server_cert, ipv6_address, 16, 0);
+	if (!numeric_ip_address(host, ipv4_address))
+		v = X509_check_ip(server_cert, (unsigned char *)ipv4_address, 4, 0);
+	else if (!numeric_ipv6_address(host, ipv6_address, NULL))
+		v = X509_check_ip(server_cert, (unsigned char *)ipv6_address, 16, 0);
 	else
 		v = X509_check_host(server_cert, host, strlen(host), 0, NULL);
 

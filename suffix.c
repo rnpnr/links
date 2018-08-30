@@ -60,9 +60,9 @@ int allow_cookie_domain(unsigned char *server, unsigned char *domain)
 		return 0;
 	if (dl == sl)
 		return 1;
-	if (!numeric_ip_address(server, NULL))
+	if (!numeric_ip_address((char *)server, NULL))
 		return 0;
-	if (!numeric_ipv6_address(server, NULL, NULL))
+	if (!numeric_ipv6_address((char *)server, NULL, NULL))
 		return 0;
 	if (server[sl - dl - 1] != '.')
 		return 0;

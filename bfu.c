@@ -1586,9 +1586,9 @@ static int check_local_ip_address_internal(struct dialog_data *dlg, struct dialo
 		return 0;
 	}
 	if (pf == PF_INET6)
-		rs = numeric_ipv6_address(p, NULL, NULL);
+		rs = numeric_ipv6_address((char *)p, NULL, NULL);
 	else
-		rs = numeric_ip_address(p, NULL);
+		rs = numeric_ip_address((char *)p, NULL);
 	if (rs) {
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_IP_ADDRESS), AL_CENTER, TEXT_(T_INVALID_IP_ADDRESS_SYNTAX), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
