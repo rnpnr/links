@@ -44,3 +44,8 @@
 - remove get_links_icon() in dip.c
 
 - remove remaining terminal margin modifying code
+
+- name member in dnsentry and dnsquery structures was never a string yet it is
+  being (mis)used as one. there are a number of places where this results in
+  use of out of bounds memory. these NEED to be fixed, its amazing the code
+  ever worked at all

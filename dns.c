@@ -12,7 +12,7 @@ struct dnsentry {
 	uttime absolute_time;
 	struct lookup_result addr;
 	list_entry_last
-	unsigned char name[1];
+	char name;
 };
 
 struct dnsquery {
@@ -22,7 +22,7 @@ struct dnsquery {
 	struct dnsquery **s;
 	struct lookup_result *addr;
 	int addr_preference;
-	unsigned char name[1];
+	char name;
 };
 
 static int dns_cache_addr_preference = -1;
@@ -311,7 +311,6 @@ static void free_dns_entry(struct dnsentry *dnsentry)
 static void end_dns_lookup(struct dnsquery *q, int a)
 {
 	struct dnsentry *dnsentry;
-	size_t sl;
 	void (*fn)(void *, int);
 	void *data;
 	if (!q->fn || !q->addr) {
@@ -331,11 +330,8 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 	if (q->addr_preference != ipv6_options.addr_preference)
 		goto e;
 	check_dns_cache_addr_preference();
-	sl = strlen(cast_const_char q->name);
-	if (sl > INT_MAX - sizeof(struct dnsentry))
-		overalloc();
-	dnsentry = xmalloc(sizeof(struct dnsentry) + sl);
-	strcpy(cast_char dnsentry->name, cast_const_char q->name);
+	dnsentry = xmalloc(sizeof(struct dnsentry));
+	dnsentry->name = q->name;
 	memcpy(&dnsentry->addr, q->addr, sizeof(struct lookup_result));
 	dnsentry->absolute_time = get_absolute_time();
 	add_to_list(dns_cache, dnsentry);
@@ -364,7 +360,7 @@ int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **q
 	q->s = (struct dnsquery **)qp;
 	q->addr = addr;
 	q->addr_preference = ipv6_options.addr_preference;
-	strcpy(cast_char q->name, cast_const_char name);
+	q->name = name[0];
 	if (qp)
 		*qp = q;
 	return do_queued_lookup(q);
