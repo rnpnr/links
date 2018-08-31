@@ -136,15 +136,11 @@ int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 
 int verify_ssl_cipher(links_ssl *ssl)
 {
-	const char *method, *cipher;
-	method = SSL_get_version(ssl->ssl);
-	if (!strncmp(method, "SSL", 3))
-		return S_INSECURE_CIPHER;
+	const char *cipher;
 	if (SSL_get_cipher_bits(ssl->ssl, NULL) < 112)
 		return S_INSECURE_CIPHER;
 	if ((cipher = SSL_get_cipher_name(ssl->ssl)))
-		if (strstr(cipher, "RC4")
-		|| strstr(cipher, "NULL"))
+		if (strstr(cipher, "RC4") || strstr(cipher, "NULL"))
 			return S_INSECURE_CIPHER;
 	return 0;
 }
