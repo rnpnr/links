@@ -18,6 +18,8 @@
  */
 
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+#include <string.h>
 
 #include "links.h"
 
@@ -37,8 +39,9 @@ static struct list_head session_cache = { &session_cache, &session_cache };
 
 static int ssl_password_callback(char *buf, int size, int rwflag, void *userdata)
 {
-	if (size > strlen((char *)ssl_options.client_cert_password))
-		size = strlen((char *)ssl_options.client_cert_password);
+	const size_t sl = strlen((char *)ssl_options.client_cert_password);
+	if (size > sl)
+		size = sl;
 	memcpy(buf, ssl_options.client_cert_password, size);
 	return size;
 }
