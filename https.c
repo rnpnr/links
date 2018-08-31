@@ -241,16 +241,14 @@ void retrieve_ssl_session(struct connection *c)
 		char *h;
 		int p;
 
-		if (c->no_tls /*|| SSL_session_reused(c->ssl->ssl)*/) {
+		if (c->no_tls) {
 			s = NULL;
 			c->ssl->session_retrieved = 1;
-		} else
-			s = SSL_get1_session(c->ssl->ssl);
+		} else if ((s = SSL_get1_session(c->ssl->ssl)))
+			c->ssl->session_retrieved = 1;
 		orig_url = remove_proxy_prefix(c->url);
 		h = (char *)get_host_name(orig_url);
 		p = get_port(orig_url);
-		if (s)
-			c->ssl->session_retrieved = 1;
 		set_session_cache_entry(c->ssl->ctx, h, p, s);
 		free(h);
 		clear_ssl_errors(__LINE__);

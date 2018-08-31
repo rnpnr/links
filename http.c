@@ -193,7 +193,7 @@ void http_func(struct connection *c)
 	/*set_connection_timeout(c);*/
 	if (get_keepalive_socket(c, NULL)) {
 		int p;
-		if ((p = get_port(c->url)) == -1) {
+		if ((p = get_port(c->url)) < 0) {
 			setcstate(c, S_BAD_URL);
 			abort_connection(c);
 			return;
@@ -890,7 +890,7 @@ again:
 		free(head);
 		free(c->info);
 		c->info = 0;
-		c->ssl = DUMMY;
+		c->ssl = NULL;
 		continue_connection(c, &c->sock1, http_send_header);
 		return;
 	}
