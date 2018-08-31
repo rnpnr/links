@@ -106,11 +106,6 @@ do {							\
 	(ret_) = (call_);				\
 } while (!(ret_) && errno == EINTR)
 
-#define option option_dirty_workaround_for_name_clash_with_include_on_cygwin
-#define table table_dirty_workaround_for_name_clash_with_libraries_on_macos
-#define scroll scroll_dirty_workaround_for_name_clash_with_libraries_on_macos
-#define list list_dirty_workaround_for_name_clash_in_stl_with_class_list
-
 #ifndef G
 #define F 0
 #else
@@ -178,16 +173,8 @@ do {									\
 	fatal_exit("ERROR: arithmetic overflow at %s:%d", __FILE__, __LINE__);\
 } while (1)
 
-#ifdef HAVE___BUILTIN_ADD_OVERFLOW
-static inline int test_int_overflow(int x, int y)
-{
-	int z;
-	return __builtin_add_overflow(x, y, &z);
-}
-#else
 #define test_int_overflow(x, y)						\
 	(~((unsigned)(x) ^ (unsigned)(y)) & ((unsigned)(x) ^ ((unsigned)(x) + (unsigned)(y))) & (1U << (sizeof(unsigned) * 8 - 1)))
-#endif
 
 static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 {
@@ -3601,21 +3588,8 @@ struct list {
 	list_entry_last
 };
 
-#ifdef __GNUC__
-static inline struct list *list_next(struct list *l)
-{
-	verify_list_entry(&l->list_entry);
-	return list_struct(l->list_entry.next, struct list);
-}
-static inline struct list *list_prev(struct list *l)
-{
-	verify_list_entry(&l->list_entry);
-	return list_struct(l->list_entry.prev, struct list);
-}
-#else
 #define list_next(l)	(verify_list_entry(&(l)->list_entry), list_struct((l)->list_entry.next, struct list))
 #define list_prev(l)	(verify_list_entry(&(l)->list_entry), list_struct((l)->list_entry.prev, struct list))
-#endif
 
 #define list_head_1st	struct list head;
 #define list_head_last
