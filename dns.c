@@ -12,7 +12,7 @@ struct dnsentry {
 	uttime absolute_time;
 	struct lookup_result addr;
 	list_entry_last
-	char name;
+	char name[1];
 };
 
 struct dnsquery {
@@ -22,7 +22,7 @@ struct dnsquery {
 	struct dnsquery **s;
 	struct lookup_result *addr;
 	int addr_preference;
-	char name;
+	char name[1];
 };
 
 static int dns_cache_addr_preference = -1;
@@ -269,7 +269,7 @@ ret:
 
 static int do_lookup(struct dnsquery *q, int force_async)
 {
-	do_real_lookup(q->name, q->addr_preference, q->addr);
+	do_real_lookup((unsigned char *)q->name, q->addr_preference, q->addr);
 	end_dns_lookup(q, !q->addr->n);
 	return 0;
 }
@@ -293,7 +293,7 @@ static int find_in_dns_cache(unsigned char *name, struct dnsentry **dnsentry)
 	struct list_head *le;
 	check_dns_cache_addr_preference();
 	foreach(struct dnsentry, e, le, dns_cache)
-		if (!casestrcmp(e->name, name)) {
+		if (!casestrcmp((unsigned char *)e->name, name)) {
 			del_from_list(e);
 			add_to_list(dns_cache, e);
 			*dnsentry = e;
@@ -317,7 +317,7 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 		free(q);
 		return;
 	}
-	if (!find_in_dns_cache(q->name, &dnsentry)) {
+	if (!find_in_dns_cache((unsigned char *)q->name, &dnsentry)) {
 		if (a) {
 			memcpy(q->addr, &dnsentry->addr, sizeof(struct lookup_result));
 			a = 0;
@@ -330,8 +330,8 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 	if (q->addr_preference != ipv6_options.addr_preference)
 		goto e;
 	check_dns_cache_addr_preference();
-	dnsentry = xmalloc(sizeof(struct dnsentry));
-	dnsentry->name = q->name;
+	dnsentry = xmalloc(sizeof(struct dnsentry) + strlen(q->name));
+	strcpy(dnsentry->name, q->name);
 	memcpy(&dnsentry->addr, q->addr, sizeof(struct lookup_result));
 	dnsentry->absolute_time = get_absolute_time();
 	add_to_list(dns_cache, dnsentry);
@@ -360,7 +360,7 @@ int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **q
 	q->s = (struct dnsquery **)qp;
 	q->addr = addr;
 	q->addr_preference = ipv6_options.addr_preference;
-	q->name = name[0];
+	strcpy(q->name, (char *)name);
 	if (qp)
 		*qp = q;
 	return do_queued_lookup(q);
