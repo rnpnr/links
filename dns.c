@@ -36,13 +36,12 @@ static int get_addr_byte(const char *p, char *res, const char stp)
 	char u = 0;
 	if (!(*p >= '0' && *p <= '9'))
 		return -1;
-	while (*p >= '0' && *p <= '9') {
-		u = u * 10 + *p - '0';
-		if (u >= 256)
+	for (; *p >= '0' && *p <= '9'; p++) {
+		if (u * 10 + *p - '0' > 255)
 			return -1;
-		p++;
+		u = u * 10 + *p - '0';
 	}
-	if (stp != 255 && *p != stp) return -1;
+	if (*p != stp) return -1;
 	p++;
 	*res = u;
 	return 0;
