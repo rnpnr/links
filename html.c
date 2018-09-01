@@ -123,7 +123,7 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 	unsigned char *a = NULL;
 	int l = 0;
 	int f;
-	aa:
+ aa:
 	while (WHITECHAR(*e)) e++;
 	if (*e == '>' || *e == '<') return NULL;
 	n = name;
@@ -147,7 +147,6 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 		}
 	} else {
 		unsigned char uu = *e;
-		/*a:*/
 		e++;
 		while (*e != uu) {
 			if (!*e) {
@@ -155,38 +154,41 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 				return NULL;
 			}
 			if (!f) {
-				if (get_attr_val_nl == 2) goto exact;
+				if (get_attr_val_nl == 2)
+					goto exact;
 				if (*e != 13) {
-					if (*e != 9 && *e != 10) exact:add_chr(a, l, *e);
-					else if (!get_attr_val_nl) add_chr(a, l, ' ');
+					if (*e != 9 && *e != 10)
+ exact:
+						add_chr(a, l, *e);
+					else if (!get_attr_val_nl)
+						add_chr(a, l, ' ');
 				}
 			}
 			e++;
 		}
 		e++;
-		/*if (*e == uu) {
-			if (!f) add_chr(a, l, *e);
-			goto a;
-		}*/
 	}
-	ea:
+ ea:
 	if (!f) {
 		unsigned char *b;
 		add_chr(a, l, 0);
-		if (strchr(cast_const_char a, '&')) {
+		if (strchr((char *)a, '&')) {
 			unsigned char *aa = a;
 			int c = d_opt->cp;
 			d_opt->cp = d_opt->real_cp;
-			a = convert_string(NULL, aa, (int)strlen(cast_const_char aa), d_opt);
+			a = convert_string(NULL, aa, strlen((char *)aa), d_opt);
 			d_opt->cp = c;
 			free(aa);
 		}
-		while ((b = cast_uchar strchr(cast_const_char a, 1))) *b = ' ';
+		while ((b = (unsigned char *)strchr((char *)a, 1)))
+			*b = ' ';
 		if (get_attr_val_nl != 2) {
 			for (b = a; *b == ' '; b++)
 				;
-			if (b != a) memmove(a, b, strlen(cast_const_char b) + 1);
-			for (b = a + strlen(cast_const_char a) - 1; b >= a && *b == ' '; b--) *b = 0;
+			if (b != a)
+				memmove(a, b, strlen((char *)b) + 1);
+			for (b = a + strlen((char *)a) - 1; b >= a && *b == ' '; b--)
+				*b = 0;
 		}
 		return a;
 	}
@@ -196,27 +198,11 @@ unsigned char *get_attr_val(unsigned char *e, unsigned char *name)
 int has_attr(unsigned char *e, unsigned char *name)
 {
 	unsigned char *a;
-	if (!(a = get_attr_val(e, name))) return 0;
+	if (!(a = get_attr_val(e, name)))
+		return 0;
 	free(a);
 	return 1;
 }
-
-/*
-static unsigned char *get_url_val(unsigned char *e, unsigned char *name)
-{
-	int n = 0;
-	unsigned char *p, *q, *pp;
-	if (!(pp = get_attr_val(e, name))) return NULL;
-	p = pp; q = pp;
-	while (1) {
-		if (*p == '#') n = 1;
-		if ((*p = *q) != ' ' || n) p++;
-		if (!*q) break;
-		q++;
-	}
-	return pp;
-}
-*/
 
 static unsigned char *get_url_val(unsigned char *e, unsigned char *name)
 {
@@ -253,42 +239,34 @@ static unsigned char *get_exact_attr_val(unsigned char *e, unsigned char *name)
 	get_attr_val_nl = 0;
 	if (a) {
 		unsigned char *x1, *x2;
-		for (x1 = x2 = a; *x1; x1++, x2++) {
+		for (x1 = x2 = a; *x1; x1++, x2++)
 			if (x1[0] == '\r') {
 				*x2 = '\n';
 				if (x1[1] == '\n') x1++;
-			} else {
+			} else
 				*x2 = *x1;
-			}
-		}
 		*x2 = 0;
 	}
 	return a;
 }
 
 static struct {
-	unsigned short int n;
-	char *s;
+	const unsigned short int n;
+	const char *s;
 } roman_tbl[] = {
 	{1000,	"m"},
 	{999,	"im"},
-/*	{995,	"vm"},*/
 	{990,	"xm"},
-/*	{950,	"lm"},*/
 	{900,	"cm"},
 	{500,	"d"},
 	{499,	"id"},
-/*	{495,	"vd"},*/
 	{490,	"xd"},
-/*	{450,	"ld"},*/
 	{400,	"cd"},
 	{100,	"c"},
 	{99,	"ic"},
-/*	{95,	"vc"},*/
 	{90,	"xc"},
 	{50,	"l"},
 	{49,	"il"},
-/*	{45,	"vl"},*/
 	{40,	"xl"},
 	{10,	"x"},
 	{9,	"ix"},
@@ -298,22 +276,21 @@ static struct {
 	{0,	NULL}
 };
 
-static void roman(unsigned char *p, unsigned n)
+static void roman(char *p, unsigned int n)
 {
 	int i = 0;
-	if (n >= 4000) {
-		strcpy(cast_char p, "---");
-		return;
-	}
 	if (!n) {
-		strcpy(cast_char p, "o");
+		strcpy(p, "o");
+		return;
+	} else if (n >= 4000) {
+		strcpy(p, "---");
 		return;
 	}
 	p[0] = 0;
 	while (n) {
 		while (roman_tbl[i].n <= n) {
 			n -= roman_tbl[i].n;
-			strcat(cast_char p, cast_const_char roman_tbl[i].s);
+			strcat(p, roman_tbl[i].s);
 		}
 		i++;
 		if (n && !roman_tbl[i].n) {
@@ -324,8 +301,8 @@ static void roman(unsigned char *p, unsigned n)
 }
 
 struct color_spec {
-	char *name;
-	int rgb;
+	const char *name;
+	const int rgb;
 };
 
 static const struct color_spec color_specs[] = {
@@ -1588,7 +1565,7 @@ static void html_li(unsigned char *a)
 			n[0] = par_format.list_number ? (par_format.list_number - 1) % 26 + (t == P_ALPHA ? 'A' : 'a') : 0;
 			n[1] = 0;
 		} else if (t == P_ROMAN || t == P_roman) {
-			roman(n, par_format.list_number);
+			roman((char *)n, par_format.list_number);
 			if (t == P_ROMAN) {
 				unsigned char *x;
 				for (x = n; *x; x++) *x = upcase(*x);
