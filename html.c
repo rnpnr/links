@@ -3,6 +3,8 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <string.h>
+
 #include "links.h"
 
 struct list_head html_stack = {&html_stack, &html_stack};
@@ -276,21 +278,24 @@ static struct {
 	{0,	NULL}
 };
 
-static void roman(char *p, unsigned int n)
+static void roman(char *p, unsigned int n, const size_t psz)
 {
 	int i = 0;
 	if (!n) {
-		strcpy(p, "o");
+		if (strlcpy(p, "o", psz) >= psz)
+			die("strlcpy(): dstsize too small\n");
 		return;
 	} else if (n >= 4000) {
-		strcpy(p, "---");
+		if (strlcpy(p, "---", psz) >= psz)
+			die("strlcpy(): dstsize too small\n");
 		return;
 	}
 	p[0] = 0;
 	while (n) {
 		while (roman_tbl[i].n <= n) {
 			n -= roman_tbl[i].n;
-			strcat(p, roman_tbl[i].s);
+			if (strlcat(p, roman_tbl[i].s, psz) >= psz)
+				die("strlcat(): dstsize too small\n");
 		}
 		i++;
 		if (n && !roman_tbl[i].n) {
@@ -1548,7 +1553,7 @@ static void html_li(unsigned char *a)
 		putsp = -1;
 	} else {
 		unsigned char c = 0;
-		unsigned char n[32];
+		char n[32];
 		int t = par_format.flags & P_LISTMASK;
 		int s = get_num(a, cast_uchar "value");
 #ifdef G
@@ -1565,10 +1570,11 @@ static void html_li(unsigned char *a)
 			n[0] = par_format.list_number ? (par_format.list_number - 1) % 26 + (t == P_ALPHA ? 'A' : 'a') : 0;
 			n[1] = 0;
 		} else if (t == P_ROMAN || t == P_roman) {
-			roman((char *)n, par_format.list_number);
+			roman(n, par_format.list_number, sizeof(n));
 			if (t == P_ROMAN) {
-				unsigned char *x;
-				for (x = n; *x; x++) *x = upcase(*x);
+				char *x;
+				for (x = n; *x; x++)
+					*x = upcase(*x);
 			}
 		} else sprintf(cast_char n, "%d", par_format.list_number);
 		put_chrs(n, (int)strlen(cast_const_char n));
