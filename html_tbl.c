@@ -1480,12 +1480,6 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	}
 	if (!F && !border) cellsp = 0;
 	else if (!F && !cellsp) cellsp = 1;
-	/* Sparc gcc-2.7.2.1 miscompiles this */
-#ifdef __GNUC__
-#if __GNUC__ == 2
-	do_not_optimize_here(&cellsp);
-#endif
-#endif
 	if (!F && border > 2) border = 2;
 	if (!F && cellsp > 2) cellsp = 2;
 #ifdef G

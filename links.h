@@ -140,24 +140,11 @@ extern int F;
 void die(const char *, ...);
 void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
+#define internal die
+#define error die
+#define fatal_exit die
 
 /* error.c */
-
-#define ANSI_BELL		"\007"
-#define ANSI_SET_BOLD		"\033[1m"
-#define ANSI_CLEAR_BOLD		"\033[0m"
-
-void *do_not_optimize_here(void *p);
-void error(char *, ...);
-void fatal_exit(char *, ...);
-void int_error(char *, ...);
-extern int errline;
-extern unsigned char *errfile;
-
-#define internal_ errfile = cast_uchar __FILE__, errline = __LINE__, int_error
-#define internal internal_
-
-void fatal_tty_exit(void);
 
 #define overalloc_at(f, l)						\
 do {									\
@@ -346,7 +333,6 @@ int c_open3(unsigned char *, int, int);
 DIR *c_opendir(unsigned char *);
 #ifdef OS_SETRAW
 int setraw(int ctl, int save);
-void setcooked(int ctl);
 #endif
 int start_thread(void (*)(void *, int), void *, int, int);
 unsigned char *get_clipboard_text(struct terminal *);

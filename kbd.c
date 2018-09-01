@@ -393,11 +393,6 @@ static void free_trm(struct itrm *itrm)
 	if (itrm == ditrm) ditrm = NULL;
 }
 
-void fatal_tty_exit(void)
-{
-	if (ditrm) setcooked(ditrm->ctl_in);
-}
-
 static void resize_terminal_x(unsigned char *text)
 {
 	unsigned char *p;

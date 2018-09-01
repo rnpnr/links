@@ -1361,9 +1361,6 @@ static void html_blockquote(unsigned char *a)
 
 static void html_h(int h, unsigned char *a)
 {
-#if defined(__GNUC__) && defined(__arm__)
-	do_not_optimize_here(&h);
-#endif
 #ifdef G
 	if (F) {
 		html_linebrk(a);
@@ -2553,12 +2550,6 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 		qq = q;
 		for (i = 0; i < ol; i++) {
 			q -= o[i] - o[i] * (d - qq) / (d ? d : 1);
-#ifdef __GNUC__
-#if __GNUC__ == 2
-			do_not_optimize_here(&d);
-#endif
-#endif
-				/* SIGH! gcc 2.7.2.* has an optimizer bug! */
 			o[i] = o[i] * (d - qq) / (d ? d : 1);
 		}
 		while (q) {
