@@ -593,7 +593,7 @@ static int was_br;
 int table_level;
 int empty_format;
 
-static void ln_break(int n)
+static void ln_break(const int n)
 {
 	if (!n || html_top.invisible) return;
 	while (n > line_breax) {
@@ -784,9 +784,9 @@ int get_num(unsigned char *a, unsigned char *n)
 }
 
 /* trunc somehow clips the maximum values. Use 0 to disable truncastion. */
-static int parse_width(unsigned char *w, int trunc)
+static int parse_width(const char *w, const int trunc)
 {
-	unsigned char *end;
+	char *end;
 	int p = 0;
 	long s;
 	int l;
@@ -802,7 +802,7 @@ static int parse_width(unsigned char *w, int trunc)
 	}
 	while (l && WHITECHAR(w[l - 1])) l--;
 	if (!l) return -1;
-	s = strtoul(cast_const_char w, (char **)(void *)&end, 10);
+	s = strtol(w, &end, 10);
 	if (end - w < l || s < 0 || s > 10000) return -1;
 	if (p) {
 		if (trunc) {
@@ -828,8 +828,8 @@ static int parse_width(unsigned char *w, int trunc)
 int get_width(unsigned char *a, unsigned char *n, int trunc)
 {
 	int r;
-	unsigned char *w;
-	if (!(w = get_attr_val(a, n))) return -1;
+	char *w;
+	if (!(w = (char *)get_attr_val(a, n))) return -1;
 	r = parse_width(w, trunc);
 	free(w);
 	return r;
@@ -1577,7 +1577,7 @@ static void html_li(unsigned char *a)
 					*x = upcase(*x);
 			}
 		} else sprintf(cast_char n, "%d", par_format.list_number);
-		put_chrs(n, (int)strlen(cast_const_char n));
+		put_chrs((unsigned char *)n, strlen(n));
 		put_chrs(cast_uchar ".&nbsp;", 7);
 		if (!F) par_format.leftmargin += (int)strlen(cast_const_char n) + c + 2;
 		par_format.align = AL_LEFT;
