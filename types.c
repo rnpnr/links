@@ -889,50 +889,74 @@ rep:
 	goto rep;
 }
 
-static unsigned char *canonical_compressed_ext(unsigned char *ext, unsigned char *ext_end)
+/* FIXME */
+static char *canonical_compressed_ext(char *ext, char *ext_end)
 {
 	size_t len;
 	if (!ext_end)
-		ext_end = cast_uchar strchr(cast_const_char ext, 0);
+		ext_end = strchr(ext, 0);
 	len = ext_end - ext;
-	if (len == 3 && !casecmp(ext, cast_uchar "tgz", 3))
-		return cast_uchar "gz";
-	if (len == 3 && !casecmp(ext, cast_uchar "tbz", 3))
-		return cast_uchar "bz2";
-	if (len == 3 && !casecmp(ext, cast_uchar "txz", 3))
-		return cast_uchar "xz";
-	if (len == 6 && !casecmp(ext, cast_uchar "tar-gz", 3))
-		return cast_uchar "gz";
-	if (len == 7 && !casecmp(ext, cast_uchar "tar-bz2", 3))
-		return cast_uchar "bz2";
-	if (len == 6 && !casecmp(ext, cast_uchar "tar-xz", 3))
-		return cast_uchar "xz";
+	switch (len) {
+	case 3:
+		if (!strncasecmp(ext, "tgz", 3))
+			return "gz";
+		else if (!strncasecmp(ext, "txz", 3))
+			return "xz";
+		else if (!strncasecmp(ext, "tbz", 3))
+			return "bz2";
+		break;
+	case 6:
+		if (!strncasecmp(ext, "tar-gz", 3))
+			return "gz";
+		else if (!strncasecmp(ext, "tar-xz", 3))
+			return "xz";
+		break;
+	case 7:
+		if (!strncasecmp(ext, "tar-bz2", 3))
+			return "bz2";
+		/* fallthrough */
+	default:
+		break;
+	}
 	return NULL;
 }
 
-unsigned char *get_compress_by_extension(unsigned char *ext, unsigned char *ext_end)
+/* FIXME */
+unsigned char *get_compress_by_extension(char *ext, char *ext_end)
 {
 	size_t len;
-	unsigned char *x;
+	char *x;
 	if ((x = canonical_compressed_ext(ext, ext_end))) {
 		ext = x;
-		ext_end = cast_uchar strchr(cast_const_char x, 0);
+		ext_end = strchr(x, 0);
 	}
 	len = ext_end - ext;
-	if (len == 1 && !casecmp(ext, cast_uchar "z", 1))
-		return cast_uchar "compress";
-	if (len == 2 && !casecmp(ext, cast_uchar "gz", 2))
-		return cast_uchar "gzip";
-	if (len == 2 && !casecmp(ext, cast_uchar "br", 2))
-		return cast_uchar "br";
-	if (len == 3 && !casecmp(ext, cast_uchar "bz2", 3))
-		return cast_uchar "bzip2";
-	if (len == 4 && !casecmp(ext, cast_uchar "lzma", 4))
-		return cast_uchar "lzma";
-	if (len == 2 && !casecmp(ext, cast_uchar "xz", 2))
-		return cast_uchar "lzma2";
-	if (len == 2 && !casecmp(ext, cast_uchar "lz", 2))
-		return cast_uchar "lzip";
+	switch (len) {
+	case 1:
+		if (!strncasecmp(ext, "z", 1))
+			return cast_uchar "compress";
+		break;
+	case 2:
+		if (!strncasecmp(ext, "br", 2))
+			return cast_uchar "br";
+		else if (!strncasecmp(ext, "gz", 2))
+			return cast_uchar "gzip";
+		else if (!strncasecmp(ext, "xz", 2))
+			return cast_uchar "lzma2";
+		else if (!strncasecmp(ext, "lz", 2))
+			return cast_uchar "lzip";
+		break;
+	case 3:
+		if (!strncasecmp(ext, "bz2", 3))
+			return cast_uchar "bzip2";
+		break;
+	case 4:
+		if (!strncasecmp(ext, "lzma", 4))
+			return cast_uchar "lzma";
+		/* fallthrough */
+	default:
+		break;
+	}
 	return NULL;
 }
 
@@ -950,7 +974,7 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 	for (; ct < eod; ct++)
 		if (*ct == '.') {
 			if (ext)
-				if (get_compress_by_extension(ct + 1, eod))
+				if (get_compress_by_extension((char *)(ct + 1), (char *)eod))
 					break;
 			ext = ct + 1;
 		} else if (dir_sep(*ct))
@@ -1150,7 +1174,8 @@ no_code_by_extension:
 
 unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int just_ce)
 {
-	unsigned char *ce, *ct, *ext, *extd;
+	unsigned char *ce, *ct, *ext;
+	char *extd;
 	unsigned char *u;
 	int code;
 	if ((ce = parse_http_header(head, cast_uchar "Content-Encoding", NULL)))
@@ -1178,17 +1203,17 @@ unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int
 		ext = url;
 	for (u = ext; *u; u++) if (end_of_dir(url, *u))
 		goto skip_ext;
-	extd = cast_uchar strrchr(cast_const_char ext, '.');
+	extd = strrchr((char *)ext, '.');
 	if (extd) {
-		ce = get_compress_by_extension(extd + 1, cast_uchar strchr(cast_const_char(extd + 1), 0));
+		ce = get_compress_by_extension(extd + 1, strchr(extd + 1, 0));
 		if (ce)
 			return stracpy(ce);
 	}
 	skip_ext:
 	if ((ext = get_filename_from_header(head))) {
-		extd = cast_uchar strrchr(cast_const_char ext, '.');
+		extd = strrchr((char *)ext, '.');
 		if (extd) {
-			ce = get_compress_by_extension(extd + 1, cast_uchar strchr(cast_const_char(extd + 1), 0));
+			ce = get_compress_by_extension(extd + 1, strchr(extd + 1, 0));
 			if (ce) {
 				free(ext);
 				return stracpy(ce);

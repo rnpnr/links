@@ -88,10 +88,7 @@
 
 #define RET_OK		0
 #define RET_ERROR	1
-#define RET_SIGNAL	2
-#define RET_SYNTAX	3
-#define RET_FATAL	4
-#define RET_INTERNAL	127
+#define RET_SYNTAX	2
 
 #define EINTRLOOPX(ret_, call_, x_)			\
 do {							\
@@ -3662,7 +3659,7 @@ extern struct list_head tn3270_prog;
 extern struct list_head mms_prog;
 extern struct list_head magnet_prog;
 
-unsigned char *get_compress_by_extension(unsigned char *ext, unsigned char *ext_end);
+unsigned char *get_compress_by_extension(char *, char *);
 unsigned char *get_content_type_by_extension(unsigned char *url);
 unsigned char *get_content_type(unsigned char *, unsigned char *);
 unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int just_ce);

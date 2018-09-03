@@ -440,7 +440,7 @@ static void add_accept(unsigned char **hdr, int *l)
 static int advertise_compression(unsigned char *url, struct connection *c)
 {
 	struct http_connection_info *info = c->info;
-	unsigned char *extd;
+	char *extd;
 	if (c->no_compress || http_options.no_compression
 	|| info->bl_flags & BL_NO_COMPRESSION)
 		return 0;
@@ -450,8 +450,8 @@ static int advertise_compression(unsigned char *url, struct connection *c)
 	if (strstr((char *)url, "/attachment.cgi?"))
 		return 0;
 
-	extd = cast_uchar strrchr((char *)url, '.');
-	if (extd && get_compress_by_extension(extd + 1, cast_uchar strchr((char *)(extd + 1), 0)))
+	extd = strrchr((char *)url, '.');
+	if (extd && get_compress_by_extension(extd + 1, strchr((extd + 1), 0)))
 		return 0;
 	return 1;
 }
