@@ -347,7 +347,6 @@ void do_signal(int sig, void (*handler)(int));
 uttime get_time(void);
 uttime get_absolute_time(void);
 void ignore_signals(void);
-void get_path_to_exe(void);
 int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);
 unsigned char *os_fixup_external_program(unsigned char *);
@@ -1601,7 +1600,7 @@ extern int terminal_pipe[2];
 
 extern int retval;
 
-extern unsigned char *path_to_exe;
+extern const char *argv0;
 extern unsigned char **g_argv;
 extern int g_argc;
 

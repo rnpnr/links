@@ -316,12 +316,8 @@ static unsigned char *get_home(int *n)
 	if (!home) home = stracpy(cast_uchar getenv("HOME"));
 	if (!home) {
 		int i;
-		home = stracpy(path_to_exe);
-		if (!home) {
-			free(config_dir);
-			return NULL;
-		}
-		for (i = (int)strlen(cast_const_char home) - 1; i >= 0; i--) if (dir_sep(home[i])) {
+		home = (unsigned char *)argv0;
+		for (i = strlen(argv0) - 1; i >= 0; i--) if (dir_sep(home[i])) {
 			home[i + 1] = 0;
 			goto br;
 		}

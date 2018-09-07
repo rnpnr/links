@@ -3102,7 +3102,7 @@ static void send_open_in_new_xterm(struct terminal *term, void *open_window_, vo
 		enc_url = encode_url(ses->dn_url);
 		add_to_str(&p, &pl, enc_url);
 		free(enc_url);
-		path = escape_path(path_to_exe);
+		path = escape_path(g_argv[0]);
 		if (open_window(term, path, p))
 			cant_open_new_window(term);
 		free(p);
@@ -3119,7 +3119,7 @@ static void send_open_new_xterm(struct terminal *term, void *open_window_, void 
 	unsigned char *path;
 	add_to_str(&p, &pl, cast_uchar "-base-session ");
 	add_num_to_str(&p, &pl, ses->id);
-	path = escape_path(path_to_exe);
+	path = escape_path(g_argv[0]);
 	if (open_window(term, path, p))
 		cant_open_new_window(term);
 	free(path);

@@ -312,12 +312,6 @@ void close_fork_tty(void)
 		EINTRLOOP(rs, close(k->conn));
 }
 
-void get_path_to_exe(void)
-{
-	path_to_exe = g_argv[0];
-}
-
-
 unsigned char *os_conv_to_external_path(unsigned char *file, unsigned char *prog)
 {
 	return stracpy(file);

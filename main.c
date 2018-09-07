@@ -21,7 +21,7 @@ static void unhandle_basic_signals(struct terminal *);
 
 static int init_b = 0;
 int g_argc;
-unsigned char *path_to_exe;
+const char *argv0;
 unsigned char **g_argv;
 
 void
@@ -38,7 +38,7 @@ die(const char *errstr, ...)
 void
 usage(void)
 {
-	die("usage: %s [options] [url]\n", g_argv[0]);
+	die("usage: %s [options] [url]\n", argv0);
 }
 
 void *
@@ -487,8 +487,7 @@ main(int argc, char *argv[])
 {
 	g_argc = argc;
 	g_argv = (unsigned char **)argv;
-
-	get_path_to_exe();
+	argv0 = argv[0];
 
 	select_loop(init);
 	terminate_all_subsystems();
