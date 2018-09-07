@@ -63,10 +63,11 @@ unsigned char *escape_path(unsigned char *path)
 	return result;
 }
 
-static inline int get_e(unsigned char *env)
+static int get_e(const char *env)
 {
-	unsigned char *v;
-	if ((v = cast_uchar getenv(cast_const_char env))) return atoi(cast_const_char v);
+	const char *v;
+	if ((v = getenv(env)))
+		return atoi(v);
 	return 0;
 }
 
@@ -152,7 +153,7 @@ int get_terminal_size(int fd, int *x, int *y)
 #ifdef TIOCGWINSZ
 		|| !(*x = ws.ws_col)
 #endif
-		) && !(*x = get_e(cast_uchar "COLUMNS"))) {
+		) && !(*x = get_e("COLUMNS"))) {
 		*x = 80;
 #ifdef _UWIN
 		*x = 79;
@@ -162,7 +163,7 @@ int get_terminal_size(int fd, int *x, int *y)
 #ifdef TIOCGWINSZ
 		|| !(*y = ws.ws_row)
 #endif
-		) && !(*y = get_e(cast_uchar "LINES"))) {
+		) && !(*y = get_e("LINES"))) {
 		*y = 24;
 	}
 	return 0;
