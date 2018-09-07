@@ -137,6 +137,7 @@ extern int F;
 void die(const char *, ...);
 void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
+void usage(void);
 #define internal die
 #define error die
 #define fatal_exit die

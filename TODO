@@ -51,3 +51,5 @@
   ever worked at all
   - not necessarily correct, however the code should be simplified to be
     more understandable.
+
+- add the most interesting options to usage();

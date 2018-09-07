@@ -14,8 +14,15 @@
 
 int retval = RET_OK;
 
-static void unhandle_basic_signals(struct terminal *);
+static void initialize_all_subsystems(void);
+static void initialize_all_subsystems_2(void);
 static void poll_fg(void *);
+static void unhandle_basic_signals(struct terminal *);
+
+static int init_b = 0;
+int g_argc;
+unsigned char *path_to_exe;
+unsigned char **g_argv;
 
 void
 die(const char *errstr, ...)
@@ -26,6 +33,12 @@ die(const char *errstr, ...)
 	vfprintf(stderr, errstr, ap);
 	va_end(ap);
 	exit(1);
+}
+
+void
+usage(void)
+{
+	die("usage: %s [options] [url]\n", g_argv[0]);
 }
 
 void *
@@ -299,16 +312,6 @@ static void end_dump(struct object_request *r, void *p)
 	terminate:
 	terminate_loop = 1;
 }
-
-int g_argc;
-unsigned char **g_argv;
-
-unsigned char *path_to_exe;
-
-static unsigned char init_b = 0;
-
-static void initialize_all_subsystems(void);
-static void initialize_all_subsystems_2(void);
 
 static void fixup_g(void)
 {
