@@ -975,7 +975,6 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 		value of the DISPLAY environment variable.
 
 	But OS/2 has problems when display_name is NULL ...
-
 */
 	x_display_string = stracpy(display ? display : cast_uchar "");
 
@@ -1017,13 +1016,13 @@ invalid_param:
 			x_free_hash_table();
 			return stracpy(cast_uchar "Invalid parameter\n");
 		}
-		w = strtoul((char *)x_driver_param, (char **)(void *)&e, 10);
+		w = strtoul((char *)x_driver_param, (char **)&e, 10);
 		if (upcase(*e) != 'X')
 			goto invalid_param;
 		e++;
 		if (*e < '0' || *e > '9')
 			goto invalid_param;
-		h = strtoul((char *)e, (char **)(void *)&e, 10);
+		h = strtoul((char *)e, (char **)&e, 10);
 		if (*e)
 			goto invalid_param;
 		if (w && h && w <= 30000 && h <= 30000) {
@@ -1127,7 +1126,7 @@ bytes_per_pixel_found:
 
 		x_free_hash_table();
 		return stracpy(cast_uchar "No supported color depth found.\n");
-visual_found:;
+ visual_found:;
 	}
 
 	x_driver.depth = 0;
@@ -1151,19 +1150,15 @@ visual_found:;
 	case 452:
 	case 708:
 		break;
+	default: {
+			char err[MAX_STR_LEN];
 
-	default:
-		{
-			unsigned char nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno[MAX_STR_LEN];
-
-			snprintf((char *)nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno,
-				MAX_STR_LEN,
+			snprintf(err, MAX_STR_LEN,
 				"Unsupported graphics mode: x_depth = %d, bits_per_pixel = %d, bytes_per_pixel = %d\n",
 				x_driver.depth, x_depth, x_bitmap_bpp);
 			x_free_hash_table();
-			return stracpy(nevidim_te_ani_te_neslysim_ale_smrdis_jako_lejno);
-		}
-
+			return (unsigned char *)strdup(err);
+	}
 	}
 
 	x_get_color_function = get_color_fn(x_driver.depth);
@@ -1486,7 +1481,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 	p = xmalloc(sizeof(struct x_pixmapa));
 
 	/* alloc XImage in client's memory */
-retry:
+ retry:
 	image = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
 			0, bmp->x, bmp->y, x_bitmap_scanline_pad << 3, bmp->skip);
 	if (!image){
@@ -1522,7 +1517,7 @@ retry:
 		can_create_pixmap = 0;
 	}
 
-no_pixmap:
+ no_pixmap:
 
 	if (can_create_pixmap) {
 		XPutImage(x_display, *pixmap, x_copy_gc, image, 0, 0, 0, 0,
@@ -1538,7 +1533,7 @@ no_pixmap:
 	bmp->data = NULL;
 	return;
 
-cant_create:
+ cant_create:
 	free(bmp->data);
 	bmp->data = NULL;
 	bmp->flags=NULL;
@@ -1797,7 +1792,7 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 
 	switch (p->type) {
 	case X_TYPE_PIXMAP:
-retry:
+ retry:
 		x_data = xmalloc(bmp->skip * lines);
 		if (!x_data) {
 			if (out_of_memory())
@@ -1805,7 +1800,7 @@ retry:
 			return NULL;
 		}
 
-retry2:
+ retry2:
 		image = XCreateImage(x_display, x_default_visual, x_depth,
 				ZPixmap, 0, 0, bmp->x, lines,
 				x_bitmap_scanline_pad << 3, bmp->skip);
@@ -1883,17 +1878,17 @@ retry_encode_ascii:
 	clr_white(t);
 
 	if (XSupportsLocale()) {
-		ret = XmbTextListToTextProperty(x_display, (char**)(void *)(&t),
+		ret = XmbTextListToTextProperty(x_display, (char**)(&t),
 					1, XStdICCTextStyle, &windowName);
 #ifdef X_HAVE_UTF8_STRING
 		if (ret > 0) {
 			XFree(windowName.value);
 			ret = XmbTextListToTextProperty(x_display,
-						(char**)(void *)(&t), 1,
+						(char**)(&t), 1,
 						XUTF8StringStyle, &windowName);
 			if (ret < 0)
 				ret = XmbTextListToTextProperty(x_display,
-							(char**)(void *)(&t),
+							(char**)(&t),
 							1, XStdICCTextStyle,
 							&windowName);
 		}
@@ -1906,8 +1901,8 @@ retry_encode_ascii:
 				goto retry_print_ascii;
 		}
 	} else {
-retry_print_ascii:
-		ret = XStringListToTextProperty((char**)(void *)(&t), 1, &windowName);
+ retry_print_ascii:
+		ret = XStringListToTextProperty((char**)(&t), 1, &windowName);
 		if (!ret) {
 			free(t);
 			return;
@@ -1992,7 +1987,7 @@ static unsigned char *x_get_clipboard_text(void)
 	XEvent event;
 	Atom type_atom = x_utf8_string_atom;
 
-retry:
+ retry:
 	XConvertSelection(x_display, XA_PRIMARY, type_atom, x_sel_atom,
 			fake_window, CurrentTime);
 
@@ -2046,7 +2041,7 @@ retry:
 			goto retry;
 	}
 
-no_new_sel:
+ no_new_sel:
 	X_SCHEDULE_PROCESS_EVENTS();
 	if (!x_my_clipboard)
 		return NULL;
