@@ -1412,7 +1412,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 				free(ct1);
 			else if (x) {
 				unsigned char *w = cast_uchar strrchr(cast_const_char want_ext, '.');
-				if (w && (ww = canonical_compressed_ext(w + 1, NULL)) && !casestrcmp(x, ww))
+				if (w && (ww = (unsigned char *)canonical_compressed_ext((char *)(w + 1), NULL)) && !casestrcmp(x, ww))
 					goto skip_want_ext;
 				if (w && !casestrcmp(w + 1, x))
 					goto skip_want_ext;
@@ -1433,7 +1433,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 	if (strlen(cast_const_char want_ext) > strlen(cast_const_char f)
 	|| casestrcmp(want_ext, f + strlen(cast_const_char f) - strlen(cast_const_char want_ext))) {
 		x = cast_uchar strrchr(cast_const_char f, '.');
-		if (x && (ww = canonical_compressed_ext(x + 1, NULL)) && want_ext[0] == '.'
+		if (x && (ww = (unsigned char *)canonical_compressed_ext((char *)(x + 1), NULL)) && want_ext[0] == '.'
 		&& !casestrcmp(want_ext + 1, ww))
 			goto skip_tgz_2;
 		if (x)
