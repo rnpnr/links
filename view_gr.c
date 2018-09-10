@@ -94,7 +94,7 @@ static int g_text_no_search(struct f_data *f, struct g_object_text *t)
 	return 0;
 }
 
-static int prepare_input_field_char(unsigned char *p, unsigned char tx[7])
+static int prepare_input_field_char(unsigned char *p, char tx[7])
 {
 	unsigned char *pp = p;
 	unsigned un;
@@ -103,7 +103,7 @@ static int prepare_input_field_char(unsigned char *p, unsigned char tx[7])
 	if (!un) un = '*';
 	if (un == 0xad) un = '-';
 	en = encode_utf_8(un);
-	strcpy(cast_char tx, cast_const_char en);
+	strcpy(tx, cast_const_char en);
 	return (int)(p - pp);
 }
 
@@ -207,7 +207,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 				while (l < t->goti.go.xw) {
 					struct style *st = t->style;
 					int sm = 0;
-					unsigned char tx[7];
+					char tx[7];
 					if (fs->state == fs->vpos + i && t->goti.link_num == fd->vs->current_link && fd->ses->locked_link) {
 						st = g_invert_style(t->style);
 						sm = 1;
@@ -223,7 +223,8 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 							tx[1] = 0;
 						}
 					}
-					g_print_text(dev, x + l, y, st, tx, &l);
+					g_print_text(dev, x + l, y, st,
+						(unsigned char *)tx, &l);
 					if (sm) g_free_style(st);
 				}
 				return;
@@ -240,8 +241,10 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 						FWD_UTF_8(pp);
 						xx--;
 					}
-					if (cur >= 0 && cur < form->cols && t->goti.link_num == fd->vs->current_link && fd->ses->locked_link && fd->active) {
-						unsigned char tx[7];
+					if (cur >= 0 && cur < form->cols
+					&& t->goti.link_num == fd->vs->current_link
+					&& fd->ses->locked_link && fd->active) {
+						char tx[7];
 						int xx = x;
 
 						if (print_all_textarea || j == t->goti.link_order) while (xx < x + t->goti.go.xw) {
@@ -255,10 +258,14 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 							if (!cur) {
 								st = g_invert_style(t->style);
 							}
-							g_print_text(dev, xx, yy + j * t->style->height, st, tx, &xx);
-							if (!cur) {
+							g_print_text(dev, xx,
+							    yy + j
+							    * t->style->height,
+							    st,
+							    (unsigned char *)tx,
+							    &xx);
+							if (!cur)
 								g_free_style(st);
-							}
 							cur--;
 						} else cur -= form->cols;
 					} else {
@@ -380,7 +387,8 @@ void g_line_destruct(struct g_object *l_)
 {
 	struct g_object_line *l = get_struct(l_, struct g_object_line, go);
 	int i;
-	for (i = 0; i < l->n_entries; i++) l->entries[i]->destruct(l->entries[i]);
+	for (i = 0; i < l->n_entries; i++)
+		l->entries[i]->destruct(l->entries[i]);
 	free(l);
 }
 
@@ -391,11 +399,12 @@ void g_line_bg_destruct(struct g_object *l_)
 	g_line_destruct(&l->go);
 }
 
-void g_line_get_list(struct g_object *l_, void (*f)(struct g_object *parent, struct g_object *child))
+void g_line_get_list(struct g_object *l_, void (*fn)(struct g_object *parent, struct g_object *child))
 {
 	struct g_object_line *l = get_struct(l_, struct g_object_line, go);
 	int i;
-	for (i = 0; i < l->n_entries; i++) f(&l->go, l->entries[i]);
+	for (i = 0; i < l->n_entries; i++)
+		fn(&l->go, l->entries[i]);
 }
 
 #define OBJ_EQ(n, b)	(*a[n]).go.y <= (b) && (*a[n]).go.y + (*a[n]).go.yw > (b)
@@ -593,25 +602,43 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 		}
 	}
 
-	if (vs->view_pos > scr->f_data->y - scr->yw + scr->hsb * G_SCROLL_BAR_WIDTH) vs->view_pos = scr->f_data->y - scr->yw + scr->hsb * G_SCROLL_BAR_WIDTH;
-	if (vs->view_pos < 0) vs->view_pos = 0;
-	if (vs->view_posx > scr->f_data->x - scr->xw + scr->vsb * G_SCROLL_BAR_WIDTH) vs->view_posx = scr->f_data->x - scr->xw + scr->vsb * G_SCROLL_BAR_WIDTH;
-	if (vs->view_posx < 0) vs->view_posx = 0;
+	if (vs->view_pos > scr->f_data->y - scr->yw + scr->hsb * G_SCROLL_BAR_WIDTH)
+		vs->view_pos = scr->f_data->y - scr->yw + scr->hsb
+				* G_SCROLL_BAR_WIDTH;
+	if (vs->view_pos < 0)
+		vs->view_pos = 0;
+	if (vs->view_posx > scr->f_data->x - scr->xw + scr->vsb * G_SCROLL_BAR_WIDTH)
+		vs->view_posx = scr->f_data->x - scr->xw + scr->vsb
+				* G_SCROLL_BAR_WIDTH;
+	if (vs->view_posx < 0)
+		vs->view_posx = 0;
 	vx = vs->view_posx;
 	vy = vs->view_pos;
-	restrict_clip_area(t->dev, &old, scr->xp, scr->yp, scr->xp + xw, scr->yp + yw);
-	if (scr->vsb) draw_vscroll_bar(t->dev, scr->xp + xw - G_SCROLL_BAR_WIDTH, scr->yp, yw - scr->hsb * G_SCROLL_BAR_WIDTH, scr->f_data->y, yw - scr->hsb * G_SCROLL_BAR_WIDTH, vs->view_pos);
-	if (scr->hsb) draw_hscroll_bar(t->dev, scr->xp, scr->yp + yw - G_SCROLL_BAR_WIDTH, xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->f_data->x, xw - scr->vsb * G_SCROLL_BAR_WIDTH, vs->view_posx);
-	if (scr->vsb && scr->hsb) drv->fill_area(t->dev, scr->xp + xw - G_SCROLL_BAR_WIDTH, scr->yp + yw - G_SCROLL_BAR_WIDTH, scr->xp + xw, scr->yp + yw, scroll_bar_frame_color);
-	restrict_clip_area(t->dev, NULL, scr->xp, scr->yp, scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
-	/*debug("buu: %d %d %d, %d %d %d", scr->xl, vx, xw, scr->yl, vy, yw);*/
-	if (drv->flags & GD_DONT_USE_SCROLL && overwrite_instead_of_scroll) goto rrr;
-	if (scr->xl == -1 || scr->yl == -1) goto rrr;
-	if (is_rect_valid(&scr->ses->win->redr)) goto rrr;
-	if (scr->xl - vx > xw || vx - scr->xl > xw ||
-	    scr->yl - vy > yw || vy - scr->yl > yw) {
+	restrict_clip_area(t->dev, &old, scr->xp, scr->yp, scr->xp + xw,
+		scr->yp + yw);
+	if (scr->vsb)
+		draw_vscroll_bar(t->dev, scr->xp + xw - G_SCROLL_BAR_WIDTH,
+			scr->yp, yw - scr->hsb * G_SCROLL_BAR_WIDTH,
+			scr->f_data->y, yw - scr->hsb * G_SCROLL_BAR_WIDTH,
+			vs->view_pos);
+	if (scr->hsb)
+		draw_hscroll_bar(t->dev, scr->xp,
+			scr->yp + yw - G_SCROLL_BAR_WIDTH,
+			xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->f_data->x,
+			xw - scr->vsb * G_SCROLL_BAR_WIDTH, vs->view_posx);
+	if (scr->vsb && scr->hsb)
+		drv->fill_area(t->dev, scr->xp + xw - G_SCROLL_BAR_WIDTH,
+		scr->yp + yw - G_SCROLL_BAR_WIDTH, scr->xp + xw, scr->yp + yw,
+		scroll_bar_frame_color);
+	restrict_clip_area(t->dev, NULL, scr->xp, scr->yp,
+		scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH,
+		scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
+	if ((drv->flags & GD_DONT_USE_SCROLL && overwrite_instead_of_scroll)
+	|| (scr->xl == -1 || scr->yl == -1)
+	|| (is_rect_valid(&scr->ses->win->redr))
+	|| (scr->xl - vx > xw || vx - scr->xl > xw || scr->yl - vy > yw
+	|| vy - scr->yl > yw))
 		goto rrr;
-	}
 	if (scr->xl != vx) {
 		rs = NULL;
 		r |= drv->scroll(t->dev, &rs, scr->xl - vx, 1);
@@ -620,9 +647,10 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 			for (j = 0; j < rs->m; j++) {
 				struct rect *r = &rs->r[j];
 				struct rect clip1;
-				/*fprintf(stderr, "scroll: %d,%d %d,%d\n", r->x1, r->y1, r->x2, r->y2);*/
-				restrict_clip_area(t->dev, &clip1, r->x1, r->y1, r->x2, r->y2);
-				draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos - (scr->yl - vy));
+				restrict_clip_area(t->dev, &clip1, r->x1, r->y1,
+					r->x2, r->y2);
+				draw_root(scr, scr->xp - vs->view_posx,
+					scr->yp - vs->view_pos - (scr->yl - vy));
 				drv->set_clip_area(t->dev, &clip1);
 			}
 			free(rs);
@@ -637,9 +665,10 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 			for (j = 0; j < rs->m; j++) {
 				struct rect *r = &rs->r[j];
 				struct rect clip1;
-				/*fprintf(stderr, "scroll: %d,%d %d,%d\n", r->x1, r->y1, r->x2, r->y2);*/
-				restrict_clip_area(t->dev, &clip1, r->x1, r->y1, r->x2, r->y2);
-				draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
+				restrict_clip_area(t->dev, &clip1, r->x1, r->y1,
+					r->x2, r->y2);
+				draw_root(scr, scr->xp - vs->view_posx,
+					scr->yp - vs->view_pos);
 				drv->set_clip_area(t->dev, &clip1);
 			}
 			free(rs);
@@ -649,32 +678,55 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 	if (r) {
 		struct rect clip1;
 		if (scr->xl < vx)  {
-			if (scr->yl < vy) {
-				restrict_clip_area(t->dev, &clip1, scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH - (vx - scr->xl), scr->yp, scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH - (vy - scr->yl));
-			} else {
-				restrict_clip_area(t->dev, &clip1, scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH - (vx - scr->xl), scr->yp + (scr->yl - vy), scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
-			}
+			if (scr->yl < vy)
+				restrict_clip_area(t->dev, &clip1,
+					scr->xp + xw - scr->vsb
+					* G_SCROLL_BAR_WIDTH - (vx - scr->xl),
+					scr->yp, scr->xp + xw - scr->vsb
+					* G_SCROLL_BAR_WIDTH,
+					scr->yp + yw - scr->hsb
+					* G_SCROLL_BAR_WIDTH - (vy - scr->yl));
+			else
+				restrict_clip_area(t->dev, &clip1,
+					scr->xp + xw - scr->vsb
+					* G_SCROLL_BAR_WIDTH - (vx - scr->xl),
+					scr->yp + (scr->yl - vy),
+					scr->xp + xw - scr->vsb
+					* G_SCROLL_BAR_WIDTH,
+					scr->yp + yw - scr->hsb
+					* G_SCROLL_BAR_WIDTH);
 		} else {
-			if (scr->yl < vy) {
-				restrict_clip_area(t->dev, &clip1, scr->xp, scr->yp, scr->xp + (scr->xl - vx), scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH - (vy - scr->yl));
-			} else {
-				restrict_clip_area(t->dev, &clip1, scr->xp, scr->yp + (scr->yl - vy), scr->xp + (scr->xl - vx), scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
-			}
+			if (scr->yl < vy)
+				restrict_clip_area(t->dev, &clip1, scr->xp,
+					scr->yp, scr->xp + (scr->xl - vx),
+					scr->yp + yw - scr->hsb
+					* G_SCROLL_BAR_WIDTH - (vy - scr->yl));
+			else
+				restrict_clip_area(t->dev, &clip1, scr->xp,
+					scr->yp + (scr->yl - vy),
+					scr->xp + (scr->xl - vx),
+					scr->yp + yw - scr->hsb
+					* G_SCROLL_BAR_WIDTH);
 		}
 		draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
 		drv->set_clip_area(t->dev, &clip1);
-		if (scr->yl < vy) {
-			restrict_clip_area(t->dev, NULL, scr->xp, scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH - (vy - scr->yl), scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
-		} else {
-			restrict_clip_area(t->dev, NULL, scr->xp, scr->yp, scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->yp + (scr->yl - vy));
-		}
+		if (scr->yl < vy)
+			restrict_clip_area(t->dev, NULL, scr->xp,
+				scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH
+				- (vy - scr->yl),
+				scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH,
+				scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
+		else
+			restrict_clip_area(t->dev, NULL, scr->xp, scr->yp,
+				scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH,
+				scr->yp + (scr->yl - vy));
 		draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
 	}
 
 	goto eee;
-	rrr:
+ rrr:
 	draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
-	eee:
+ eee:
 	scr->xl = vx;
 	scr->yl = vy;
 	drv->set_clip_area(t->dev, &old);
@@ -696,9 +748,12 @@ static void draw_one_object_fn(struct terminal *t, void *d_)
 	struct f_data_c *scr = d->fd;
 	struct g_object *o = d->o;
 	int x, y;
-	restrict_clip_area(t->dev, &clip, scr->xp, scr->yp, scr->xp + scr->xw - scr->vsb * G_SCROLL_BAR_WIDTH, scr->yp + scr->yw - scr->hsb * G_SCROLL_BAR_WIDTH);
+	restrict_clip_area(t->dev, &clip, scr->xp, scr->yp,
+		scr->xp + scr->xw - scr->vsb * G_SCROLL_BAR_WIDTH,
+		scr->yp + scr->yw - scr->hsb * G_SCROLL_BAR_WIDTH);
 	get_object_pos(o, &x, &y);
-	o->draw(scr, o, scr->xp - scr->vs->view_posx + x, scr->yp - scr->vs->view_pos + y);
+	o->draw(scr, o, scr->xp - scr->vs->view_posx + x,
+		scr->yp - scr->vs->view_pos + y);
 	drv->set_clip_area(t->dev, &clip);
 }
 
@@ -756,14 +811,12 @@ void g_line_mouse(struct f_data_c *fd, struct g_object *a_, int x, int y, int b)
 {
 	struct g_object_line *a = get_struct(a_, struct g_object_line, go);
 	int found, g;
-#define A_EQ(m, n)	((g = g_forward_mouse(fd, a->entries[m], x, y, b)), !g)
-#define A_AB(m, n)	(g & 1)
+#define A_EQ(m, n) ((g = g_forward_mouse(fd, a->entries[m], x, y, b)), !g)
+#define A_AB(m, n) (g & 1)
 	BIN_SEARCH(a->n_entries, A_EQ, A_AB, *, found);
-	found = found + 1;	/* against warning */
+	found = found + 1;
 #undef A_EQ
 #undef A_AB
-	/*int i;
-	for (i = 0; i < a->n_entries; i++) if (!g_forward_mouse(fd, a->entries[i], x, y, b)) return;*/
 }
 
 static struct f_data *ffff;
@@ -839,7 +892,9 @@ static void g_set_current_link(struct f_data_c *fd, struct g_object_text_image *
 		fd->vs->current_link = a->link_num;
 		fd->vs->orig_link = fd->vs->current_link;
 		/* if link is a field, set cursor position */
-		if (set_position && a->link_num >= 0 && a->link_num < fd->f_data->nlinks) { /* valid link */
+		if (set_position && a->link_num >= 0
+		&& a->link_num < fd->f_data->nlinks) {
+			/* valid link */
 			struct link *l = &fd->f_data->links[a->link_num];
 			struct form_state *fs;
 			int xx, yy;
@@ -876,7 +931,7 @@ static void g_set_current_link(struct f_data_c *fd, struct g_object_text_image *
 					xx = x / g_char_width(at->style, ' ');
 				else
 					xx = x;
-				fs->state=(int)(textptr_add(fs->value + ((size_t)fs->vpos > strlen(cast_const_char fs->value) ? strlen(cast_const_char fs->value) : (size_t)fs->vpos), (xx<0?0:xx), fd->f_data->opt.cp) - fs->value);
+				fs->state = (int)(textptr_add(fs->value + ((size_t)fs->vpos > strlen(cast_const_char fs->value) ? strlen(cast_const_char fs->value) : (size_t)fs->vpos), (xx<0?0:xx), fd->f_data->opt.cp) - fs->value);
 			}
 		}
 	}
@@ -1577,9 +1632,12 @@ void g_find_next(struct f_data_c *f, int a)
 	highlight_lengths = f->f_data->search_lengths;
 	n_highlight_positions = f->f_data->n_search_positions;
 
-	if ((!a && f->ses->search_direction == -1) ||
-	     (a && f->ses->search_direction == 1)) find_refline = f->vs->view_pos;
-	else find_refline = f->vs->view_pos + f->yw - f->hsb * G_SCROLL_BAR_WIDTH;
+	if ((!a && f->ses->search_direction == -1)
+	|| (a && f->ses->search_direction == 1))
+		find_refline = f->vs->view_pos;
+	else
+		find_refline = f->vs->view_pos + f->yw - f->hsb
+				* G_SCROLL_BAR_WIDTH;
 	find_direction = -f->ses->search_direction;
 
 	g_find_next_str(f->f_data);
@@ -1588,8 +1646,10 @@ void g_find_next(struct f_data_c *f, int a)
 	highlight_lengths = NULL;
 	n_highlight_positions = 0;
 
-	if (find_opt_yy == -1) goto d;
-	if (!a || find_opt_y < f->vs->view_pos || find_opt_y + find_opt_yw >= f->vs->view_pos + f->yw - f->hsb * G_SCROLL_BAR_WIDTH) {
+	if (find_opt_yy == -1)
+		goto d;
+	if (!a || find_opt_y < f->vs->view_pos
+	|| find_opt_y + find_opt_yw >= f->vs->view_pos + f->yw - f->hsb * G_SCROLL_BAR_WIDTH) {
 		f->vs->view_pos = find_opt_y - (f->yw - f->hsb * G_SCROLL_BAR_WIDTH) / 2;
 		f->vs->orig_view_pos = f->vs->view_pos;
 	}
@@ -1598,19 +1658,12 @@ void g_find_next(struct f_data_c *f, int a)
 		f->vs->orig_view_posx = f->vs->view_posx;
 	}
 
-	d:draw_fd(f);
+ d:
+	draw_fd(f);
 }
 
 void init_grview(void)
 {
-#ifdef DEBUG
-	int i, w = g_text_width(bfu_style_wb_mono, cast_uchar " ");
-	for (i = 32; i < 128; i++) {
-		unsigned char a[2];
-		a[0] = (unsigned char)i, a[1] = 0;
-		if (g_text_width(bfu_style_wb_mono, a) != w) internal("Monospaced font is not monospaced (error at char %d, width %d, wanted width %d)", i, (int)g_text_width(bfu_style_wb_mono, a), w);
-	}
-#endif
 	scroll_bar_frame_color = dip_get_color_sRGB(G_SCROLL_BAR_FRAME_COLOR);
 	scroll_bar_area_color = dip_get_color_sRGB(G_SCROLL_BAR_AREA_COLOR);
 	scroll_bar_bar_color = dip_get_color_sRGB(G_SCROLL_BAR_BAR_COLOR);
