@@ -3534,7 +3534,6 @@ extern unsigned char download_dir[];
 extern double display_red_gamma,display_green_gamma,display_blue_gamma;
 extern double user_gamma;
 extern double bfu_aspect;
-extern int display_optimize;	/*0=CRT, 1=LCD RGB, 2=LCD BGR */
 extern int dither_letters;
 extern int dither_images;
 extern int gamma_bits;

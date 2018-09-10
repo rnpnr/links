@@ -657,9 +657,6 @@ static unsigned char * const video_msg_1[] = {
 };
 
 static unsigned char * const video_msg_2[] = {
-	TEXT_(T_DISPLAY_OPTIMIZATION_CRT),
-	TEXT_(T_DISPLAY_OPTIMIZATION_LCD_RGB),
-	TEXT_(T_DISPLAY_OPTIMIZATION_LCD_BGR),
 	TEXT_(T_DITHER_LETTERS),
 	TEXT_(T_DITHER_IMAGES),
 	TEXT_(T_8_BIT_GAMMA_CORRECTION),
@@ -770,22 +767,6 @@ static void video_options(struct terminal *term, void *xxx, void *ses_)
 	d->items[a].fn = check_float;
 	d->items[a].gid = 25;
 	d->items[a++].gnum = 400;
-
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 1;
-	d->items[a].gnum = 0;	/* CRT */
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&display_optimize;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 1;
-	d->items[a].gnum = 1;	/* LCD RGB */
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&display_optimize;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 1;
-	d->items[a].gnum = 2;	/* LCD BGR*/
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&display_optimize;
 
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].gid = 0;

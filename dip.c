@@ -816,80 +816,6 @@ static void scale_gray(unsigned char *in, int ix, int iy,
 	}
 }
 
-/* To be called only when global variable display_optimize is 1 or 2.
- * Performs a decimation according to this variable. Data shrink to 1/3
- * and x is the smaller width.
- * There must be 9*x*y unsigned shorts of data.
- * x must be >=1.
- * Performs realloc onto the buffer after decimation to save memory.
- */
-static void decimate_3(unsigned short **data0, int x, int y)
-{
-	unsigned short *data=*data0;
-	unsigned short *ahead=data;
-	int i, futuresize;
-	if (!data)
-		return;
-	if (x && (unsigned)x * (unsigned)y / (unsigned)x != (unsigned)y) overalloc();
-	if ((unsigned)x * (unsigned)y > INT_MAX / 3 / sizeof(**data0)) overalloc();
-	futuresize=x*y*3*(int)sizeof(**data0);
-
-#ifdef DEBUG
-	if (!(x>0&&y>0)) internal("zero width or height in decimate_3");
-#endif /* #Ifdef DEBUG */
-	if (display_optimize==1){
-		if (x==1){
-			for (;y;y--,ahead+=9,data+=3){
-				data[0]=(ahead[0]+ahead[0]+ahead[3])/3;
-				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-				data[2]=(ahead[5]+ahead[8]+ahead[8])/3;
-			}
-		}else{
-			for (;y;y--){
-				data[0]=(ahead[0]+ahead[0]+ahead[3])/3;
-				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-				data[2]=(ahead[5]+ahead[8]+ahead[11])/3;
-				for (ahead+=9,data+=3,i=x-2;i;i--,ahead+=9,data+=3){
-					data[0]=(ahead[-3]+ahead[0]+ahead[3])/3;
-					data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-					data[2]=(ahead[5]+ahead[8]+ahead[11])/3;
-				}
-				data[0]=(ahead[-3]+ahead[0]+ahead[3])/3;
-				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-				data[2]=(ahead[5]+ahead[8]+ahead[8])/3;
-				ahead += 9;
-				data += 3;
-			}
-		}
-	}else{
-		/* display_optimize==2 */
-		if (x==1){
-			for (;y;y--,ahead+=9,data+=3){
-				data[0]=(ahead[3]+ahead[6]+ahead[6])/3;
-				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-				data[2]=(ahead[2]+ahead[2]+ahead[5])/3;
-			}
-		}else{
-			for (;y;y--){
-				data[0]=(ahead[3]+ahead[6]+ahead[9])/3;
-				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-				data[2]=(ahead[2]+ahead[2]+ahead[5])/3;
-				for (ahead+=9,data+=3,i=x-2;i;i--,ahead+=9,data+=3){
-					data[0]=(ahead[3]+ahead[6]+ahead[9])/3;
-					data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-					data[2]=(ahead[-1]+ahead[2]+ahead[5])/3;
-				}
-				data[0]=(ahead[3]+ahead[6]+ahead[6])/3;
-				data[1]=(ahead[1]+ahead[4]+ahead[7])/3;
-				data[2]=(ahead[-1]+ahead[2]+ahead[5])/3;
-				ahead += 9;
-				data += 3;
-			}
-		}
-	}
-	*data0 = xrealloc(*data0, futuresize);
-}
-
 /* Scales color 48-bits-per-pixel bitmap. Both enlarges and diminishes. Uses
  * either low pass or bilinear filtering. The memory organization for both
  * input and output are red, green, blue. All three of them are unsigned shorts 0-65535.
@@ -900,8 +826,6 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 	int ox, int oy)
 {
 	unsigned short *intermediate_buffer;
-	int do_optimize;
-	int ox0=ox;
 
 	if (!ix||!iy){
 		free(in);
@@ -910,11 +834,6 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 		*out = mem_calloc(ox * oy * sizeof(**out) * 3);
 		return;
 	}
-	if (display_optimize&&ox*3<=ix){
-		do_optimize=1;
-		ox0=ox;
-		ox*=3;
-	}else do_optimize=0;
 	if (ix*oy<ox*iy){
 		scale_color_vertical(in,ix,iy,&intermediate_buffer,oy);
 		scale_color_horizontal(intermediate_buffer,ix,oy,out,ox);
@@ -922,8 +841,6 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 		scale_color_horizontal(in,ix,iy,&intermediate_buffer,ox);
 		scale_color_vertical(intermediate_buffer,ox,iy,out,oy);
 	}
-	if (do_optimize)
-		decimate_3(out, ox0, oy);
 }
 
 /* Fills a block with given color. length is number of pixels. pixel is a
@@ -1569,7 +1486,6 @@ const unsigned char *png_data, int png_length, struct style *style)
 		*x=compute_width(style->mono_space, style->mono_height, y);
 	else
 		*x=compute_width(ix,iy,y);
-	if (display_optimize) *x*=3;
 	scale_gray(interm, ix,iy, (unsigned char **)dest, *x, y);
 	if (y>32||y<=0) return ; /* No convolution */
 	ix=*x+2; /* There is one-pixel border around */
@@ -1656,11 +1572,6 @@ static struct font_cache_entry *supply_color_cache_entry(struct style *style, st
 		ags_8_to_16(style->g1,(float)((float)user_gamma/(float)sRGB_gamma)),
 		ags_8_to_16(style->b1,(float)((float)user_gamma/(float)sRGB_gamma))
 	);
-	if (display_optimize){
-		/* A correction for LCD */
-		neww->bitmap.x/=3;
-		decimate_3(&primary_data,neww->bitmap.x,neww->bitmap.y);
-	}
 	/* We have a buffer with photons */
 	if (drv->get_empty_bitmap(&(neww->bitmap)))
 		goto skip_dither;
