@@ -1861,7 +1861,6 @@ void reinit_f_data_c(struct f_data_c *fd)
 
 struct f_data_c *create_f_data_c(struct session *ses, struct f_data_c *parent)
 {
-	static long id = 1;
 	struct f_data_c *fd;
 	fd = mem_calloc(sizeof(struct f_data_c));
 	fd->parent = parent;
@@ -1873,7 +1872,6 @@ struct f_data_c *create_f_data_c(struct session *ses, struct f_data_c *parent)
 	fd->done = 0;
 	fd->parsed_done = 0;
 	fd->script_t = 0;
-	fd->id = id++;
 	fd->marginwidth = fd->marginheight = -1;
 	fd->image_timer = NULL;
 	fd->refresh_timer = NULL;

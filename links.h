@@ -2323,8 +2323,6 @@ struct f_data_c {
 
 	int active;	/* temporary, for draw_doc */
 
-	long id;	/* unique document identification for javascript */
-
 	int marginwidth, marginheight;
 
 	struct timer *image_timer;
