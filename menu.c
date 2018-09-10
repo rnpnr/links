@@ -731,7 +731,7 @@ static void video_options(struct terminal *term, void *xxx, void *ses_)
 	remove_zeroes(user_g);
 	snprintf(cast_char aspect_str, VO_GAMMA_LEN, "%f", bfu_aspect);
 	remove_zeroes(aspect_str);
-	d = mem_calloc(sizeof(struct dialog) + 16 * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + 13 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_VIDEO_OPTIONS);
 	d->fn = videoopt_fn;
 	d->refresh = refresh_video;
