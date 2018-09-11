@@ -3472,7 +3472,6 @@ extern struct ipv6_options ipv6_options;
 
 struct proxies {
 	unsigned char http_proxy[MAX_STR_LEN];
-	unsigned char ftp_proxy[MAX_STR_LEN];
 	unsigned char https_proxy[MAX_STR_LEN];
 	unsigned char socks_proxy[MAX_STR_LEN];
 	unsigned char dns_append[MAX_STR_LEN];
@@ -3514,16 +3513,6 @@ struct http_options {
 };
 
 extern struct http_options http_options;
-
-struct ftp_options {
-	unsigned char anon_pass[MAX_STR_LEN];
-	int passive_ftp;
-	int eprt_epsv;
-	int fast_ftp;
-	int set_tos;
-};
-
-extern struct ftp_options ftp_options;
 
 extern unsigned char download_dir[];
 

@@ -1011,12 +1011,11 @@ int font_cache_size = 2097152;
 int aggressive_cache = 1;
 
 struct ipv6_options ipv6_options = { ADDR_PREFERENCE_DEFAULT };
-struct proxies proxies = { "", "", "", "", "", "", 0 };
+struct proxies proxies = { "", "", "", "", "", 0 };
 struct ssl_options ssl_options = { SSL_WARN_ON_INVALID_CERTIFICATE,
 	0,
 	"", "", "" };
 struct http_options http_options = { 0, 1, 1, 0, 0, 0, 0, { 0, "", "" } };
-struct ftp_options ftp_options = { "somebody@host.domain", 0, 0, 0, 1 };
 
 unsigned char download_dir[MAX_STR_LEN] = "";
 
@@ -1110,7 +1109,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &aggressive_cache, "http_bugs.aggressive_cache", "aggressive-cache"},
 	{1, gen_cmd, num_rd, num_wr, 0, 4, &ipv6_options.addr_preference, "ipv6.address_preference", "address-preference"},
 	{1, proxy_cmd, str_rd, str_wr, 0, MAX_STR_LEN, proxies.http_proxy, "http_proxy", "http-proxy"},
-	{1, proxy_cmd, str_rd, str_wr, 0, MAX_STR_LEN, proxies.ftp_proxy, "ftp_proxy", "ftp-proxy"},
 	{1, proxy_cmd, str_rd, str_wr, 0, MAX_STR_LEN, proxies.https_proxy, "https_proxy", "https-proxy"},
 	{1, proxy_cmd, str_rd, str_wr, 0, MAX_STR_LEN, proxies.socks_proxy, "socks_proxy", "socks-proxy"},
 	{1, gen_cmd, str_rd, NULL, 0, MAX_STR_LEN, proxies.dns_append, "-append_text_to_dns_lookups", NULL}, /* old version incorrectly saved it with '-' */
@@ -1134,11 +1132,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.header.fake_firefox, "fake_firefox", "http.fake-firefox"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.fake_useragent, "fake_useragent", "http.fake-user-agent"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.extra_header, "http.extra_header", "http.extra-header"},
-	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, ftp_options.anon_pass, "ftp.anonymous_password", "ftp.anonymous-password"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.passive_ftp, "ftp.use_passive", "ftp.use-passive"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.eprt_epsv, "ftp.use_eprt_epsv", "ftp.use-eprt-epsv"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.fast_ftp, "ftp.fast", "ftp.fast"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &ftp_options.set_tos, "ftp.set_iptos", "ftp.set-iptos"},
 	{1, gen_cmd, num_rd, num_wr, 1, MAX_FONT_SIZE, &menu_font_size, "menu_font_size", "menu-font-size"},
 	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_BFU_BG_COLOR, "background_color", "menu-background-color"},
 	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_BFU_FG_COLOR, "foreground_color", "menu-foreground-color"},

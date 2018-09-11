@@ -15,7 +15,7 @@ associated with external viewers. mailto: and telnet:
 are supported via external clients.
 .P
 .I links
-can handle local (file://) or remote (http:// or ftp://) URLs.
+can handle local (file://) or remote (http://) URLs.
 .PP
 
 .SH OPTIONS
@@ -186,11 +186,6 @@ Host and port number of the HTTP proxy, or blank.
 (default: blank)
 
 .TP
-\f3-ftp-proxy \f2<host:port>\f1
-Host and port number of the FTP proxy, or blank.
-(default: blank)
-
-.TP
 \f3-https-proxy \f2<host:port>\f1
 Host and port number of the HTTPS proxy, or blank.
 (default: blank)
@@ -296,28 +291,6 @@ Fake user agent value.
 .TP
 \f3-http.extra-header \f2<string>\f1
 Extra string added to HTTP header.
-
-.TP
-\f3-ftp.anonymous-password \f2<string>\f1
-Password for anonymous ftp access.
-
-.TP
-\f3-ftp.use-passive \f2<0>/<1>\f1
-Use ftp PASV command to bypass firewalls.
-
-.TP
-\f3-ftp.use-erpt-epsv \f2<0>/<1>\f1
-Use EPRT and EPSV commands instead of PORT and PASV.
-
-.TP
-\f3-ftp.fast \f2<0>/<1>\f1
-Send more ftp commands simultaneously. Faster response when
-browsing ftp directories, but it is incompatible with RFC
-and some servers don't like it.
-
-.TP
-\f3-ftp.set-iptos \f2<0>/<1>\f1
-Set IP Type-of-service to high throughput on ftp connections.
 
 .TP
 \f3-menu-font-size \f2<size>\f1

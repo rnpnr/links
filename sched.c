@@ -652,8 +652,6 @@ unsigned char *get_proxy_string(unsigned char *url)
 		return NULL;
 	if (*proxies.http_proxy && !casecmp(url, cast_uchar "http://", 7))
 		return proxies.http_proxy;
-	if (*proxies.ftp_proxy && !casecmp(url, cast_uchar "ftp://", 6))
-		return proxies.ftp_proxy;
 	if (*proxies.https_proxy && !casecmp(url, cast_uchar "https://", 8))
 		return proxies.https_proxy;
 	return NULL;

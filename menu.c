@@ -978,7 +978,6 @@ static void dlg_ipv6_options(struct terminal *term, void *xxx, void *yyy)
 
 static unsigned char * const proxy_msg[] = {
 	TEXT_(T_HTTP_PROXY__HOST_PORT),
-	TEXT_(T_FTP_PROXY__HOST_PORT),
 	TEXT_(T_HTTPS_PROXY__HOST_PORT),
 	TEXT_(T_SOCKS_4A_PROXY__USER_HOST_PORT),
 	TEXT_(T_APPEND_TEXT_TO_SOCKS_LOOKUPS),
@@ -1052,9 +1051,6 @@ void reset_settings_for_tor(void)
 	http_options.retry_internal_errors = 0;
 	http_options.header.extra_header[0] = 0;
 
-	ftp_options.eprt_epsv = 0;
-	ftp_options.fast_ftp = 0;
-
 	dither_letters = 1;
 	dither_images = 1;
 
@@ -1086,7 +1082,6 @@ static void data_cleanup(void)
 }
 
 static unsigned char http_proxy[MAX_STR_LEN];
-static unsigned char ftp_proxy[MAX_STR_LEN];
 static unsigned char https_proxy[MAX_STR_LEN];
 static unsigned char socks_proxy[MAX_STR_LEN];
 static unsigned char no_proxy[MAX_STR_LEN];
@@ -1225,7 +1220,6 @@ static int proxy_ok_dialog(struct dialog_data *dlg, struct dialog_item_data *di)
 	int r = ok_dialog(dlg, di);
 	if (r) return r;
 	save_proxy(charset, proxies.http_proxy, http_proxy);
-	save_proxy(charset, proxies.ftp_proxy, ftp_proxy);
 	save_proxy(charset, proxies.https_proxy, https_proxy);
 	save_proxy(charset, proxies.socks_proxy, socks_proxy);
 	save_noproxy_list(charset, proxies.no_proxy, no_proxy);
@@ -1241,21 +1235,15 @@ static void dlg_proxy_options(struct terminal *term, void *xxx, void *yyy)
 	struct dialog *d;
 	int a = 0;
 	display_proxy(term, http_proxy, proxies.http_proxy);
-	display_proxy(term, ftp_proxy, proxies.ftp_proxy);
 	display_proxy(term, https_proxy, proxies.https_proxy);
 	display_proxy(term, socks_proxy, proxies.socks_proxy);
 	display_noproxy_list(term, no_proxy, proxies.no_proxy);
-	d = mem_calloc(sizeof(struct dialog) + (N_N + 3) * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + (N_N + 2) * sizeof(struct dialog_item));
 	d->title = TEXT_(T_PROXIES);
 	d->fn = proxy_fn;
 	d->items[a].type = D_FIELD;
 	d->items[a].dlen = MAX_STR_LEN;
 	d->items[a].data = http_proxy;
-	d->items[a].fn = check_proxy;
-	a++;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a].data = ftp_proxy;
 	d->items[a].fn = check_proxy;
 	a++;
 	d->items[a].type = D_FIELD;
@@ -1602,93 +1590,6 @@ static void dlg_http_options(struct terminal *term, void *xxx, void *yyy)
 	a++;
 	do_dialog(term, d, getml(d, NULL));
 }
-
-static unsigned char * const ftp_texts[] = { TEXT_(T_PASSWORD_FOR_ANONYMOUS_LOGIN), TEXT_(T_USE_PASSIVE_FTP), TEXT_(T_USE_EPRT_EPSV), TEXT_(T_USE_FAST_FTP), TEXT_(T_SET_TYPE_OF_SERVICE), NULL };
-
-static void ftpopt_fn(struct dialog_data *dlg)
-{
-	struct terminal *term = dlg->win->term;
-	int max = 0, min = 0;
-	int w, rw;
-	int y = 0;
-	max_text_width(term, ftp_texts[0], &max, AL_LEFT);
-	min_text_width(term, ftp_texts[0], &min, AL_LEFT);
-	checkboxes_width(term, ftp_texts + 1, dlg->n - 3, &max, max_text_width);
-	checkboxes_width(term, ftp_texts + 1, dlg->n - 3, &min, min_text_width);
-	max_buttons_width(term, dlg->items + dlg->n - 2, 2, &max);
-	min_buttons_width(term, dlg->items + dlg->n - 2, 2, &min);
-	w = term->x * 9 / 10 - 2 * DIALOG_LB;
-	if (w > max) w = max;
-	if (w < min) w = min;
-	if (w > term->x - 2 * DIALOG_LB) w = term->x - 2 * DIALOG_LB;
-	if (w < 5) w = 5;
-	rw = 0;
-	dlg_format_text_and_field(dlg, NULL, ftp_texts[0], dlg->items, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	dlg_format_checkboxes(dlg, NULL, dlg->items + 1, dlg->n - 3, 0, &y, w, &rw, ftp_texts + 1);
-	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
-	dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 2, 2, 0, &y, w, &rw, AL_CENTER);
-	w = rw;
-	dlg->xw = rw + 2 * DIALOG_LB;
-	dlg->yw = y + 2 * DIALOG_TB;
-	center_dlg(dlg);
-	draw_dlg(dlg);
-	y = dlg->y + DIALOG_TB;
-	dlg_format_text_and_field(dlg, term, ftp_texts[0], dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_checkboxes(dlg, term, dlg->items + 1, dlg->n - 3, dlg->x + DIALOG_LB, &y, w, NULL, ftp_texts + 1);
-	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_buttons(dlg, term, dlg->items + dlg->n - 2, 2, dlg->x + DIALOG_LB, &y, w, &rw, AL_CENTER);
-}
-
-
-static void dlg_ftp_options(struct terminal *term, void *xxx, void *yyy)
-{
-	int a;
-	struct dialog *d;
-	d = mem_calloc(sizeof(struct dialog) + 7 * sizeof(struct dialog_item));
-	d->title = TEXT_(T_FTP_OPTIONS);
-	d->fn = ftpopt_fn;
-	d->refresh = refresh_network;
-	a=0;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a++].data = ftp_options.anon_pass;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void*)&ftp_options.passive_ftp;
-	a++;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void*)&ftp_options.eprt_epsv;
-	a++;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void*)&ftp_options.fast_ftp;
-	a++;
-#ifdef HAVE_IPTOS
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void*)&ftp_options.set_tos;
-	a++;
-#endif
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ENTER;
-	d->items[a].fn = ok_dialog;
-	d->items[a].text = TEXT_(T_OK);
-	a++;
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ESC;
-	d->items[a].fn = cancel_dialog;
-	d->items[a].text = TEXT_(T_CANCEL);
-	a++;
-	d->items[a].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-}
-
 
 static unsigned char * const prg_msg[] = {
 	TEXT_(T_MAILTO_PROG),
@@ -2761,7 +2662,6 @@ static const struct menu_item net_options_menu[] = {
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
 	{ TEXT_(T_SSL_OPTIONS), cast_uchar "", TEXT_(T_HK_SSL_OPTIONS), dlg_ssl_options, NULL, 0, 0 },
 	{ TEXT_(T_HTTP_OPTIONS), cast_uchar "", TEXT_(T_HK_HTTP_OPTIONS), dlg_http_options, NULL, 0, 0 },
-	{ TEXT_(T_FTP_OPTIONS), cast_uchar "", TEXT_(T_HK_FTP_OPTIONS), dlg_ftp_options, NULL, 0, 0 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
@@ -2771,7 +2671,6 @@ static const struct menu_item net_options_ipv6_menu[] = {
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
 	{ TEXT_(T_SSL_OPTIONS), cast_uchar "", TEXT_(T_HK_SSL_OPTIONS), dlg_ssl_options, NULL, 0, 0 },
 	{ TEXT_(T_HTTP_OPTIONS), cast_uchar "", TEXT_(T_HK_HTTP_OPTIONS), dlg_http_options, NULL, 0, 0 },
-	{ TEXT_(T_FTP_OPTIONS), cast_uchar "", TEXT_(T_HK_FTP_OPTIONS), dlg_ftp_options, NULL, 0, 0 },
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
