@@ -13,31 +13,25 @@ struct graphics_driver *drv = NULL;
 
 extern struct graphics_driver x_driver;
 
-static struct graphics_driver *graphics_drivers[] = {
-	&x_driver,
-	NULL
-};
-
 /* Driver je jednorazovy argument, kterej se preda grafickymu driveru, nikde se dal
  * neuklada.  Param se skladuje v default_driver param a uklada se do konfiguraku. Pred
  * ukoncenim grafickeho driveru se nastavi default_driver_param podle
  * drv->get_driver_param.
  */
-static unsigned char *init_graphics_driver(struct graphics_driver *gd, unsigned char *param, unsigned char *display)
+static unsigned char *init_graphics_driver(unsigned char *p, unsigned char *display)
 {
 	unsigned char *r;
-	unsigned char *p = param;
-	struct driver_param *dp = get_driver_param(gd->name);
-	if (!param || !*param)
+	struct driver_param *dp = get_driver_param(x_driver.name);
+	if (!p || !*p)
 		p = dp->param;
-	gd->kbd_codepage = dp->kbd_codepage;
-	gd->shell = mem_calloc(MAX_STR_LEN);
+	x_driver.kbd_codepage = dp->kbd_codepage;
+	x_driver.shell = mem_calloc(MAX_STR_LEN);
 	if (dp->shell)
-		safe_strncpy(gd->shell, dp->shell, MAX_STR_LEN);
-	drv = gd;
-	if ((r = gd->init_driver(p, display))) {
-		free(gd->shell);
-		gd->shell = NULL;
+		safe_strncpy(x_driver.shell, dp->shell, MAX_STR_LEN);
+	drv = &x_driver;
+	if ((r = x_driver.init_driver(p, display))) {
+		free(x_driver.shell);
+		x_driver.shell = NULL;
 		drv = NULL;
 	} else
 		F = 1;
@@ -47,17 +41,16 @@ static unsigned char *init_graphics_driver(struct graphics_driver *gd, unsigned 
 
 void add_graphics_drivers(unsigned char **s, int *l)
 {
-	add_to_str(s, l, graphics_drivers[0]->name);
+	add_to_str(s, l, x_driver.name);
 }
 
 unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsigned char *display)
 {
 	unsigned char *s = init_str();
 	int l = 0;
-	struct graphics_driver **gd = graphics_drivers;
-	if (!driver || !*driver || !casestrcmp((*gd)->name, driver)) {
+	if (!driver || !*driver || !casestrcmp(x_driver.name, driver)) {
 		unsigned char *r;
-		if (!(r = init_graphics_driver(*gd, param, display))) {
+		if (!(r = init_graphics_driver(param, display))) {
 			free(s);
 			return NULL;
 		}
@@ -65,7 +58,7 @@ unsigned char *init_graphics(unsigned char *driver, unsigned char *param, unsign
 			add_to_str(&s, &l, cast_uchar "Could not initialize any graphics driver. Tried the following drivers:\n");
 		else
 			add_to_str(&s, &l, cast_uchar "Could not initialize graphics driver ");
-		add_to_str(&s, &l, (*gd)->name);
+		add_to_str(&s, &l, x_driver.name);
 		add_to_str(&s, &l, cast_uchar ":\n");
 		add_to_str(&s, &l, r);
 		free(r);
