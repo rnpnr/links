@@ -17,23 +17,15 @@ struct http_auth {
 
 static const unsigned char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-unsigned char *base64_encode(unsigned char *in, int inlen, unsigned char *prefix, unsigned char *suffix, int line_bits)
+static unsigned char *base64_encode(unsigned char *in, size_t inlen)
 {
 	unsigned char *out, *outstr;
 	int data_len;
 	int line_mask = ~0;
 	int col;
-	int prefix_len = (int)strlen(cast_const_char prefix);
-	int suffix_len = (int)strlen(cast_const_char suffix);
 	if (inlen > INT_MAX / 2) overalloc();
 	data_len = ((inlen + 2) / 3) * 4;
-	if (line_bits >= 0) {
-		line_mask = (1 << line_bits) - 1;
-		data_len += (data_len + line_mask) >> line_bits;
-	}
-	outstr = xmalloc(prefix_len + data_len + suffix_len + 1);
-	memcpy(outstr, prefix, prefix_len);
-	out = outstr + prefix_len;
+	out = outstr = xmalloc(data_len + 1);
 	col = 0;
 	while (inlen >= 3) {
 		*out++ = base64_chars[ (int)(in[0] >> 2) ];
@@ -44,22 +36,21 @@ unsigned char *base64_encode(unsigned char *in, int inlen, unsigned char *prefix
 		if (!((col += 4) & line_mask))
 			*out++ = '\n';
 	}
-	if (inlen == 1) {
+	switch (inlen) {
+	case 1:
 		*out++ = base64_chars[ (int)(in[0] >> 2) ];
 		*out++ = base64_chars[ (int)(in[0] << 4 & 63) ];
 		*out++ = '=';
 		*out++ = '=';
-	}
-	if (inlen == 2) {
+		break;
+	case 2:
 		*out++ = base64_chars[ (int)(in[0] >> 2) ];
 		*out++ = base64_chars[ (int)((in[0] << 4 | in[1] >> 4) & 63) ];
 		*out++ = base64_chars[ (int)((in[1] << 2) & 63) ];
 		*out++ = '=';
+	default:;
 	}
-	if (line_bits >= 0 && out > outstr + prefix_len && out[-1] != '\n')
-		*out++ = '\n';
-	strcpy(cast_char out, cast_const_char suffix);
-	/*fprintf(stderr, "%d - %d = %d\n", prefix_len + data_len + suffix_len + 1, strlen(cast_const_char outstr) + 1, prefix_len + data_len + suffix_len - strlen(cast_const_char outstr));*/
+	strlcpy((char *)out, "", 2);
 	return outstr;
 }
 
@@ -69,7 +60,7 @@ static unsigned char *basic_encode(unsigned char *user, unsigned char *password)
 	p = stracpy(user);
 	add_to_strn(&p, cast_uchar ":");
 	add_to_strn(&p, password);
-	e = base64_encode(p, (int)strlen(cast_const_char p), cast_uchar "", cast_uchar "", -1);
+	e = base64_encode(p, strlen(cast_const_char p));
 	free(p);
 	return e;
 }

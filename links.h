@@ -852,7 +852,6 @@ void free_cookie(struct cookie *c);
 
 /* auth.c */
 
-unsigned char *base64_encode(unsigned char *in, int inlen, unsigned char *prefix, unsigned char *suffix, int line_bits);
 unsigned char *get_auth_realm(unsigned char *url, unsigned char *head, int proxy);
 unsigned char *get_auth_string(unsigned char *url, int proxy);
 void free_auth(void);
