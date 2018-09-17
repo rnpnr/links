@@ -2050,29 +2050,29 @@ static unsigned char *x_get_clipboard_text(void)
 
 /* This is executed in a helper thread, so we must not use mem_alloc */
 
-static void addchr(unsigned char **str, size_t *l, unsigned char c)
+static void addchr(char *str, size_t *l, char c)
 {
-	unsigned char *s;
-	if (!*str)
+	char *s;
+	if (!str)
 		return;
-	if ((*str)[*l])
-		*l = strlen((char *)*str);
+	if (str[*l])
+		*l = strlen(str);
 	if (*l > INT_MAX - 2)
 		overalloc();
-	s = xrealloc(*str, *l + 2);
+	s = xrealloc(str, *l + 2);
 	if (!s) {
-		free(*str);
-		*str = NULL;
+		free(str);
+		str = NULL;
 		return;
 	}
-	*str = s;
+	str = s;
 	s[(*l)++] = c;
 	s[*l] = 0;
 }
 
 static int x_exec(unsigned char *command, int fg)
 {
-	unsigned char *pattern, *final;
+	char *pattern, *final;
 	size_t i, j, l;
 	int retval;
 
@@ -2083,31 +2083,31 @@ static int x_exec(unsigned char *command, int fg)
 
 	l = 0;
 	if (*x_driver.shell)
-		pattern = cast_uchar strdup((char *)x_driver.shell);
+		pattern = strdup((char *)x_driver.shell);
 	else {
-		pattern = cast_uchar strdup((char *)links_xterm());
+		pattern = strdup((char *)links_xterm());
 		if (*command) {
-			addchr(&pattern, &l, ' ');
-			addchr(&pattern, &l, '%');
+			addchr(pattern, &l, ' ');
+			addchr(pattern, &l, '%');
 		}
 	}
 	if (!pattern)
 		return -1;
 
-	final = (unsigned char *)strdup("");
+	final = strdup("");
 	l = 0;
 	for (i = 0; pattern[i]; i++) {
 		if (pattern[i] == '%')
 			for (j = 0; j < strlen((char *)command); j++)
-				addchr(&final, &l, command[j]);
+				addchr(final, &l, (char)command[j]);
 		else
-			addchr(&final, &l, pattern[i]);
+			addchr(final, &l, pattern[i]);
 	}
 	free(pattern);
 	if (!final)
 		return -1;
 
-	retval = system((char *)final);
+	retval = system(final);
 	free(final);
 	return retval;
 }
