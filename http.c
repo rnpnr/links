@@ -136,7 +136,7 @@ int get_http_code(unsigned char *head, int *code, int *version)
 }
 
 static struct {
-	char *name;
+	const char *name;
 	int bugs;
 } buggy_servers[] = {
 	{ "mod_czech/3.1.0", BL_HTTP10 },
@@ -159,7 +159,7 @@ static int check_http_server_bugs(unsigned char *url, struct http_connection_inf
 		return 0;
 	bugs = 0;
 	for (i = 0; buggy_servers[i].name; i++)
-		if (strstr((char *)server, (char *)buggy_servers[i].name))
+		if (strstr((char *)server, buggy_servers[i].name))
 			bugs |= buggy_servers[i].bugs;
 	free(server);
 	if (bugs && (server = get_host_name(url))) {
@@ -458,7 +458,6 @@ static int advertise_compression(unsigned char *url, struct connection *c)
 
 static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url, struct connection *c)
 {
-#define info	((struct http_connection_info *)c->info)
 	if (advertise_compression(url, c)) {
 		int orig_l = *l;
 		int l1;
@@ -472,7 +471,6 @@ static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
 		else
 			*l = orig_l;
 	}
-#undef info
 }
 
 static void add_accept_charset(unsigned char **hdr, int *l, struct http_connection_info *info)
@@ -1069,8 +1067,8 @@ again:
 		return;
 	}
 	if ((d = parse_http_header(e->head, cast_uchar "Content-Length", NULL))) {
-		unsigned char *ep;
-		long l = strtol((char *)d, (char **)&ep, 10);
+		char *ep;
+		long l = strtol((char *)d, &ep, 10);
 		if (!*ep && l >= 0 && (off_t)l >= 0 && (off_t)l == l) {
 			if (!info->close || version >= 11)
 				info->length = l;
