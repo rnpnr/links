@@ -1438,7 +1438,7 @@ static void dlg_ssl_options(struct terminal *term, void *xxx, void *yyy)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static unsigned char * const http_labels[] = { TEXT_(T_USE_HTTP_10), TEXT_(T_ALLOW_SERVER_BLACKLIST), TEXT_(T_BROKEN_302_REDIRECT), TEXT_(T_NO_KEEPALIVE_AFTER_POST_REQUEST), TEXT_(T_DO_NOT_SEND_ACCEPT_CHARSET),
+static unsigned char * const http_labels[] = { TEXT_(T_USE_HTTP_10), TEXT_(T_ALLOW_SERVER_BLACKLIST), TEXT_(T_DO_NOT_SEND_ACCEPT_CHARSET),
 	TEXT_(T_DO_NOT_ADVERTISE_COMPRESSION_SUPPORT),
 	TEXT_(T_RETRY_ON_INTERNAL_ERRORS), NULL };
 
