@@ -5,18 +5,6 @@
 
 #include "links.h"
 
-#if defined(HAVE_STRMODE) || defined(HAVE_LIBBSD)
-
-static void stat_mode(unsigned char **p, int *l, struct stat *stp)
-{
-	unsigned char bp[12] = "?--------- ";
-	if (stp)
-		strmode(stp->st_mode, cast_char bp);
-	add_to_str(p, l, bp);
-}
-
-#else
-
 static void setrwx(unsigned m, unsigned char *p)
 {
 	if (m & S_IRUSR) p[0] = 'r';
@@ -86,9 +74,6 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 	}
 	add_chr_to_str(p, l, ' ');
 }
-
-#endif
-
 
 static void stat_links(unsigned char **p, int *l, struct stat *stp)
 {
