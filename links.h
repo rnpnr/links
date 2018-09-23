@@ -3503,8 +3503,6 @@ struct http_header_options {
 struct http_options {
 	int http10;
 	int allow_blacklist;
-	int bug_302_redirect;
-	int bug_post_no_keepalive;
 	int no_accept_charset;
 	int no_compression;
 	int retry_internal_errors;

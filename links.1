@@ -247,17 +247,6 @@ that claim to be HTTP/1.1 compliant but are not)
 When links finds such server, it will retry the request with HTTP/1.0.
 
 .TP
-\f3-http-bugs.bug-302-redirect \f2<0>/<1>\f1
-(default 1)
-Process 302 redirect in a way that is incompatible with RFC1945 and RFC2068,
-but the same as Netscape and MSIE. Many pages depend on it.
-
-.TP
-\f3-http-bugs.bug-post-no-keepalive \f2<0>/<1>\f1
-(default 0)
-No keepalive connection after post requests. For some buggy servers.
-
-.TP
 \f3-http-bugs.bug-no-accept-charset \f2<0>/<1>\f1
 (default 0)
 Do not send Accept-Charset field of HTTP header. Because it is too long

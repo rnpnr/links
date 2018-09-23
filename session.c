@@ -900,13 +900,12 @@ static void download_data(struct status *stat, void *down_)
 		unsigned char *enc;
 		if (ce->redirect) {
 			if (down->redirect_cnt++ < MAX_REDIRECTS) {
-				unsigned char *u, *p;
+				unsigned char *u;
 				unsigned char *prev_down_url;
 				int cache, allow_flags;
 				if (stat->state >= 0) change_connection(&down->stat, NULL, PRI_CANCEL);
 				u = join_urls(down->url, ce->redirect);
 				extract_position(u);
-				if (!http_options.bug_302_redirect) if (!ce->redirect_get && (p = cast_uchar strchr(cast_const_char down->url, POST_CHAR))) add_to_strn(&u, p);
 				prev_down_url = down->url;
 				down->url = u;
 				down->stat.state = S_WAIT_REDIR;

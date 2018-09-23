@@ -338,17 +338,13 @@ static void objreq_end(struct status *stat, void *data)
 		if (stat->ce && rq->state == O_WAITING && stat->ce->redirect) {
 			if (rq->redirect_cnt++ < MAX_REDIRECTS) {
 				int cache, allow_flags;
-				unsigned char *u, *p, *pos;
+				unsigned char *u, *pos;
 				change_connection(stat, NULL, PRI_CANCEL);
 				u = join_urls(rq->url, stat->ce->redirect);
 				if ((pos = extract_position(u))) {
 					free(rq->goto_position);
 					rq->goto_position = pos;
 				}
-				if (!http_options.bug_302_redirect
-				&& !stat->ce->redirect_get
-				&& (p = cast_uchar strchr(cast_const_char u, POST_CHAR)))
-					add_to_strn(&u, p);
 				cache = rq->cache;
 				if (cache < NC_RELOAD
 				&& (!strcmp(cast_const_char u, cast_const_char rq->url)

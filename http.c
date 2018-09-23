@@ -263,7 +263,7 @@ http_bad_url:
 		post = cast_uchar strchr((char *)host, POST_CHAR);
 		if (post) post++;
 	}
-	info->send_close = info->https_forward || http10 || (post && http_options.bug_post_no_keepalive);
+	info->send_close = info->https_forward || http10;
 	if (info->https_forward) {
 		add_to_str(&hdr, &l, cast_uchar "CONNECT ");
 		h = get_host_name(host);
@@ -695,7 +695,7 @@ static void read_http_data(struct connection *c, struct read_buffer *rb)
 			info->length -= l;
 		c->from += l;
 		kill_buffer_data(rb, l);
-		if (!info->length && !rb->close) {
+		if (!info->length) {
 			http_end_request(c, 0, 0, S__OK);
 			return;
 		}
@@ -1003,7 +1003,7 @@ again:
 	e->redirect = NULL;
 	if ((h == 302 || h == 303 || h == 307 || h == 511) && !e->expire_time)
 		e->expire_time = 1;
-	if (h == 301 || h == 302 || h == 303 || h == 307) {
+	if (h == 301 || h == 302 || h == 303 || h == 307 || h == 308) {
 		if ((d = parse_http_header(e->head, cast_uchar "Location", NULL))) {
 			unsigned char *user, *ins;
 			unsigned char *newuser, *newpassword;
@@ -1028,7 +1028,11 @@ again:
 			}
 			free(e->redirect);
 			e->redirect = d;
-			e->redirect_get = h == 303;
+			if (h == 307 || h == 308) {
+				unsigned char *p;
+				if ((p = cast_uchar strchr(cast_const_char host, POST_CHAR)))
+					add_to_strn(&e->redirect, p);
+			}
 		}
 	}
 	if (!e->expire_time && strchr((char *)c->url, POST_CHAR))
@@ -1070,7 +1074,7 @@ again:
 		char *ep;
 		long l = strtol((char *)d, &ep, 10);
 		if (!*ep && l >= 0 && (off_t)l >= 0 && (off_t)l == l) {
-			if (!info->close || version >= 11)
+			if (!info->close || version >= 11 || h / 100 == 3)
 				info->length = l;
 			if (c->from + l >= 0)
 				c->est_length = c->from + l;

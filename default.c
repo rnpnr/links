@@ -1015,11 +1015,9 @@ struct proxies proxies = { "", "", "", "", "", 0 };
 struct ssl_options ssl_options = { SSL_WARN_ON_INVALID_CERTIFICATE,
 	0,
 	"", "", "" };
-struct http_options http_options = { 0, 1, 1, 0, 0, 0, 0, { 0, "", "" } };
+struct http_options http_options = { 0, 1, 0, 0, 0, { 0, "", "" } };
 
 unsigned char download_dir[MAX_STR_LEN] = "";
-
-static int sink;
 
 double display_red_gamma=2.2; /* Red gamma exponent of the display */
 double display_green_gamma=2.2; /* Green gamma exponent of the display */
@@ -1124,8 +1122,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, str_rd, NULL, 0, MAX_STR_LEN, &ssl_options.client_cert_crt, "client_cert_crt", "http.client_cert_crt"}, /* backward compatibility with Debian patches */
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.http10, "http_bugs.http10", "http-bugs.http10"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.allow_blacklist, "http_bugs.allow_blacklist", "http-bugs.allow-blacklist"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.bug_302_redirect, "http_bugs.bug_302_redirect", "http-bugs.bug-302-redirect"},
-	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.bug_post_no_keepalive, "http_bugs.bug_post_no_keepalive", "http-bugs.bug-post-no-keepalive"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.no_accept_charset, "http_bugs.no_accept_charset", "http-bugs.bug-no-accept-charset"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.no_compression, "http_bugs.no_compression", "http-bugs.no-compression"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.retry_internal_errors, "http_bugs.retry_internal_errors", "http-bugs.retry-internal-errors"},
@@ -1145,7 +1141,7 @@ static struct option links_options[] = {
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &display_blue_gamma, "display_blue_gamma", "display-blue-gamma"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &user_gamma, "user_gamma", "user-gamma"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 25, 400, &bfu_aspect, "bfu_aspect", "bfu-aspect"},
-	{1, gen_cmd, num_rd, NULL, 0, 1, &sink, "aspect_on", NULL},
+	{1, gen_cmd, num_rd, NULL, 0, 1, NULL, "aspect_on", NULL},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &dither_letters, "dither_letters", "dither-letters"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &dither_images, "dither_images", "dither-images"},
 	{1, gen_cmd, num_rd, num_wr, 0, 2, &gamma_bits, "gamma_correction", "gamma-correction"},

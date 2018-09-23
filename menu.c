@@ -1044,8 +1044,6 @@ void reset_settings_for_tor(void)
 
 	http_options.http10 = 0;
 	http_options.allow_blacklist = 1;
-	http_options.bug_302_redirect = 1;
-	http_options.bug_post_no_keepalive = 0;
 	http_options.no_accept_charset = 0;
 	http_options.no_compression = 0;
 	http_options.retry_internal_errors = 0;
@@ -1529,7 +1527,7 @@ static void dlg_http_options(struct terminal *term, void *xxx, void *yyy)
 {
 	struct dialog *d;
 	int a = 0;
-	d = mem_calloc(sizeof(struct dialog) + 10 * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + 8 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_HTTP_BUG_WORKAROUNDS);
 	d->fn = checkbox_list_fn;
 	d->udata = (void *)http_labels;
@@ -1543,16 +1541,6 @@ static void dlg_http_options(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].gid = 0;
 	d->items[a].dlen = sizeof(int);
 	d->items[a].data = (void *)&http_options.allow_blacklist;
-	a++;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void *)&http_options.bug_302_redirect;
-	a++;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a].data = (void *)&http_options.bug_post_no_keepalive;
 	a++;
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].gid = 0;
