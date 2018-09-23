@@ -483,7 +483,6 @@ struct cache_entry {
 	unsigned char *head;
 	int http_code;
 	unsigned char *redirect;
-	int redirect_get;
 	off_t length;
 	off_t max_length;
 	int incomplete;

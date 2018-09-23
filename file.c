@@ -279,7 +279,6 @@ void file_func(struct connection *c)
 			e = c->cache;
 			free(e->redirect);
 			e->redirect = stracpy(c->url);
-			e->redirect_get = 1;
 			add_to_strn(&e->redirect, cast_uchar "/");
 			free(name);
 			closedir(d);
