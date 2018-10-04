@@ -175,144 +175,11 @@ void cls_redraw_all_terminals(void)
 	foreach(struct terminal, term, lterm, terminals) {
 		if (!F) redraw_terminal_cls(term);
 #ifdef G
-		else {
-			t_resize(term->dev);
-		}
+		else
+			term->dev->resize_handler(term->dev);
 #endif
 	}
 }
-
-#ifdef G
-
-int do_rects_intersect(struct rect *r1, struct rect *r2)
-{
-	return (r1->x1 > r2->x1 ? r1->x1 : r2->x1) < (r1->x2 > r2->x2 ? r2->x2 : r1->x2) && (r1->y1 > r2->y1 ? r1->y1 : r2->y1) < (r1->y2 > r2->y2 ? r2->y2 : r1->y2);
-}
-
-void intersect_rect(struct rect *v, struct rect *r1, struct rect *r2)
-{
-	v->x1 = r1->x1 > r2->x1 ? r1->x1 : r2->x1;
-	v->x2 = r1->x2 > r2->x2 ? r2->x2 : r1->x2;
-	v->y1 = r1->y1 > r2->y1 ? r1->y1 : r2->y1;
-	v->y2 = r1->y2 > r2->y2 ? r2->y2 : r1->y2;
-}
-
-void unite_rect(struct rect *v, struct rect *r1, struct rect *r2)
-{
-	if (!is_rect_valid(r1)) {
-		if (v != r2) memcpy(v, r2, sizeof(struct rect));
-		return;
-	}
-	if (!is_rect_valid(r2)) {
-		if (v != r1) memcpy(v, r1, sizeof(struct rect));
-		return;
-	}
-	v->x1 = r1->x1 < r2->x1 ? r1->x1 : r2->x1;
-	v->x2 = r1->x2 < r2->x2 ? r2->x2 : r1->x2;
-	v->y1 = r1->y1 < r2->y1 ? r1->y1 : r2->y1;
-	v->y2 = r1->y2 < r2->y2 ? r2->y2 : r1->y2;
-}
-
-int is_rect_valid(struct rect *r1)
-{
-	return r1->x1 < r1->x2 && r1->y1 < r1->y2;
-}
-
-#define R_GR	8
-
-struct rect_set *init_rect_set(void)
-{
-	struct rect_set *s;
-	s = mem_calloc(sizeof(struct rect_set) + sizeof(struct rect) * R_GR);
-	s->rl = R_GR;
-	s->m = 0;
-	return s;
-}
-
-void add_to_rect_set(struct rect_set **s, struct rect *r)
-{
-	struct rect_set *ss = *s;
-	int i;
-	if (!is_rect_valid(r)) return;
-	for (i = 0; i < ss->rl; i++) if (!ss->r[i].x1 && !ss->r[i].x2 && !ss->r[i].y1 && !ss->r[i].y2) {
-		x:
-		memcpy(&ss->r[i], r, sizeof(struct rect));
-		if (i >= ss->m) ss->m = i + 1;
-		return;
-	}
-	if ((unsigned)ss->rl > (INT_MAX - sizeof(struct rect_set)) / sizeof(struct rect) - R_GR)
-		overalloc();
-	ss = xrealloc(ss,
-		sizeof(struct rect_set) + sizeof(struct rect) * (ss->rl + R_GR));
-	memset(&(*s = ss)->r[i = (ss->rl += R_GR) - R_GR], 0, sizeof(struct rect) * R_GR);
-	goto x;
-}
-
-void exclude_rect_from_set(struct rect_set **s, struct rect *r)
-{
-	int i, a;
-	struct rect *rr;
-	do {
-		a = 0;
-		for (i = 0; i < (*s)->m; i++) if (do_rects_intersect(rr = &(*s)->r[i], r)) {
-			struct rect r1, r2, r3, r4;
-			r1.x1 = rr->x1;
-			r1.x2 = rr->x2;
-			r1.y1 = rr->y1;
-			r1.y2 = r->y1;
-
-			r2.x1 = rr->x1;
-			r2.x2 = r->x1;
-			r2.y1 = r->y1;
-			r2.y2 = r->y2;
-
-			r3.x1 = r->x2;
-			r3.x2 = rr->x2;
-			r3.y1 = r->y1;
-			r3.y2 = r->y2;
-
-			r4.x1 = rr->x1;
-			r4.x2 = rr->x2;
-			r4.y1 = r->y2;
-			r4.y2 = rr->y2;
-
-			intersect_rect(&r2, &r2, rr);
-			intersect_rect(&r3, &r3, rr);
-			rr->x1 = rr->x2 = rr->y1 = rr->y2 = 0;
-#ifdef DEBUG
-			if (is_rect_valid(&r1) && do_rects_intersect(&r1, r)) internal("bad intersection 1");
-			if (is_rect_valid(&r2) && do_rects_intersect(&r2, r)) internal("bad intersection 2");
-			if (is_rect_valid(&r3) && do_rects_intersect(&r3, r)) internal("bad intersection 3");
-			if (is_rect_valid(&r4) && do_rects_intersect(&r4, r)) internal("bad intersection 4");
-#endif
-			add_to_rect_set(s, &r1);
-			add_to_rect_set(s, &r2);
-			add_to_rect_set(s, &r3);
-			add_to_rect_set(s, &r4);
-			a = 1;
-		}
-	} while (a);
-}
-
-/* memory address r must contain one struct rect
- * x1 is leftmost pixel that is still valid
- * x2 is leftmost pixel that isn't valid any more
- * y1, y2 analogically
- */
-int restrict_clip_area(struct graphics_device *dev, struct rect *r, int x1, int y1, int x2, int y2)
-{
-	struct rect v, rr;
-	rr.x1 = x1;
-	rr.x2 = x2;
-	rr.y1 = y1;
-	rr.y2 = y2;
-	if (r) memcpy(r, &dev->clip, sizeof(struct rect));
-	intersect_rect(&v, &dev->clip, &rr);
-	drv->set_clip_area(dev, &v);
-	return is_rect_valid(&v);
-}
-
-#endif
 
 void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *), void *data)
 {
@@ -349,17 +216,17 @@ void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *
 		a = 0;
 		memcpy(&r1, &term->dev->clip, sizeof(struct rect));
 		for (i = 0; i < s->m; i++) if (is_rect_valid(r = &s->r[i])) {
-			drv->set_clip_area(term->dev, r);
+			set_clip_area(term->dev, r);
 			pr(fn(term, data)) {
 			}
 			a = 1;
 		}
 		if (!a) {
 			struct rect empty = { 0, 0, 0, 0 };
-			drv->set_clip_area(term->dev, &empty);
+			set_clip_area(term->dev, &empty);
 			fn(term, data);
 		}
-		drv->set_clip_area(term->dev, &r1);
+		set_clip_area(term->dev, &r1);
 		free(s);
 #endif
 	}
@@ -381,11 +248,11 @@ ok:
 		struct links_event ev = { EV_REDRAW, 0, 0, 0 };
 		ev.x = term->x;
 		ev.y = term->y;
-		drv->set_clip_area(term->dev, &win->redr);
+		set_clip_area(term->dev, &win->redr);
 		memset(&win->redr, 0, sizeof(struct rect));
 		win->handler(win, &ev, 0);
 	}
-	drv->set_clip_area(term->dev, &term->dev->size);
+	set_clip_area(term->dev, &term->dev->size);
 }
 
 void set_window_pos(struct window *win, int x1, int y1, int x2, int y2)
@@ -623,8 +490,8 @@ static int process_utf_8(struct terminal *term, struct links_event *ev)
 			unsigned char *p;
 			unsigned c;
 			if (ev->x <= 0 || ev->x >= 0x100) goto direct;
-			if ((term->utf8_paste_mode ^ ev->y) & KBD_PASTE) {
-				term->utf8_paste_mode = ev->y & KBD_PASTE;
+			if ((term->utf8_paste_mode ^ ev->y) & KBD_PASTING) {
+				term->utf8_paste_mode = ev->y & KBD_PASTING;
 				term->utf8_buffer[0] = 0;
 			}
 			if ((l = strlen(cast_const_char term->utf8_buffer))
@@ -723,11 +590,11 @@ void t_resize(struct graphics_device *dev)
 	struct links_event ev = { EV_RESIZE, 0, 0, 0 };
 	term->x = ev.x = dev->size.x2;
 	term->y = ev.y = dev->size.y2;
-	drv->set_clip_area(dev, &dev->size);
+	set_clip_area(dev, &dev->size);
 	foreach(struct window, win, lwin, term->windows) {
 		win->handler(win, &ev, 0);
 	}
-	drv->set_clip_area(dev, &dev->size);
+	set_clip_area(dev, &dev->size);
 }
 
 void t_kbd(struct graphics_device *dev, int key, int flags)
@@ -739,11 +606,13 @@ void t_kbd(struct graphics_device *dev, int key, int flags)
 	r.y2 = dev->size.y2;
 	ev.x = key;
 	ev.y = flags;
-	if (upcase(key) == 'L' && flags == KBD_CTRL) {
+	if (upcase(ev.x) == 'L' && !(ev.y & KBD_PASTING) && ev.y & KBD_CTRL) {
 		t_redraw(dev, &r);
 		return;
 	} else {
-		drv->set_clip_area(dev, &r);
+		if (ev.x == KBD_STOP)
+			abort_background_connections();
+		set_clip_area(dev, &r);
 		if (list_empty(term->windows)) return;
 		if (ev.x == KBD_CTRL_C || ev.x == KBD_CLOSE) {
 			struct window *prev = list_struct(term->windows.prev, struct window);
@@ -782,7 +651,7 @@ void t_mouse(struct graphics_device *dev, int x, int y, int b)
 	ev.x = x;
 	ev.y = y;
 	ev.b = b;
-	drv->set_clip_area(dev, &r);
+	set_clip_area(dev, &r);
 	if (list_empty(term->windows)) return;
 	next = list_struct(term->windows.next, struct window);
 	next->handler(next, &ev, 0);
@@ -856,14 +725,17 @@ static void in_term(void *term_)
 		ev->y -= term->top_margin;
 	}
 	if (ev->ev == EV_KBD || ev->ev == EV_MOUSE) {
-		if (ev->ev == EV_KBD && upcase(ev->x) == 'L' && !(ev->y & KBD_PASTE) && ev->y & KBD_CTRL) {
+		if (ev->ev == EV_KBD && upcase(ev->x) == 'L' && !(ev->y & KBD_PASTING) && ev->y & KBD_CTRL) {
 			ev->ev = EV_REDRAW;
 			ev->x = term->x;
 			ev->y = term->y;
 			goto send_redraw;
 		}
+		if (ev->ev == EV_KBD && ev->x == KBD_STOP) {
+			abort_background_connections();
+		}
 		if (!list_empty(term->windows)) {
-			if (ev->ev == EV_KBD && ev->x == KBD_CTRL_C && !(ev->y & KBD_PASTE)) {
+			if (ev->ev == EV_KBD && ev->x == KBD_CTRL_C && !(ev->y & KBD_PASTING)) {
 				struct window *prev = list_struct(term->windows.prev, struct window);
 				prev->handler(prev, ev, 0);
 			} else {
@@ -955,6 +827,7 @@ static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmlln
 				SETPOS(cx, y);				\
 			add_to_str(&a, &l, encode_utf_8(c));		\
 			SETPOS(cx + 1, y);				\
+			print_next = 1;					\
 		}							\
 	}								\
 	else if (!c || c == 1) add_chr_to_str(&a, &l, ' ');		\
@@ -972,6 +845,7 @@ static void redraw_screen(struct terminal *term)
 	int attrib = -1;
 	int mode = -1;
 	int l = 0;
+	int print_next = 0;
 	struct term_spec *s;
 	if (!term->dirty || (term->master && is_blocked())) return;
 	a = init_str();
@@ -988,9 +862,14 @@ static void redraw_screen(struct terminal *term)
 				/* make sure that padding is identical */
 				if (chr_has_padding)
 					memcpy(&term->last_screen[p], &term->screen[p], sizeof(chr));
+				if (print_next) {
+					print_next = 0;
+					goto must_print_next;
+				}
 				continue;
 			}
 			memcpy(&term->last_screen[p], &term->screen[p], sizeof(chr));
+ must_print_next:
 			if (cx == x && cy == y)
 				goto pc;
 			else if (cy == y && x - cx < 10 && x - cx > 0) {
@@ -1005,6 +884,11 @@ static void redraw_screen(struct terminal *term)
 				i = 0;
 				goto ppc;
 			}
+		}
+		if (print_next && term->left_margin + term->x < term->real_x) {
+			add_to_str(&a, &l, cast_uchar "\033[0m ");
+			attrib = -1;
+			print_next = 0;
 		}
 	}
 	if (l) {
@@ -1117,18 +1001,23 @@ void set_char(struct terminal *t, int x, int y, unsigned ch, unsigned char at)
 	}
 }
 
-chr *get_char(struct terminal *t, int x, int y)
+const chr *get_char(struct terminal *t, int x, int y)
 {
-	if (!t->x || !t->y) {
-		static chr empty;
-		empty.ch = ' ';
-		empty.at = 070;
+	int lx, ly;
+	lx = t->x - 1;
+	ly = t->y - 1;
+	if((lx | ly) < 0) {
+		static const chr empty = { ' ', 070 };
 		return &empty;
 	}
-	if (x >= t->x) x = t->x - 1;
-	if (x < 0) x = 0;
-	if (y >= t->y) y = t->y - 1;
-	if (y < 0) y = 0;
+	if (x > lx)
+		x = lx;
+	else if (x < 0)
+		x = 0;
+	if (y > ly)
+		y = ly;
+	else if (y < 0)
+		y = 0;
 	return &t->screen[x + t->x * y];
 }
 
@@ -1140,7 +1029,7 @@ void set_color(struct terminal *t, int x, int y, unsigned char c)
 
 void set_only_char(struct terminal *t, int x, int y, unsigned ch, unsigned char at)
 {
-	chr *cc;
+	const chr *cc;
 	t->dirty = 1;
 	cc = get_char(t, x, y);
 	at = (at & ATTR_FRAME) | (cc->at & ~ATTR_FRAME);
@@ -1359,7 +1248,7 @@ void do_terminal_function(struct terminal *term, unsigned char code, unsigned ch
 	int x_datal;
 	x_data = init_str();
 	x_datal = 0;
-	add_chr_to_str(&x_data, &x_datal, 0);
+	add_chr_to_str(&x_data, &x_datal, code);
 	add_to_str(&x_data, &x_datal, data);
 	exec_on_terminal(term, NULL, x_data, 0);
 	free(x_data);

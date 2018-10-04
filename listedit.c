@@ -396,7 +396,7 @@ static int draw_bfu_element(struct terminal * term, int x, int y, unsigned char 
 			drv->fill_area(dev,x+(int)(4.75*BFU_GRX_WIDTH),y,x+5*BFU_GRX_WIDTH,y+BFU_GRX_HEIGHT,b);
 		}
 
-		drv->set_clip_area(dev, &r);
+		set_clip_area(dev, &r);
 		return BFU_ELEMENT_WIDTH;
 	}
 #endif
@@ -428,7 +428,7 @@ static struct list *next_in_tree(struct list_description *ld, struct list *item)
 	if (!(item->type & 1) || (item->type & 2))  /* item or opened folder */
 		return list_next(item);
 	/* skip content of this folder */
-	do item=list_next(item); while (item->depth > depth);   /* must stop on head 'cause it's depth is -1 */
+	do item = list_next(item); while (item->depth > depth);   /* must stop on head 'cause it's depth is -1 */
 	return item;
 }
 
@@ -470,13 +470,13 @@ static struct list *prev_in_tree(struct list_description *ld, struct list *item)
 #ifdef G
 static int get_total_items(struct list_description *ld)
 {
-	struct list*l=ld->list;
-	int count=0;
+	struct list *l = ld->list;
+	int count = 0;
 
 	do{
-		l=next_in_tree(ld,l);
+		l = next_in_tree(ld, l);
 		count++;
-	}while(l!=ld->list);
+	} while (l != ld->list);
 
 	return count;
 }
@@ -484,11 +484,11 @@ static int get_total_items(struct list_description *ld)
 
 static int get_scroll_pos(struct list_description *ld)
 {
-	struct list*l;
-	int count;
+	struct list *l;
+	int count = 0;
 
-	for (l=ld->list,count=0;l!=ld->win_offset;l=next_in_tree(ld,l),count++)
-		;
+	for (l = ld->list; l != ld->win_offset; l = next_in_tree(ld,l))
+		count++;
 
 	return count;
 }
@@ -496,13 +496,13 @@ static int get_scroll_pos(struct list_description *ld)
 
 static int get_visible_items(struct list_description *ld)
 {
-	struct list*l=ld->win_offset;
-	int count=0;
+	struct list *l = ld->win_offset;
+	int count = 0;
 
 	do{
-		l=next_in_tree(ld,l);
+		l = next_in_tree(ld,l);
 		count++;
-	}while(count<ld->n_items&&l!=ld->list);
+	} while (count < ld->n_items && l != ld->list);
 
 	return count;
 }
@@ -510,15 +510,16 @@ static int get_visible_items(struct list_description *ld)
 
 static struct list *find_last_in_window(struct list_description *ld)
 {
-	struct list*l=ld->win_offset;
-	struct list *x=l;
-	int count=0;
+	struct list *l = ld->win_offset;
+	struct list *x = l;
+	int count = 0;
 
 	do{
-		l=next_in_tree(ld,l);
+		l = next_in_tree(ld, l);
 		count++;
-		if (l!=ld->list&&count!=ld->n_items)x=l;
-	}while(count<ld->n_items&&l!=ld->list);
+		if (l != ld->list && count != ld->n_items)
+			x = l;
+	} while (count < ld->n_items && l != ld->list);
 
 	return x;
 }
@@ -528,11 +529,11 @@ static struct list *find_last_in_window(struct list_description *ld)
 
 static int get_win_pos(struct list_description *ld)
 {
-	struct list*l;
-	int count;
+	struct list *l;
+	int count = 0;
 
-	for (l=ld->win_offset,count=0;l!=ld->current_pos;l=next_in_tree(ld,l),count++)
-		;
+	for (l = ld->win_offset; l != ld->current_pos; l = next_in_tree(ld, l))
+		count++;
 
 	return count;
 }
@@ -686,13 +687,13 @@ static int list_item_move(struct dialog_data *dlg, struct dialog_item_data *usel
 		struct list *behind_next = next_in_tree(ld, behind);	/* to se musi pocitat pokazdy, protoze by se nam mohlo stat, ze to je taky oznaceny */
 		struct list *item_last = list_prev(next); /* last item of moved block */
 
+		if (!(i->type & 4)) { i = next; continue; }
 		if (is_parent(ld, ld->current_pos, i)) { /* we're moving directory into itself - let's behave like item was not selected */
 			i->type &= ~4;
 			i = next;
 			count++;
 			continue;
 		}
-		if (!(i->type & 4)) { i = next; continue; }
 
 		if ((i->type & 3) == 3) { /* dirty trick */
 			i->type &= ~2;
@@ -918,7 +919,6 @@ static int list_item_delete(struct dialog_data *dlg,struct dialog_item_data *use
 	struct terminal *term=dlg->win->term;
 	struct list_description *ld=(struct list_description*)(dlg->dlg->udata2);
 	struct list *item=ld->current_pos;
-	/*struct session *ses=(struct session *)(dlg->dlg->udata);*/
 	unsigned char *txt;
 	struct ve_skodarne_je_jeste_vetsi_narez *narez;
 
@@ -975,34 +975,38 @@ static int list_item_delete(struct dialog_data *dlg,struct dialog_item_data *use
 	return 0;
 }
 
-static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, int y, int w, struct list_description *ld, struct list *l)
+static void redraw_list_element(struct terminal *term, struct dialog_data *dlg, int y, int w, struct list_description *ld, struct list *l)
 {
 	struct list *lx;
 	unsigned char *xp;
 	int xd;
 	unsigned char *txt;
 	int x=0;
-	int text_position;
 	unsigned char color = 0;
 	long bgcolor = 0, fgcolor = 0;
 	int b;
 	unsigned char element;
 
 	if (!F) {
-		color=(l==ld->current_pos)?COLOR_MENU_SELECTED:COLOR_MENU_TEXT;
-#ifdef G
-	} else {
-		int bgc=(l==ld->current_pos)?G_BFU_FG_COLOR:G_BFU_BG_COLOR;
-		int fgc=(l==ld->current_pos)?G_BFU_BG_COLOR:G_BFU_FG_COLOR;
-
-		bgcolor=dip_get_color_sRGB(bgc);
-		fgcolor=dip_get_color_sRGB(fgc);
-#endif
+		color = l == ld->current_pos ? COLOR_MENU_SELECTED : COLOR_MENU_TEXT;
 	}
+#ifdef G
+	else {
+		struct rect r;
+		r.x1 = dlg->x + DIALOG_LB;
+		r.x2 = dlg->x + DIALOG_LB + w;
+		r.y1 = y;
+		r.y2 = y + G_BFU_FONT_SIZE;
+		if (dlg->s) exclude_rect_from_set(&dlg->s, &r);
+		if (!do_rects_intersect(&r, &term->dev->clip))
+			return;
+		bgcolor = l == ld->current_pos ? bfu_fg_color : bfu_bg_color;
+		fgcolor = l == ld->current_pos ? bfu_bg_color : bfu_fg_color;
+	}
+#endif
 
-	txt=ld->type_item(term, l,1);
-	if (!txt)
-	{
+	txt = ld->type_item(term, l, 1);
+	if (!txt) {
 		txt = stracpy(cast_uchar "");
 	}
 
@@ -1014,7 +1018,7 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 			element = BFU_ELEMENT_TEE;
 			if (list_next(l) == ld->list)
 				element = BFU_ELEMENT_L;
-			x+=draw_bfu_element(term,dlg->x+DIALOG_LB,y,color,bgcolor,fgcolor,element,(l->type)&4);
+			x += draw_bfu_element(term, dlg->x + DIALOG_LB, y, color, bgcolor, fgcolor, element, l->type & 4);
 			break;
 		case 1:
 			xp = xmalloc(l->depth + 1);
@@ -1027,31 +1031,29 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 					if (!xd) break;
 				}
 			}
-			for (b=0;b<l->depth;b++)
-				x+=draw_bfu_element(term,dlg->x+DIALOG_LB+x,y,color,bgcolor,fgcolor,xp[b] ? BFU_ELEMENT_PIPE : BFU_ELEMENT_EMPTY,0);
-			if (l->depth>=0)  /* everything except head */
-			{
+			for (b = 0; b < l->depth; b++)
+				x += draw_bfu_element(term, dlg->x + DIALOG_LB+x, y, color, bgcolor, fgcolor, xp[b] ? BFU_ELEMENT_PIPE : BFU_ELEMENT_EMPTY, 0);
+			if (l->depth >= 0) {  /* everything except head */
 				int o = xp[l->depth];
-				switch((l->type)&1)
-				{
+				switch (l->type & 1) {
 					case 0:  /* item */
-					element=o ? BFU_ELEMENT_TEE : BFU_ELEMENT_L;
-					break;
+						element = o ? BFU_ELEMENT_TEE : BFU_ELEMENT_L;
+						break;
 
 					case 1:  /* directory */
-					if (l->type & 2) {
-						element = o ? BFU_ELEMENT_OPEN_DOWN : BFU_ELEMENT_OPEN;
-					} else {
-						element = o ? BFU_ELEMENT_CLOSED_DOWN : BFU_ELEMENT_CLOSED;
-					}
-					break;
+						if (l->type & 2) {
+							element = o ? BFU_ELEMENT_OPEN_DOWN : BFU_ELEMENT_OPEN;
+						} else {
+							element = o ? BFU_ELEMENT_CLOSED_DOWN : BFU_ELEMENT_CLOSED;
+						}
+						break;
 
 					default:  /* this should never happen */
-					internal("=8-Q  lunacy level too high! Call "BOHNICE".\n");
-					element=BFU_ELEMENT_EMPTY;
+						internal("=8-Q  lunacy level too high! Call "BOHNICE".\n");
+						element = BFU_ELEMENT_EMPTY;
 
 				}
-				x+=draw_bfu_element(term,dlg->x+DIALOG_LB+x,y,color,bgcolor,fgcolor,element,(l->type)&4);
+				x += draw_bfu_element(term, dlg->x + DIALOG_LB + x, y, color, bgcolor, fgcolor, element, l->type & 4);
 			}
 			free(xp);
 			break;
@@ -1065,71 +1067,60 @@ static int redraw_list_element(struct terminal *term, struct dialog_data *dlg, i
 		}
 	}
 
-	text_position = x;
-	if (!F)
-	{
-		print_text(term,dlg->x+x+DIALOG_LB,y,w-x,txt,color);
+	if (!F) {
+		print_text(term, dlg->x + x + DIALOG_LB, y, w-x, txt, color);
 		x += strlen((char *)txt);
-		fill_area(term,dlg->x+DIALOG_LB+x,y,w-x,1,' ',0);
-		set_line_color(term,dlg->x+DIALOG_LB+x,y,w-x,color);
+		fill_area(term, dlg->x+DIALOG_LB+x, y, w-x, 1, ' ', 0);
+		set_line_color(term, dlg->x + DIALOG_LB + x, y, w-x, color);
 	}
 #ifdef G
-	else
-	{
+	else {
 		struct rect old_area;
-		struct style* stl=(l==ld->current_pos)?bfu_style_wb:bfu_style_bw;
+		struct style *stl = l == ld->current_pos ? bfu_style_wb : bfu_style_bw;
 
-		restrict_clip_area(term->dev,&old_area,dlg->x+x+DIALOG_LB,y,dlg->x+DIALOG_LB+w,y+G_BFU_FONT_SIZE);
-		g_print_text(term->dev,dlg->x+x+DIALOG_LB,y,stl,txt,0);
-		x+=g_text_width(stl,txt);
-		drv->fill_area(term->dev,dlg->x+DIALOG_LB+x,y,dlg->x+DIALOG_LB+w,y+G_BFU_FONT_SIZE,bgcolor);
-		drv->set_clip_area(term->dev,&old_area);
-		if (dlg->s)exclude_from_set(&(dlg->s),dlg->x+DIALOG_LB,y,dlg->x+DIALOG_LB+w,y+G_BFU_FONT_SIZE);
+		restrict_clip_area(term->dev, &old_area, dlg->x + x + DIALOG_LB, y, dlg->x + DIALOG_LB + w, y + G_BFU_FONT_SIZE);
+		g_print_text(term->dev, dlg->x + x + DIALOG_LB, y, stl, txt, NULL);
+		x += g_text_width(stl, txt);
+		drv->fill_area(term->dev, dlg->x + DIALOG_LB + x, y, dlg->x + DIALOG_LB + w, y + G_BFU_FONT_SIZE, bgcolor);
+		set_clip_area(term->dev, &old_area);
 	}
 #endif
 	free(txt);
-	return text_position;
 }
 
 /* redraws list */
 static void redraw_list(struct terminal *term, void *bla)
 {
-	struct redraw_data* rd=(struct redraw_data *)bla;
-	struct list_description *ld=rd->ld;
-	struct dialog_data *dlg=rd->dlg;
-	/*struct session *ses=(struct session*)(dlg->dlg->udata);*/
-	int y,a;
+	struct redraw_data* rd = (struct redraw_data *)bla;
+	struct list_description *ld = rd->ld;
+	struct dialog_data *dlg = rd->dlg;
+	int y, a;
 	struct list *l;
-	int w=dlg->xw-2*DIALOG_LB-(F?sirka_scrollovadla:0);
-	y=dlg->y+DIALOG_TB;
+	int w = dlg->xw - 2 * DIALOG_LB - (F ? sirka_scrollovadla : 0);
+	y = dlg->y + DIALOG_TB;
 
 #ifdef G
-	if (F)
-	{
-		int total=get_total_items(ld);
-		int visible=get_visible_items(ld);
-		int pos=get_scroll_pos(ld);
-		struct rect old_area;
-
-		restrict_clip_area(term->dev,&old_area,dlg->x+w+DIALOG_LB+G_SCROLL_BAR_WIDTH,y,dlg->x+DIALOG_LB+w+sirka_scrollovadla,y+G_BFU_FONT_SIZE*ld->n_items);
-		drv->set_clip_area(term->dev,&old_area);
-		draw_vscroll_bar(term->dev,dlg->x+DIALOG_LB+w+G_SCROLL_BAR_WIDTH,y,G_BFU_FONT_SIZE*ld->n_items,total,visible,pos);
-		if (dlg->s)exclude_from_set(&(dlg->s),dlg->x+DIALOG_LB+w+G_SCROLL_BAR_WIDTH,y,dlg->x+DIALOG_LB+w+sirka_scrollovadla,y+G_BFU_FONT_SIZE*ld->n_items);
+	if (F) {
+		int total = get_total_items(ld);
+		int visible = get_visible_items(ld);
+		int pos = get_scroll_pos(ld);
+		draw_vscroll_bar(term->dev, dlg->x + DIALOG_LB + w + G_SCROLL_BAR_WIDTH, y, G_BFU_FONT_SIZE * ld->n_items, total, visible, pos);
+		if (dlg->s) exclude_from_set(&dlg->s, dlg->x + DIALOG_LB + w + G_SCROLL_BAR_WIDTH, y, dlg->x + DIALOG_LB + w + sirka_scrollovadla, y + G_BFU_FONT_SIZE * ld->n_items);
 	}
 #endif
 
-	for (a=0,l=ld->win_offset;a<ld->n_items;) {
+	for (a = 0, l = ld->win_offset; a < ld->n_items; ) {
 		redraw_list_element(term, dlg, y, w, ld, l);
-		l=next_in_tree(ld, l);
+		l = next_in_tree(ld, l);
 		a++;
-		y+=gf_val(1,G_BFU_FONT_SIZE);
-		if (l==ld->list) break;
+		y += gf_val(1, G_BFU_FONT_SIZE);
+		if (l == ld->list) break;
 	}
-	if (!F) fill_area(term,dlg->x+DIALOG_LB,y,w,ld->n_items-a,' ',COLOR_MENU_TEXT);
+	if (!F) fill_area(term, dlg->x + DIALOG_LB, y, w, ld->n_items-a, ' ', COLOR_MENU_TEXT);
 #ifdef G
 	else {
-		drv->fill_area(term->dev,dlg->x+DIALOG_LB,y,dlg->x+DIALOG_LB+w,dlg->y+DIALOG_TB+(ld->n_items)*G_BFU_FONT_SIZE,dip_get_color_sRGB(G_BFU_BG_COLOR));
-		if (dlg->s) exclude_from_set(&(dlg->s),dlg->x+DIALOG_LB,y,dlg->x+DIALOG_LB+w,dlg->y+DIALOG_TB+(ld->n_items)*G_BFU_FONT_SIZE);
+		drv->fill_area(term->dev, dlg->x + DIALOG_LB, y, dlg->x + DIALOG_LB + w, dlg->y + DIALOG_TB + ld->n_items * G_BFU_FONT_SIZE, dip_get_color_sRGB(G_BFU_BG_COLOR));
+		if (dlg->s) exclude_from_set(&dlg->s, dlg->x + DIALOG_LB, y, dlg->x + DIALOG_LB + w, dlg->y + DIALOG_TB + ld->n_items * G_BFU_FONT_SIZE);
 	}
 #endif
 }
@@ -1139,20 +1130,19 @@ static void redraw_list(struct terminal *term, void *bla)
 /* direction: -1=old is previous, +1=old is next */
 static void redraw_list_line(struct terminal *term, void *bla)
 {
-	struct redraw_data *rd=(struct redraw_data *)bla;
-	struct list_description *ld=rd->ld;
-	struct dialog_data *dlg=rd->dlg;
-	/*struct session *ses=(struct session *)(dlg->dlg->udata);*/
-	int direction=rd->n;
-	int w=dlg->xw-2*DIALOG_LB-(F?sirka_scrollovadla:0);
-	int y=dlg->y+DIALOG_TB+gf_val(ld->win_pos,ld->win_pos*G_BFU_FONT_SIZE);
+	struct redraw_data *rd = (struct redraw_data *)bla;
+	struct list_description *ld = rd->ld;
+	struct dialog_data *dlg = rd->dlg;
+	int direction = rd->n;
+	int w = dlg->xw - 2 * DIALOG_LB - (F ? sirka_scrollovadla : 0);
+	int y = dlg->y + DIALOG_TB + gf_val(ld->win_pos, ld->win_pos * G_BFU_FONT_SIZE);
 	struct list *l;
 
 	redraw_list_element(term, dlg, y, w, ld, ld->current_pos);
 	if (!F && !term->spec->block_cursor) {
 		set_cursor(term, dlg->x + DIALOG_LB, y, dlg->x + DIALOG_LB, y);
 	}
-	y+=gf_val(direction, direction*G_BFU_FONT_SIZE);
+	y += gf_val(direction, direction * G_BFU_FONT_SIZE);
 	switch (direction) {
 		case 0:
 			l = NULL;
@@ -1178,69 +1168,63 @@ static void redraw_list_line(struct terminal *term, void *bla)
 static void scroll_list(struct terminal *term, void *bla)
 {
 #ifdef G
-	struct redraw_data *rd=(struct redraw_data *)bla;
-	struct list_description *ld=rd->ld;
-	struct dialog_data *dlg=rd->dlg;
-	int direction=rd->n;
-	struct rect_set *set;
+	struct redraw_data *rd = (struct redraw_data *)bla;
+	struct list_description *ld = rd->ld;
+	struct dialog_data *dlg = rd->dlg;
+	int direction = rd->n;
 #endif
 
-	if (!F)
-	{
+	if (!F) {
 		redraw_list(term, bla);
-#ifdef G
 	}
-	else
-	{
+#ifdef G
+	else {
 		struct rect old_area;
-		struct graphics_device *dev=term->dev;
-		int w=dlg->xw-2*DIALOG_LB-sirka_scrollovadla;
-		int y=dlg->y+DIALOG_TB;
-		int top=0,bottom=0;
+		struct graphics_device *dev = term->dev;
+		int w = dlg->xw-2 * DIALOG_LB - sirka_scrollovadla;
+		int y = dlg->y + DIALOG_TB;
+		int top = 0, bottom = 0;
 
-		switch(direction)
-		{
+		switch(direction) {
 			case 1:  /* down */
-			top=G_BFU_FONT_SIZE;
-			break;
+				top = G_BFU_FONT_SIZE;
+				break;
 
 			case -1:  /* up */
-			bottom=-G_BFU_FONT_SIZE;
-			break;
+				bottom = -G_BFU_FONT_SIZE;
+				break;
 
 			default:
-			internal("Wrong direction %d in function scroll_list.\n",direction);
+				internal("Wrong direction %d in function scroll_list.\n",direction);
 		}
 
-		restrict_clip_area(term->dev,&old_area,dlg->x+DIALOG_LB,y+top,dlg->x+DIALOG_LB+w,y+bottom+G_BFU_FONT_SIZE*(ld->n_items));
+		restrict_clip_area(term->dev, &old_area, dlg->x + DIALOG_LB, y + top, dlg->x + DIALOG_LB + w, y + bottom + G_BFU_FONT_SIZE * ld->n_items);
 		if (drv->flags & GD_DONT_USE_SCROLL && overwrite_instead_of_scroll)
-			goto redraw_all;
-		set=NULL;
-		drv->scroll(dev, &set, top + bottom, 0);
-
-		if (set)	/* redraw rectangles in the set - we cannot redraw particular rectangles, we are only able to redraw whole window */
-		{
-			free(set);
-redraw_all:
 			redraw_list(term, bla);
+		else {
+			int j;
+			struct rect_set *rs = g_scroll(dev, 0, top + bottom);
+			for (j = 0; j < rs->m; j++) {
+				struct rect *r = &rs->r[j];
+				struct rect clip1;
+				restrict_clip_area(term->dev, &clip1, r->x1, r->y1, r->x2, r->y2); 
+				redraw_list(term, bla);
+				set_clip_area(term->dev, &clip1);
+			}
+			free(rs);
 		}
-		drv->set_clip_area(term->dev,&old_area);
+		set_clip_area(term->dev, &old_area);
 
 		/* redraw scroll bar */
 		{
-			int total=get_total_items(ld);
-			int visible=get_visible_items(ld);
-			int pos=get_scroll_pos(ld);
-			struct rect old_area;
-
-			restrict_clip_area(term->dev,&old_area,dlg->x+w+DIALOG_LB+G_SCROLL_BAR_WIDTH,y,dlg->x+DIALOG_LB+w+sirka_scrollovadla,y+G_BFU_FONT_SIZE*ld->n_items);
-			drv->set_clip_area(term->dev,&old_area);
-			draw_vscroll_bar(term->dev,dlg->x+DIALOG_LB+w+G_SCROLL_BAR_WIDTH,y,G_BFU_FONT_SIZE*ld->n_items,total,visible,pos);
-			if (dlg->s)exclude_from_set(&(dlg->s),dlg->x+DIALOG_LB+w+G_SCROLL_BAR_WIDTH,y,dlg->x+DIALOG_LB+w+sirka_scrollovadla,y+G_BFU_FONT_SIZE*ld->n_items);
+			int total = get_total_items(ld);
+			int visible = get_visible_items(ld);
+			int pos = get_scroll_pos(ld);
+			draw_vscroll_bar(term->dev, dlg->x + DIALOG_LB + w + G_SCROLL_BAR_WIDTH, y, G_BFU_FONT_SIZE * ld->n_items, total, visible,pos);
+			if (dlg->s) exclude_from_set(&dlg->s, dlg->x + DIALOG_LB + w + G_SCROLL_BAR_WIDTH, y, dlg->x + DIALOG_LB + w + sirka_scrollovadla, y + G_BFU_FONT_SIZE * ld->n_items);
 		}
-
-#endif
 	}
+#endif
 }
 
 
@@ -1329,7 +1313,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 	switch ((int)ev->ev)
 	{
 		case EV_KBD:
-		if (ev->y & KBD_PASTE) break;
+		if (ev->y & KBD_PASTING) break;
 		if (ld->type==1)  /* tree list */
 		{
 			if (ev->x==' ')  /* toggle folder */
@@ -1354,7 +1338,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 				return EVENT_PROCESSED;
 			}
 		}
-		if (ev->x=='/') /* search forward */
+		if (ev->x == '/' || (ev->x == KBD_FIND && !(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT)))) /* search forward */
 		{
 			struct redraw_data *r;
 
@@ -1365,7 +1349,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			input_field(ses->term, getml(r,NULL), TEXT_(T_SEARCH), TEXT_(T_SEARCH_FOR_TEXT), r, ld->search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), list_search_for, TEXT_(T_CANCEL), input_field_null);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x=='?') /* search back */
+		if (ev->x == '?' || (ev->x == KBD_FIND && ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT))) /* search back */
 		{
 			struct redraw_data *r;
 
@@ -1376,12 +1360,12 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			input_field(ses->term, getml(r,NULL), TEXT_(T_SEARCH_BACK), TEXT_(T_SEARCH_FOR_TEXT), r, ld->search_history, MAX_INPUT_URL_LEN, cast_uchar "", 0, 0, NULL, 2, TEXT_(T_OK), list_search_for_back, TEXT_(T_CANCEL), input_field_null);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x=='n') /* find next */
+		if ((ev->x == 'n' && !(ev->y & KBD_ALT)) || ev->x == KBD_REDO) /* find next */
 		{
 			list_find_next(&rd, ld->search_direction);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x=='N') /* find prev */
+		if ((ev->x == 'N' && !(ev->y & KBD_ALT)) || ev->x == KBD_UNDO) /* find prev */
 		{
 			list_find_next(&rd, - ld->search_direction);
 			return EVENT_PROCESSED;
@@ -1519,8 +1503,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 
 		case EV_MOUSE:
 		/* toggle select item */
-		if ((ev->b&BM_ACT)==B_DOWN&&(ev->b&BM_BUTT)==B_RIGHT)
-		{
+		if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_RIGHT) {
 			int n,a;
 			struct list *l=ld->win_offset;
 
@@ -1552,8 +1535,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			return EVENT_PROCESSED;
 		}
 		/* click on item */
-		if (((ev->b&BM_ACT)==B_DOWN || (ev->b&BM_ACT)==B_DRAG)&&(ev->b&BM_BUTT)==B_LEFT)
-		{
+		if (((ev->b & BM_ACT) == B_DOWN || (ev->b & BM_ACT) == B_DRAG) && (ev->b & BM_BUTT) == B_LEFT) {
 			int n,a;
 			struct list *l=ld->win_offset;
 
@@ -1582,8 +1564,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			ld->current_pos=l;
 
 			/* clicked on directory graphical stuff */
-			if ((ev->b&BM_ACT)==B_DOWN&&(ld->type)&&(ev->x)<(dlg->x+DIALOG_LB+a*BFU_ELEMENT_WIDTH)&&((l->type)&1))
-			{
+			if ((ev->b & BM_ACT) == B_DOWN && ld->type && ev->x < (dlg->x + DIALOG_LB + a * BFU_ELEMENT_WIDTH) && (l->type & 1)) {
 				l->type^=2;
 				if (!(l->type&2))unselect_in_folder(ld, ld->current_pos);
 			}
@@ -1596,8 +1577,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 		/* scroll with the bar */
 		skip_item_click:
 #ifdef G
-		if (F&&(((ev->b&BM_ACT)==B_DRAG||(ev->b&BM_ACT)==B_DOWN||(ev->b&BM_ACT)==B_UP)&&(ev->b&BM_BUTT)==B_LEFT))
-		{
+		if (F && (((ev->b & BM_ACT) == B_DRAG || (ev->b & BM_ACT) == B_DOWN || (ev->b & BM_ACT) == B_UP) && (ev->b & BM_BUTT) == B_LEFT)) {
 			int total=get_total_items(ld);
 			int scroll_pos;
 			int redraw_all;
@@ -1658,8 +1638,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 
 		}
 #endif
-		if ((ev->b&BM_ACT)==B_DRAG&&(ev->b&BM_BUTT)==B_MIDDLE)
-		{
+		if ((ev->b & BM_ACT) == B_DRAG && (ev->b & BM_BUTT) == B_MIDDLE) {
 			long delta=(ev->y-last_mouse_y)/MOUSE_SCROLL_DIVIDER;
 
 			last_mouse_y=ev->y;
@@ -1695,8 +1674,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 
 		}
 		/* mouse wheel */
-		if ((ev->b&BM_ACT)==B_MOVE&&((ev->b&BM_BUTT)==B_WHEELUP||(ev->b&BM_BUTT)==B_WHEELDOWN||(ev->b&BM_BUTT)==B_WHEELDOWN1||(ev->b&BM_BUTT)==B_WHEELUP1))
-		{
+		if ((ev->b & BM_ACT) == B_MOVE && ((ev->b & BM_BUTT) == B_WHEELUP || (ev->b & BM_BUTT) == B_WHEELDOWN || (ev->b & BM_BUTT) == B_WHEELDOWN1 || (ev->b & BM_BUTT) == B_WHEELUP1)) {
 			int button=(int)ev->b&BM_BUTT;
 			last_mouse_y=ev->y;
 

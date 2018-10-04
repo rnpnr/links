@@ -205,7 +205,7 @@ int get_keepalive_socket(struct connection *c, int *protocol_data)
 	return 0;
 }
 
-void abort_all_keepalive_connections(void)
+static void abort_all_keepalive_connections(void)
 {
 	while (!list_empty(keepalive_connections))
 		del_keepalive_socket(list_struct(keepalive_connections.next,

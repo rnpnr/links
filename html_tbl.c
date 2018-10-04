@@ -1765,7 +1765,7 @@ static void table_draw(struct f_data_c *fd, struct g_object *o_, int x, int y)
 			draw_rect_set(dev, c->root->bg, c->brd, x, y);
 			restrict_clip_area(dev, &clip, x + c->root->go.x, y + c->root->go.y, x + c->root->go.x + c->root->go.xw /*c->g_width*/, y + c->root->go.y + c->root->go.yw);
 			c->root->go.draw(fd, &c->root->go, x + c->root->go.x, y + c->root->go.y);
-			drv->set_clip_area(dev, &clip);
+			set_clip_area(dev, &clip);
 		}
 	}
 	draw_rect_sets(dev, t->bg, t->r_bg, t->nr_bg, x, y);
@@ -1847,13 +1847,13 @@ static void process_g_table(struct g_part *gp, struct table *t)
 	else ta = &format_;
 
 	if (t->bordercolor && !decode_color(t->bordercolor, &dummy)) {
-		if (!(t->frame_bg = get_background(NULL, t->bordercolor))) {
+		if (!(t->frame_bg = g_get_background(NULL, t->bordercolor))) {
 			free_table(t);
 			return;
 		}
 	} else {
 		table_bg(ta, bgstr);
-		if (!(t->frame_bg = get_background(NULL, bgstr))) {
+		if (!(t->frame_bg = g_get_background(NULL, bgstr))) {
 			free_table(t);
 			return;
 		}

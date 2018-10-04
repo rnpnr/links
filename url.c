@@ -424,7 +424,7 @@ static unsigned char *translate_hashbang(unsigned char *up)
 static unsigned char *rewrite_url_google_docs(unsigned char *n)
 {
 	int i;
-	unsigned char *id, *id_end;
+	unsigned char *id, *id_end, *url_end;
 	unsigned char *res;
 	int l;
 	struct {
@@ -433,9 +433,13 @@ static unsigned char *rewrite_url_google_docs(unsigned char *n)
 		const char *result2;
 	} const patterns[] = {
 		{ "https://docs.google.com/document/d/", "https://docs.google.com/document/d/", "/export?format=pdf" },
+		{ "https://docs.google.com/document/u/", "https://docs.google.com/document/u/", "/export?format=pdf" },
 		{ "https://docs.google.com/spreadsheets/d/", "https://docs.google.com/spreadsheets/d/", "/export?format=pdf" },
+		{ "https://docs.google.com/spreadsheets/u/", "https://docs.google.com/spreadsheets/u/", "/export?format=pdf" },
 		{ "https://docs.google.com/presentation/d/", "https://docs.google.com/presentation/d/", "/export/pdf" },
-		{ "https://drive.google.com/file/d/", "https://drive.google.com/uc?export=download&id=", "" }
+		{ "https://docs.google.com/presentation/u/", "https://docs.google.com/presentation/u/", "/export/pdf" },
+		{ "https://drive.google.com/file/d/", "https://drive.google.com/uc?export=download&id=", "" },
+		{ "https://drive.google.com/file/u/", "https://drive.google.com/uc?export=download&id=", "" }
 	};
 	for (i = 0; i < (int)array_elements(patterns); i++)
 		if (!cmpbeg(n, cast_uchar patterns[i].beginning))
@@ -443,11 +447,17 @@ static unsigned char *rewrite_url_google_docs(unsigned char *n)
 	return n;
 match:
 	id = n + strlen((char *)patterns[i].beginning);
-	id_end = cast_uchar strchr((char *)id, '/');
+	url_end = id + strcspn(cast_const_char id, "#" POST_CHAR_STRING);
+	id_end = memchr(id, '/', url_end - id);
 	if (!id_end)
 		return n;
 	if (!cmpbeg(id_end, cast_uchar "/export"))
 		return n;
+	if (!patterns[i].result2[0]) {
+		id = id_end;
+		while (id[-1] != '/')
+			id--;
+	}
 	res = init_str();
 	l = 0;
 	add_to_str(&res, &l, cast_uchar patterns[i].result1);

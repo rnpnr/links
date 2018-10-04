@@ -150,7 +150,7 @@ static void parse_config_file(unsigned char *name, unsigned char *file, struct o
 		for (op = opt; (options = *op); op++)
 			for (i = 0; options[i].p; i++) if (options[i].cfg_name && (size_t)nl == strlen(cast_const_char options[i].cfg_name) && !casecmp(tok, cast_uchar options[i].cfg_name, nl)) {
 				unsigned char *o = memacpy(p, pl);
-				if ((e = options[i].rd_cfg(&options[i], o))) {
+				if (options[i].rd_cfg && (e = options[i].rd_cfg(&options[i], o))) {
 					if (e[0]) {
 						fprintf(stderr,
 							"Error parsing config file %s, line %d: %s\n",
@@ -761,9 +761,9 @@ struct driver_param *get_driver_param(unsigned char *n)
 	sl = strlen(cast_const_char n);
 	if (sl > INT_MAX - sizeof(struct driver_param)) overalloc();
 	dp = mem_calloc(sizeof(struct driver_param) + sl);
-	dp->kbd_codepage = -1;
 	strcpy(cast_char dp->name, cast_const_char n);
-	dp->shell = mem_calloc(1);
+	dp->kbd_codepage = -1;
+	dp->palette_mode = 0;
 	dp->nosave = 1;
 	add_to_list(driver_params, dp);
 	return dp;
@@ -772,44 +772,33 @@ struct driver_param *get_driver_param(unsigned char *n)
 static unsigned char *dp_rd(struct option *o, unsigned char *c)
 {
 	int cc;
-	unsigned char *n, *param, *cp, *shell;
+	unsigned char *n, *param, *cp;
 	struct driver_param *dp;
-	if (!(n = get_token(&c))) goto err;
-	if (!(param = get_token(&c))) {
-		free(n);
+	if (!(n = get_token(&c)))
 		goto err;
-	}
-	if (!(shell = get_token(&c))){
-		free(n);
-		free(param);
+	dp = get_driver_param(n);
+	free(n);
+	if (!(param = get_token(&c)))
 		goto err;
-	}
-	if (!(cp = get_token(&c))) {
-		free(n);
-		free(param);
-		free(shell);
+	free(dp->param);
+	dp->param = param;
+	if (!(param = get_token(&c)))
 		goto err;
-	}
+	safe_strncpy(dp->shell_term, param, MAX_STR_LEN);
+	free(param);
+	if (!(cp = get_token(&c)))
+		goto err;
 	if (!casestrcmp(cp, cast_uchar "default"))
 		cc = -1;
 	else if ((cc = get_cp_index(cp)) == -1) {
-		free(n);
-		free(param);
-		free(shell);
 		free(cp);
 		goto err;
 	}
-	dp = get_driver_param(n);
-	dp->kbd_codepage = cc;
-	free(dp->param);
-	dp->param = param;
-	free(dp->shell);
-	dp->shell = shell;
-	dp->nosave = 0;
 	free(cp);
-	free(n);
+	dp->kbd_codepage = cc;
+	dp->nosave = 0;
 	return NULL;
-	err:
+ err:
 	return cast_uchar "Error reading driver mode specification";
 }
 
@@ -818,17 +807,21 @@ static void dp_wr(struct option *o, unsigned char **s, int *l)
 	struct driver_param *dp;
 	struct list_head *ldp;
 	foreachback(struct driver_param, dp, ldp, driver_params) {
-		if ((!dp->param || !*dp->param) && dp->kbd_codepage == -1 && !*dp->shell) continue;
+		if ((!dp->param || !*dp->param) && !*dp->shell_term && dp->kbd_codepage < 0 && !dp->palette_mode)
+			continue;
 		if (dp->nosave) continue;
 		add_nm(o, s, l);
 		add_quoted_to_str(s, l, dp->name);
 		add_to_str(s, l, cast_uchar " ");
 		add_quoted_to_str(s, l, dp->param ? dp->param : (unsigned char*)"");
 		add_to_str(s, l, cast_uchar " ");
-		add_quoted_to_str(s, l, dp->shell);
+		add_quoted_to_str(s, l, dp->shell_term);
 		add_to_str(s, l, cast_uchar " ");
 		if (dp->kbd_codepage == -1) add_to_str(s, l, cast_uchar "default");
 		else add_to_str(s, l, get_cp_mime_name(dp->kbd_codepage));
+		add_to_str(s, l, cast_uchar " ");
+		add_num_to_str(s, l, dp->palette_mode);
+		/* pokud se sem neco prida, opravit podminku na zacatku cyklu */
 	}
 }
 
@@ -859,7 +852,7 @@ static unsigned char *gen_cmd(struct option *o, unsigned char ***argv, int *argc
 	e = init_str();
 	l = 0;
 	add_quoted_to_str(&e, &l, **argv);
-	r = o->rd_cfg(o, e);
+	r = o->rd_cfg ? o->rd_cfg(o, e) : 0;
 	free(e);
 	if (r) return r;
 	(*argv)++; (*argc)--;
@@ -967,7 +960,6 @@ void end_config(void)
 	struct list_head *ldp;
 	foreach(struct driver_param, dp, ldp, driver_params) {
 		free(dp->param);
-		free(dp->shell);
 	}
 	free_list(struct driver_param, driver_params);
 	free(links_home);
@@ -1141,7 +1133,7 @@ static struct option links_options[] = {
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &display_blue_gamma, "display_blue_gamma", "display-blue-gamma"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &user_gamma, "user_gamma", "user-gamma"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 25, 400, &bfu_aspect, "bfu_aspect", "bfu-aspect"},
-	{1, gen_cmd, num_rd, NULL, 0, 1, NULL, "aspect_on", NULL},
+	{1, gen_cmd, NULL, NULL, 0, 1, NULL, "aspect_on", NULL},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &dither_letters, "dither_letters", "dither-letters"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &dither_images, "dither_images", "dither-images"},
 	{1, gen_cmd, num_rd, num_wr, 0, 2, &gamma_bits, "gamma_correction", "gamma-correction"},

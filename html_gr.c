@@ -37,18 +37,39 @@ static int get_real_font_size(int size)
 	return 0;
 }
 
-struct background *get_background(unsigned char *bg, unsigned char *bgcolor)
+struct background *g_get_background(unsigned char *bg, unsigned char *bgcolor)
 {
 	struct background *b;
 	struct rgb r;
 	b = xmalloc(sizeof(struct background));
-	{
-		if (bgcolor && !decode_color(bgcolor, &r))
-			b->u.sRGB=(r.r << 16) + (r.g << 8) + r.b;
-		else
-			b->u.sRGB=(d_opt->default_bg.r << 16) + (d_opt->default_bg.g << 8) + d_opt->default_bg.b;
-	}
+	b->color = 0;
+	b->gamma_stamp = gamma_stamp - 1;
+	if (bgcolor && !decode_color(bgcolor, &r))
+		b->sRGB = (r.r << 16) + (r.g << 8) + r.b;
+	else
+		b->sRGB = (d_opt->default_bg.r << 16) + (d_opt->default_bg.g << 8) + d_opt->default_bg.b;
 	return b;
+}
+
+/* FIXME */
+void g_release_background(struct background *bg)
+{
+	free(bg);
+}
+
+void g_draw_background(struct graphics_device *dev, struct background *bg, int x, int y, int xw, int yw)
+{
+	int x2, y2;
+	long color;
+	if (bg->gamma_stamp == gamma_stamp)
+		color = bg->color;
+	else {
+		bg->gamma_stamp = gamma_stamp;
+		color = bg->color = dip_get_color_sRGB(bg->sRGB);
+	}
+	if (test_int_overflow(x, xw, &x2)) x2 = INT_MAX;
+	if (test_int_overflow(y, yw, &y2)) y2 = INT_MAX;
+	drv->fill_area(dev, x, y, x2, y2, color);
 }
 
 static void g_put_chars(void *, unsigned char *, int);
@@ -275,11 +296,9 @@ static void split_line_object(struct g_part *p, struct g_object *text_go, unsign
 		goto nt2;
 	}
 	text_t = get_struct(text_go, struct g_object_text, goti.go);
-	if (par_format.align == AL_NO_BREAKABLE
-	&& text_t == p->text
-	&& strspn(cast_const_char ptr, cast_const_char " ") == strlen(cast_const_char ptr)) {
+	if (par_format.align == AL_NO_BREAKABLE && text_t == p->text
+	&& !ptr[strspn(cast_const_char ptr, cast_const_char " ")])
 		return;
-	}
 	sl = strlen(cast_const_char ptr);
 	if (sl > INT_MAX - sizeof(struct g_object_text))
 		overalloc();
@@ -634,7 +653,7 @@ static void g_hr(struct g_part *gp, struct hr_param *hr)
 	o->go.xw = hr->width;
 	o->go.yw = hr->size;
 	table_bg(&format_, bgstr);
-	o->bg = get_background(NULL, bgstr);
+	o->bg = g_get_background(NULL, bgstr);
 	o->n_entries = 0;
 	flush_pending_text_to_line(gp);
 	add_object_to_line(gp, &gp->line, &o->go);
@@ -986,7 +1005,7 @@ struct g_part *g_format_html_part(unsigned char *start, unsigned char *end, int 
 	{
 		struct g_object_area *a;
 		a = mem_calloc(sizeof(struct g_object_area));
-		a->bg = get_background(bg, bgcolor);
+		a->bg = g_get_background(bg, bgcolor);
 		if (bgcolor)
 			decode_color(bgcolor, &format_.bg);
 		if (bgcolor)

@@ -103,6 +103,8 @@ static int x_default_window_width;
 static int x_default_window_height;
 
 static long (*x_get_color_function)(int);
+static void x_translate_colors(unsigned char *data, int x, int y, int skip);
+static void x_convert_to_216(char *data, int x, int y, int skip);
 
 static void selection_request(XEvent *event);
 
@@ -110,22 +112,29 @@ static int x_fd;    /* x socket */
 static Display *x_display = NULL;   /* display */
 static unsigned char *x_display_string = NULL;
 static int x_screen;   /* screen */
-static int x_display_height,x_display_width;   /* screen dimensions */
+static int x_display_height, x_display_width;   /* screen dimensions */
 static unsigned long x_black_pixel;  /* black pixel */
 static int x_depth, x_bitmap_bpp;   /* bits per pixel and bytes per pixel */
 static int x_bitmap_scanline_pad; /* bitmap scanline_padding in bytes */
-static int x_colors;  /* colors in the palette (undefined when there's no palette) */
-static int x_have_palette;
 static int x_input_encoding;	/* locales encoding */
 static int x_bitmap_bit_order;
 
+static unsigned char x_have_palette;
+static unsigned char x_use_static_color_table;
+static unsigned char *static_color_table = NULL;
+static XColor *static_color_map = NULL;
+
+#define X_STATIC_COLORS                (x_depth < 8 ? 8 : 216)
+#define X_STATIC_CODE          (x_depth < 8 ? 801 : 833)
 
 static Window x_root_window, fake_window;
 static int fake_window_initialized = 0;
 static GC x_normal_gc = 0, x_copy_gc = 0, x_drawbitmap_gc = 0, x_scroll_gc = 0;
+static long x_normal_gc_color;
+static struct rect x_scroll_gc_rect;
 static Colormap x_colormap;
 static Atom x_delete_window_atom, x_wm_protocols_atom, x_sel_atom, x_targets_atom, x_utf8_string_atom;
-static Visual* x_default_visual;
+static Visual *x_default_visual;
 static Pixmap x_icon = 0;
 
 static XIM xim = NULL;
@@ -150,24 +159,22 @@ struct x_pixmapa
 };
 
 
-static struct
-{
+static struct {
 	unsigned char count;
 	struct graphics_device **pointer;
-}
-x_hash_table[X_HASH_TABLE_SIZE];
+} x_hash_table[X_HASH_TABLE_SIZE];
 
 /* string in clipboard is in UTF-8 */
-static unsigned char * x_my_clipboard=NULL;
+static unsigned char *x_my_clipboard = NULL;
 
 struct window_info {
 	XIC xic;
 	Window window;
 };
 
-static inline struct window_info *get_window_info(struct graphics_device *gd)
+static inline struct window_info *get_window_info(struct graphics_device *dev)
 {
-	return gd->driver_data;
+	return dev->driver_data;
 }
 
 /*----------------------------------------------------------------------*/
@@ -243,82 +250,84 @@ static int x_test_for_failure(void)
 /* suppose l<h */
 static void x_clip_number(int *n,int l,int h)
 {
-	if ((*n) < l)
-		*n=l;
-	if ((*n) > h)
-		*n=h;
+	if (*n < l)
+		*n = l;
+	if (*n > h)
+		*n = h;
 }
 
-
-static unsigned char *x_set_palette(void)
+static void x_set_palette(void)
 {
-	XColor color;
-	unsigned a;
-	unsigned limit = 1U << (x_depth <= 24 ? x_depth : 24);
+	unsigned int a;
+	unsigned int limit = 1U << x_depth;
 
-	x_colormap=XCreateColormap(x_display,x_root_window,x_default_visual,AllocAll);
-	XInstallColormap(x_display,x_colormap);
-
-	for (a = 0; a < limit; a++) {
-		unsigned rgb[3];
-		q_palette(limit, a, 65535, rgb);
-		color.red = rgb[0];
-		color.green = rgb[1];
-		color.blue = rgb[2];
-		color.pixel = a;
-		color.flags = DoRed | DoGreen | DoBlue;
-		XStoreColor(x_display, x_colormap, &color);
+	if (x_use_static_color_table)
+		XStoreColors(x_display, x_colormap, static_color_map, (int)limit);
+	else {
+		XColor colors[256];
+		for (a = 0; a < limit; a++) {
+			unsigned rgb[3];
+			q_palette(limit, a, 65535, rgb);
+			colors[a].red = rgb[0];
+			colors[a].green = rgb[1];
+			colors[a].blue = rgb[2];
+			colors[a].pixel = a;
+			colors[a].flags = DoRed | DoGreen | DoBlue;
+		}
+		XStoreColors(x_display, x_colormap, colors, (int)limit);
 	}
 
 	X_FLUSH();
-	return NULL;
 }
 
-static unsigned char *static_color_table = NULL;
+static unsigned char get_nearest_color(unsigned rgb[3])
+{
+	int j;
+	double best_distance = 0;
+	int best = -1;
+	for (j = 0; j < 1 << x_depth; j++) {
+		double distance;
+		if ((static_color_map[j].flags & (DoRed | DoGreen | DoBlue)) != (DoRed | DoGreen | DoBlue))
+			continue;
+		distance = rgb_distance(rgb[0], rgb[1], rgb[2], static_color_map[j].red, static_color_map[j].green, static_color_map[j].blue);
+		if (best < 0 || distance < best_distance) {
+			best = j;
+			best_distance = distance;
+		}
+	}
+	return (unsigned char)best;
+}
 
 static unsigned char *x_query_palette(void)
 {
-	int i, j;
-	XColor color[256];
-	unsigned char valid[256];
+	int i;
 	int some_valid = 0;
 	if (x_depth > 8)
 		return stracpy(cast_uchar "Static color supported for up to 8-bit depth\n");
-	memset(color, 0, sizeof color);
-	memset(valid, 0, sizeof valid);
+	if ((int)sizeof(XColor) > INT_MAX >> x_depth) overalloc();
+	static_color_map = mem_calloc(sizeof(XColor) << x_depth);
 	for (i = 0; i < 1 << x_depth; i++) {
-		color[i].pixel = i;
+		static_color_map[i].pixel = i;
 		x_prepare_for_failure();
-		XQueryColor(x_display,XDefaultColormap(x_display,x_screen), &color[i]);
-		if (!x_test_for_failure()) {
-			valid[i] = 1;
+		XQueryColor(x_display, XDefaultColormap(x_display, x_screen), &static_color_map[i]);
+		if (!x_test_for_failure() && (static_color_map[i].flags & (DoRed | DoGreen | DoBlue)) == (DoRed | DoGreen | DoBlue))
 			some_valid = 1;
-		}
+		else
+			memset(&static_color_map[i], 0, sizeof(XColor));
 	}
 	if (!some_valid)
 		return stracpy(cast_uchar "Could not query static colormap\n");
 	static_color_table = mem_calloc(256);
-	for (i = 0; i < 1 << x_depth; i++) {
-		double best_distance = 0;
-		int best = -1;
-		unsigned rgb[3];
-		q_palette(1U << x_depth, i, 65535, rgb);
-		for (j = 0; j < 1 << x_depth; j++) {
-			double distance;
-			if (!valid[j]) continue;
-			distance = rgb_distance(rgb[0], rgb[1], rgb[2], color[j].red, color[j].green, color[j].blue);
-			if (best == -1 || distance < best_distance) {
-				best = j;
-				best_distance = distance;
-			}
-		}
-		static_color_table[i] = (unsigned char)best;
+	for (i = 0; i < X_STATIC_COLORS; i++) {
+		unsigned int rgb[3];
+		q_palette(X_STATIC_COLORS, i, 65535, rgb);
+		static_color_table[i] = get_nearest_color(rgb);
 	}
 	return NULL;
 }
 
 
-static inline int trans_key(unsigned char * str, int table)
+static inline int trans_key(unsigned char *str, int table)
 {
 	if (!table) {
 		int a;
@@ -333,7 +342,7 @@ static inline int trans_key(unsigned char * str, int table)
 
 /* translates X keys to links representation */
 /* return value: 1=valid key, 0=nothing */
-static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int *flag)
+static int x_translate_key(struct graphics_device *dev, XKeyEvent *e,int *key,int *flag)
 {
 	KeySym ks = 0;
 	static XComposeStatus comp = { NULL, 0 };
@@ -342,9 +351,9 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 	int table = x_input_encoding < 0 ? g_kbd_codepage(&x_driver) : x_input_encoding;
 	int len;
 
-	if (get_window_info(gd)->xic) {
+	if (get_window_info(dev)->xic) {
 		Status status;
-		len = Xutf8LookupString(get_window_info(gd)->xic, e, cast_char str, str_size, &ks, &status);
+		len = Xutf8LookupString(get_window_info(dev)->xic, e, cast_char str, str_size, &ks, &status);
 		table = 0;
 		/*fprintf(stderr, "len: %d, ks %ld, status %d\n", len, ks, status);*/
 	} else
@@ -370,55 +379,55 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 	if (((*flag)&KBD_CTRL)&&(ks==XK_c||ks==XK_C)){*key=KBD_CTRL_C;*flag=0;return 1;}
 
 	if (ks == NoSymbol) { return 0;
-	} else if (ks == XK_Return) { *key=KBD_ENTER;
-	} else if (ks == XK_BackSpace) { *key=KBD_BS;
+	} else if (ks == XK_Return) { *key = KBD_ENTER;
+	} else if (ks == XK_BackSpace) { *key = KBD_BS;
 	} else if (ks == XK_Tab
 #ifdef XK_KP_Tab
 		|| ks == XK_KP_Tab
 #endif
-		) { *key=KBD_TAB;
+		) { *key = KBD_TAB;
 	} else if (ks == XK_Escape) {
-		*key=KBD_ESC;
+		*key = KBD_ESC;
 	} else if (ks == XK_Left
 #ifdef XK_KP_Left
 		|| ks == XK_KP_Left
 #endif
-		) { *key=KBD_LEFT;
+		) { *key = KBD_LEFT;
 	} else if (ks == XK_Right
 #ifdef XK_KP_Right
 		|| ks == XK_KP_Right
 #endif
-		) { *key=KBD_RIGHT;
+		) { *key = KBD_RIGHT;
 	} else if (ks == XK_Up
 #ifdef XK_KP_Up
 		|| ks == XK_KP_Up
 #endif
-		) { *key=KBD_UP;
+		) { *key = KBD_UP;
 	} else if (ks == XK_Down
 #ifdef XK_KP_Down
 		|| ks == XK_KP_Down
 #endif
-		) { *key=KBD_DOWN;
+		) { *key = KBD_DOWN;
 	} else if (ks == XK_Insert
 #ifdef XK_KP_Insert
 		|| ks == XK_KP_Insert
 #endif
-		) { *key=KBD_INS;
+		) { *key = KBD_INS;
 	} else if (ks == XK_Delete
 #ifdef XK_KP_Delete
 		|| ks == XK_KP_Delete
 #endif
-		) { *key=KBD_DEL;
+		) { *key = KBD_DEL;
 	} else if (ks == XK_Home
 #ifdef XK_KP_Home
 		|| ks == XK_KP_Home
 #endif
-		) { *key=KBD_HOME;
+		) { *key = KBD_HOME;
 	} else if (ks == XK_End
 #ifdef XK_KP_End
 		|| ks == XK_KP_End
 #endif
-		) { *key=KBD_END;
+		) { *key = KBD_END;
 	} else if (0
 #ifdef XK_KP_Page_Up
 		|| ks == XK_KP_Page_Up
@@ -426,7 +435,7 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 #ifdef XK_Page_Up
 		|| ks == XK_Page_Up
 #endif
-		) { *key=KBD_PAGE_UP;
+		) { *key = KBD_PAGE_UP;
 	} else if (0
 #ifdef XK_KP_Page_Down
 		|| ks == XK_KP_Page_Down
@@ -434,67 +443,102 @@ static int x_translate_key(struct graphics_device *gd, XKeyEvent *e,int *key,int
 #ifdef XK_Page_Down
 		|| ks == XK_Page_Down
 #endif
-		) { *key=KBD_PAGE_DOWN;
+		) { *key = KBD_PAGE_DOWN;
 	} else if (ks == XK_F1
 #ifdef XK_KP_F1
 		|| ks == XK_KP_F1
 #endif
-		) { *key=KBD_F1;
+		) { *key = KBD_F1;
 	} else if (ks == XK_F2
 #ifdef XK_KP_F2
 		|| ks == XK_KP_F2
 #endif
-		) { *key=KBD_F2;
+		) { *key = KBD_F2;
 	} else if (ks == XK_F3
 #ifdef XK_KP_F3
 		|| ks == XK_KP_F3
 #endif
-		) { *key=KBD_F3;
+		) { *key = KBD_F3;
 	} else if (ks == XK_F4
 #ifdef XK_KP_F4
 		|| ks == XK_KP_F4
 #endif
-		) { *key=KBD_F4;
-	} else if (ks == XK_F5) { *key=KBD_F5;
-	} else if (ks == XK_F6) { *key=KBD_F6;
-	} else if (ks == XK_F7) { *key=KBD_F7;
-	} else if (ks == XK_F8) { *key=KBD_F8;
-	} else if (ks == XK_F9) { *key=KBD_F9;
-	} else if (ks == XK_F10) { *key=KBD_F10;
-	} else if (ks == XK_F11) { *key=KBD_F11;
-	} else if (ks == XK_F12) { *key=KBD_F12;
-	} else if (ks == XK_KP_Subtract) { *key='-';
-	} else if (ks == XK_KP_Decimal) { *key='.';
-	} else if (ks == XK_KP_Divide) { *key='/';
-	} else if (ks == XK_KP_Space) { *key=' ';
-	} else if (ks == XK_KP_Enter) { *key=KBD_ENTER;
-	} else if (ks == XK_KP_Equal) { *key='=';
-	} else if (ks == XK_KP_Multiply) { *key='*';
-	} else if (ks == XK_KP_Add) { *key='+';
-	} else if (ks == XK_KP_0) { *key='0';
-	} else if (ks == XK_KP_1) { *key='1';
-	} else if (ks == XK_KP_2) { *key='2';
-	} else if (ks == XK_KP_3) { *key='3';
-	} else if (ks == XK_KP_4) { *key='4';
-	} else if (ks == XK_KP_5) { *key='5';
-	} else if (ks == XK_KP_6) { *key='6';
-	} else if (ks == XK_KP_7) { *key='7';
-	} else if (ks == XK_KP_8) { *key='8';
-	} else if (ks == XK_KP_9) { *key='9';
-	} else if (ks & 0x8000) { return 0;
-	} else { *key=((*flag)&KBD_CTRL)?(int)ks&255:trans_key(str,table);
+		) { *key = KBD_F4;
+	} else if (ks == XK_F5) { *key = KBD_F5;
+	} else if (ks == XK_F6) { *key = KBD_F6;
+	} else if (ks == XK_F7) { *key = KBD_F7;
+	} else if (ks == XK_F8) { *key = KBD_F8;
+	} else if (ks == XK_F9) { *key = KBD_F9;
+	} else if (ks == XK_F10) { *key = KBD_F10;
+	} else if (ks == XK_F11) { *key = KBD_F11;
+	} else if (ks == XK_F12) { *key = KBD_F12;
+	} else if (ks == XK_KP_Subtract) { *key = '-';
+	} else if (ks == XK_KP_Decimal) { *key = '.';
+	} else if (ks == XK_KP_Divide) { *key = '/';
+	} else if (ks == XK_KP_Space) { *key = ' ';
+	} else if (ks == XK_KP_Enter) { *key = KBD_ENTER;
+	} else if (ks == XK_KP_Equal) { *key = '=';
+	} else if (ks == XK_KP_Multiply) { *key = '*';
+	} else if (ks == XK_KP_Add) { *key = '+';
+	} else if (ks == XK_KP_0) { *key = '0';
+	} else if (ks == XK_KP_1) { *key = '1';
+	} else if (ks == XK_KP_2) { *key = '2';
+	} else if (ks == XK_KP_3) { *key = '3';
+	} else if (ks == XK_KP_4) { *key = '4';
+	} else if (ks == XK_KP_5) { *key = '5';
+	} else if (ks == XK_KP_6) { *key = '6';
+	} else if (ks == XK_KP_7) { *key = '7';
+	} else if (ks == XK_KP_8) { *key = '8';
+	} else if (ks == XK_KP_9) { *key = '9';
+#ifdef XK_Undo
+	} else if (ks == XK_Undo) { *key = KBD_UNDO;
+#endif
+#ifdef XK_Redo
+	} else if (ks == XK_Redo) { *key = KBD_REDO;
+#endif
+#ifdef XK_Menu
+	} else if (ks == XK_Menu) { *key = KBD_MENU;
+#endif
+#ifdef XK_Find
+	} else if (ks == XK_Find) { *key = KBD_FIND;
+#endif
+#ifdef XK_Cancel
+	} else if (ks == XK_Cancel) { *key = KBD_STOP;
+#endif
+#ifdef XK_Help
+	} else if (ks == XK_Help) { *key = KBD_HELP;
+#endif
+	} else if (ks & 0x8000) {
+		unsigned char *str = (unsigned char *)XKeysymToString(ks);
+		if (str) {
+			if (!casestrcmp(str, cast_uchar "XF86Copy")) { *key = KBD_COPY; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Paste")) { *key = KBD_PASTE; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Cut")) { *key = KBD_CUT; return 1; }
+			if (!casestrcmp(str, cast_uchar "SunProps")) { *key = KBD_PROPS; return 1; }
+			if (!casestrcmp(str, cast_uchar "SunFront")) { *key = KBD_FRONT; return 1; }
+			if (!casestrcmp(str, cast_uchar "SunOpen")) { *key = KBD_OPEN; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Search")) { *key = KBD_FIND; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Favorites")) { *key = KBD_BOOKMARKS; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Reload")) { *key = KBD_RELOAD; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Stop")) { *key = KBD_STOP; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Forward")) { *key = KBD_FORWARD; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Back")) { *key = KBD_BACK; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86Open")) { *key = KBD_OPEN; return 1; }
+			if (!casestrcmp(str, cast_uchar "XF86OpenURL")) { *key = KBD_OPEN; return 1; }
+		}
+		return 0;
+	} else { *key = ((*flag)&KBD_CTRL)?(int)ks&255:trans_key(str,table);
 	}
 	return 1;
 }
 
-static void x_hash_table_init(void)
+static void x_init_hash_table(void)
 {
 	int a;
 
-	for (a=0;a<X_HASH_TABLE_SIZE;a++)
-	{
-		x_hash_table[a].count=0;
-		x_hash_table[a].pointer=NULL;
+	for (a = 0; a < X_HASH_TABLE_SIZE; a++) {
+		x_hash_table[a].count = 0;
+		x_hash_table[a].pointer = NULL;
 	}
 }
 
@@ -502,21 +546,26 @@ static void x_clear_clipboard(void);
 
 static void x_free_hash_table(void)
 {
-	int a,b;
+	int a;
 
+	process_events_in_progress = 0;
+	flush_in_progress = 0;
 	unregister_bottom_half(x_process_events, NULL);
 	unregister_bottom_half(x_do_flush, NULL);
 
 	for (a = 0; a < X_HASH_TABLE_SIZE; a++) {
-		for (b = 0; b < x_hash_table[a].count; b++)
-			free(x_hash_table[a].pointer[b]);
+		if (x_hash_table[a].count)
+			internal("x_free_hash_table: the table is not empty");
 		free(x_hash_table[a].pointer);
 	}
 
 	x_clear_clipboard();
 
 	free(static_color_table);
+	free(static_color_map);
 	static_color_table = NULL;
+	static_color_map = NULL;
+
 
 	if (x_display) {
 		if (x_icon) {
@@ -557,75 +606,49 @@ static void x_free_hash_table(void)
 	x_display_string = NULL;
 }
 
-
-
 /* returns graphics device structure which belonging to the window */
-static struct graphics_device *x_find_gd(Window *win)
+static struct graphics_device *x_find_gd(Window win)
 {
-	int a,b;
+	int a, b;
 
-	a=(int)(*win)&(X_HASH_TABLE_SIZE-1);
-	if (!x_hash_table[a].count)return 0;
-	for (b=0;b<x_hash_table[a].count;b++)
-	{
-		if (get_window_info(x_hash_table[a].pointer[b])->window == *win)
+	a=(int)win & (X_HASH_TABLE_SIZE - 1);
+	for (b = 0; b < x_hash_table[a].count; b++) {
+		if (get_window_info(x_hash_table[a].pointer[b])->window == win)
 			return x_hash_table[a].pointer[b];
 	}
 	return NULL;
 }
 
-static void x_update_driver_param(int w, int h)
-{
-	int l=0;
-
-	if (n_wins!=1)return;
-
-	x_default_window_width=w;
-	x_default_window_height=h;
-
-	free(x_driver_param);
-	x_driver_param = init_str();
-	add_num_to_str(&x_driver_param,&l,x_default_window_width);
-	add_to_str(&x_driver_param,&l,cast_uchar "x");
-	add_num_to_str(&x_driver_param,&l,x_default_window_height);
-}
-
-
-
 /* adds graphics device to hash table */
-static void x_add_to_table(struct graphics_device* gd)
+static void x_add_to_table(struct graphics_device *dev)
 {
-	int a=(int)get_window_info(gd)->window & (X_HASH_TABLE_SIZE-1);
-	int c=x_hash_table[a].count;
+	int a = (int)get_window_info(dev)->window & (X_HASH_TABLE_SIZE - 1);
+	int c = x_hash_table[a].count;
 
-	if (!c)
-		x_hash_table[a].pointer = xmalloc(sizeof(struct graphics_device *));
-	else {
-		if ((unsigned)c > INT_MAX / sizeof(struct graphics_device *) - 1)
-			overalloc();
-		x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer,
-						(c + 1) * sizeof(struct graphics_device *));
-	}
+	if ((unsigned)c > INT_MAX / sizeof(struct graphics_device *) - 1)
+		overalloc();
+	x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer,
+				(c + 1) * sizeof(struct graphics_device *));
 
-	x_hash_table[a].pointer[c] = gd;
+	x_hash_table[a].pointer[c] = dev;
 	x_hash_table[a].count++;
 }
 
-
 /* removes graphics device from table */
-static void x_remove_from_table(Window *win)
+static void x_remove_from_table(Window win)
 {
-	int a=(int)(*win)&(X_HASH_TABLE_SIZE-1);
+	int a = (int)win & (X_HASH_TABLE_SIZE - 1);
 	int b;
 
-	for (b=0;b<x_hash_table[a].count;b++)
-		if (get_window_info(x_hash_table[a].pointer[b])->window == *win)
-		{
-			memmove(x_hash_table[a].pointer+b,x_hash_table[a].pointer+b+1,(x_hash_table[a].count-b-1)*sizeof(struct graphics_device *));
+	for (b = 0; b < x_hash_table[a].count; b++) {
+		if (get_window_info(x_hash_table[a].pointer[b])->window == win) {
+			memmove(x_hash_table[a].pointer + b, x_hash_table[a].pointer + b + 1, (x_hash_table[a].count - b - 1) * sizeof(struct graphics_device *));
 			x_hash_table[a].count--;
-			x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer,
-							x_hash_table[a].count * sizeof(struct graphics_device *));
+			x_hash_table[a].pointer = xrealloc(x_hash_table[a].pointer, x_hash_table[a].count * sizeof(struct graphics_device *));
+			return;
 		}
+	}
+	internal("x_remove_from_table: window not found");
 }
 
 
@@ -636,11 +659,46 @@ static void x_clear_clipboard(void)
 }
 
 
+static void x_update_driver_param(int w, int h)
+{
+	int l=0;
+
+	if (n_wins != 1) return;
+
+	x_default_window_width = w;
+	x_default_window_height = h;
+
+	free(x_driver_param);
+	x_driver_param = init_str();
+	add_num_to_str(&x_driver_param, &l, x_default_window_width);
+	add_to_str(&x_driver_param, &l ,cast_uchar "x");
+	add_num_to_str(&x_driver_param, &l, x_default_window_height);
+}
+
+
+static int x_decode_button(int b)
+{
+	switch (b) {
+		case 1: return B_LEFT;
+		case 3: return B_RIGHT;
+		case 2: return B_MIDDLE;
+		case 4: return B_WHEELUP;
+		case 5: return B_WHEELDOWN;
+		case 6: return B_WHEELLEFT;
+		case 7: return B_WHEELRIGHT;
+		case 8: return B_FOURTH;
+		case 9: return B_FIFTH;
+		case 10: return B_SIXTH;
+
+	}
+	return -1;
+}
+
 static void x_process_events(void *data)
 {
 	XEvent event;
 	XEvent last_event;
-	struct graphics_device *gd;
+	struct graphics_device *dev;
 	int last_was_mouse;
 	int replay_event = 0;
 
@@ -668,8 +726,8 @@ static void x_process_events(void *data)
 				MESSAGE(txt);
 			}
 #endif
-			gd=x_find_gd(&(last_event.xmotion.window));
-			if (!gd)break;
+			dev = x_find_gd(last_event.xmotion.window);
+			if (!dev) break;
 			a=B_LEFT;
 			b=B_MOVE;
 			if ((last_event.xmotion.state)&Button1Mask)
@@ -696,9 +754,9 @@ static void x_process_events(void *data)
 				MESSAGE("right button/drag\n");
 #endif
 			}
-			x_clip_number(&(last_event.xmotion.x),gd->size.x1,gd->size.x2);
-			x_clip_number(&(last_event.xmotion.y),gd->size.y1,gd->size.y2);
-			gd->mouse_handler(gd,last_event.xmotion.x,last_event.xmotion.y,a|b);
+			x_clip_number(&last_event.xmotion.x, dev->size.x1, dev->size.x2 - 1);
+			x_clip_number(&last_event.xmotion.y, dev->size.y1, dev->size.y2 - 1);
+			dev->mouse_handler(dev, last_event.xmotion.x, last_event.xmotion.y, a | b);
 		}
 
 		switch (event.type) {
@@ -707,14 +765,14 @@ static void x_process_events(void *data)
 		{
 			struct rect r;
 
-			gd = x_find_gd(&event.xgraphicsexpose.drawable);
-			if (!gd)
+			dev = x_find_gd(event.xgraphicsexpose.drawable);
+			if (!dev)
 				break;
 			r.x1 = event.xgraphicsexpose.x;
 			r.y1 = event.xgraphicsexpose.y;
 			r.x2 = event.xgraphicsexpose.x + event.xgraphicsexpose.width;
 			r.y2 = event.xgraphicsexpose.y + event.xgraphicsexpose.height;
-			gd->redraw_handler(gd, &r);
+			dev->redraw_handler(dev, &r);
 		}
 			break;
 
@@ -723,41 +781,41 @@ static void x_process_events(void *data)
 		{
 			struct rect r;
 
-			gd = x_find_gd(&event.xexpose.window);
-			if (!gd)
+			dev = x_find_gd(event.xexpose.window);
+			if (!dev)
 				break;
 			r.x1 = event.xexpose.x;
 			r.y1 = event.xexpose.y;
 			r.x2 = event.xexpose.x + event.xexpose.width;
 			r.y2 = event.xexpose.y + event.xexpose.height;
-			gd->redraw_handler(gd, &r);
+			dev->redraw_handler(dev, &r);
 		}
 			break;
 
 		/* resize window */
 		case ConfigureNotify:
-			gd = x_find_gd(&event.xconfigure.window);
-			if (!gd)
+			dev = x_find_gd(event.xconfigure.window);
+			if (!dev)
 				break;
 			/* when window only moved and size is the same, do nothing */
-			if (gd->size.x2 == event.xconfigure.width
-			&& gd->size.y2 == event.xconfigure.height)
+			if (dev->size.x2 == event.xconfigure.width
+			&& dev->size.y2 == event.xconfigure.height)
 				break;
-configure_notify_again:
-			gd->size.x2 = event.xconfigure.width;
-			gd->size.y2 = event.xconfigure.height;
+ configure_notify_again:
+			dev->size.x2 = event.xconfigure.width;
+			dev->size.y2 = event.xconfigure.height;
 			x_update_driver_param(event.xconfigure.width, event.xconfigure.height);
 			while (XCheckWindowEvent(x_display,
-					get_window_info(gd)->window,
+					get_window_info(dev)->window,
 					ExposureMask, &event) == True);
 			if (XCheckWindowEvent(x_display,
-					get_window_info(gd)->window,
+					get_window_info(dev)->window,
 					StructureNotifyMask, &event) == True) {
 				if (event.type == ConfigureNotify)
 					goto configure_notify_again;
 				replay_event = 1;
 			}
-			gd->resize_handler(gd);
+			dev->resize_handler(dev);
 			break;
 
 		case KeyPress:
@@ -765,11 +823,11 @@ configure_notify_again:
 			int f, k;
 			if (XFilterEvent(&event, None))
 				break;
-			gd = x_find_gd(&event.xkey.window);
-			if (!gd)
+			dev = x_find_gd(event.xkey.window);
+			if (!dev)
 				break;
-			if (x_translate_key(gd, (XKeyEvent*)(&event), &k, &f))
-				gd->keyboard_handler(gd, k, f);
+			if (x_translate_key(dev, (XKeyEvent*)(&event), &k, &f))
+				dev->keyboard_handler(dev, k, f);
 		}
 			break;
 
@@ -781,90 +839,40 @@ configure_notify_again:
 			/*else fallthrough*/
 
 		case DestroyNotify:
-			gd = x_find_gd(&event.xkey.window);
-			if (!gd)
+			dev = x_find_gd(event.xkey.window);
+			if (!dev)
 				break;
 
-			gd->keyboard_handler(gd, KBD_CLOSE, 0);
+			dev->keyboard_handler(dev, KBD_CLOSE, 0);
 			break;
 
 		case ButtonRelease:
 		{
 			int a;
-			gd = x_find_gd(&event.xbutton.window);
-			if (!gd)
+			dev = x_find_gd(event.xbutton.window);
+			if (!dev)
 				break;
 			last_was_mouse = 0;
-			switch (event.xbutton.button) {
-			case 1:
-				a = B_LEFT;
-				break;
-			case 2:
-				a = B_MIDDLE;
-				break;
-			case 3:
-				a = B_RIGHT;
-				break;
-			case 8:
-				a = B_FOURTH;
-				break;
-			case 9:
-				a = B_FIFTH;
-				break;
-			default:
-				goto r_xx;
+			if ((a = x_decode_button(event.xbutton.button)) >= 0 && !BM_IS_WHEEL(a)) {
+				x_clip_number(&event.xmotion.x, dev->size.x1, dev->size.x2 - 1);
+				x_clip_number(&event.xmotion.y, dev->size.y1, dev->size.y2 - 1);
+				dev->mouse_handler(dev, event.xbutton.x, event.xbutton.y, a | B_UP);
 			}
-			x_clip_number(&event.xmotion.x, gd->size.x1, gd->size.x2);
-			x_clip_number(&event.xmotion.y, gd->size.y1, gd->size.y2);
-			gd->mouse_handler(gd, event.xbutton.x, event.xbutton.y,
-					a|B_UP);
-r_xx:;
 		}
 			break;
 
 		case ButtonPress:
 		{
 			int a;
-			gd = x_find_gd(&event.xbutton.window);
-			if (!gd)
+			dev = x_find_gd(event.xbutton.window);
+			if (!dev)
 				break;
 			last_was_mouse = 0;
-			switch (event.xbutton.button) {
-			case 1:
-				a = B_LEFT;
-				break;
-			case 2:
-				a = B_MIDDLE;
-				break;
-			case 3:
-				a = B_RIGHT;
-				break;
-			case 4:
-				a = B_WHEELUP;
-				break;
-			case 5:
-				a = B_WHEELDOWN;
-				break;
-			case 6:
-				a = B_WHEELLEFT;
-				break;
-			case 7:
-				a = B_WHEELRIGHT;
-				break;
-			case 8:
-				a = B_FOURTH;
-				break;
-			case 9:
-				a = B_FIFTH;
-				break;
-			default:
-				goto p_xx;
+			if ((a = x_decode_button(event.xbutton.button)) >= 0) {
+				x_clip_number(&(event.xmotion.x), dev->size.x1, dev->size.x2 - 1);
+				x_clip_number(&(event.xmotion.y), dev->size.y1, dev->size.y2 - 1);
+				dev->mouse_handler(dev, event.xbutton.x, event.xbutton.y, a | (!BM_IS_WHEEL(a) ? B_DOWN : B_MOVE));
 			}
-			x_clip_number(&event.xmotion.x, gd->size.x1, gd->size.x2);
-			x_clip_number(&event.xmotion.y, gd->size.y1, gd->size.y2);
-			gd->mouse_handler(gd, event.xbutton.x, event.xbutton.y,
-				a | (!BM_IS_WHEEL(a) ? B_DOWN : B_MOVE));
-p_xx:;
 		}
 				break;
 
@@ -900,8 +908,8 @@ p_xx:;
 		int a, b;
 
 		last_was_mouse = 0;
-		gd = x_find_gd(&last_event.xmotion.window);
-		if (!gd)
+		dev = x_find_gd(last_event.xmotion.window);
+		if (!dev)
 			goto ret;
 		a = B_LEFT;
 		b = B_MOVE;
@@ -917,17 +925,17 @@ p_xx:;
 			a = B_RIGHT;
 			b = B_DRAG;
 		}
-		x_clip_number(&last_event.xmotion.x, gd->size.x1, gd->size.x2);
-		x_clip_number(&last_event.xmotion.y, gd->size.y1, gd->size.y2);
-		gd->mouse_handler(gd, last_event.xmotion.x, last_event.xmotion.y,
-				a | b);
+		x_clip_number(&last_event.xmotion.x, dev->size.x1, dev->size.x2 - 1);
+		x_clip_number(&last_event.xmotion.y, dev->size.y1, dev->size.y2 - 1);
+		dev->mouse_handler(dev, last_event.xmotion.x,
+			last_event.xmotion.y, a | b);
 	}
 ret:;
 }
 
 
 /* returns pointer to string with driver parameter or NULL */
-static unsigned char * x_get_driver_param(void)
+static unsigned char *x_get_driver_param(void)
 {
 	return x_driver_param;
 }
@@ -942,12 +950,15 @@ static XIC x_open_xic(Window w);
 /* initiate connection with X server */
 static unsigned char *x_init_driver(unsigned char *param, unsigned char *display)
 {
+	unsigned char *err;
+	int l;
+
 	XGCValues gcv;
 	XSetWindowAttributes win_attr;
 	XVisualInfo vinfo;
 	int misordered = -1;
 
-	x_hash_table_init();
+	x_init_hash_table();
 
 	n_wins = 0;
 
@@ -980,14 +991,14 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 	x_display = XOpenDisplay((char *)display);
 	if (!x_display) {
-		unsigned char *err = init_str();
-		int l = 0;
+		err = init_str();
+		l = 0;
 
 		add_to_str(&err, &l, cast_uchar "Can't open display \"");
 		add_to_str(&err, &l, display ? display : (unsigned char *)"(null)");
 		add_to_str(&err, &l, cast_uchar "\"\n");
 		x_free_hash_table();
-		return err;
+		goto ret_err;
 	}
 
 	x_bitmap_bit_order = BitmapBitOrder(x_display);
@@ -1013,8 +1024,8 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 		if (*x_driver_param < '0' || *x_driver_param > '9') {
 invalid_param:
-			x_free_hash_table();
-			return stracpy(cast_uchar "Invalid parameter\n");
+			err = stracpy(cast_uchar "Invalid parameter\n");
+			goto ret_err;
 		}
 		w = strtoul((char *)x_driver_param, (char **)&e, 10);
 		if (upcase(*e) != 'X')
@@ -1033,40 +1044,37 @@ invalid_param:
 
 	/* find best visual */
 	{
-#define DEPTHS 5
-#define CLASSES 3
-		int depths[DEPTHS] = { 24, 16, 15, 8, 4 };
-		int classes[CLASSES] = { TrueColor, PseudoColor, StaticColor }; /* FIXME: dodelat DirectColor */
-		int a,b;
+		static int depths[] = { 24, 16, 15, 8, 4 };
+		static int classes[] = { TrueColor, PseudoColor, StaticColor }; /* FIXME: dodelat DirectColor */
+		int a, b;
 
-		for (a = 0; a < DEPTHS; a++)
-			for (b = 0; b < CLASSES; b++) {
-				if (XMatchVisualInfo(x_display, x_screen,
-						depths[a], classes[b], &vinfo)) {
+		for (a = 0; a < array_elements(depths); a++)
+			for (b = 0; b < array_elements(classes); b++) {
+				if ((classes[b] == PseudoColor || classes[b] == StaticColor) && depths[a] > 8)
+					continue;
+				if (classes[b] == TrueColor && depths[a] <= 8)
+					continue;
+
+				if (XMatchVisualInfo(x_display, x_screen, depths[a], classes[b], &vinfo)) {
 					XPixmapFormatValues *pfm;
 					int n, i;
 
 					x_default_visual = vinfo.visual;
 					x_depth = vinfo.depth;
 
-					if (classes[b] == StaticColor
-					&& depths[a] > 8)
-						continue;
-
 					/* determine bytes per pixel */
 					pfm = XListPixmapFormats(x_display, &n);
 					for (i = 0; i < n; i++)
 						if (pfm[i].depth == x_depth) {
 							x_bitmap_bpp = pfm[i].bits_per_pixel < 8 ? 1 : ((pfm[i].bits_per_pixel) >> 3);
-							x_bitmap_scanline_pad = (pfm[i].scanline_pad) >> 3;
+							x_bitmap_scanline_pad = pfm[i].scanline_pad >> 3;
 							XFree(pfm);
 							goto bytes_per_pixel_found;
 						}
 					if (n)
 						XFree(pfm);
 					continue;
-bytes_per_pixel_found:
-
+ bytes_per_pixel_found:
 					/* test misordered flag */
 					switch(x_depth) {
 					case 4:
@@ -1124,9 +1132,27 @@ bytes_per_pixel_found:
 				}
 			}
 
-		x_free_hash_table();
-		return stracpy(cast_uchar "No supported color depth found.\n");
- visual_found:;
+		err = stracpy(cast_uchar "No supported color depth found.\n");
+		goto ret_err;
+	}
+
+ visual_found:
+
+	x_driver.flags &= ~GD_SWITCH_PALETTE;
+	x_have_palette = 0;
+	x_use_static_color_table = 0;
+	if (vinfo.class == StaticColor || vinfo.class == PseudoColor) {
+		if ((err = x_query_palette()))
+			goto ret_err;
+		x_use_static_color_table = 1;
+	}
+	if (vinfo.class == PseudoColor) {
+		if (x_driver.param->palette_mode)
+			x_use_static_color_table = 0;
+		x_have_palette = 1;
+		x_colormap = XCreateColormap(x_display, x_root_window, x_default_visual, AllocAll);
+		x_set_palette();
+		x_driver.flags |= GD_SWITCH_PALETTE;
 	}
 
 	x_driver.depth = 0;
@@ -1137,52 +1163,14 @@ bytes_per_pixel_found:
 	/* check if depth is sane */
 	if (x_driver.depth == 707)
 		x_driver.depth = 195;
-	switch (x_driver.depth) {
-	case 33:
-	case 65:
-	case 122:
-	case 130:
-	case 451:
-	case 195:
-	case 196:
-	case 378:
-	case 386:
-	case 452:
-	case 708:
-		break;
-	default: {
-			char err[MAX_STR_LEN];
-
-			snprintf(err, MAX_STR_LEN,
-				"Unsupported graphics mode: x_depth = %d, bits_per_pixel = %d, bytes_per_pixel = %d\n",
-				x_driver.depth, x_depth, x_bitmap_bpp);
-			x_free_hash_table();
-			return (unsigned char *)strdup(err);
-	}
-	}
-
+	if (x_use_static_color_table)
+		x_driver.depth = X_STATIC_CODE;
 	x_get_color_function = get_color_fn(x_driver.depth);
-	if (!x_get_color_function)
-		internal("Unknown bit depth: %d", x_driver.depth);
-
-	x_colors = 1 << x_depth;
-	x_have_palette = 0;
-
-	switch (vinfo.class) {
-		unsigned char *t;
-	case DirectColor:
-	case PseudoColor:
-		x_have_palette = 1;
-		if ((t = x_set_palette())) {
-			x_free_hash_table();
-			return t;
-		}
-	case StaticColor:
-		if ((t = x_query_palette())) {
-			x_free_hash_table();
-			return t;
-		}
-	default:;
+	if (!x_get_color_function) {
+		unsigned char nerr[MAX_STR_LEN];
+		snprintf(cast_char nerr, MAX_STR_LEN, "Unsupported graphics mode: x_depth=%d, bits_per_pixel=%d, bytes_per_pixel=%d\n",x_driver.depth, x_depth, x_bitmap_bpp);
+		err = stracpy(nerr);
+		goto ret_err;
 	}
 
 	x_black_pixel = BlackPixel(x_display, x_screen);
@@ -1202,45 +1190,43 @@ bytes_per_pixel_found:
 	if (x_have_palette)
 		win_attr.colormap = x_colormap;
 	else
-		win_attr.colormap = XCreateColormap(x_display, x_root_window,
-						x_default_visual, AllocNone);
-
-	win_attr.border_pixel = x_black_pixel;
+		win_attr.colormap = XDefaultColormap(x_display, x_screen);
 
 	fake_window = XCreateWindow(x_display, x_root_window, 0, 0, 10, 10, 0,
 				x_depth, CopyFromParent, x_default_visual,
-				CWColormap | CWBorderPixel, &win_attr);
+				CWColormap, &win_attr);
 
 	fake_window_initialized = 1;
 
 	x_normal_gc = XCreateGC(x_display, fake_window,
 			GCFillStyle | GCBackground, &gcv);
 	if (!x_normal_gc) {
-		x_free_hash_table();
-		return stracpy(cast_uchar "Cannot create graphic context.\n");
+		err = stracpy(cast_uchar "Cannot create graphic context.\n");
+		goto ret_err;
 	}
+	x_normal_gc_color = 0;
+	XSetForeground(x_display, x_normal_gc, x_normal_gc_color);
+	XSetLineAttributes(x_display, x_normal_gc, 1, LineSolid, CapRound, JoinRound);
 
 	x_copy_gc = XCreateGC(x_display, fake_window, GCFunction, &gcv);
 	if (!x_copy_gc) {
-		x_free_hash_table();
-		return stracpy(cast_uchar "Cannot create graphic context.\n");
+		err = stracpy(cast_uchar "Cannot create graphic context.\n");
+		goto ret_err;
 	}
 
 	x_drawbitmap_gc = XCreateGC(x_display, fake_window, GCFunction, &gcv);
 	if (!x_drawbitmap_gc) {
-		x_free_hash_table();
-		return stracpy(cast_uchar "Cannot create graphic context.\n");
+		err = stracpy(cast_uchar "Cannot create graphic context.\n");
+		goto ret_err;
 	}
 
 	x_scroll_gc = XCreateGC(x_display, fake_window,
 			GCGraphicsExposures | GCBackground, &gcv);
 	if (!x_scroll_gc) {
-		x_free_hash_table();
-		return stracpy(cast_uchar "Cannot create graphic context.\n");
+		err = stracpy(cast_uchar "Cannot create graphic context.\n");
+		goto ret_err;
 	}
-
-	XSetLineAttributes(x_display, x_normal_gc, 1, LineSolid, CapRound,
-			JoinRound);
+	x_scroll_gc_rect.x1 = x_scroll_gc_rect.x2 = x_scroll_gc_rect.y1 = x_scroll_gc_rect.y2 = -1;
 
 	{
 #if defined(LC_CTYPE)
@@ -1249,17 +1235,14 @@ bytes_per_pixel_found:
 		 * current locale, even if we use Xutf8LookupString.
 		 * So, try to set locale to utf8 for the input method.
 		 */
-		unsigned char *l, *m, *d;
+		unsigned char *l;
 		int len;
 		l = cast_uchar setlocale(LC_CTYPE, "");
 		len = l ? (int)strlen((char *)l) : 0;
 		if (l
 		&& !(len >= 5 && !casestrcmp(l + len - 5, cast_uchar ".utf8"))
 		&& !(len >= 6 && !casestrcmp(l + len - 6, cast_uchar ".utf-8"))) {
-			m = stracpy(l);
-			d = cast_uchar strchr(cast_const_char m, '.');
-			if (d)
-				*d = 0;
+			unsigned char *m = memacpy(l, strcspn(cast_const_char l, "."));
 			add_to_strn(&m, cast_uchar ".UTF-8");
 			l = cast_uchar setlocale(LC_CTYPE, (char *)m);
 			free(m);
@@ -1296,6 +1279,10 @@ bytes_per_pixel_found:
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
 	return NULL;
+
+ ret_err:
+	x_free_hash_table();
+	return err;
 }
 
 
@@ -1314,34 +1301,33 @@ static XIC x_open_xic(Window w)
 }
 
 /* create new window */
-static struct graphics_device* x_init_device(void)
+static struct graphics_device *x_init_device(void)
 {
-	struct graphics_device *gd;
+	struct graphics_device *dev;
 	XWMHints wm_hints;
 	XClassHint class_hints;
 	XTextProperty windowName;
-	unsigned char *links_name=cast_uchar "Links";
+	unsigned char *links_name = cast_uchar "Links";
 	XSetWindowAttributes win_attr;
 	struct window_info *wi;
 
-	gd = xmalloc(sizeof(struct graphics_device));
+	dev = xmalloc(sizeof(struct graphics_device));
 
 	wi = mem_calloc(sizeof(struct window_info));
 
-	gd->size.x1 = 0;
-	gd->size.y1 = 0;
-	gd->size.x2 = x_default_window_width;
-	gd->size.y2 = x_default_window_height;
+	dev->size.x1 = 0;
+	dev->size.y1 = 0;
+	dev->size.x2 = x_default_window_width;
+	dev->size.y2 = x_default_window_height;
 
 	if (x_have_palette)
 		win_attr.colormap = x_colormap;
 	else
-		win_attr.colormap = XCreateColormap(x_display, x_root_window,
-						x_default_visual, AllocNone);
+		win_attr.colormap = XDefaultColormap(x_display, x_screen);
 	win_attr.border_pixel = x_black_pixel;
 
-	wi->window = XCreateWindow(x_display, x_root_window, gd->size.x1,
-				gd->size.y1, gd->size.x2, gd->size.y2,
+	wi->window = XCreateWindow(x_display, x_root_window, dev->size.x1,
+				dev->size.y1, dev->size.x2, dev->size.y2,
 				X_BORDER_WIDTH, x_depth, InputOutput,
 				x_default_visual, CWColormap | CWBorderPixel,
 				&win_attr);
@@ -1349,11 +1335,12 @@ static struct graphics_device* x_init_device(void)
 		XImage *img;
 		char *data;
 		int w, h, skip;
-		get_links_icon(&data, &w, &h, &skip, x_bitmap_scanline_pad);
 
-		img = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap,
-				0, 0, w, h, x_bitmap_scanline_pad << 3,
-				w * ((x_driver.depth) & 7));
+		get_links_icon(&data, &w, &h, &skip, x_bitmap_scanline_pad);
+		x_convert_to_216(data, w, h, skip);
+
+		img = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
+			data, w, h, x_bitmap_scanline_pad << 3, skip);
 		if (!img) {
 			x_icon = 0;
 			goto nic_nebude_bobankove;
@@ -1390,17 +1377,15 @@ nic_nebude_bobankove:;
 
 	XMapWindow(x_display,wi->window);
 
-	gd->clip.x1 = gd->size.x1;
-	gd->clip.y1 = gd->size.y1;
-	gd->clip.x2 = gd->size.x2;
-	gd->clip.y2 = gd->size.y2;
-	gd->driver_data = wi;
-	gd->user_data = 0;
+	dev->clip.x1 = dev->size.x1;
+	dev->clip.y1 = dev->size.y1;
+	dev->clip.x2 = dev->size.x2;
+	dev->clip.y2 = dev->size.y2;
+	dev->driver_data = wi;
+	dev->user_data = 0;
 
 	XSetWindowBackgroundPixmap(x_display, wi->window, None);
-	if (x_have_palette)
-		XSetWindowColormap(x_display,wi->window,x_colormap);
-	x_add_to_table(gd);
+	x_add_to_table(dev);
 
 	XSetWMProtocols(x_display,wi->window,&x_delete_window_atom,1);
 
@@ -1420,13 +1405,13 @@ nic_nebude_bobankove:;
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
 	n_wins++;
-	return gd;
+	return dev;
 }
 
 
-static void x_shutdown_device(struct graphics_device *gd)
+static void x_shutdown_device(struct graphics_device *dev)
 {
-	struct window_info *wi = get_window_info(gd);
+	struct window_info *wi = get_window_info(dev);
 
 	n_wins--;
 	XDestroyWindow(x_display, wi->window);
@@ -1435,19 +1420,69 @@ static void x_shutdown_device(struct graphics_device *gd)
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
 
-	x_remove_from_table(&wi->window);
+	x_remove_from_table(wi->window);
 	free(wi);
-	free(gd);
+	free(dev);
+}
+
+static void x_update_palette(void)
+{
+	if (x_use_static_color_table == !x_driver.param->palette_mode)
+		return;
+
+	x_use_static_color_table = !x_driver.param->palette_mode;
+
+	if (x_use_static_color_table)
+		x_driver.depth = X_STATIC_CODE;
+	else
+		x_driver.depth = x_bitmap_bpp | (x_depth << 3);
+	x_get_color_function = get_color_fn(x_driver.depth);
+	if (!x_get_color_function)
+		internal("x: unsupported depth %d", x_driver.depth);
+
+	x_set_palette();
 }
 
 static void x_translate_colors(unsigned char *data, int x, int y, int skip)
 {
 	int i, j;
-	if (!static_color_table)
+	if (!x_use_static_color_table)
 		return;
 	for (j = 0; j < y; j++) {
 		for (i = 0; i < x; i++)
 			data[i] = static_color_table[data[i]];
+		data += skip;
+	}
+}
+
+static void x_convert_to_216(char *data, int x, int y, int skip)
+{
+	unsigned char color_table[256];
+	int i, j;
+
+	if (!static_color_table)
+		return;
+	if (x_use_static_color_table) {
+		x_translate_colors((unsigned char *)data, x, y, skip);
+		return;
+	}
+
+	memset(color_table, 255, sizeof color_table);
+
+	for (j = 0; j < y; j++) {
+		for (i = 0; i < x; i++) {
+			unsigned char a = (unsigned char)data[i];
+			unsigned char result;
+			if (color_table[a] != 255) {
+				result = color_table[a];
+			} else {
+				unsigned rgb[3];
+				q_palette(256, a, 65535, rgb);
+				result = get_nearest_color(rgb);
+				color_table[a] = result;
+			}
+			data[i] = result;
+		}
 		data += skip;
 	}
 }
@@ -1483,15 +1518,14 @@ static void x_register_bitmap(struct bitmap *bmp)
 	/* alloc XImage in client's memory */
  retry:
 	image = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
-			0, bmp->x, bmp->y, x_bitmap_scanline_pad << 3, bmp->skip);
-	if (!image){
+			bmp->data, bmp->x, bmp->y, x_bitmap_scanline_pad << 3,
+			bmp->skip);
+	if (!image) {
 		if (out_of_memory())
 			goto retry;
 		free(p);
 		goto cant_create;
 	}
-	image->data = bmp->data;
-
 
 	/* try to alloc XPixmap in server's memory */
 	can_create_pixmap = 1;
@@ -1503,7 +1537,7 @@ static void x_register_bitmap(struct bitmap *bmp)
 
 	x_prepare_for_failure();
 	pixmap = xmalloc(sizeof(Pixmap));
-	(*pixmap) = XCreatePixmap(x_display,fake_window,bmp->x,bmp->y,x_depth);
+	*pixmap = XCreatePixmap(x_display, fake_window, bmp->x, bmp->y, x_depth);
 	if (x_test_for_failure()) {
 		if (*pixmap) {
 			x_prepare_for_failure();
@@ -1569,7 +1603,7 @@ static long x_get_color(int rgb)
 	/*fprintf(stderr, "bitmap bpp %d\n", x_bitmap_bpp);*/
 	switch (x_bitmap_bpp) {
 	case 1:
-		if (static_color_table)
+		if (x_use_static_color_table)
 			return static_color_table[b[0]];
 		return b[0];
 	case 2:
@@ -1585,114 +1619,80 @@ static long x_get_color(int rgb)
 	}
 }
 
-
-static void x_fill_area(struct graphics_device *gd, int x1, int y1, int x2, int y2, long color)
+static inline void x_set_color(long color)
 {
-	if (x1 < gd->clip.x1)
-		x1 = gd->clip.x1;
-	if (x2 > gd->clip.x2)
-		x2 = gd->clip.x2;
-	if (y1 < gd->clip.y1)
-		y1 = gd->clip.y1;
-	if (y2 > gd->clip.y2)
-		y2 = gd->clip.y2;
-	if (x1 >= x2)
-		return;
-	if (y1 >= y2)
-		return;
+	if (color != x_normal_gc_color) {
+		x_normal_gc_color = color;
+		XSetForeground(x_display, x_normal_gc, color);
+	}
+}
 
-	XSetForeground(x_display, x_normal_gc, color);
-	XFillRectangle(x_display, get_window_info(gd)->window, x_normal_gc, x1,
+static void x_fill_area(struct graphics_device *dev, int x1, int y1, int x2, int y2, long color)
+{
+	CLIP_FILL_AREA
+
+	x_set_color(color);
+	XFillRectangle(x_display, get_window_info(dev)->window, x_normal_gc, x1,
 		y1, x2 - x1, y2 - y1);
 	X_FLUSH();
 }
 
-
-static void x_draw_hline(struct graphics_device *gd, int left, int y, int right, long color)
+static void x_draw_hline(struct graphics_device *dev, int x1, int y, int x2, long color)
 {
-	if (left >= right)
-		return;
-	if (y >= gd->clip.y2 || y < gd->clip.y1)
-		return;
-	if (right <= gd->clip.x1 || left >= gd->clip.x2)
-		return;
-	XSetForeground(x_display, x_normal_gc, color);
-	XDrawLine(x_display, get_window_info(gd)->window, x_normal_gc, left, y,
-		right - 1, y);
+	CLIP_DRAW_HLINE
+
+	x_set_color(color);
+	XDrawLine(x_display, get_window_info(dev)->window, x_normal_gc, x1, y,
+		x2 - 1, y);
 	X_FLUSH();
 }
 
-
-static void x_draw_vline(struct graphics_device *gd, int x, int top, int bottom, long color)
+static void x_draw_vline(struct graphics_device *dev, int x, int y1, int y2, long color)
 {
-	if (top >= bottom)
-		return;
-	if (x >= gd->clip.x2 || x < gd->clip.x1)
-		return;
-	if (bottom <= gd->clip.y1 || top >= gd->clip.y2)
-		return;
-	XSetForeground(x_display, x_normal_gc, color);
-	XDrawLine(x_display, get_window_info(gd)->window, x_normal_gc, x, top,
-		x, bottom - 1);
+	CLIP_DRAW_VLINE
+
+	x_set_color(color);
+	XDrawLine(x_display, get_window_info(dev)->window, x_normal_gc, x, y1,
+		x, y2 - 1);
 	X_FLUSH();
 }
 
-
-static void x_set_clip_area(struct graphics_device *gd, struct rect *r)
-{
-	XRectangle xr;
-
-	generic_set_clip_area(gd, r);
-
-	xr.x = gd->clip.x1;
-	xr.y = gd->clip.y1;
-	xr.width = gd->clip.x2 - gd->clip.x1;
-	xr.height = gd->clip.y2 - gd->clip.y1;
-
-	XSetClipRectangles(x_display, x_normal_gc, 0, 0, &xr, 1, Unsorted);
-	XSetClipRectangles(x_display, x_scroll_gc ,0, 0, &xr, 1, Unsorted);
-	XSetClipRectangles(x_display, x_drawbitmap_gc, 0, 0, &xr, 1, Unsorted);
-	X_FLUSH();
-}
-
-
-static void x_draw_bitmap(struct graphics_device *gd, struct bitmap *bmp, int x, int y)
+static void x_draw_bitmap(struct graphics_device *dev, struct bitmap *bmp, int x, int y)
 {
 	int bmp_off_x, bmp_off_y, bmp_size_x, bmp_size_y;
-	if (!bmp->flags || !bmp->x || !bmp->y)
+	if (!bmp->flags)
 		return;
-	if (x >= gd->clip.x2 || y >= gd->clip.y2)
-		return;
-	if (x + bmp->x <= gd->clip.x1 || y + bmp->y <= gd->clip.y1)
-		return;
+
+	CLIP_DRAW_BITMAP
+
 	bmp_off_x = 0;
 	bmp_off_y = 0;
 	bmp_size_x = bmp->x;
 	bmp_size_y = bmp->y;
-	if (x < gd->clip.x1) {
-		bmp_off_x = gd->clip.x1 - x;
-		bmp_size_x -= gd->clip.x1 - x;
-		x = gd->clip.x1;
+	if (x < dev->clip.x1) {
+		bmp_off_x = dev->clip.x1 - x;
+		bmp_size_x -= dev->clip.x1 - x;
+		x = dev->clip.x1;
 	}
-	if (x + bmp_size_x > gd->clip.x2)
-		bmp_size_x = gd->clip.x2 - x;
-	if (y < gd->clip.y1) {
-		bmp_off_y = gd->clip.y1 - y;
-		bmp_size_y -= gd->clip.y1 - y;
-		y = gd->clip.y1;
+	if (x + bmp_size_x > dev->clip.x2)
+		bmp_size_x = dev->clip.x2 - x;
+	if (y < dev->clip.y1) {
+		bmp_off_y = dev->clip.y1 - y;
+		bmp_size_y -= dev->clip.y1 - y;
+		y = dev->clip.y1;
 	}
-	if (y + bmp_size_y > gd->clip.y2)
-		bmp_size_y = gd->clip.y2 - y;
+	if (y + bmp_size_y > dev->clip.y2)
+		bmp_size_y = dev->clip.y2 - y;
 
 	switch(XPIXMAPP(bmp->flags)->type) {
 	case X_TYPE_PIXMAP:
 		XCopyArea(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
-			get_window_info(gd)->window, x_drawbitmap_gc, bmp_off_x,
+			get_window_info(dev)->window, x_drawbitmap_gc, bmp_off_x,
 			bmp_off_y, bmp_size_x, bmp_size_y, x, y);
 		break;
 
 	case X_TYPE_IMAGE:
-		XPutImage(x_display, get_window_info(gd)->window,
+		XPutImage(x_display, get_window_info(dev)->window,
 			x_drawbitmap_gc, XPIXMAPP(bmp->flags)->data.image,
 			bmp_off_x, bmp_off_y, x, y, bmp_size_x, bmp_size_y);
 		break;
@@ -1701,36 +1701,94 @@ static void x_draw_bitmap(struct graphics_device *gd, struct bitmap *bmp, int x,
 }
 
 
-static int x_scroll(struct graphics_device *gd, struct rect_set **set, int sc, const int h)
+static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
+{
+	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
+	XImage *image;
+	void *x_data;
+
+	if (!p)
+		return NULL;
+
+	bmp->data = NULL;
+
+	switch (p->type) {
+	case X_TYPE_PIXMAP:
+		x_data = xmalloc(bmp->skip * lines);
+		image = XCreateImage(x_display, x_default_visual, x_depth,
+				ZPixmap, 0, x_data, bmp->x, lines,
+				x_bitmap_scanline_pad << 3, bmp->skip);
+		if (!image) {
+			free(x_data);
+			return NULL;
+		}
+		bmp->data = image;
+		return image->data;
+
+	case X_TYPE_IMAGE:
+		return p->data.image->data + (bmp->skip * top);
+	}
+	internal("Unknown pixmap type found in x_prepare_strip. SOMETHING IS REALLY STRANGE!!!!\n");
+	return NULL;
+}
+
+static void x_commit_strip(struct bitmap *bmp, int top, int lines)
+{
+	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
+
+	if (!p)
+		return;
+
+	bmp->data = NULL;
+
+	switch (p->type) {
+	/* send image to pixmap in xserver */
+	case X_TYPE_PIXMAP:
+		if (!bmp->data)
+			return;
+		x_translate_colors((unsigned char *)((XImage*)bmp->data)->data,
+			bmp->x, lines, bmp->skip);
+		XPutImage(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
+			x_copy_gc, (XImage*)bmp->data, 0, 0, 0, top, bmp->x,
+			lines);
+		XDestroyImage((XImage *)bmp->data);
+		return;
+	case X_TYPE_IMAGE:
+		x_translate_colors((unsigned char *)p->data.image->data
+				+ (bmp->skip * top), bmp->x, lines, bmp->skip);
+		/* everything has been done by user */
+		return;
+	}
+}
+
+static int x_scroll(struct graphics_device *dev, struct rect_set **set, int scx, int scy)
 {
 	XEvent ev;
 	struct rect r;
+	if (memcmp(&dev->clip, &x_scroll_gc_rect, sizeof(struct rect))) {
+		XRectangle xr;
 
-	*set = NULL;
-	if (!sc)
-		return 0;
-	*set = init_rect_set();
-	if (!*set)
-		internal("Cannot allocate memory for rect set in scroll function.\n");
+		memcpy(&x_scroll_gc_rect, &dev->clip, sizeof(struct rect));
 
-	if (h)
-		XCopyArea(x_display, get_window_info(gd)->window,
-			get_window_info(gd)->window, x_scroll_gc, gd->clip.x1,
-			gd->clip.y1, gd->clip.x2 - gd->clip.x1,
-			gd->clip.y2 - gd->clip.y1, gd->clip.x1 + sc, gd->clip.y1);
-	else
-		XCopyArea(x_display, get_window_info(gd)->window,
-			get_window_info(gd)->window, x_scroll_gc, gd->clip.x1,
-			gd->clip.y1, gd->clip.x2 - gd->clip.x1,
-			gd->clip.y2 - gd->clip.y1, gd->clip.x1, gd->clip.y1 + sc);
+		xr.x = dev->clip.x1;
+		xr.y = dev->clip.y1;
+		xr.width = dev->clip.x2 - dev->clip.x1;
+		xr.height = dev->clip.y2 - dev->clip.y1;
 
+		XSetClipRectangles(x_display, x_scroll_gc, 0, 0, &xr, 1, Unsorted);
+	}
+
+	XCopyArea(x_display, get_window_info(dev)->window,
+		get_window_info(dev)->window, x_scroll_gc, dev->clip.x1,
+		dev->clip.y1, dev->clip.x2 - dev->clip.x1,
+		dev->clip.y2 - dev->clip.y1, dev->clip.x1 + scx,
+		dev->clip.y1 + scy);
 	XSync(x_display, False);
 	/* ten sync tady musi byt, protoze potrebuju zarucit, aby vsechny
-	 * graphics-expose vyvolane timto scrollem byly vraceny v rect-set */
+	* graphics-expose vyvolane timto scrollem byly vraceny v rect-set */
 
 	/* take all graphics expose events for this window and put them into the rect set */
-	while (XCheckWindowEvent(x_display, get_window_info(gd)->window,
-			ExposureMask, &ev) == True) {
+	while (XCheckWindowEvent(x_display, get_window_info(dev)->window, ExposureMask, &ev) == True) {
 		switch(ev.type) {
 		case GraphicsExpose:
 			r.x1 = ev.xgraphicsexpose.x;
@@ -1749,116 +1807,43 @@ static int x_scroll(struct graphics_device *gd, struct rect_set **set, int sc, c
 		default:
 			continue;
 		}
-		if (r.x1 < gd->clip.x1 || r.x2 > gd->clip.x2
-		|| r.y1 < gd->clip.y1 || r.y2 > gd->clip.y2) {
+
+		if (r.x1 < dev->clip.x1 || r.x2 > dev->clip.x2
+		|| r.y1 < dev->clip.y1 || r.y2 > dev->clip.y2) {
 			switch(ev.type) {
 			case GraphicsExpose:
 				ev.xgraphicsexpose.x = 0;
 				ev.xgraphicsexpose.y = 0;
-				ev.xgraphicsexpose.width = gd->size.x2;
-				ev.xgraphicsexpose.height = gd->size.y2;
+				ev.xgraphicsexpose.width = dev->size.x2;
+				ev.xgraphicsexpose.height = dev->size.y2;
 				break;
 
 			case Expose:
 				ev.xexpose.x = 0;
 				ev.xexpose.y = 0;
-				ev.xexpose.width = gd->size.x2;
-				ev.xexpose.height = gd->size.y2;
+				ev.xexpose.width = dev->size.x2;
+				ev.xexpose.height = dev->size.y2;
 				break;
 			}
 			XPutBackEvent(x_display, &ev);
 			free(*set);
-			*set = NULL;
+			*set = init_rect_set();
 			break;
 		}
-		add_to_rect_set(set,&r);
+		add_to_rect_set(set, &r);
 	}
-
 	X_SCHEDULE_PROCESS_EVENTS();
-
 	return 1;
 }
 
-static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
-{
-	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
-	XImage *image;
-	void *x_data;
-
-	if (!p)
-		return NULL;
-
-	bmp->data = NULL;
-
-	switch (p->type) {
-	case X_TYPE_PIXMAP:
- retry:
-		x_data = xmalloc(bmp->skip * lines);
-		if (!x_data) {
-			if (out_of_memory())
-				goto retry;
-			return NULL;
-		}
-
- retry2:
-		image = XCreateImage(x_display, x_default_visual, x_depth,
-				ZPixmap, 0, 0, bmp->x, lines,
-				x_bitmap_scanline_pad << 3, bmp->skip);
-		if (!image) {
-			if (out_of_memory())
-				goto retry2;
-			free(x_data);
-			return NULL;
-		}
-		image->data = x_data;
-		bmp->data = image;
-		return image->data;
-
-	case X_TYPE_IMAGE:
-		return p->data.image->data+(bmp->skip*top);
-	}
-	internal("Unknown pixmap type found in x_prepare_strip. SOMETHING IS REALLY STRANGE!!!!\n");
-	return NULL;
-}
-
-
-static void x_commit_strip(struct bitmap *bmp, int top, int lines)
-{
-	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
-
-	if (!p)
-		return;
-
-	switch(p->type) {
-	/* send image to pixmap in xserver */
-	case X_TYPE_PIXMAP:
-		if (!bmp->data)
-			return;
-		x_translate_colors((unsigned char *)((XImage*)bmp->data)->data,
-				bmp->x, lines, bmp->skip);
-		XPutImage(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
-			x_copy_gc, (XImage*)bmp->data, 0, 0, 0, top, bmp->x,
-			lines);
-		XDestroyImage((XImage *)bmp->data);
-		return;
-
-	case X_TYPE_IMAGE:
-		x_translate_colors((unsigned char *)p->data.image->data + (bmp->skip * top),
-				bmp->x, lines, bmp->skip);
-		/* everything has been done by user */
-		return;
-	}
-}
-
-
-static void x_flush(struct graphics_device *gd)
+static void x_flush(struct graphics_device *dev)
 {
 	unregister_bottom_half(x_do_flush, NULL);
 	x_do_flush(NULL);
 }
 
 
-static void x_set_window_title(struct graphics_device *gd, unsigned char *title)
+static void x_set_window_title(struct graphics_device *dev, unsigned char *title)
 {
 	unsigned char *t;
 	XTextProperty windowName;
@@ -1872,7 +1857,7 @@ retry_encode_ascii:
 		output_encoding = 0;
 	}
 
-	if (!gd)
+	if (!dev)
 		internal("x_set_window_title called with NULL graphics_device pointer.\n");
 	t = convert(0, output_encoding, title, NULL);
 	clr_white(t);
@@ -1909,21 +1894,21 @@ retry_encode_ascii:
 		}
 	}
 	free(t);
-	XSetWMName(x_display, get_window_info(gd)->window, &windowName);
-	XSetWMIconName(x_display, get_window_info(gd)->window, &windowName);
+	XSetWMName(x_display, get_window_info(dev)->window, &windowName);
+	XSetWMIconName(x_display, get_window_info(dev)->window, &windowName);
 	XFree(windowName.value);
 	X_FLUSH();
 }
 
 /* gets string in UTF8 */
-static void x_set_clipboard_text(struct graphics_device *gd, unsigned char *text)
+static void x_set_clipboard_text(struct graphics_device *dev, unsigned char *text)
 {
 	x_clear_clipboard();
 	if (text) {
 		x_my_clipboard = stracpy(text);
 
 		XSetSelectionOwner(x_display, XA_PRIMARY,
-			get_window_info(gd)->window, CurrentTime);
+			get_window_info(dev)->window, CurrentTime);
 		XFlush(x_display);
 		X_SCHEDULE_PROCESS_EVENTS();
 	}
@@ -2082,8 +2067,8 @@ static int x_exec(unsigned char *command, int fg)
 	}
 
 	l = 0;
-	if (*x_driver.shell)
-		pattern = strdup((char *)x_driver.shell);
+	if (*x_driver.param->shell_term)
+		pattern = strdup((char *)x_driver.param->shell_term);
 	else {
 		pattern = strdup((char *)links_xterm());
 		if (*command) {
@@ -2131,8 +2116,9 @@ struct graphics_driver x_driver = {
 	x_draw_hline,
 	x_draw_vline,
 	x_scroll,
-	x_set_clip_area,
+	NULL,
 	x_flush,
+	x_update_palette,
 	x_set_window_title,
 	x_exec,
 	x_set_clipboard_text,
@@ -2140,6 +2126,5 @@ struct graphics_driver x_driver = {
 	0,				/* depth (filled in x_init_driver function) */
 	0, 0,				/* size (in X is empty) */
 	GD_UNICODE_KEYS,		/* flags */
-	0,				/* codepage */
-	NULL,				/* shell */
+	NULL,				/* param */
 };

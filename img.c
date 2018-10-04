@@ -173,14 +173,10 @@ void compute_background_8(unsigned char *rgb, struct cached_image *cimg)
 {
 	unsigned short red, green, blue;
 
-	round_color_sRGB_to_48(&red, &green, &blue
-		, cimg->background_color);
-	rgb[0]=ags_16_to_8(red
-		,(float)(cimg->red_gamma/(float)user_gamma));
-	rgb[1]=ags_16_to_8(green
-		,(float)(cimg->green_gamma/(float)user_gamma));
-	rgb[2]=ags_16_to_8(blue
-		,(float)(cimg->blue_gamma/(float)user_gamma));
+	round_color_sRGB_to_48(&red, &green, &blue, cimg->background_color);
+	rgb[0] = ags_16_to_8(red, (float)(cimg->red_gamma / user_gamma));
+	rgb[1] = ags_16_to_8(green, (float)(cimg->green_gamma / user_gamma));
+	rgb[2] = ags_16_to_8(blue, (float)(cimg->blue_gamma / user_gamma));
 }
 
 /* updates cimg state when header dimensions are know. Only allowed to be called
@@ -337,30 +333,26 @@ int header_dimensions_known(struct cached_image *cimg)
 			memset(cimg->buffer, 0, (size_t)cimg->width * (size_t)cimg->height * (size_t)cimg->buffer_bytes_per_pixel);
 		}else{
 			/* Fill the buffer with background color */
-			if (cimg->buffer_bytes_per_pixel>4){
+			if (cimg->buffer_bytes_per_pixel > 4) {
 				/* 16-bit */
 				unsigned short red, green, blue;
 
-				round_color_sRGB_to_48(&red, &green, &blue
-					, cimg->background_color);
+				round_color_sRGB_to_48(&red, &green, &blue, cimg->background_color);
 
-				red=ags_16_to_16(red
-					,(float)(cimg->red_gamma/(float)user_gamma));
-				green=ags_16_to_16(green
-					,(float)(cimg->green_gamma/(float)user_gamma));
-				blue=ags_16_to_16(blue
-					,(float)(cimg->blue_gamma/(float)user_gamma));
-				mix_one_color_48((unsigned short *)cimg->buffer
-					,cimg->width*cimg->height,red
-					,green, blue);
-			}else{
+				red = ags_16_to_16(red, (float)(cimg->red_gamma / user_gamma));
+				green = ags_16_to_16(green, (float)(cimg->green_gamma / user_gamma));
+				blue = ags_16_to_16(blue, (float)(cimg->blue_gamma / user_gamma));
+
+				mix_one_color_48((unsigned short *)cimg->buffer,
+					cimg->width * cimg->height, red ,green, blue);
+			} else {
 				unsigned char rgb[3];
 
 				/* 8-bit */
-				compute_background_8(rgb,cimg);
-				mix_one_color_24(cimg->buffer
-					,cimg->width*cimg->height
-					,rgb[0],rgb[1],rgb[2]);
+				compute_background_8(rgb, cimg);
+				mix_one_color_24(cimg->buffer,
+					cimg->width * cimg->height, rgb[0],
+					rgb[1], rgb[2]);
 			}
 		}
 	}
@@ -376,89 +368,79 @@ int header_dimensions_known(struct cached_image *cimg)
 /* Fills "tmp" buffer with the resulting data and does not free the input
  * buffer. May be called only in states 12 and 14 of cimg
  */
-static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *cimg
-	,unsigned char *buffer, int height)
+static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *cimg, unsigned char *buffer, int height)
 {
-	unsigned short red, green,blue;
+	unsigned short red, green, blue;
 
 #ifdef DEBUG
-	if (cimg->state!=12&&cimg->state!=14){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
+	if (cimg->state != 12 && cimg->state != 14) {
+		fprintf(stderr, "cimg->state=%d\n", cimg->state);
 		internal("invalid state in buffer_to_16");
 	}
 #endif /* #ifdef DEBUG */
-	switch (cimg->buffer_bytes_per_pixel){
+	switch (cimg->buffer_bytes_per_pixel) {
 		case 3:
-			if (cimg->gamma_table){
+			if (cimg->gamma_table)
 				agx_24_to_48_table(tmp, buffer,
-					cimg->width*height
-					,cimg->gamma_table);
-			}
-			else{
-				agx_24_to_48(tmp,buffer,cimg->width
-					*height
-					,(float)((float)user_gamma/cimg->red_gamma)
-					,(float)((float)user_gamma/cimg->green_gamma)
-					,(float)((float)user_gamma/cimg->blue_gamma));
-			}
+					cimg->width * height,
+					cimg->gamma_table);
+			else
+				agx_24_to_48(tmp, buffer, cimg->width * height,
+					(float)(user_gamma / cimg->red_gamma),
+					(float)(user_gamma / cimg->green_gamma),
+					(float)(user_gamma / cimg->blue_gamma));
 		break;
 
-		case 3*sizeof(unsigned short):
-			if (cimg->gamma_table){
-				agx_48_to_48_table(tmp
-					,(unsigned short *)buffer
-					,cimg->width*height, cimg->gamma_table);
-			}else{
-				agx_48_to_48(tmp,(unsigned short *)buffer
-					,cimg->width*height
-					,(float)((float)user_gamma/cimg->red_gamma)
-					,(float)((float)user_gamma/cimg->green_gamma)
-					,(float)((float)user_gamma/cimg->blue_gamma));
-			}
+		case 3 * sizeof(unsigned short):
+			if (cimg->gamma_table)
+				agx_48_to_48_table(tmp, (unsigned short *)buffer,
+					cimg->width * height, cimg->gamma_table);
+			else
+				agx_48_to_48(tmp ,(unsigned short *)buffer,
+					cimg->width * height,
+					(float)(user_gamma / cimg->red_gamma),
+					(float)(user_gamma / cimg->green_gamma),
+					(float)(user_gamma / cimg->blue_gamma));
 		break;
 
 		/* Alpha's: */
 		case 4:
-		{
-
 			round_color_sRGB_to_48(&red,&green,&blue,cimg->background_color);
-			if (cimg->gamma_table){
-				agx_and_uc_32_to_48_table(
-						tmp, buffer, cimg->width *height,
-						cimg->gamma_table, red, green, blue);
-			}else{
-				agx_and_uc_32_to_48(tmp,buffer
-					,cimg->width*height
-					,(float)((float)user_gamma/cimg->red_gamma)
-					,(float)((float)user_gamma/cimg->green_gamma)
-					,(float)((float)user_gamma/cimg->blue_gamma)
-					,red, green, blue);
-			}
-		}
+			if (cimg->gamma_table)
+				agx_and_uc_32_to_48_table(tmp, buffer,
+						cimg->width * height,
+						cimg->gamma_table, red, green,
+						blue);
+			else
+				agx_and_uc_32_to_48(tmp, buffer,
+					cimg->width * height,
+					(float)(user_gamma / cimg->red_gamma),
+					(float)(user_gamma / cimg->green_gamma),
+					(float)(user_gamma / cimg->blue_gamma),
+					red, green, blue);
 		break;
 
-		case 4*sizeof(unsigned short):
-		{
+		case 4 * sizeof(unsigned short):
 			round_color_sRGB_to_48(&red, &green, &blue,
 				cimg->background_color);
-			if (cimg->gamma_table){
-				agx_and_uc_64_to_48_table
-					(tmp, (unsigned short *)buffer, cimg->width*height
-					,cimg->gamma_table, red, green, blue);
-			}else{
-				agx_and_uc_64_to_48(tmp
-					,(unsigned short*)buffer,cimg->width*height
-					,(float)((float)user_gamma/cimg->red_gamma)
-					,(float)((float)user_gamma/cimg->green_gamma)
-					,(float)((float)user_gamma/cimg->blue_gamma)
-					,red,green,blue);
-			}
-		}
+			if (cimg->gamma_table)
+				agx_and_uc_64_to_48_table(tmp,
+					(unsigned short *)buffer,
+					cimg->width * height, cimg->gamma_table,
+					red, green, blue);
+			else
+				agx_and_uc_64_to_48(tmp,
+					(unsigned short *)buffer,
+					cimg->width * height,
+					(float)(user_gamma / cimg->red_gamma),
+					(float)(user_gamma / cimg->green_gamma),
+					(float)(user_gamma / cimg->blue_gamma),
+					red, green, blue);
 		break;
 
 #ifdef DEBUG
 		default:
-		internal("buffer_to_16: unknown mem organization");
+			internal("buffer_to_16: unknown mem organization");
 #endif /* #ifdef DEBUG */
 
 	}
@@ -1015,7 +997,7 @@ static void draw_picture(struct f_data_c *fdatac, struct g_object_image *goi,
 	drv->draw_bitmap(dev, &cimg->bmp,x,y);
 	drv->fill_area(dev, x + cimg->bmp.x, y, x + goi->goti.go.xw, y + cimg->bmp.y, bg);
 	drv->fill_area(dev, x, y + cimg->bmp.y, x + goi->goti.go.xw, y + goi->goti.go.yw,bg);
-	drv->set_clip_area(dev, &saved);
+	set_clip_area(dev, &saved);
 }
 
 /* Ensures in buffer there is not newer picture than in bitmap. Allowed to be
@@ -1088,7 +1070,7 @@ static void img_draw_image(struct f_data_c *fdatac, struct g_object *goi_, int x
 	}
 #endif /* #ifdef DEBUG */
 	ret:
-	drv->set_clip_area(fdatac->ses->term->dev, &r);
+	set_clip_area(fdatac->ses->term->dev, &r);
 #ifdef LINKS_TESTMODE_IMAGE_AUTO_EXIT
 	if (cimg->state & 1)
 		terminate_loop = 1;
@@ -1218,7 +1200,7 @@ struct g_object_image *insert_image(struct g_part *p, struct image_description *
 	image->af = request_additional_file(current_f_data, im->url);
 	if (image->goti.go.xw < 0 || image->goti.go.yw < 0)
 		image->af->unknown_image_size = 1;
-	image->background = hack_rgb(p->root->bg->u.sRGB);
+	image->background = hack_rgb(p->root->bg->sRGB);
 
 	/* This supplies the result into image->cimg and global_cimg */
 	find_or_make_cached_image(image, im->url, d_opt->image_scale);

@@ -1074,7 +1074,7 @@ do_alt:
 	}
 	if (ev.x != -1) {
 		if (itrm->flags & BRACKETED_PASTE && ev.ev == EV_KBD)
-			ev.y |= KBD_PASTE;
+			ev.y |= KBD_PASTING;
 		itrm->queue_event(itrm, (unsigned char *)&ev, sizeof(struct links_event));
 	}
 	memmove(itrm->kqueue, itrm->kqueue + el, itrm->qlen -= el);

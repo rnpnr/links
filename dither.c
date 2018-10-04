@@ -88,42 +88,6 @@ void (*round_fn)(unsigned short *restrict in, struct bitmap *out);
 /* When you finish the stuff with dither_start, dither_restart, just do "if (dregs) mem_free(dregs);" */
 static void (*dither_fn_internal)(unsigned short *restrict in, struct bitmap *out, int *dregs);
 
-
-     /* prototypes */
-static void dither_1byte(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_1byte(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_2byte(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_2byte(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_195(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_195(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_451(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_451(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_196(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_196(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_452(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_452(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static void dither_708(unsigned short *restrict, struct bitmap *, int *);   /* DITHER_TEMPLATE */
-static void round_708(unsigned short *restrict, struct bitmap *);           /* ROUND_TEMPLATE */
-static long color_332(int);
-static long color_121(int);
-static long color_pass_rgb(int);
-static long color_888_bgr(int);
-/*static void pass_bgr(unsigned short *, struct bitmap *);*/
-static long color_8888_bgr0(int);
-static long color_8888_0bgr(int);
-static long color_8888_0rgb(int);
-/*static void pass_0bgr(unsigned short *, struct bitmap *);*/
-static long color_555be(int);
-static long color_555(int);
-static long color_565be(int);
-static long color_565(int);
-/*static void make_8_table(int *, double);*/
-static void make_16_table(int *, int, int, float, int, int);
-static void make_red_table(int, int, int, int);
-static void make_green_table(int, int, int, int);
-static void make_blue_table(int, int, int, int);
-static void make_round_tables(void);
-
 int slow_fpu = -1;
 
 #define LIN \
@@ -139,15 +103,9 @@ int slow_fpu = -1;
 		if ((unsigned)rc>65535) rc=rc<0?0:65535;\
 		if ((unsigned)gc>65535) gc=gc<0?0:65535;\
 		if ((unsigned)bc>65535) bc=bc<0?0:65535;\
-		if (table_16) {\
-			rt=red_table[rc];\
-			gt=green_table[gc];\
-			bt=blue_table[bc];\
-		} else {\
-			rt=red_table[rc >> 8];\
-			gt=green_table[gc >> 8];\
-			bt=blue_table[bc >> 8];\
-		}\
+		rt=red_table[rc >> shift];\
+		gt=green_table[gc >> shift];\
+		bt=blue_table[bc >> shift];\
 	}\
 	SAVE_CODE\
 	rt=r-(rt&65535);\
@@ -224,6 +182,7 @@ int slow_fpu = -1;
 #define DITHER_TEMPLATE(template_name) \
 	static void template_name(unsigned short *restrict in, struct bitmap *out, int *dregs)\
 		{\
+		int shift = 8 - table_16 * 8;\
 		int r,g,b,o,rt,gt,bt,y,x;\
 		unsigned char *restrict outp=out->data;\
 		int *restrict bptr;\
@@ -297,8 +256,8 @@ int slow_fpu = -1;
  * as a scratchpad.
  */
 #define SAVE_CODE \
-	o=rt|gt|bt;\
-	*outp++=(o>>16);
+	o = (rt >> 16) + (gt >> 16) + (bt >> 16);\
+	*outp++ = (unsigned char)o;
 
 DITHER_TEMPLATE(dither_1byte)
 ROUND_TEMPLATE(round_1byte)
@@ -318,8 +277,9 @@ ROUND_TEMPLATE(round_2byte)
 #undef SKIP_CODE
 
 /* B G R */
-#define SKIP_CODE out->x*3;
-#define SAVE_CODE outp[0]=bt>>16;\
+#define SKIP_CODE out->x*3
+#define SAVE_CODE \
+	outp[0]=bt>>16;\
 	outp[1]=gt>>16;\
 	outp[2]=rt>>16;\
 	outp+=3;
@@ -329,8 +289,9 @@ ROUND_TEMPLATE(round_195)
 #undef SKIP_CODE
 
 /* R G B */
-#define SKIP_CODE out->x*3;
-#define SAVE_CODE *outp=rt>>16;\
+#define SKIP_CODE out->x*3
+#define SAVE_CODE \
+	outp[0]=rt>>16;\
 	outp[1]=gt>>16;\
 	outp[2]=bt>>16;\
 	outp+=3;
@@ -340,8 +301,9 @@ ROUND_TEMPLATE(round_451)
 #undef SKIP_CODE
 
 /* B G R 0 */
-#define SKIP_CODE out->x*4;
-#define SAVE_CODE *outp=bt>>16;\
+#define SKIP_CODE out->x*4
+#define SAVE_CODE \
+	outp[0]=bt>>16;\
 	outp[1]=gt>>16;\
 	outp[2]=rt>>16;\
 	outp[3]=0;\
@@ -352,8 +314,9 @@ ROUND_TEMPLATE(round_196)
 #undef SKIP_CODE
 
 /* 0 B G R */
-#define SKIP_CODE out->x*4;
-#define SAVE_CODE *outp=0;\
+#define SKIP_CODE out->x*4
+#define SAVE_CODE \
+	outp[0]=0;\
 	outp[1]=bt>>16;\
 	outp[2]=gt>>16;\
 	outp[3]=rt>>16;\
@@ -364,8 +327,9 @@ ROUND_TEMPLATE(round_452)
 #undef SKIP_CODE
 
 /* 0 R G B */
-#define SKIP_CODE out->x*4;
-#define SAVE_CODE *outp=0;\
+#define SKIP_CODE out->x*4
+#define SAVE_CODE \
+	outp[0]=0;\
 	outp[1]=rt>>16;\
 	outp[2]=gt>>16;\
 	outp[3]=bt>>16;\
@@ -395,23 +359,65 @@ static long color_332(int rgb)
 
 }
 
-static long color_121(int rgb)
+/* For 216-color cube */
+static long color_666(int rgb)
 {
-	int r,g,b;
+	int r, g, b;
+	unsigned char i;
 	long ret = 0;
 
-	r=(rgb>>16)&255;
-	g=(rgb>>8)&255;
-	b=rgb&255;
-	r=(r+127)/255;
-	g=(3*g+127)/255;
-	b=(b+127)/255;
-	*(unsigned char *)&ret=(r<<3)|(g<<1)|b;
+	r = (rgb >> 16) & 255;
+	g = (rgb >> 8) & 255;
+	b = rgb & 255;
+
+	r = (r * 5 + 127) / 255;
+	g = (g * 5 + 127) / 255;
+	b = (b * 5 + 127) / 255;
+
+	i = (unsigned char)r;
+	i *= 6;
+	i += g;
+	i *= 6;
+	i += b;
+
+	*(unsigned char *)&ret = i;
 	return ret;
 
 }
 
-static long color_pass_rgb(int rgb)
+static long color_121(int rgb)
+{
+	int r, g, b;
+	long ret = 0;
+
+	r = (rgb >> 16) & 255;
+	g = (rgb >> 8) & 255;
+	b = rgb & 255;
+	r = (r + 127) / 255;
+	g = (3 * g + 127) / 255;
+	b = (b + 127) / 255;
+	*(unsigned char *)&ret = (r << 3) | (g << 1) | b;
+	return ret;
+
+}
+
+static long color_111(int rgb)
+{
+	int r, g, b;
+	long ret = 0;
+
+	r = (rgb >> 16) & 255;
+	g = (rgb >> 8) & 255;
+	b = rgb & 255;
+	r = (r + 127) / 255;
+	g = (g + 127) / 255;
+	b = (b + 127) / 255;
+	*(unsigned char *)&ret = (r << 2) | (g << 1) | b;
+	return ret;
+
+}
+
+static long color_888_rgb(int rgb)
 {
 	long ret = 0;
 
@@ -433,26 +439,6 @@ static long color_888_bgr(int rgb)
 
 	return ret;
 }
-
-#if 0
-/* Long live the Manchester Modulation! */
-static void pass_bgr(unsigned short *in, struct bitmap *out)
-{
-	int skip=out->skip-3*out->x,y,x;
-	unsigned char *outp=out->data;
-
-	for (y=out->y;y;y--){
-		for (x=out->x;x;x--){
-			outp[0]=in[2];
-			outp[1]=in[1];
-			outp[2]=in[0];
-			outp+=3;
-			in+=3;
-		}
-		outp+=skip;
-	}
-}
-#endif
 
 static long color_8888_bgr0(int rgb)
 {
@@ -495,27 +481,6 @@ static long color_8888_0rgb(int rgb)
 
 	return ret;
 }
-
-#if 0
-/* We assume unsgned short holds at least 16 bits. */
-static void pass_0bgr(unsigned short *in, struct bitmap *out)
-{
-	int skip=out->skip-4*out->x,y,x;
-	unsigned char *outp=out->data;
-
-	for (y=out->y;y;y--){
-		for (x=out->x;x;x--){
-			outp[0]=0;
-			outp[1]=in[2]>>8;
-			outp[2]=in[1]>>8;
-			outp[3]=in[0]>>8;
-			outp+=4;
-			in+=3;
-		}
-		outp+=skip;
-	}
-}
-#endif
 
 /* We assume long holds at least 32 bits */
 static long color_555be(int rgb)
@@ -593,6 +558,50 @@ static long color_565(int rgb)
 	return ret;
 }
 
+static long color_888_bgr_15bit(int rgb)
+{
+	int r,g,b;
+	long ret = 0;
+
+	r=(rgb>>16)&255;
+	g=(rgb>>8)&255;
+	/* Long live the PIN photodiode */
+	b=rgb&255;
+
+	r=(r*31+127)/255;
+	g=(g*31+127)/255;
+	b=(b*31+127)/255;
+
+	((unsigned char *)&ret)[0]=(unsigned char)(r<<3);
+	((unsigned char *)&ret)[1]=(unsigned char)(g<<3);
+	((unsigned char *)&ret)[2]=(unsigned char)(b<<3);
+
+	return ret;
+}
+
+static long color_888_bgr_16bit(int rgb)
+{
+	int r,g,b;
+	long ret = 0;
+
+	r=(rgb>>16)&255;
+	g=(rgb>>8)&255;
+	/* Long live the PIN photodiode */
+	b=rgb&255;
+
+	r=(r*31+127)/255;
+	g=(g*63+127)/255;
+	b=(b*31+127)/255;
+
+	((unsigned char *)&ret)[0]=(unsigned char)(r<<3);
+	((unsigned char *)&ret)[1]=(unsigned char)(g<<2);
+	((unsigned char *)&ret)[2]=(unsigned char)(b<<3);
+
+	return ret;
+}
+
+
+
 /* rgb = r*65536+g*256+b */
 /* The selected color_fn returns a long.
  * When we have for example 2 bytes per pixel, we make them in the memory,
@@ -601,15 +610,21 @@ static long color_565(int rgb)
  */
 long (*get_color_fn(int depth))(int rgb)
 {
-	switch(depth)
-	{
+	switch (depth) {
 		case 33:
 			return color_121;
+			break;
+
+		case 801:
+			return color_111;
 			break;
 
 		case 65:
 			return color_332;
 			break;
+
+		case 833:
+			return color_666;
 
 		case 122:
 			return color_555;
@@ -628,7 +643,7 @@ long (*get_color_fn(int depth))(int rgb)
 			break;
 
 		case 451:
-			return color_pass_rgb;
+			return color_888_rgb;
 			break;
 
 		case 195:
@@ -647,6 +662,14 @@ long (*get_color_fn(int depth))(int rgb)
 			return color_8888_0rgb;
 			break;
 
+		case 15555:
+			return color_888_bgr_15bit;
+			break;
+
+		case 16579:
+			return color_888_bgr_16bit;
+			break;
+
 		default:
 			return NULL;
 			break;
@@ -654,44 +677,25 @@ long (*get_color_fn(int depth))(int rgb)
 	}
 }
 
-#if 0
-static void make_8_table(int *table, double gamma)
-{
-	int i,light0;
-	float light;
-	const float inv_255=1/255.;
-
-	for (i=0;i<256;i++){
-		light=powf((float)i*inv_255,gamma);
-		/* Long live the Nipkow Disk */
-		light0=65535*light;
-		if (light0<0) light0=0;
-		if (light0>65535) light0=65535;
-		table[i]=light0;
-	}
-}
-#endif
-
 /* Gamma says that light=electricity raised to gamma */
-/* dump_t2c means memory organization defined in comment for
- * red_table on the top of dither.c */
-/* dump_t2c is taken into account only if t2c is defined. */
-static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t2c,
-	int bigendian)
+static void make_16_table(int *table, int values, int mult, float gamma, int bigendian)
 {
-	int j,light_val,grades=(1<<bits)-1,grade;
+	int grades = values - 1;
+	int j, light_val, grade;
 	float voltage;
-	float rev_gamma=1/gamma;
-	const float inv_65535=(float)(1/65535.);
+	float rev_gamma = 1 / gamma;
+	const float inv_65535 = (float)(1 / 65535.);
 	int last_grade, last_content;
+	unsigned int val;
 	uttime start_time = get_time();
 	int sample_state = 0;
 	int x_slow_fpu = slow_fpu;
+
 	if (gamma_bits != 2) x_slow_fpu = !gamma_bits;
 
-	repeat_loop:
-	last_grade=-1;
-	last_content=0;
+ repeat_loop:
+	last_grade = -1;
+	last_content = 0;
 
 	for (j=0;j<65536;j++){
 		if (x_slow_fpu) {
@@ -717,18 +721,18 @@ static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t
 				}
 			}
 		}
-		voltage=powf(j*inv_65535,rev_gamma);
+		voltage = powf(j * inv_65535, rev_gamma);
 		/* Determine which monitor input voltage is equivalent
 		 * to said photon flux level
 		 */
 
-		grade=(int)(voltage*grades+(float)0.5);
-		if (grade==last_grade){
-			table[j]=last_content;
+		grade = (int)(voltage * grades + (float)0.5);
+		if (grade == last_grade) {
+			table[j] = last_content;
 			continue;
 		}
-		last_grade=grade;
-		voltage=(float)grade/grades;
+		last_grade = grade;
+		voltage = (float)grade / grades;
 		/* Find nearest voltage to this voltage. Finding nearest voltage, not
 		 * nearest photon flux ensures the dithered pixels will be perceived to be
 		 * near. The voltage input into the monitor was intentionally chosen by
@@ -738,23 +742,19 @@ static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t
 		 * kool ;-) (and is kool)
 		 */
 
-		light_val=(int)(powf(voltage,gamma)*65535+(float)0.5);
+		light_val = (int)(powf(voltage, gamma) * 65535 + (float)0.5);
 		/* Find out what photon flux this index represents */
 
-		if (light_val<0) light_val=0;
-		if (light_val>65535) light_val=65535;
+		if (light_val < 0) light_val = 0;
+		if (light_val > 65535) light_val = 65535;
 		/* Clip photon flux for safety */
 
-		if (bigendian) {
-			unsigned val, val2;
-			val = grade<<pos;
-			val2 = (val>>8) | ((val&0xff)<<8);
-			last_content=light_val|((unsigned)val2<<16U);
-		}else{
-			last_content=light_val|((unsigned)grade<<(pos+16U));
-		}
+		val = grade * mult;
+		if (bigendian)
+			val = (val >> 8) | ((val & 0xff) << 8);
+		last_content = light_val | (val << 16);
 
-		table[j]=last_content;
+		table[j] = last_content;
 		/* Save index and photon flux. */
 	}
 	if (x_slow_fpu == -1) slow_fpu = 0;	/* if loop passed once without
@@ -762,22 +762,22 @@ static void make_16_table(int *table, int bits, int pos, float gamma, int dump_t
 	if (gamma_bits == 2 && x_slow_fpu == 1) slow_fpu = 1;
 }
 
-static void make_red_table(int bits, int pos, int dump_t2c, int be)
+static void make_red_table(int values, int mult, int be)
 {
 	red_table = xrealloc(red_table, 65536 * sizeof(*red_table));
-	make_16_table(red_table,bits,pos,(float)display_red_gamma,dump_t2c, be);
+	make_16_table(red_table, values, mult, (float)display_red_gamma, be);
 }
 
-static void make_green_table(int bits, int pos, int dump_t2c, int be)
+static void make_green_table(int values, int mult, int be)
 {
 	green_table = xrealloc(green_table, 65536 * sizeof(*green_table));
-	make_16_table(green_table,bits,pos,(float)display_green_gamma,dump_t2c, be);
+	make_16_table(green_table, values, mult, (float)display_green_gamma, be);
 }
 
-static void make_blue_table(int bits, int pos,int dump_t2c, int be)
+static void make_blue_table(int values, int mult, int be)
 {
 	blue_table = xrealloc(blue_table, 65536 * sizeof(*blue_table));
-	make_16_table(blue_table,bits,pos,(float)display_blue_gamma, dump_t2c, be);
+	make_16_table(blue_table, values, mult, (float)display_blue_gamma, be);
 }
 
 void dither(unsigned short *in, struct bitmap *out)
@@ -812,12 +812,12 @@ static void make_round_tables(void)
 	int a;
 	unsigned short v;
 
-	for (a=0;a<256;a++){
+	for (a = 0; a < 256; a++) {
 		/* a is sRGB coordinate */
-		v=ags_8_to_16((unsigned char)a,(float)((float)user_gamma/(float)sRGB_gamma));
-		round_red_table[a]=red_table[v >> (8 - 8 * table_16)] & 0xffff;
-		round_green_table[a]=green_table[v >> (8 - 8 * table_16)] & 0xffff;
-		round_blue_table[a]=blue_table[v >> (8 - 8 * table_16)] & 0xffff;
+		v = ags_8_to_16((unsigned char)a, (float)(user_gamma / sRGB_gamma));
+		round_red_table[a] = red_table[v >> (8 - 8 * table_16)] & 0xffff;
+		round_green_table[a] = green_table[v >> (8 - 8 * table_16)] & 0xffff;
+		round_blue_table[a] = blue_table[v >> (8 - 8 * table_16)] & 0xffff;
 	}
 }
 
@@ -858,59 +858,77 @@ static void compress_tables(void)
 void init_dither(int depth)
 {
 	table_16 = 1;
-	switch(depth){
+	switch (depth) {
 		case 33:
 		/* 4bpp, 1Bpp */
-		make_red_table(1,3,0,0);
-		make_green_table(2,1,0,0);
-		make_blue_table(1,0,0,0);
-		dither_fn_internal=dither_1byte;
-		round_fn=round_1byte;
+		make_red_table(1 << 1, 1 << 3, 0);
+		make_green_table(1 << 2, 1 << 1, 0);
+		make_blue_table(1 << 1, 1 << 0, 0);
+		dither_fn_internal = dither_1byte;
+		round_fn = round_1byte;
+		break;
+
+		case 801:
+		/* 8bpp, 1Bpp, 1x1x1 */
+		make_red_table(1 << 1, 1 << 2, 0);
+		make_green_table(1 << 1, 1 << 1, 0);
+		make_blue_table(1 << 1, 1 << 0, 0);
+		dither_fn_internal = dither_1byte;
+		round_fn = round_1byte;
 		break;
 
 		case 65:
-		/* 8 bpp, 1 Bpp */
-		make_red_table(3,5,0,0);
-		make_green_table(3,2,0,0);
-		make_blue_table(2,0,0,0);
-		dither_fn_internal=dither_1byte;
-		round_fn=round_1byte;
+		/* 8 bpp, 1Bpp */
+		make_red_table(1 << 3, 1 << 5, 0);
+		make_green_table(1 << 3, 1 << 2, 0);
+		make_blue_table(1 << 2, 1 << 0, 0);
+		dither_fn_internal = dither_1byte;
+		round_fn = round_1byte;
+		break;
+
+		case 833:
+		/* 8bpp, 1Bpp, 6x6x6 */
+		make_red_table(6, 36, 0);
+		make_green_table(6, 6, 0);
+		make_blue_table(6, 1, 0);
+		dither_fn_internal = dither_1byte;
+		round_fn = round_1byte;
 		break;
 
 		case 122:
 		/* 15bpp, 2Bpp */
-		make_red_table(5,10,1,0);
-		make_green_table(5,5,1,0);
-		make_blue_table(5,0,1,0);
-		dither_fn_internal=dither_2byte;
-		round_fn=round_2byte;
+		make_red_table(1 << 5, 1 << 10, 0);
+		make_green_table(1 << 5, 1 << 5, 0);
+		make_blue_table(1 << 5, 1 << 0, 0);
+		dither_fn_internal = dither_2byte;
+		round_fn = round_2byte;
 		break;
 
 		case 378:
-		/* 15bpp, 2Bpp, disordered (I have a mental disorder) */
-		make_red_table(5,10,1,1);
-		make_green_table(5,5,1,1);
-		make_blue_table(5,0,1,1);
-		dither_fn_internal=dither_2byte;
-		round_fn=round_2byte;
+		/* 15bpp, 2Bpp, disordered (1 << I have a mental disorder) */
+		make_red_table(1 << 5, 1 << 10, 1);
+		make_green_table(1 << 5, 1 << 5, 1);
+		make_blue_table(1 << 5, 1 << 0, 1);
+		dither_fn_internal = dither_2byte;
+		round_fn = round_2byte;
 		break;
 
 		case 130:
 		/* 16bpp, 2Bpp */
-		make_red_table(5,11,1,0);
-		make_green_table(6,5,1,0);
-		make_blue_table(5,0,1,0);
-		dither_fn_internal=dither_2byte;
-		round_fn=round_2byte;
+		make_red_table(1 << 5, 1 << 11, 0);
+		make_green_table(1 << 6, 1 << 5, 0);
+		make_blue_table(1 << 5, 1 << 0, 0);
+		dither_fn_internal = dither_2byte;
+		round_fn = round_2byte;
 		break;
 
 		case 386:
 		/* 16bpp, 2Bpp, disordered */
-		make_red_table(5,11,1,1);
-		make_green_table(6,5,1,1);
-		make_blue_table(5,0,1,1);
-		dither_fn_internal=dither_2byte;
-		round_fn=round_2byte;
+		make_red_table(1 << 5, 1 << 11, 1);
+		make_green_table(1 << 6, 1 << 5, 1);
+		make_blue_table(1 << 5, 1 << 0, 1);
+		dither_fn_internal = dither_2byte;
+		round_fn = round_2byte;
 		break;
 
 		case 451:
@@ -918,11 +936,11 @@ void init_dither(int depth)
 		 * Even this is dithered!
 		 * R G B
 		 */
-		make_red_table(8,0,0,0);
-		make_green_table(8,0,0,0);
-		make_blue_table(8,0,0,0);
-		dither_fn_internal=dither_451;
-		round_fn=round_451;
+		make_red_table(1 << 8, 1 << 0, 0);
+		make_green_table(1 << 8, 1 << 0, 0);
+		make_blue_table(1 << 8, 1 << 0, 0);
+		dither_fn_internal = dither_451;
+		round_fn = round_451;
 		break;
 
 		case 195:
@@ -930,11 +948,11 @@ void init_dither(int depth)
 		 * Even this is dithered!
 		 * B G R
 		 */
-		make_red_table(8,0,0,0);
-		make_green_table(8,0,0,0);
-		make_blue_table(8,0,0,0);
-		dither_fn_internal=dither_195;
-		round_fn=round_195;
+		make_red_table(1 << 8, 1 << 0, 0);
+		make_green_table(1 << 8, 1 << 0, 0);
+		make_blue_table(1 << 8, 1 << 0, 0);
+		dither_fn_internal = dither_195;
+		round_fn = round_195;
 		break;
 
 		case 452:
@@ -942,11 +960,11 @@ void init_dither(int depth)
 		 * Even this is dithered!
 		 * 0 B G R
 		 */
-		make_red_table(8,0,0,0);
-		make_green_table(8,0,0,0);
-		make_blue_table(8,0,0,0);
-		dither_fn_internal=dither_452;
-		round_fn=round_452;
+		make_red_table(1 << 8, 1 << 0, 0);
+		make_green_table(1 << 8, 1 << 0, 0);
+		make_blue_table(1 << 8, 1 << 0, 0);
+		dither_fn_internal = dither_452;
+		round_fn = round_452;
 		break;
 
 		case 196:
@@ -954,11 +972,11 @@ void init_dither(int depth)
 		 * Even this is dithered!
 		 * B G R 0
 		 */
-		make_red_table(8,0,0,0);
-		make_green_table(8,0,0,0);
-		make_blue_table(8,0,0,0);
-		dither_fn_internal=dither_196;
-		round_fn=round_196;
+		make_red_table(1 << 8, 1 << 0, 0);
+		make_green_table(1 << 8, 1 << 0, 0);
+		make_blue_table(1 << 8, 1 << 0, 0);
+		dither_fn_internal = dither_196;
+		round_fn = round_196;
 		break;
 
 		case 708:
@@ -966,19 +984,43 @@ void init_dither(int depth)
 		 * Even this is dithered!
 		 * 0 R G B
 		 */
-		make_red_table(8,0,0,0);
-		make_green_table(8,0,0,0);
-		make_blue_table(8,0,0,0);
-		dither_fn_internal=dither_708;
-		round_fn=round_708;
+		make_red_table(1 << 8, 1 << 0, 0);
+		make_green_table(1 << 8, 1 << 0, 0);
+		make_blue_table(1 << 8, 1 << 0, 0);
+		dither_fn_internal = dither_708;
+		round_fn = round_708;
+		break;
+
+		case 15555:
+		/* 24bpp, 3Bpp, downsampled to 15bit
+		 * B G R
+		 */
+		make_red_table(1 << 5, 1 << 3, 0);
+		make_green_table(1 << 5, 1 << 3, 0);
+		make_blue_table(1 << 5, 1 << 3, 0);
+		dither_fn_internal = dither_195;
+		round_fn = round_195;
+		break;
+
+		case 16579:
+		/* 24bpp, 3Bpp, downsampled to 16bit
+		 * B G R
+		 */
+		make_red_table(1 << 5, 1 << 3, 0);
+		make_green_table(1 << 6, 1 << 2, 0);
+		make_blue_table(1 << 5, 1 << 3, 0);
+		dither_fn_internal = dither_195;
+		round_fn = round_195;
 		break;
 
 		default:
-		internal("Graphics driver returned unsupported \
-pixel memory organisation %d",depth);
+		internal("Graphics driver returned unsupported pixel memory organisation %d",depth);
 	}
 	compress_tables();
 	make_round_tables();
+
+	gamma_cache_rgb = -2;
+	gamma_stamp++;
 }
 
 /* Input is in sRGB space (unrounded, i. e. directly from HTML)

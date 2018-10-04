@@ -108,8 +108,25 @@ void add_unsigned_long_num_to_str(unsigned char **s, int *l, unsigned long n)
 void add_num_to_str(unsigned char **s, int *l, off_t n)
 {
 	unsigned char a[64];
-	snzprint(a, 64, n);
-	add_to_str(s, l, a);
+	if (n >= 0 && n < 1000) {
+		unsigned sn = (unsigned)n;
+		unsigned char *p = a;
+		if (sn >= 100) {
+			*p++ = '0' + sn / 100;
+			sn %= 100;
+			goto d10;
+		}
+		if (sn >= 10) {
+			d10:
+			*p++ = '0' + sn / 10;
+			sn %= 10;
+		}
+		*p++ = '0' + sn;
+		add_bytes_to_str(s, l, a, p - a);
+	} else {
+		snzprint(a, 64, n);
+		add_to_str(s, l, a);
+	}
 }
 
 void add_knum_to_str(unsigned char **s, int *l, off_t n)

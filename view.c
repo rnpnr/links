@@ -32,6 +32,24 @@ struct view_state *create_vs(void)
 	return vs;
 }
 
+/* FIXME: remove */
+static void free_format_text_cache_entry(struct form_state *fs)
+{
+	struct format_text_cache_entry *ftce = fs->ftce;
+	if (!ftce)
+		return;
+	fs->ftce = NULL;
+	free(ftce);
+}
+
+/* FIXME: remove */
+static void free_form_state(struct form_state *fs)
+{
+	free_format_text_cache_entry(fs);
+	if (fs->string)
+		free(fs->string);
+}
+
 void destroy_vs(struct view_state *vs)
 {
 	int i;
@@ -39,8 +57,11 @@ void destroy_vs(struct view_state *vs)
 		if (vs->refcount < 0) internal("destroy_vs: view_state refcount underflow");
 		return;
 	}
-	for (i = 0; i < vs->form_info_len; i++)
-		free(vs->form_info[i].value);
+	for (i = 0; i < vs->form_info_len; i++) {
+		free(vs->form_info[i].string);
+		free(vs->form_info[i].ftce);
+		vs->form_info[i].ftce = NULL;
+	}
 	free(vs->form_info);
 	free(vs);
 }
@@ -153,8 +174,8 @@ void sort_links(struct f_data *f)
 unsigned char *textptr_add(unsigned char *t, int i, int cp)
 {
 	if (cp) {
-		if ((size_t)i <= strlen(cast_const_char t)) return t + i;
-		else return t + strlen(cast_const_char t);
+		if (i) t += strnlen(cast_const_char t, i);
+		return t;
 	} else {
 		while (i-- && *t) FWD_UTF_8(t);
 		return t;
@@ -175,36 +196,58 @@ int textptr_diff(unsigned char *t2, unsigned char *t1, int cp)
 	}
 }
 
-static struct line_info *format_text_uncached(unsigned char *text, int width, int wrap, int cp)
+static struct format_text_cache_entry *format_text_uncached(unsigned char *text, int width, int wrap, int cp)
 {
-	struct line_info *ln = NULL;
+	unsigned char *text_start = text;
+	struct format_text_cache_entry *ftce;
+	int lnn_allocated = ALLOC_GR;
 	int lnn = 0;
 	unsigned char *b = text;
 	int sk, ps = 0;
+	int xpos = 0;
+	unsigned char *last_space = NULL;
+	int last_space_xpos = 0;
+
+	ftce = xmalloc(sizeof(struct format_text_cache_entry) - sizeof(struct line_info) + lnn_allocated * sizeof(struct line_info));
+
+	ftce->width = width;
+	ftce->wrap = wrap;
+	ftce->cp = cp;
+	ftce->last_state = -1;
+
 	while (*text) {
-		unsigned char *s;
 		if (*text == '\n') {
 			sk = 1;
 			put:
-			if (!(lnn & (ALLOC_GR-1))) {
-				if ((unsigned)lnn > INT_MAX / sizeof(struct line_info) - ALLOC_GR)
+			if (lnn == lnn_allocated) {
+				if ((unsigned)lnn_allocated > INT_MAX / sizeof(struct line_info) - ALLOC_GR)
 					overalloc();
-				ln = xrealloc(ln, (lnn + ALLOC_GR) * sizeof(struct line_info));
+				ftce = xrealloc(ftce, sizeof(struct format_text_cache_entry) - sizeof(struct line_info) + lnn_allocated * sizeof(struct line_info));
 			}
-			ln[lnn].st = b;
-			ln[lnn++].en = text;
+			ftce->ln[lnn].st_offs = (int)(b - text_start);
+			ftce->ln[lnn].en_offs = (int)(text - text_start);
+			ftce->ln[lnn++].chars = xpos;
 			b = text += sk;
+			xpos = 0;
+			last_space = NULL;
 			continue;
 		}
-		if (!wrap || textptr_diff(text, b, cp) < width) {
+		if (*text == ' ') {
+			last_space = text;
+			last_space_xpos = xpos;
+		}
+		if (!wrap || xpos < width) {
 			if (cp)
 				text++;
 			else FWD_UTF_8(text);
+			xpos++;
 			continue;
 		}
-		for (s = text; s >= b; s--) if (*s == ' ') {
-			text = s;
+		if (last_space) {
+			text = last_space;
+			xpos = last_space_xpos;
 			if (wrap == 2) {
+				unsigned char *s = last_space;
 				*s = '\n';
 				for (s++; *s; s++) if (*s == '\n') {
 					if (s[1] != '\n') *s = ' ';
@@ -217,96 +260,73 @@ static struct line_info *format_text_uncached(unsigned char *text, int width, in
 		sk = 0;
 		goto put;
 	}
-	if (ps < 2) {
+	if (ps < 1) {
 		ps++;
 		sk = 0;
 		goto put;
 	}
-	ln[lnn - 1].st = ln[lnn - 1].en = NULL;
-	return ln;
+	ftce->n_lines = lnn;
+	return ftce;
 }
 
-struct format_text_cache_entry {
-	list_entry_1st
-	unsigned char *text_ptr;
-	int text_len;
-	int width;
-	int wrap;
-	int cp;
-	struct line_info *ln;
-	list_entry_last
-	unsigned char copied_text[1];
-};
-
-#define MAX_FORMAT_TEXT_CACHE_ENTRIES		5
-
-static struct list_head format_text_cache = { &format_text_cache, &format_text_cache };
-static int format_text_cache_entries = 0;
-
-static void free_format_text_cache_entry(void)
+struct format_text_cache_entry *format_text(struct f_data_c *fd, struct form_control *fc, struct form_state *fs)
 {
-	struct format_text_cache_entry *ftce = list_struct(format_text_cache.prev, struct format_text_cache_entry);
-	del_from_list(ftce);
-	format_text_cache_entries--;
-	free(ftce->ln);
-	free(ftce);
+	int width = fc->cols;
+	int wrap = fc->wrap;
+	int cp = fd->f_data->opt.cp;
+	struct format_text_cache_entry *ftce = fs->ftce;
+
+	if (ftce && ftce->width == width && ftce->wrap == wrap && ftce->cp == cp)
+		return fs->ftce;
+	
+	free_format_text_cache_entry(fs);
+
+	ftce = format_text_uncached(fs->string, width, wrap, cp);
+	fs->ftce = ftce;
+	return ftce;
 }
 
-struct line_info *format_text(unsigned char *text, int width, int wrap, int cp)
+static int find_cursor_line(struct format_text_cache_entry *ftce, int state)
+{
+	int res;
+#define LINE_EQ(x, key) (key >= ftce->ln[x].st_offs && (x >= ftce->n_lines - 1 || key < ftce->ln[x + 1].st_offs))
+#define LINE_ABOVE(x, key) (key < ftce->ln[x].st_offs)
+	BIN_SEARCH(ftce->n_lines, LINE_EQ, LINE_ABOVE, state, res);
+#undef LINE_EQ
+#undef LINE_ABOVE
+	return res;
+}
+
+int area_cursor(struct f_data_c *f, struct form_control *fc, struct form_state *fs)
 {
 	struct format_text_cache_entry *ftce;
-	struct list_head *lftce;
-	size_t text_len = strlen(cast_const_char text);
-	foreach(struct format_text_cache_entry, ftce, lftce, format_text_cache) {
-		if ((size_t)ftce->text_len == text_len &&
-		    ftce->text_ptr == text &&
-		    !memcmp(ftce->copied_text, text, text_len) &&
-		    ftce->width == width &&
-		    ftce->wrap == wrap &&
-		    ftce->cp == cp)
-			goto have_it;
-	}
-	if (text_len > INT_MAX - sizeof(struct format_text_cache_entry)) overalloc();
-	ftce = xmalloc(sizeof(struct format_text_cache_entry) + text_len);
-	memcpy(ftce->copied_text, text, text_len + 1);
-	ftce->text_ptr = text;
-	ftce->text_len = (int)text_len;
-	ftce->width = width;
-	ftce->wrap = wrap;
-	ftce->cp = cp;
-	ftce->ln = format_text_uncached(text, width, wrap, cp);
-	add_to_list(format_text_cache, ftce);
-	format_text_cache_entries++;
-	if (format_text_cache_entries > MAX_FORMAT_TEXT_CACHE_ENTRIES)
-		free_format_text_cache_entry();
-have_it:
-	return ftce->ln;
-}
-
-void free_format_text_cache(void)
-{
-	while (format_text_cache_entries)
-		free_format_text_cache_entry();
-}
-
-int area_cursor(struct f_data_c *f, struct form_control *form, struct form_state *fs)
-{
-	struct line_info *ln;
 	int q = 0;
 	int x, y;
-	ln = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-	for (y = 0; ln[y].st; y++) if (fs->value + fs->state >= ln[y].st && fs->value + fs->state < ln[y].en + (ln[y+1].st != ln[y].en)) {
-		x = textptr_diff(fs->value + fs->state, ln[y].st, f->f_data->opt.cp);
-		if (form->wrap && x == form->cols) x--;
-		if (x >= form->cols + fs->vpos) fs->vpos = x - form->cols + 1;
+	ftce = format_text(f, fc, fs);
+	if (ftce->last_state == fs->state && ftce->last_vpos == fs->vpos && ftce->last_vypos == fs->vypos)
+		return fs->ftce->last_cursor;
+	y = find_cursor_line(ftce, fs->state);
+	if (y >= 0) {
+		x = textptr_diff(fs->string + fs->state, fs->string + ftce->ln[y].st_offs, f->f_data->opt.cp);
+		if (fc->wrap && x == fc->cols) x--;
+
+		if (x >= fc->cols + fs->vpos) fs->vpos = x - fc->cols + 1;
 		if (x < fs->vpos) fs->vpos = x;
-		if (y >= form->rows + fs->vypos) fs->vypos = y - form->rows + 1;
+
+		if (fs->vypos > ftce->n_lines - fc->rows) {
+			fs->vypos = ftce->n_lines - fc->rows;
+			if (fs->vypos < 0) fs->vypos = 0;
+		}
+
 		if (y < fs->vypos) fs->vypos = y;
 		x -= fs->vpos;
 		y -= fs->vypos;
-		q = y * form->cols + x;
-		break;
+		q = y * fc->cols + x;
 	}
+	ftce->last_state = fs->state;
+	ftce->last_vpos = fs->vpos;
+	ftce->last_vypos = fs->vypos;
+	ftce->last_cursor = q;
 	return q;
 }
 
@@ -339,7 +359,7 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 			q = 0;
 			if (link->type == L_FIELD) {
 				struct form_state *fs = find_form_state(scr, link->form);
-				q = textptr_diff(fs->value + fs->state, fs->value + fs->vpos, scr->f_data->opt.cp);
+				q = textptr_diff(fs->string + fs->state, fs->string + fs->vpos, scr->f_data->opt.cp);
 			} else if (link->type == L_AREA) {
 				struct form_state *fs = find_form_state(scr, link->form);
 				q = area_cursor(scr, link->form, fs);
@@ -351,7 +371,7 @@ static void draw_link(struct terminal *t, struct f_data_c *scr, int l)
 				int x = link->pos[i].x + xp - vx;
 				int y = link->pos[i].y + yp - vy;
 				if (x >= xp && y >= yp && x < xp+xw && y < yp+yw) {
-					chr *co;
+					const chr *co;
 					co = get_char(t, x, y);
 					scr->link_bg[i].x = x;
 					scr->link_bg[i].y = y;
@@ -573,7 +593,7 @@ static void draw_searched(struct terminal *t, struct f_data_c *scr)
 	if (get_searched(scr, &pt, &len) < 0) return;
 	for (i = 0; i < len; i++) {
 		int x = pt[i].x + xp - vx, y = pt[i].y + yp - vy;
-		chr *co;
+		const chr *co;
 		unsigned char nco;
 		co = get_char(t, x, y);
 		nco = ((co->at >> 3) & 0x07) | ((co->at << 3) & 0x38);
@@ -614,9 +634,9 @@ void fixup_select_state(struct form_control *fc, struct form_state *fs)
 	int inited = 0;
 	int i;
 	retry:
-	if (fs->state >= 0 && fs->state < fc->nvalues && !strcmp(cast_const_char fc->values[fs->state], cast_const_char fs->value)) return;
+	if (fs->state >= 0 && fs->state < fc->nvalues && !strcmp(cast_const_char fc->values[fs->state], cast_const_char fs->string)) return;
 	for (i = 0; i < fc->nvalues; i++) {
-		if (!strcmp(cast_const_char fc->values[i], cast_const_char fs->value)) {
+		if (!strcmp(cast_const_char fc->values[i], cast_const_char fs->string)) {
 			fs->state = i;
 			return;
 		}
@@ -627,25 +647,25 @@ void fixup_select_state(struct form_control *fc, struct form_state *fs)
 		goto retry;
 	}
 	fs->state = 0;
-	free(fs->value);
-	if (fc->nvalues) fs->value = stracpy(fc->values[0]);
-	else fs->value = stracpy(cast_uchar "");
+	free(fs->string);
+	if (fc->nvalues) fs->string = stracpy(fc->values[0]);
+	else fs->string = stracpy(cast_uchar "");
 }
 
 static void init_ctrl(struct form_control *form, struct form_state *fs)
 {
-	free(fs->value);
-	fs->value = NULL;
+	free(fs->string);
+	fs->string = NULL;
 	switch (form->type) {
 		case FC_TEXT:
 		case FC_PASSWORD:
 		case FC_TEXTAREA:
-			fs->value = stracpy(form->default_value);
+			fs->string = stracpy(form->default_value);
 			fs->state = (int)strlen(cast_const_char form->default_value);
 			fs->vpos = 0;
 			break;
 		case FC_FILE:
-			fs->value = stracpy(cast_uchar "");
+			fs->string = stracpy(cast_uchar "");
 			fs->state = 0;
 			fs->vpos = 0;
 			break;
@@ -654,7 +674,7 @@ static void init_ctrl(struct form_control *form, struct form_state *fs)
 			fs->state = form->default_state;
 			break;
 		case FC_SELECT:
-			fs->value = stracpy(form->default_value);
+			fs->string = stracpy(form->default_value);
 			fs->state = form->default_state;
 			fixup_select_state(form, fs);
 			break;
@@ -678,7 +698,7 @@ struct form_state *find_form_state(struct f_data_c *f, struct form_control *form
 		fs = &vs->form_info[n];
 	}
 	if (fs->form_num == form->form_num && fs->ctrl_num == form->ctrl_num && fs->g_ctrl_num == form->g_ctrl_num && /*fs->position == form->position &&*/ fs->type == form->type) return fs;
-	free(fs->value);
+	free_form_state(fs);
 	memset(fs, 0, sizeof(struct form_state));
 	fs->form_num = form->form_num;
 	fs->ctrl_num = form->ctrl_num;
@@ -708,8 +728,9 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 	fs = find_form_state(f, form);
 	switch (form->type) {
 		unsigned char *s;
-		struct line_info *ln, *lnx;
-		int sl;
+		struct format_text_cache_entry *ftce;
+		int lid;
+
 		case FC_TEXT:
 		case FC_PASSWORD:
 		case FC_FILE:
@@ -717,20 +738,20 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 				if (fs->state >= fs->vpos + form->size) fs->vpos = fs->state - form->size + 1;
 				if (fs->state < fs->vpos) fs->vpos = fs->state;
 				*/
-			if ((size_t)fs->vpos > strlen(cast_const_char fs->value)) fs->vpos = (int)strlen(cast_const_char fs->value);
-			while ((size_t)fs->vpos < strlen(cast_const_char fs->value) && textptr_diff(fs->value + fs->state, fs->value + fs->vpos, f->f_data->opt.cp) >= form->size) {
-				unsigned char *p = fs->value + fs->vpos;
+			if ((size_t)fs->vpos > strlen(cast_const_char fs->string)) fs->vpos = (int)strlen(cast_const_char fs->string);
+			while ((size_t)fs->vpos < strlen(cast_const_char fs->string) && textptr_diff(fs->string + fs->state, fs->string + fs->vpos, f->f_data->opt.cp) >= form->size) {
+				unsigned char *p = fs->string + fs->vpos;
 				FWD_UTF_8(p);
-				fs->vpos = (int)(p - fs->value);
+				fs->vpos = (int)(p - fs->string);
 			}
 			while (fs->vpos > fs->state) {
-				unsigned char *p = fs->value + fs->vpos;
-				BACK_UTF_8(p, fs->value);
-				fs->vpos = (int)(p - fs->value);
+				unsigned char *p = fs->string + fs->vpos;
+				BACK_UTF_8(p, fs->string);
+				fs->vpos = (int)(p - fs->string);
 			}
 			if (!l->n) break;
 			x = l->pos[0].x + xp - vx; y = l->pos[0].y + yp - vy;
-			s = fs->value + fs->vpos;
+			s = fs->string + fs->vpos;
 			for (i = 0; i < form->size; i++, x++) {
 				unsigned ch;
 				if (!*s) {
@@ -754,18 +775,13 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 			if (!l->n) break;
 			x = l->pos[0].x + xp - vx; y = l->pos[0].y + yp - vy;
 			area_cursor(f, form, fs);
-			lnx = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-			ln = lnx;
-			sl = fs->vypos;
-			while (ln->st && sl) {
-				sl--;
-				ln++;
-			}
-			for (; ln->st && y < l->pos[0].y + yp - vy + form->rows; ln++, y++) {
-				s = textptr_add(ln->st, fs->vpos, f->f_data->opt.cp);
+			ftce = format_text(f, form, fs);
+			lid = fs->vypos;
+			for (; lid < ftce->n_lines && y < l->pos[0].y + yp - vy + form->rows; lid++, y++) {
+				s = textptr_add(fs->string, ftce->ln[lid].st_offs, f->f_data->opt.cp);
 				for (i = 0; i < form->cols; i++) {
 					unsigned ch;
-					if (s >= ln->en) {
+					if (s >= fs->string + ftce->ln[lid].en_offs) {
 						ch = '_';
 					} else {
 						if (f->f_data->opt.cp) {
@@ -868,7 +884,7 @@ static unsigned char fr_trans[2][4] = {{0xb3, 0xc3, 0xb4, 0xc5}, {0xc4, 0xc2, 0x
 
 static void set_xchar(struct terminal *t, int x, int y, unsigned dir)
 {
-	chr *co;
+	const chr *co;
 	if (x < 0 || x >= t->x || y < 0 || y >= t->y) return;
 	co = get_char(t, x, y);
 	if (!(co->at & ATTR_FRAME)) return;
@@ -1305,14 +1321,14 @@ static void down(struct session *ses, struct f_data_c *f, int a)
 {
 	int l = f->vs->current_link;
 	if (f->vs->current_link == -1 || !next_in_view(f, f->vs->current_link+1, 1, in_viewy, set_pos_x)) page_down(ses, f, 1);
-	if (l != f->vs->current_link) set_textarea(ses, f, KBD_UP);
+	if (l != f->vs->current_link) set_textarea(ses, f, -1);
 }
 
 static void up(struct session *ses, struct f_data_c *f, int a)
 {
 	int l = f->vs->current_link;
 	if (f->vs->current_link == -1 || !next_in_view(f, f->vs->current_link-1, -1, in_viewy, set_pos_x)) page_up(ses, f, 1);
-	if (l != f->vs->current_link) set_textarea(ses, f, KBD_DOWN);
+	if (l != f->vs->current_link) set_textarea(ses, f, 1);
 }
 
 static void scroll(struct session *ses, struct f_data_c *f, int a)
@@ -1433,10 +1449,10 @@ static void get_succesful_controls(struct f_data_c *f, struct form_control *fc, 
 				case FC_TEXT:
 				case FC_PASSWORD:
 				case FC_FILE:
-					sub->value = stracpy(fs->value);
+					sub->value = stracpy(fs->string);
 					break;
 				case FC_TEXTAREA:
-					sub->value = encode_textarea(fs->value);
+					sub->value = encode_textarea(fs->string);
 					break;
 				case FC_CHECKBOX:
 				case FC_RADIO:
@@ -1446,7 +1462,7 @@ static void get_succesful_controls(struct f_data_c *f, struct form_control *fc, 
 					break;
 				case FC_SELECT:
 					fixup_select_state(form, fs);
-					sub->value = encode_textarea(fs->value);
+					sub->value = encode_textarea(fs->string);
 					break;
 				case FC_IMAGE:
 					if (fi == -1) {
@@ -1927,7 +1943,7 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 			down(ses, f, 0);
 		}
 #ifdef G
-		else g_next_link(f, 1);
+		else g_next_link(f, 1, 1);
 #endif
 		return 1;
 	}
@@ -1961,9 +1977,10 @@ void selected_item(struct terminal *term, void *pitem, void *ses_)
 	form = l->form;
 	fs = find_form_state(f, form);
 	if (item >= 0 && item < form->nvalues) {
+		free_format_text_cache_entry(fs);
 		fs->state = item;
-		free(fs->value);
-		fs->value = stracpy(form->values[item]);
+		free(fs->string);
+		fs->string = stracpy(form->values[item]);
 	}
 	fixup_select_state(form, fs);
 	f->active = 1;
@@ -2003,29 +2020,31 @@ static void set_form_position(struct f_data_c *fd, struct link *l, struct links_
 		int xx = 0, yy = 0; /* against uninitialized warning */
 
 		if (l->type == L_AREA) {
-			struct line_info *ln;
+			struct format_text_cache_entry *ftce;
 
 			if (!find_pos_in_link(fd, l, ev, &xx, &yy)) {
-				int a;
 				xx += fs->vpos;
 				yy += fs->vypos;
-				ln = format_text(fs->value, l->form->cols, l->form->wrap, fd->f_data->opt.cp);
-				for (a = 0; ln[a].st; a++) if (a == yy) {
+				ftce = format_text(fd, l->form, fs);
+				if (yy >= ftce->n_lines)
+					yy = ftce->n_lines - 1;
+				if (yy >= 0) {
 					unsigned char *ptr;
-					fs->state = (int)(ln[a].st - fs->value);
-					ptr = textptr_add(fs->value + fs->state, xx, fd->f_data->opt.cp);
-					if (ptr > ln[a].en) ptr = ln[a].en;
-					fs->state = (int)(ptr - fs->value);
+					fs->state = ftce->ln[yy].st_offs;
+					ptr = textptr_add(fs->string + fs->state, xx, fd->f_data->opt.cp);
+					if (ptr > fs->string + ftce->ln[yy].en_offs)
+						ptr = fs->string + ftce->ln[yy].en_offs;
+					fs->state = (int)(ptr - fs->string);
 					goto br;
 				}
-				fs->state = (int)strlen(cast_const_char fs->value);
+				fs->state = (int)strlen(cast_const_char fs->string);
 				br:;
 			}
 		} else if (l->type == L_FIELD) {
 			if (!find_pos_in_link(fd, l, ev, &xx, &yy)) {
 				unsigned char *ptr;
-				ptr = textptr_add(fs->value + fs->vpos, xx, fd->f_data->opt.cp);
-				fs->state = (int)(ptr - fs->value);
+				ptr = textptr_add(fs->string + fs->vpos, xx, fd->f_data->opt.cp);
+				fs->state = (int)(ptr - fs->string);
 			}
 		}
 
@@ -2063,31 +2082,34 @@ static void set_br_pos(struct f_data_c *fd, struct link *l)
 {
 }
 
-int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev, int rep)
+int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev)
 {
 	struct form_control *form = l->form;
 	struct form_state *fs;
-	int x = 1;
+	int r = 1;
+	struct format_text_cache_entry *ftce;
+	int y;
 
 	if (!form) {
 		internal("link has no form control");
 		return 0;
 	}
-	if (l->form->ro == 2) return 0;
+	if (form->ro == 2) return 0;
 	fs = find_form_state(f, form);
-	if (!fs->value) return 0;
+	if (!fs->string) return 0;
 	if (ev->ev == EV_KBD) {
 		if (!(ev->y & (KBD_CTRL | KBD_ALT)) && ev->x >= ' ') {
 			if (cp2u(ev->x, term_charset(ses->term)) == -1)
 				goto done;
 			set_br_pos(f, l);
-			if (!form->ro && strlen((char *)fs->value) < form->maxlength) {
+			if (!form->ro && strlen((char *)fs->string) < form->maxlength) {
 				unsigned char *v;
 				unsigned char a_[2];
 				unsigned char *nw;
 				int ll;
-				v = fs->value = xrealloc(fs->value,
-							strlen(cast_const_char fs->value) + 12);
+				free_format_text_cache_entry(fs);
+				v = fs->string = xrealloc(fs->string,
+							strlen(cast_const_char fs->string) + 12);
 				if (f->f_data->opt.cp) {
 					nw = a_;
 					a_[0] = (unsigned char)ev->x;
@@ -2106,118 +2128,95 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 		&& ev->x == KBD_ENTER
 		&& form->type == FC_TEXTAREA) {
 			if (!form->ro
-			&& strlen(cast_const_char fs->value) < (size_t)form->maxlength) {
+			&& strlen(cast_const_char fs->string) < (size_t)form->maxlength) {
 				unsigned char *v;
-				v = xrealloc(fs->value,
-					strlen(cast_const_char fs->value) + 2);
-				fs->value = v;
+				free_format_text_cache_entry(fs);
+				v = xrealloc(fs->string,
+					strlen(cast_const_char fs->string) + 2);
+				fs->string = v;
 				memmove(v + fs->state + 1, v + fs->state, strlen(cast_const_char(v + fs->state)) + 1);
 				v[fs->state++] = '\n';
 			}
 			goto done;
 		}
-		if (ev->y & KBD_PASTE) {
-			x = 0;
+		if (ev->y & KBD_PASTING) {
+			r = 0;
 			goto done;
 		}
 		if (ev->x == KBD_LEFT) {
 			if (f->f_data->opt.cp)
 				fs->state = fs->state ? fs->state - 1 : 0;
 			else {
-				unsigned char *p = fs->value + fs->state;
-				BACK_UTF_8(p, fs->value);
-				fs->state = (int)(p - fs->value);
+				unsigned char *p = fs->string + fs->state;
+				BACK_UTF_8(p, fs->string);
+				fs->state = (int)(p - fs->string);
 			}
 		} else if (ev->x == KBD_RIGHT) {
-			if ((size_t)fs->state < strlen(cast_const_char fs->value)) {
+			if ((size_t)fs->state < strlen(cast_const_char fs->string)) {
 				if (f->f_data->opt.cp)
 					fs->state = fs->state + 1;
 				else {
-					unsigned char *p = fs->value + fs->state;
+					unsigned char *p = fs->string + fs->state;
 					FWD_UTF_8(p);
-					fs->state = (int)(p - fs->value);
+					fs->state = (int)(p - fs->string);
 				}
-			} else fs->state = (int)strlen(cast_const_char fs->value);
+			} else fs->state = (int)strlen(cast_const_char fs->string);
 		} else if ((ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL))) {
 			if (form->type == FC_TEXTAREA) {
-				struct line_info *ln;
-				int y;
-				ln = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-				for (y = 0; ln[y].st; y++) if (fs->value + fs->state >= ln[y].st && fs->value + fs->state < ln[y].en + (ln[y+1].st != ln[y].en)) {
-					fs->state = (int)(ln[y].st - fs->value);
+				ftce = format_text(f, form, fs);
+				y = find_cursor_line(ftce, fs->state);
+				if (y >= 0) {
+					fs->state = ftce->ln[y].st_offs;
 					goto done;
 				}
 				fs->state = 0;
 			} else fs->state = 0;
-		} else if (ev->x == KBD_UP) {
-			if (form->type == FC_TEXTAREA) {
-				struct line_info *ln;
-				int y;
-				ln = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-				rep1:
-				for (y = 0; ln[y].st; y++) if (fs->value + fs->state >= ln[y].st && fs->value + fs->state < ln[y].en + (ln[y+1].st != ln[y].en)) {
-					if (!y) {
-						/*if (F) goto xx;*/
-						goto b;
-					}
-					/*fs->state -= ln[y].st - ln[y-1].st;*/
-					fs->state = (int)(textptr_add(ln[y-1].st, textptr_diff(fs->value + fs->state, ln[y].st, f->f_data->opt.cp), f->f_data->opt.cp) - fs->value);
-					if (fs->value + fs->state > ln[y-1].en) fs->state = (int)(ln[y-1].en - fs->value);
-					goto xx;
-				}
-				goto b;
-				xx:
-				if (rep) goto rep1;
-			} else {
-				x = 0;
-				f->vs->brl_in_field = 0;
-			}
-		} else if (ev->x == KBD_DOWN) {
-			if (form->type == FC_TEXTAREA) {
-				struct line_info *ln;
-				int y;
-				ln = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-				rep2:
-				for (y = 0; ln[y].st; y++) if (fs->value + fs->state >= ln[y].st && fs->value + fs->state < ln[y].en + (ln[y+1].st != ln[y].en)) {
-					if (!ln[y+1].st) {
-						/*if (F) goto yy;*/
-						goto b;
-					}
-					/*fs->state += ln[y+1].st - ln[y].st;*/
-					fs->state = (int)(textptr_add(ln[y+1].st, textptr_diff(fs->value + fs->state, ln[y].st, f->f_data->opt.cp), f->f_data->opt.cp) - fs->value);
-					if (fs->value + fs->state > ln[y+1].en) fs->state = (int)(ln[y+1].en - fs->value);
-					goto yy;
-				}
-				goto b;
-				yy:
-				if (rep) goto rep2;
-
-			} else {
-				x = 0;
-				f->vs->brl_in_field = 0;
-			}
 		} else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
 			if (form->type == FC_TEXTAREA) {
-				struct line_info *ln;
-				int y;
-				ln = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-				for (y = 0; ln[y].st; y++) if (fs->value + fs->state >= ln[y].st && fs->value + fs->state < ln[y].en + (ln[y+1].st != ln[y].en)) {
-					fs->state = (int)(ln[y].en - fs->value);
-					if (fs->state && (size_t)fs->state < strlen(cast_const_char fs->value) && ln[y+1].st == ln[y].en) fs->state--;
-					goto yyyy;
+				ftce = format_text(f, form, fs);
+				y = find_cursor_line(ftce, fs->state);
+				if (y >= 0) {
+					fs->state = ftce->ln[y].en_offs;
+					if (fs->state && y < ftce->n_lines - 1 && ftce->ln[y + 1].st_offs == ftce->ln[y].en_offs)
+						fs->state--;
+					goto done;
 				}
-				fs->state = (int)strlen(cast_const_char fs->value);
-				yyyy:;
-			} else fs->state = (int)strlen(cast_const_char fs->value);
-		} else if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
+				fs->state = (int)strlen(cast_const_char fs->string);
+			} else fs->state = (int)strlen(cast_const_char fs->string);
+		} else if (ev->x == KBD_UP) {
+			if (form->type == FC_TEXTAREA) {
+				ftce = format_text(f, form, fs);
+				y = find_cursor_line(ftce, fs->state);
+				if (y > 0) {
+					fs->state = (int)(textptr_add(fs->string + ftce->ln[y - 1].st_offs, textptr_diff(fs->string + fs->state, fs->string + ftce->ln[y].st_offs, f->f_data->opt.cp), f->f_data->opt.cp) - fs->string);
+					if (fs->state > ftce->ln[y - 1].en_offs) fs->state = ftce->ln[y - 1].en_offs;
+				} else
+					goto b;
+			} else r = 0, f->vs->brl_in_field = 0;
+		} else if (ev->x == KBD_DOWN) {
+			if (form->type == FC_TEXTAREA) {
+				ftce = format_text(f, form, fs);
+				y = find_cursor_line(ftce, fs->state);
+				if (y >= 0) {
+					if (y >= ftce->n_lines - 1)
+						goto b;
+					fs->state = (int)(textptr_add(fs->string + ftce->ln[y + 1].st_offs, textptr_diff(fs->string + fs->state, fs->string + ftce->ln[y].st_offs, f->f_data->opt.cp), f->f_data->opt.cp) - fs->string);
+					if (fs->state > ftce->ln[y + 1].en_offs) fs->state = ftce->ln[y + 1].en_offs;
+				} else 
+					goto b;
+			} else r = 0, f->vs->brl_in_field = 0;
+		} else if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL) || ev->x == KBD_COPY) {
 			set_br_pos(f, l);
-			set_clipboard_text(ses->term, fs->value);
-		} else if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'X' && ev->y & KBD_CTRL)) {
+			set_clipboard_text(ses->term, fs->string);
+		} else if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'X' && ev->y & KBD_CTRL) || ev->x == KBD_CUT) {
 			set_br_pos(f, l);
-			set_clipboard_text(ses->term, fs->value);
-			if (!form->ro) fs->value[0] = 0;
+			set_clipboard_text(ses->term, fs->string);
+			if (!form->ro) {
+				free_format_text_cache_entry(fs);
+				fs->string[0] = 0;
+			}
 			fs->state = 0;
-		} else if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL)) {
+		} else if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL) || ev->x == KBD_PASTE) {
 			unsigned char *clipboard;
 			set_br_pos(f, l);
 			clipboard = get_clipboard_text(ses->term);
@@ -2226,28 +2225,30 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				unsigned char *nl = clipboard;
 				while ((nl = cast_uchar strchr(cast_const_char nl, '\n'))) *nl = ' ';
 			}
-			if (!form->ro && strlen((char *)fs->value) + strlen((char *)clipboard) <= form->maxlength) {
+			if (!form->ro && strlen(cast_const_char fs->string) + strlen(cast_const_char clipboard) <= form->maxlength) {
 				unsigned char *v;
-				v = xrealloc(fs->value,
-					strlen(cast_const_char fs->value) + strlen(cast_const_char clipboard) +1);
-				fs->value = v;
+				free_format_text_cache_entry(fs);
+				v = xrealloc(fs->string,
+					strlen(cast_const_char fs->string) + strlen(cast_const_char clipboard) + 1);
+				fs->string = v;
 				memmove(v + fs->state + strlen(cast_const_char clipboard), v + fs->state, strlen(cast_const_char v) - fs->state + 1);
 				memcpy(v + fs->state, clipboard, strlen(cast_const_char clipboard));
 				fs->state += (int)strlen(cast_const_char clipboard);
 			}
 			free(clipboard);
 		} else if (ev->x == KBD_ENTER)
-			x = 0;
+			r = 0;
 		else if (ev->x == KBD_BS) {
 			set_br_pos(f, l);
 			if (!form->ro && fs->state) {
 				int ll = 1;
+				free_format_text_cache_entry(fs);
 				if (!f->f_data->opt.cp) {
-					unsigned char *p = fs->value + fs->state;
-					BACK_UTF_8(p, fs->value);
-					ll = (int)(fs->value + fs->state - p);
+					unsigned char *p = fs->string + fs->state;
+					BACK_UTF_8(p, fs->string);
+					ll = (int)(fs->string + fs->state - p);
 				}
-				memmove(fs->value + fs->state - ll, fs->value + fs->state, strlen(cast_const_char(fs->value + fs->state)) + 1);
+				memmove(fs->string + fs->state - ll, fs->string + fs->state, strlen(cast_const_char(fs->string + fs->state)) + 1);
 				fs->state -= ll;
 			}
 		} else if (ev->x == KBD_DEL || (upcase(ev->x) == 'D' && ev->y & KBD_CTRL)) {
@@ -2256,68 +2257,165 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				return 0;
 			set_br_pos(f, l);
 			if (!f->f_data->opt.cp) {
-				unsigned char *p = fs->value + fs->state;
+				unsigned char *p = fs->string+ fs->state;
 				FWD_UTF_8(p);
-				ll = (int)(p - (fs->value + fs->state));
+				ll = (int)(p - (fs->string+ fs->state));
 			}
-			if (!form->ro && (size_t)fs->state < strlen(cast_const_char fs->value)) {
-				memmove(fs->value + fs->state, fs->value + fs->state + ll, strlen(cast_const_char(fs->value + fs->state + ll)) + 1);
+			if (!form->ro && (size_t)fs->state < strlen(cast_const_char fs->string)) {
+				free_format_text_cache_entry(fs);
+				memmove(fs->string + fs->state, fs->string + fs->state + ll, strlen(cast_const_char(fs->string + fs->state + ll)) + 1);
 			}
 		} else if (upcase(ev->x) == 'U' && ev->y & KBD_CTRL) {
 			unsigned char *a;
 			set_br_pos(f, l);
-			a = memacpy(fs->value, fs->state);
+			a = memacpy(fs->string, fs->state);
 			set_clipboard_text(ses->term, a);
 			free(a);
 			if (!form->ro) {
-				memmove(fs->value, fs->value + fs->state, strlen(cast_const_char(fs->value + fs->state)) + 1);
+				free_format_text_cache_entry(fs);
+				memmove(fs->string, fs->string + fs->state, strlen(cast_const_char(fs->string + fs->state)) + 1);
 			}
 			fs->state = 0;
 		} else if (upcase(ev->x) == 'K' && ev->y & KBD_CTRL) {
 			set_br_pos(f, l);
 			if (!form->ro) {
 				if (form->type == FC_TEXTAREA) {
-					struct line_info *ln, *lnx;
-					lnx = format_text(fs->value, form->cols, form->wrap, f->f_data->opt.cp);
-					for (ln = lnx; ln->st; ln++) {
-						if (!(ln + 1)->st || (ln + 1)->st > fs->value + fs->state) {
-							unsigned l;
-							unsigned char *cp = memacpy(ln->st, ln->en - ln->st);
-							set_clipboard_text(ses->term, cp);
-							free(cp);
-							l = (int)(ln->en - ln->st + ((ln + 1)->st && (ln + 1)->st > ln->en));
-							memmove(ln->st, ln->st + l, strlen(cast_const_char(ln->st + l)) + 1);
-							fs->state = (int)(ln->st - fs->value);
-							break;
-						}
+					ftce = format_text(f, form, fs);
+					y = find_cursor_line(ftce, fs->state);
+					if (y >= 0) {
+						int l = ftce->ln[y].en_offs - ftce->ln[y].st_offs;
+						unsigned char *start_line = fs->string + ftce->ln[y].st_offs;
+						unsigned char *cp = memacpy(start_line, ftce->ln[y].en_offs - ftce->ln[y].st_offs);
+						set_clipboard_text(ses->term, cp);
+						free(cp);
+						l += y < ftce->n_lines - 1 && ftce->ln[y + 1].st_offs > ftce->ln[y].en_offs;
+						memmove(fs->string + ftce->ln[y].st_offs, fs->string + ftce->ln[y].st_offs + l, strlen(cast_const_char(fs->string + ftce->ln[y].st_offs + l)) + 1);
+						fs->state = ftce->ln[y].st_offs;
 					}
 				} else {
-					set_clipboard_text(ses->term, fs->state + fs->value);
-					fs->value[fs->state] = 0;
+					set_clipboard_text(ses->term, fs->state + fs->string);
+					fs->string[fs->state] = 0;
 				}
+				free_format_text_cache_entry(fs);
 			}
 		} else {
 			b:
 			f->vs->brl_in_field = 0;
-			x = 0;
+			r = 0;
 		}
-	} else x = 0;
+	} else if (ev->ev == EV_MOUSE && BM_IS_WHEEL(ev->b) && form->type == FC_TEXTAREA) {
+		int xdiff = 0, ydiff = 0;
+		int x;
+		unsigned char *ap;
+
+		ftce = format_text(f, form, fs);
+		y = find_cursor_line(ftce, fs->state);
+		if (y >= 0)
+			x = textptr_diff(fs->string + fs->state, fs->string + ftce->ln[y].st_offs, f->f_data->opt.cp);
+		else {
+			x = 0;
+			y = 0;
+		}
+			
+		if ((ev->b & BM_BUTT) == B_WHEELUP)
+			ydiff = form->rows >= 5 ? -5 : -form->rows;
+		else if ((ev->b & BM_BUTT) == B_WHEELUP1)
+			ydiff = -1;
+		else if ((ev->b & BM_BUTT) == B_WHEELDOWN)
+			ydiff = form->rows >= 5 ? 5 : form->rows;
+		else if ((ev->b & BM_BUTT) == B_WHEELDOWN1)
+			ydiff = 1;
+		else if ((ev->b & BM_BUTT) == B_WHEELLEFT)
+			xdiff = form->cols >= 5 ? -5 : -form->cols;
+		else if ((ev->b & BM_BUTT) == B_WHEELLEFT1)
+			xdiff = -1;
+		else if ((ev->b & BM_BUTT) == B_WHEELRIGHT)
+			xdiff = form->cols >= 5 ? 5 : form->cols;
+		else if ((ev->b & BM_BUTT) == B_WHEELRIGHT1)
+			xdiff = 1;
+
+		if (ydiff) {
+			int target_y = -1;
+			fs->vypos += ydiff;
+			if (fs->vypos > ftce->n_lines - form->rows) fs->vypos = ftce->n_lines - form->rows;
+			if (fs->vypos < 0) fs->vypos = 0;
+			if (y >= form->rows + fs->vypos) {
+				target_y = form->rows + fs->vypos - 1;
+				if (target_y < 0)
+					target_y = 0;
+			}
+			if (y < fs->vypos)
+				target_y = fs->vypos;
+
+			if (target_y >= 0) {
+				if (target_y >= ftce->n_lines)
+					target_y = ftce->n_lines - 1;
+				fs->state = ftce->ln[target_y].st_offs;
+				if (x > ftce->ln[target_y].chars)
+					x = ftce->ln[target_y].chars;
+				ap = textptr_add(fs->string + fs->state, x, f->f_data->opt.cp);
+				fs->state = (int)(ap - fs->string);
+			}
+		} else if (xdiff) {
+			int j;
+			int maxx = 0;
+			int longest = y;
+			for (j = fs->vypos; j < fs->vypos + form->rows && j < ftce->n_lines; j++) {
+				if (ftce->ln[j].chars > maxx) {
+					maxx = ftce->ln[j].chars;
+					longest = j;
+				}
+			}
+			maxx -= form->cols - 1;
+			if (maxx < 0) maxx = 0;
+			fs->vpos += xdiff;
+			if (fs->vpos < 0) fs->vpos = 0;
+			if (fs->vpos > maxx) fs->vpos = maxx;
+			if (x > fs->vpos + form->cols - 1) {
+				ap = textptr_add(fs->string + ftce->ln[y].st_offs, fs->vpos + form->cols - 1, f->f_data->opt.cp);
+				fs->state = (int)(ap - fs->string);
+			} else if (x < fs->vpos) {
+				ap = textptr_add(fs->string + ftce->ln[y].st_offs, fs->vpos, f->f_data->opt.cp);
+				if (y < ftce->n_lines - 1 && ap >= fs->string + ftce->ln[y + 1].st_offs)
+					ap = textptr_add(fs->string + ftce->ln[longest].st_offs, fs->vpos, f->f_data->opt.cp);
+				fs->state = (int)(ap - fs->string);
+			}
+		}
+		goto done;
+	} else
+		r = 0;
 done:
-	if (!F && x) {
-		if (ev->x == KBD_UP || ev->x == KBD_DOWN
+	if (!F && r) {
+		/* FIXME: test might be broken */
+		if ((ev->ev == EV_KBD && (ev->x == KBD_UP || ev->x == KBD_DOWN))
 		|| form->type != FC_TEXTAREA || textarea_adjust_viewport(f, l))
 			x_draw_form_entry(ses, f, l);
 	}
-	return x;
+	return r;
 }
 
-void set_textarea(struct session *ses, struct f_data_c *f, int kbd)
+void set_textarea(struct session *ses, struct f_data_c *f, int dir)
 {
 	struct link *l = get_current_link(f);
 	if (l && l->type == L_AREA) {
-		struct links_event ev = { EV_KBD, 0, 0, 0 };
-		ev.x = kbd;
-		field_op(ses, f, l, &ev, 1);
+		struct form_control *form = l->form;
+		struct form_state *fs;
+		struct format_text_cache_entry *ftce;
+		int y;
+
+		if (form->ro == 2) return;
+		fs = find_form_state(f, form);
+		if (!fs->string) return;
+
+		ftce = format_text(f, form, fs);
+		y = find_cursor_line(ftce, fs->state);
+		if (y >= 0) {
+			int ty = dir < 0 ? 0 : ftce->n_lines - 1;
+			if (ty < 0) return;
+
+			fs->state = (int)(textptr_add(fs->string + ftce->ln[ty].st_offs, textptr_diff(fs->string + fs->state, fs->string + ftce->ln[y].st_offs, f->f_data->opt.cp), f->f_data->opt.cp) - fs->string);
+			if (fs->state > ftce->ln[ty].en_offs) fs->state = ftce->ln[ty].en_offs;
+		}
 	}
 }
 
@@ -2523,14 +2621,14 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 
 	if (!fd || !fd->vs || !fd->f_data) return 0;
 	if (fd->vs->current_link >= 0 && (fd->f_data->links[fd->vs->current_link].type == L_FIELD || fd->f_data->links[fd->vs->current_link].type == L_AREA)) {
-		if (field_op(ses, fd, &fd->f_data->links[fd->vs->current_link], ev, 0)) {
+		if (field_op(ses, fd, &fd->f_data->links[fd->vs->current_link], ev)) {
 			fd->last_captured = 1;
 			fd->vs->brl_in_field = 1;
 			return 1;
 		}
 	}
 	fd->last_captured = 0;
-	if (ev->ev == EV_KBD && !(ev->y & KBD_PASTE)) {
+	if (ev->ev == EV_KBD && !(ev->y & KBD_PASTING)) {
 		if (ev->x >= '0'+!ses->kbdprefix.rep && ev->x <= '9' && (!fd->f_data->opt.num_links || (ev->y & (KBD_CTRL | KBD_ALT)))) {
 			if (!ses->kbdprefix.rep) ses->kbdprefix.rep_num = 0;
 			if ((ses->kbdprefix.rep_num = ses->kbdprefix.rep_num * 10 + ev->x - '0') > 65536) ses->kbdprefix.rep_num = 65536;
@@ -2549,8 +2647,8 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 				free(current_link);
 			}
 		}
-		else if (ev->x == KBD_INS || (upcase(ev->x) == 'P' && ev->y & KBD_CTRL) || (upcase(ev->x) == 'P' && !(ev->y & (KBD_CTRL | KBD_ALT)))) rep_ev(ses, fd, scroll, -1 - !ses->kbdprefix.rep);
-		else if (ev->x == KBD_DEL || (upcase(ev->x) == 'N' && ev->y & KBD_CTRL) || (upcase(ev->x) == 'L' && !(ev->y & (KBD_CTRL | KBD_ALT)))) rep_ev(ses, fd, scroll, 1 + !ses->kbdprefix.rep);
+		else if (ev->x == KBD_INS || (upcase(ev->x) == 'P' && ev->y & KBD_CTRL) || (ev->x == 'p' && !(ev->y & (KBD_CTRL | KBD_ALT)))) rep_ev(ses, fd, scroll, -1 - !ses->kbdprefix.rep);
+		else if (ev->x == KBD_DEL || (upcase(ev->x) == 'N' && ev->y & KBD_CTRL) || (ev->x == 'l' && !(ev->y & (KBD_CTRL | KBD_ALT)))) rep_ev(ses, fd, scroll, 1 + !ses->kbdprefix.rep);
 		else if (ev->x == '[') rep_ev(ses, fd, hscroll, -1 - 7 * !ses->kbdprefix.rep);
 		else if (ev->x == ']') rep_ev(ses, fd, hscroll, 1 + 7 * !ses->kbdprefix.rep);
 		else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) rep_ev(ses, fd, home, 0);
@@ -2567,11 +2665,13 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 			if (!anonymous) frm_download_image(ses, fd);
 		} else if (upcase(ev->x) == 'D' && !(ev->y & KBD_ALT)) {
 			if (!anonymous) frm_download(ses, fd);
-		} else if (ev->x == '/') search_dlg(ses, fd, 0);
-		else if (ev->x == '?') search_back_dlg(ses, fd, 0);
-		else if (ev->x == 'n' && !(ev->y & KBD_ALT)) find_next(ses, fd, 0);
-		else if (ev->x == 'N' && !(ev->y & KBD_ALT)) find_next_back(ses, fd, 0);
-		else if (upcase(ev->x) == 'F' && !(ev->y & (KBD_ALT | KBD_CTRL))) set_frame(ses, fd, 0);
+		} else if (ev->x == '/' || (ev->x == KBD_FIND && !(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT)))) search_dlg(ses, fd, 0);
+		else if (ev->x == '?' || (ev->x == KBD_FIND && ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT))) search_back_dlg(ses, fd, 0);
+		else if ((ev->x == 'n' && !(ev->y & KBD_ALT)) || ev->x == KBD_REDO) find_next(ses, fd, 0);
+		else if ((ev->x == 'N' && !(ev->y & KBD_ALT)) || ev->x == KBD_UNDO) find_next_back(ses, fd, 0);
+		else if ((upcase(ev->x) == 'F' && !(ev->y & (KBD_ALT | KBD_CTRL))) || ev->x == KBD_FRONT) set_frame(ses, fd, 0);
+		else if (ev->x == 'H' && !(ev->y & (KBD_CTRL | KBD_ALT))) find_link(fd, 1, 1);
+		else if (ev->x == 'L' && !(ev->y & (KBD_CTRL | KBD_ALT))) find_link(fd, -1, 1);
 		else if (ev->x >= '1' && ev->x <= '9' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
 			struct f_data *f_data = fd->f_data;
 			int nl, lnl;
@@ -2772,8 +2872,8 @@ void send_event(struct session *ses, struct links_event *ev)
 	}
 	if (ev->ev == EV_KBD) {
 		if (send_to_frame(ses, ev)) return;
-		if (ev->y & KBD_PASTE) goto x;
-		if (ev->y & KBD_ALT && ev->x != KBD_TAB) {
+		if (ev->y & KBD_PASTING) goto x;
+		if (ev->y & KBD_ALT && ev->x != KBD_TAB && !KBD_ESCAPE_MENU(ev->x)) {
 			struct window *m;
 			ev->y &= ~KBD_ALT;
 			activate_bfu_technology(ses, -1);
@@ -2784,7 +2884,7 @@ void send_event(struct session *ses, struct links_event *ev)
 			} else goto x;
 			ev->y |= KBD_ALT;
 		}
-		if (ev->x == KBD_F1) {
+		if (ev->x == KBD_F1 || ev->x == KBD_HELP) {
 			activate_keys(ses);
 			goto x;
 		}
@@ -2804,32 +2904,24 @@ void send_event(struct session *ses, struct links_event *ev)
 			go_back(ses, 1);
 			goto x;
 		}
-		if (upcase(ev->x) == 'Z' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+		if ((upcase(ev->x) == 'Z' && !(ev->y & (KBD_CTRL | KBD_ALT))) || ev->x == KBD_BS || ev->x == KBD_BACK) {
 			go_back(ses, 1);
 			goto x;
 		}
-		if (ev->x == '\'') {
+		if ((upcase(ev->x) == 'X' && !(ev->y & (KBD_CTRL | KBD_ALT))) || ev->x == '\'' || ev->x == KBD_FORWARD) {
 			go_back(ses, -1);
 			goto x;
 		}
-		if (upcase(ev->x) == 'X' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
-			go_back(ses, -1);
-			goto x;
-		}
-		if (ev->x == KBD_BS) {
-			go_back(ses, 1);
-			goto x;
-		}
-		if (upcase(ev->x) == 'R' && ev->y & KBD_CTRL) {
+		if ((upcase(ev->x) == 'R' && ev->y & KBD_CTRL) || ev->x == KBD_RELOAD) {
 			reload(ses, -1);
 			goto x;
 		}
-		if (ev->x == 'g' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+		if ((ev->x == 'g' && !(ev->y & (KBD_CTRL | KBD_ALT))) || (ev->x == KBD_OPEN && !(ev->y & (KBD_SHIFT | KBD_CTRL)))) {
 			quak:
 			dialog_goto_url(ses, cast_uchar "");
 			goto x;
 		}
-		if (ev->x == 'G' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+		if ((ev->x == 'G' && !(ev->y & (KBD_CTRL | KBD_ALT))) || (ev->x == KBD_OPEN && ev->y & KBD_SHIFT)) {
 			unsigned char *s;
 			if (list_empty(ses->history) || !ses->screen->rq->url) goto quak;
 			s = display_url(ses->term, ses->screen->rq->url, 0);
@@ -2837,7 +2929,7 @@ void send_event(struct session *ses, struct links_event *ev)
 			free(s);
 			goto x;
 		}
-		if (upcase(ev->x) == 'G' && ev->y & KBD_CTRL) {
+		if ((upcase(ev->x) == 'G' && ev->y & KBD_CTRL) || (ev->x == KBD_OPEN && ev->y & KBD_CTRL)) {
 			struct f_data_c *fd = current_frame(ses);
 			unsigned char *s;
 			if (!fd->vs || !fd->f_data || fd->vs->current_link < 0 || fd->vs->current_link >= fd->f_data->nlinks) goto quak;
@@ -2846,13 +2938,17 @@ void send_event(struct session *ses, struct links_event *ev)
 			free(s);
 			goto x;
 		}
+		if (ev->x == KBD_PROPS) {
+			dialog_html_options(ses);
+			goto x;
+		}
 		/*
 		if (upcase(ev->x) == 'A' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
 			if (!anonymous) menu_bookmark_manager(ses->term, NULL, ses);
 			goto x;
 		}
 		*/
-		if (upcase(ev->x) == 'S' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+		if ((upcase(ev->x) == 'S' && !(ev->y & (KBD_CTRL | KBD_ALT))) || ev->x == KBD_BOOKMARKS) {
 			if (!anonymous) menu_bookmark_manager(ses->term, NULL, ses);
 			goto x;
 		}
@@ -2888,7 +2984,10 @@ void send_event(struct session *ses, struct links_event *ev)
 		}
 #ifdef G
 		if (ses->locked_link) {
-			if ((ev->b & BM_ACT) != B_MOVE) {
+			if (BM_IS_WHEEL(ev->b)) {
+				send_to_frame(ses, ev);
+				return;
+			} else if ((ev->b & BM_ACT) != B_MOVE) {
 				ses->locked_link = 0;
 				clr_xl(ses->screen);
 				draw_formatted(ses);

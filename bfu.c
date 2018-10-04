@@ -416,7 +416,7 @@ static void display_menu_item_gfx(struct terminal *term, struct menu *menu, int 
 			g_print_text(dev, p, y, bfu_style_bw, menu->hktxt3[it], &p);
 		}
 		if (!*rtext) {
-			drv->set_clip_area(dev, &r);
+			set_clip_area(dev, &r);
 			if (p > menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER) p = menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER;
 			if (it != menu->selected)
 				drv->fill_area(dev, p, y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + G_BFU_FONT_SIZE, bfu_bg_color);
@@ -427,7 +427,7 @@ static void display_menu_item_gfx(struct terminal *term, struct menu *menu, int 
 			if (s < p) s = p;
 			drv->fill_area(dev, p, y, s, y + G_BFU_FONT_SIZE, it != menu->selected ? bfu_bg_color : bfu_fg_color);
 			g_print_text(dev, s, y, it != menu->selected ? bfu_style_bw : bfu_style_wb, rtext, NULL);
-			drv->set_clip_area(dev, &r);
+			set_clip_area(dev, &r);
 			if (it != menu->selected)
 				drv->fill_area(dev, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER, y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + G_BFU_FONT_SIZE, bfu_bg_color);
 			else
@@ -494,6 +494,14 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			break;
 		case EV_MOUSE:
 			if ((ev->b & BM_ACT) == B_MOVE) break;
+			if ((ev->b & BM_BUTT) == B_FOURTH ||
+			    (ev->b & BM_BUTT) == B_FIFTH) {
+				if ((ev->b & BM_ACT) == B_DOWN) goto go_lr;
+				break;
+			}
+			if ((ev->b & BM_BUTT) == B_SIXTH) {
+				break;
+			}
 			if (ev->x < menu->x || ev->x >= menu->x+menu->xw || ev->y < menu->y || ev->y >= menu->y+menu->yw) {
 				int f = 1;
 				struct window *w1;
@@ -537,19 +545,16 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			}
 			break;
 		case EV_KBD:
-			if (ev->y & KBD_PASTE) break;
+			if (ev->y & KBD_PASTING) break;
 			if (ev->x == KBD_LEFT || ev->x == KBD_RIGHT) {
+go_lr:
 				if (win->list_entry.next == &win->term->windows)
 					goto mm;
 				if (list_struct(win->list_entry.next, struct window)->handler == mainmenu_func)
 					goto mm;
-				if (ev->x == KBD_RIGHT) goto enter;
+				if (ev->ev == EV_MOUSE && (ev->b & BM_BUTT) == B_FIFTH) goto mm;
+				if (ev->ev == EV_KBD && ev->x == KBD_RIGHT) goto enter;
 				delete_window(win);
-				break;
-			}
-			if ((ev->x <= KBD_F1 && ev->x >= KBD_F12) || ev->y & KBD_ALT) {
-				mm:
-				delete_window_ev(win, ev);
 				break;
 			}
 			if (ev->x == KBD_ESC) {
@@ -557,6 +562,11 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 					ev = NULL;
 				else if (list_struct(win->list_entry.next, struct window)->handler != mainmenu_func)
 					ev = NULL;
+				delete_window_ev(win, ev);
+				break;
+			}
+			if (KBD_ESCAPE_MENU(ev->x) || ev->y & KBD_ALT) {
+				mm:
 				delete_window_ev(win, ev);
 				break;
 			}
@@ -754,6 +764,17 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 		case EV_MOUSE:
 			in_menu = ev->x >= 0 && ev->x < win->term->x && ev->y >= 0 && ev->y < gf_val(1, G_BFU_FONT_SIZE);
 			if ((ev->b & BM_ACT) == B_MOVE) break;
+			if ((ev->b & BM_BUTT) == B_FOURTH) {
+				if ((ev->b & BM_ACT) == B_DOWN) goto go_left;
+				break;
+			}
+			if ((ev->b & BM_BUTT) == B_FIFTH) {
+				if ((ev->b & BM_ACT) == B_DOWN) goto go_right;
+				break;
+			}
+			if ((ev->b & BM_BUTT) == B_SIXTH) {
+				break;
+			}
 			if ((ev->b & BM_ACT) == B_DOWN && !in_menu) delete_window_ev(win, ev);
 			else if (in_menu) {
 				int i;
@@ -774,15 +795,17 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 			}
 			break;
 		case EV_KBD:
-			if (ev->y & KBD_PASTE) break;
+			if (ev->y & KBD_PASTING) break;
 			if (ev->x == ' ' || ev->x == KBD_ENTER || ev->x == KBD_DOWN || ev->x == KBD_UP || ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F' && ev->y & KBD_CTRL) || ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
 				select_mainmenu(win->term, menu);
 				break;
 			} else if (ev->x == KBD_LEFT) {
+go_left:
 				if (!menu->selected--) menu->selected = menu->ni - 1;
 				s = 1;
 				if (fwd) s = 2;
 			} else if (ev->x == KBD_RIGHT) {
+go_right:
 				if (++menu->selected >= menu->ni) menu->selected = 0;
 				s = 1;
 				if (fwd) s = 2;
@@ -803,7 +826,7 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 				}
 			}
 			if (!s) {
-				delete_window_ev(win, (ev->x <= KBD_F1 && ev->x >= KBD_F12) || ev->y & KBD_ALT ? ev : NULL);
+				delete_window_ev(win, KBD_ESCAPE_MENU(ev->x) || ev->y & KBD_ALT ? ev : NULL);
 				break;
 			}
 			draw_to_window(win, display_mainmenu, menu);
@@ -955,7 +978,7 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 						restrict_clip_area(dev, &r, p, di->y, p + s, di->y + G_BFU_FONT_SIZE);
 						g_print_text(dev, p, di->y, bfu_style_bw_u, cast_uchar "          ", NULL);
 						p += s;
-						drv->set_clip_area(dev, &r);
+						set_clip_area(dev, &r);
 					}
 					g_print_text(dev, p, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_R:cast_uchar G_DIALOG_CHECKBOX_R, &p);
 				}
@@ -1014,7 +1037,7 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 				g_print_text(dev, p, di->y, sel ? bfu_style_wb_mono_u : bfu_style_wb_mono, text2, &p);
 				g_print_text(dev, p, di->y, bfu_style_wb_mono, text3, &p);
 				drv->fill_area(dev, p, di->y, di->x + di->l, di->y + G_BFU_FONT_SIZE, bfu_fg_color);
-				drv->set_clip_area(dev, &r);
+				set_clip_area(dev, &r);
 				free(text);
 				free(text2);
 				free(text3);
@@ -1039,7 +1062,7 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 			default:
 				internal("display_dlg_item: unknown item: %d", di->item->type);
 		}
-		if (!dlg->s) drv->set_clip_area(dev, &rr);
+		if (!dlg->s) set_clip_area(dev, &rr);
 #endif
 	}
 }
@@ -1188,7 +1211,7 @@ static void redraw_dialog(struct terminal *term, void *dlg_)
 	redraw_dialog_items(term, dlg);
 #ifdef G
 	if (F) {
-		drv->set_clip_area(term->dev, &dlg->r);
+		set_clip_area(term->dev, &dlg->r);
 		for (i = 0; i < dlg->s->m; i++) if (is_rect_valid(&dlg->s->r[i]))
 			drv->fill_area(term->dev, dlg->s->r[i].x1, dlg->s->r[i].y1, dlg->s->r[i].x2, dlg->s->r[i].y2, bfu_bg_color);
 		free(dlg->s);
@@ -1312,6 +1335,18 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 			break;
 		case EV_MOUSE:
 			if ((ev->b & BM_ACT) == B_MOVE) break;
+			if ((ev->b & BM_BUTT) == B_FOURTH) {
+				if ((ev->b & BM_ACT) == B_DOWN) goto go_prev;
+				break;
+			}
+			if ((ev->b & BM_BUTT) == B_FIFTH) {
+				if ((ev->b & BM_ACT) == B_DOWN) goto go_next;
+				break;
+			}
+			if ((ev->b & BM_BUTT) == B_SIXTH) {
+				if ((ev->b & BM_ACT) == B_DOWN) goto go_enter;
+				break;
+			}
 			for (i = 0; i < dlg->n; i++) if (dlg_mouse(dlg, &dlg->items[i], ev)) break;
 			if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_MIDDLE) {
 				di = &dlg->items[dlg->selected];  /* don't delete this!!! it's here because of jump from mouse event */
@@ -1320,7 +1355,7 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 			break;
 		case EV_KBD:
 			di = &dlg->items[dlg->selected];
-			if (ev->y & KBD_PASTE) {
+			if (ev->y & KBD_PASTING) {
 				if (!((di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) &&
 				      (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT)))))
 					break;
@@ -1432,20 +1467,20 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 					goto dsp_f;
 				}
 				/* Copy to clipboard */
-				if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
+				if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL) || ev->x == KBD_COPY) {
 					set_clipboard_text(term, di->cdata);
 					break;	/* We don't need to redraw */
 				}
 				/* FIXME -- why keyboard shortcuts with shift don't works??? */
 				/* Cut to clipboard */
-				if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'X' && ev->y & KBD_CTRL)) {
+				if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'X' && ev->y & KBD_CTRL) || ev->x == KBD_CUT) {
 					set_clipboard_text(term, di->cdata);
 					di->cdata[0] = 0;
 					di->cpos = 0;
 					goto dsp_f;
 				}
 				/* Paste from clipboard */
-				if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL)) {
+				if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL) || ev->x == KBD_PASTE) {
 					unsigned char *clipboard;
 clipbd_paste:
 					clipboard = get_clipboard_text(term);
@@ -1462,7 +1497,7 @@ clipbd_paste:
 					}
 					goto dsp_f;
 				}
-				if (upcase(ev->x) == 'W' && ev->y & KBD_CTRL) {
+				if ((upcase(ev->x) == 'W' && ev->y & KBD_CTRL) || ev->x == KBD_FIND) {
 					do_tab_compl(term, &di->history, win);
 					goto dsp_f;
 				}
@@ -1480,10 +1515,17 @@ clipbd_paste:
 				unsigned char *tx = get_text_translation(dlg->dlg->items[i].text, term);
 				if (dlg->dlg->items[i].type == D_BUTTON && charset_upcase(GET_TERM_CHAR(term, &tx), term_charset(term)) == charset_upcase(ev->x, term_charset(term))) goto sel;
 			}
-			if (ev->x == KBD_ENTER) for (i = 0; i < dlg->n; i++)
-				if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ENTER) goto sel;
-			if (ev->x == KBD_ESC) for (i = 0; i < dlg->n; i++)
-				if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ESC) goto sel;
+			if (ev->x == KBD_ENTER) {
+go_enter:
+				for (i = 0; i < dlg->n; i++)
+					if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ENTER) goto sel;
+				break;
+			}
+			if (ev->x == KBD_ESC) {
+				for (i = 0; i < dlg->n; i++)
+					if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ESC) goto sel;
+				break;
+			}
 			if (0) {
 				sel:
 				if (dlg->selected != i) {
@@ -1492,10 +1534,11 @@ clipbd_paste:
 					dlg->selected = i;
 				}
 				dlg_select_item(dlg, &dlg->items[i]);
-				goto bla;
+				break;
 			}
 			if (((ev->x == KBD_TAB && !ev->y) || ev->x == KBD_DOWN
 			|| ev->x == KBD_RIGHT) && dlg->n > 1) {
+ go_next:
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
 				if ((++dlg->selected) >= dlg->n) dlg->selected = 0;
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
@@ -1503,6 +1546,7 @@ clipbd_paste:
 			}
 			if (((ev->x == KBD_TAB && ev->y) || ev->x == KBD_UP
 			|| ev->x == KBD_LEFT) && dlg->n > 1) {
+ go_prev:
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
 				if ((--dlg->selected) < 0) dlg->selected = dlg->n - 1;
 				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
@@ -1520,7 +1564,6 @@ clipbd_paste:
 			}
 			freeml(dlg->ml);
 	}
-	bla:;
 }
 
 /* gid and gnum are 100 times greater than boundaries (e.g. if gid==1 boundary is 0.01) */
@@ -1528,7 +1571,7 @@ int check_float(struct dialog_data *dlg, struct dialog_item_data *di)
 {
 	unsigned char *end;
 	double d = strtod(cast_const_char di->cdata, (char **)(void *)&end);
-	if (!*di->cdata || *end || strspn(cast_const_char di->cdata, "0123456789.") != strlen(cast_const_char di->cdata) || *di->cdata == (unsigned char)'.') {
+	if (!*di->cdata || *end || di->cdata[strspn(cast_const_char di->cdata, "0123456789.")] || *di->cdata == (unsigned char)'.') {
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
@@ -1716,7 +1759,7 @@ void draw_dlg(struct dialog_data *dlg)
 			g_print_text(dev, TXT_X + (tl - xtl) / 2, TXT_Y, bfu_style_wb, text, NULL);
 			drv->fill_area(dev, TXT_X + (tl - xtl) / 2 + xtl, TXT_Y, TXT_X + tl, TXT_Y + G_BFU_FONT_SIZE, bfu_fg_color);
 		}
-		drv->set_clip_area(dev, &r);
+		set_clip_area(dev, &r);
 
 		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER, dlg->y + G_DIALOG_TOP_BORDER, TXT_X, bfu_fg_color);
 		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, TXT_X, bfu_fg_color);
@@ -1743,14 +1786,9 @@ void draw_dlg(struct dialog_data *dlg)
 		drv->fill_area(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE, bfu_bg_color);
 		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, bfu_bg_color);
 
-		/*
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1, TXT_X, TXT_Y + G_BFU_FONT_SIZE, bfu_bg_color);
-		drv->fill_area(dev, TXT_X + tl, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE - 1, TXT_Y + G_BFU_FONT_SIZE, bfu_bg_color);
-		*/
 		dlg->s = init_rect_set();
 		dlg->rr.x1 = dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1;
 		dlg->rr.x2 = dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE - 1;
-		/*dlg->rr.y1 = TXT_Y + G_BFU_FONT_SIZE;*/
 		dlg->rr.y1 = dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1;
 		dlg->rr.y2 = dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1;
 		add_to_rect_set(&dlg->s, &dlg->rr);

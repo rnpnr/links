@@ -158,14 +158,18 @@ do {									\
 	fatal_exit("ERROR: arithmetic overflow at %s:%d", __FILE__, __LINE__);\
 } while (1)
 
-#define test_int_overflow(x, y)						\
-	(~((unsigned)(x) ^ (unsigned)(y)) & ((unsigned)(x) ^ ((unsigned)(x) + (unsigned)(y))) & (1U << (sizeof(unsigned) * 8 - 1)))
+static inline int test_int_overflow(int x, int y, int *result)
+{
+	int z = *result = (int)((unsigned)(x) + (unsigned)(y));
+	return ~((unsigned)(x) ^ (unsigned)(y)) & ((unsigned)(x) ^ ((unsigned)(z))) & (1U << (sizeof(unsigned) * 8 - 1));
+}
 
 static inline int safe_add_function(int x, int y, unsigned char *file, int line)
 {
-	if (test_int_overflow(x, y))
+	int ret;
+	if (test_int_overflow(x, y, &ret))
 		fatal_exit("ERROR: arithmetic overflow at %s:%d: %d + %d", file, line, (x), (y));
-	return (int)((unsigned)x + (unsigned)y);
+	return ret;
 }
 
 #define safe_add(x, y)	safe_add_function(x, y, (unsigned char *)__FILE__, __LINE__)
@@ -733,7 +737,6 @@ void change_connection(struct status *, struct status *, int);
 void detach_connection(struct status *, off_t, int, int);
 void abort_all_connections(void);
 void abort_background_connections(void);
-void abort_all_keepalive_connections(void);
 int is_entry_used(struct cache_entry *);
 void clear_connection_timeout(struct connection *);
 void set_connection_timeout(struct connection *);
@@ -932,6 +935,8 @@ void mailto_func(struct session *, unsigned char *);
 #define KBD_END		-0x10b
 #define KBD_PAGE_UP	-0x10c
 #define KBD_PAGE_DOWN	-0x10d
+#define KBD_MENU	-0x10e
+#define KBD_STOP	-0x10f
 
 #define KBD_F1		-0x120
 #define KBD_F2		-0x121
@@ -946,13 +951,30 @@ void mailto_func(struct session *, unsigned char *);
 #define KBD_F11		-0x12a
 #define KBD_F12		-0x12b
 
+#define KBD_UNDO	-0x140
+#define KBD_REDO	-0x141
+#define KBD_FIND	-0x142
+#define KBD_HELP	-0x143
+#define KBD_COPY	-0x144
+#define KBD_PASTE	-0x145
+#define KBD_CUT		-0x146
+#define KBD_PROPS	-0x147
+#define KBD_FRONT	-0x148
+#define KBD_OPEN	-0x149
+#define KBD_BACK	-0x14a
+#define KBD_FORWARD	-0x14b
+#define KBD_RELOAD	-0x14c
+#define KBD_BOOKMARKS	-0x14d
+
+#define KBD_ESCAPE_MENU(x)	((x) <= KBD_F1 && (x) > KBD_CTRL_C)
+
 #define KBD_CTRL_C	-0x200
 #define KBD_CLOSE	-0x201
 
 #define KBD_SHIFT	1
 #define KBD_CTRL	2
 #define KBD_ALT		4
-#define KBD_PASTE	8
+#define KBD_PASTING	8
 
 void handle_trm(int, void *, int);
 void free_all_itrms(void);
@@ -1006,16 +1028,12 @@ void *lru_lookup(struct lru *cache, void *templ, struct lru_entry **row);
 
 /* drivers.c */
 
-struct irgb {
-	int r,g,b; /* 0xffff=full white, 0x0000=full black */
-};
-
 /* Bitmap is allowed to pass only to that driver from which was obtained.
  * It is forbidden to get bitmap from svga driver and pass it to X driver.
  * It is impossible to get an error when registering a bitmap
  */
-struct bitmap{
-	int x,y; /* Dimensions */
+struct bitmap {
+	int x, y; /* Dimensions */
 	int skip; /* Byte distance between vertically consecutive pixels */
 	void *data; /* Pointer to room for topleft pixel */
 	void *flags; /* Allocation flags for the driver */
@@ -1048,6 +1066,8 @@ struct graphics_device {
 	void (*keyboard_handler)(struct graphics_device *dev, int key, int flags);
 	void (*mouse_handler)(struct graphics_device *dev, int x, int y, int buttons);
 };
+
+struct driver_param;
 
 struct graphics_driver {
 	unsigned char *name;
@@ -1086,15 +1106,17 @@ struct graphics_driver {
 	void (*fill_area)(struct graphics_device *dev, int x1, int y1, int x2, int y2, long color);
 	void (*draw_hline)(struct graphics_device *dev, int left, int y, int right, long color);
 	void (*draw_vline)(struct graphics_device *dev, int x, int top, int bottom, long color);
-	int (*scroll)(struct graphics_device *dev, struct rect_set **set, int sc, const int h);
+	int (*scroll)(struct graphics_device *dev, struct rect_set **set, int scx, int scy);
 	 /* When scrolling, the empty spaces will have undefined contents. */
 	 /* returns:
 	    0 - the caller should not care about redrawing, redraw will be sent
 	    1 - the caller should redraw uncovered area */
 	 /* when set is not NULL rectangles in the set (uncovered area) should be redrawn */
-	void (*set_clip_area)(struct graphics_device *dev, struct rect *r);
+	void (*set_clip_area)(struct graphics_device *dev);
 
 	void (*flush)(struct graphics_device *dev);
+
+	void (*set_palette)(void);
 
 	void (*set_title)(struct graphics_device *dev, unsigned char *title);
 		/* set window title. title is in utf-8 encoding -- you should recode it to device charset */
@@ -1114,14 +1136,16 @@ struct graphics_driver {
 
 	int depth; /* Data layout
 		    * depth
-		    *  8 7 6 5 4 3 2 1 0
-		    * +-+---------+-----+
-		    * | |         |     |
-		    * +-+---------+-----+
+		    *  4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+		    * +---------+-+-+---------+-----+
+		    * +         | | |         |     |
+		    * +---------+-+-+---------+-----+
 		    *
-		    * 0 - 2 Number of bytes per pixel in passed bitmaps
-		    * 3 - 7 Number of significant bits per pixel -- 1, 4, 8, 15, 16, 24
-		    * 8   0-- normal order, 1-- misordered.Has the same value as vga_misordered from the VGA mode.
+		    *  0 - 2  Number of bytes per pixel in passed bitmaps
+		    *  3 - 7  Number of significant bits per pixel -- 1, 4, 8, 15, 16, 24
+		    *  8      0 -- normal order, 1 -- misordered.Has the same value as vga_misordered from the VGA mode.
+		    *  9      1 -- misordered (0rgb)
+		    * 10 - 14 1 -- dither to the requested number of bits
 		    *
 		    * This number is to be used by the layer that generates images.
 		    * Memory layout for 1 bytes per pixel is:
@@ -1145,15 +1169,7 @@ struct graphics_driver {
 		    */
 	int x, y;	/* size of screen. only for drivers that use virtual devices */
 	int flags;	/* GD_xxx flags */
-	int kbd_codepage;
-	unsigned char *shell;
-		/* -if exec is NULL string is unused
-		   -otherwise this string describes shell to be executed by the
-		    exec function, the '%' char means string to be executed
-		   -shell cannot be NULL
-		   -if exec is !NULL and shell is empty, exec should use some
-		    default shell (e.g. "xterm -e %")
-		*/
+	struct driver_param *param;
 };
 
 #define GD_DONT_USE_SCROLL	1
@@ -1163,8 +1179,39 @@ struct graphics_driver {
 #define GD_NOAUTO		16
 #define GD_NO_OS_SHELL		32
 #define GD_NO_LIBEVENT		64
+#define GD_SELECT_PALETTE	128
+#define GD_SWITCH_PALETTE	256
 
 extern struct graphics_driver *drv;
+
+#define CLIP_DRAW_BITMAP				\
+	if (!is_rect_valid(&dev->clip)) return;		\
+	if (!bmp->x || !bmp->y) return;			\
+	if (x >= dev->clip.x2) return;			\
+	if (x + bmp->x <= dev->clip.x1) return;		\
+	if (y >= dev->clip.y2) return;			\
+	if (y + bmp->y <= dev->clip.y1) return;		\
+
+#define CLIP_FILL_AREA					\
+	if (x1 < dev->clip.x1) x1 = dev->clip.x1;	\
+	if (x2 > dev->clip.x2) x2 = dev->clip.x2;	\
+	if (y1 < dev->clip.y1) y1 = dev->clip.y1;	\
+	if (y2 > dev->clip.y2) y2 = dev->clip.y2;	\
+	if (x1 >= x2 || y1 >= y2) return;		\
+
+#define CLIP_DRAW_HLINE					\
+	if (y < dev->clip.y1) return;			\
+	if (y >= dev->clip.y2) return;			\
+	if (x1 < dev->clip.x1) x1 = dev->clip.x1;	\
+	if (x2 > dev->clip.x2) x2 = dev->clip.x2;	\
+	if (x1 >= x2) return;				\
+
+#define CLIP_DRAW_VLINE					\
+	if (x < dev->clip.x1) return;			\
+	if (x >= dev->clip.x2) return;			\
+	if (y1 < dev->clip.y1) y1 = dev->clip.y1;	\
+	if (y2 > dev->clip.y2) y2 = dev->clip.y2;	\
+	if (y1 >= y2) return;				\
 
 void add_graphics_drivers(unsigned char **s, int *l);
 unsigned char *init_graphics(unsigned char *, unsigned char *, unsigned char *);
@@ -1176,7 +1223,27 @@ extern struct graphics_device **virtual_devices;
 extern int n_virtual_devices;
 extern struct graphics_device *current_virtual_device;
 
-void generic_set_clip_area(struct graphics_device *dev, struct rect *r);
+static inline int is_rect_valid(struct rect *r)
+{
+	return r->x1 < r->x2 && r->y1 < r->y2;
+}
+int do_rects_intersect(struct rect *, struct rect *);
+void intersect_rect(struct rect *, struct rect *, struct rect *);
+void unite_rect(struct rect *, struct rect *, struct rect *);
+struct rect_set *init_rect_set(void);
+void add_to_rect_set(struct rect_set **, struct rect *);
+void exclude_rect_from_set(struct rect_set **, struct rect *);
+static inline void exclude_from_set(struct rect_set **s, int x1, int y1, int x2, int y2)
+{
+	struct rect r;
+	r.x1 = x1, r.x2 = x2, r.y1 = y1, r.y2 = y2;
+	exclude_rect_from_set(s, &r);
+}
+
+void set_clip_area(struct graphics_device *dev, struct rect *r);
+int restrict_clip_area(struct graphics_device *dev, struct rect *r, int x1, int y1, int x2, int y2);
+
+struct rect_set *g_scroll(struct graphics_device *dev, int scx, int scy);
 
 /* dip.c */
 
@@ -1238,9 +1305,6 @@ struct style {
 	int mono_height; /* Height of the space if mono_space is >=0
 			  * undefined otherwise
 			  */
-	/*
-	unsigned char font[1];
-	*/
 };
 
 struct font_cache_entry {
@@ -1317,6 +1381,8 @@ struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int ffl
 struct style *g_invert_style(struct style *);
 void g_free_style(struct style *style0);
 struct style *g_clone_style(struct style *);
+
+extern tcount gamma_stamp;
 
 extern long gamma_cache_color;
 extern int gamma_cache_rgb;
@@ -1506,7 +1572,6 @@ unsigned char get_attribute(int, int);
 struct terminal *init_term(int, int, void (*)(struct window *, struct links_event *, int));
 #ifdef G
 struct terminal *init_gfx_term(void (*)(struct window *, struct links_event *, int), unsigned char *, void *, int);
-int restrict_clip_area(struct graphics_device *, struct rect *, int, int, int, int);
 #endif
 struct term_spec *new_term_spec(unsigned char *);
 void free_term_specs(void);
@@ -1526,24 +1591,6 @@ void flush_terminal(struct terminal *);
 #ifdef G
 
 void set_window_pos(struct window *, int, int, int, int);
-int do_rects_intersect(struct rect *, struct rect *);
-void intersect_rect(struct rect *, struct rect *, struct rect *);
-void unite_rect(struct rect *, struct rect *, struct rect *);
-int is_rect_valid(struct rect *);
-
-struct rect_set *init_rect_set(void);
-void add_to_rect_set(struct rect_set **, struct rect *);
-void exclude_rect_from_set(struct rect_set **, struct rect *);
-static inline void exclude_from_set(struct rect_set **s, int x1, int y1, int x2, int y2)
-{
-	struct rect r;
-	r.x1 = x1;
-	r.x2 = x2;
-	r.y1 = y1;
-	r.y2 = y2;
-	exclude_rect_from_set(s, &r);
-}
-
 void t_redraw(struct graphics_device *, struct rect *);
 void t_resize(struct graphics_device *);
 void t_kbd(struct graphics_device *, int, int);
@@ -1553,7 +1600,7 @@ void t_mouse(struct graphics_device *, int, int, int);
 
 /* text only */
 void set_char(struct terminal *, int, int, unsigned, unsigned char);
-chr *get_char(struct terminal *, int, int);
+const chr *get_char(struct terminal *, int, int);
 void set_color(struct terminal *, int, int, unsigned char);
 void set_only_char(struct terminal *, int, int, unsigned, unsigned char);
 void set_line(struct terminal *, int, int, int, chr *);
@@ -1750,16 +1797,35 @@ struct form_control {
 	list_entry_last
 };
 
+struct line_info {
+	int st_offs;
+	int en_offs;
+	int chars;
+};
+
+struct format_text_cache_entry {
+	int width;
+	int wrap;
+	int cp;
+	int last_state;
+	int last_vpos;
+	int last_vypos;
+	int last_cursor;
+	int n_lines;
+	struct line_info ln[1];
+};
+
 struct form_state {
 	int form_num;	/* cislo formulare */
 	int ctrl_num;	/* identifikace polozky v ramci formulare */
 	int g_ctrl_num;	/* identifikace polozky mezi vsemi polozkami (poradi v poli form_info) */
 	int position;
 	int type;
-	unsigned char *value; /* selected value of a select item */
+	unsigned char *string; /* selected value of a select item */
 	int state; /* index of selected item of a select item */
 	int vpos;
 	int vypos;
+	struct format_text_cache_entry *ftce;
 };
 
 struct link {
@@ -1961,10 +2027,10 @@ struct image_map {
 };
 
 struct background {
-	union {
-		int sRGB; /* This is 3*8 bytes with sRGB_gamma (in sRGB space).
-			     This is not rounded. */
-	} u;
+	int sRGB; /* This is 3*8 bytes with sRGB_gamma (in sRGB space).
+		     This is not rounded. */
+	long color;
+	tcount gamma_stamp;
 };
 
 struct f_data_c;
@@ -2155,7 +2221,7 @@ struct g_object_image {
 	unsigned char *orig_src;
 	unsigned char *src;
 	int background; /* Remembered background from insert_image
-			 * (g_part->root->bg->u.sRGB)
+			 * (g_part->root->bg->sRGB)
 			 */
 	int xyw_meaning;
 
@@ -2741,6 +2807,7 @@ void activate_keys(struct session *ses);
 void reset_settings_for_tor(void);
 int save_proxy(int charset, unsigned char *result, unsigned char *proxy);
 int save_noproxy_list(int charset, unsigned char *result, unsigned char *noproxy_list);
+void dialog_html_options(struct session *ses);
 void activate_bfu_technology(struct session *, int);
 void dialog_goto_url(struct session *ses, unsigned char *url);
 void dialog_save_url(struct session *ses);
@@ -2754,10 +2821,6 @@ void search_back_dlg(struct session *, struct f_data_c *, int);
 void exit_prog(struct terminal *, void *, void *);
 void really_exit_prog(void *ses_);
 void query_exit(struct session *ses);
-
-#ifdef G
-extern tcount gamma_stamp;
-#endif
 
 /* charsets.c */
 
@@ -2842,21 +2905,15 @@ int textptr_diff(unsigned char *t2, unsigned char *t1, int cp);
 
 extern int ismap_link, ismap_x, ismap_y;
 
-struct line_info {
-	unsigned char *st;
-	unsigned char *en;
-};
-
-struct line_info *format_text(unsigned char *text, int width, int wrap, int cp);
-
 void frm_download(struct session *, struct f_data_c *);
 void frm_download_image(struct session *, struct f_data_c *);
 void frm_view_image(struct session *, struct f_data_c *);
+struct format_text_cache_entry *format_text(struct f_data_c *fd, struct form_control *fc, struct form_state *fs);
+int area_cursor(struct f_data_c *f, struct form_control *fc, struct form_state *fs);
 struct form_state *find_form_state(struct f_data_c *, struct form_control *);
 void fixup_select_state(struct form_control *fc, struct form_state *fs);
 int enter(struct session *ses, struct f_data_c *f, int a);
-int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev, int rep);
-int area_cursor(struct f_data_c *f, struct form_control *form, struct form_state *fs);
+int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev);
 
 int can_open_in_new(struct terminal *);
 void open_in_new_window(struct terminal *, void *fn_, void *ses_);
@@ -2894,7 +2951,6 @@ void set_frame(struct session *, struct f_data_c *, int);
 struct f_data_c *current_frame(struct session *);
 void reset_form(struct f_data_c *f, int form_num);
 void set_textarea(struct session *, struct f_data_c *, int);
-void free_format_text_cache(void);
 
 /* font_inc.c */
 
@@ -3041,7 +3097,6 @@ static inline void intersect(int s1, int l1, int s2, int l2, int *s3, int *l3)
 }
 
 
-void g_draw_background(struct graphics_device *dev, struct background *bg, int x, int y, int xw, int yw);
 int g_forward_mouse(struct f_data_c *fd, struct g_object *a, int x, int y, int b);
 
 void draw_vscroll_bar(struct graphics_device *dev, int x, int y, int yw, int total, int view, int pos);
@@ -3073,7 +3128,7 @@ void g_area_get_list(struct g_object *, void (*)(struct g_object *parent, struct
 void draw_one_object(struct f_data_c *fd, struct g_object *o);
 void draw_title(struct f_data_c *f);
 void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active);
-int g_next_link(struct f_data_c *fd, int dir);
+int g_next_link(struct f_data_c *fd, int dir, int do_scroll);
 int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev);
 void g_find_next(struct f_data_c *f, int);
 
@@ -3366,7 +3421,9 @@ void create_frame(struct frame_param *fp);
 void release_image_map(struct image_map *map);
 int is_in_area(struct map_area *a, int x, int y);
 
-struct background *get_background(unsigned char *bg, unsigned char *bgcolor);
+struct background *g_get_background(unsigned char *bg, unsigned char *bgcolor);
+void g_release_background(struct background *bg);
+void g_draw_background(struct graphics_device *dev, struct background *bg, int x, int y, int xw, int yw);
 
 void g_x_extend_area(struct g_object_area *a, int width, int height, int align);
 struct g_part *g_format_html_part(unsigned char *, unsigned char *, int, int, int, unsigned char *, int, unsigned char *, unsigned char *, struct f_data *);
@@ -3414,12 +3471,20 @@ void save_url_history(void);
 struct driver_param {
 	list_entry_1st
 	int kbd_codepage;
+	int palette_mode;
 	unsigned char *param;
-	unsigned char *shell;
+	unsigned char shell_term[MAX_STR_LEN];
 	int nosave;
 	list_entry_last
 	unsigned char name[1];
 };
+		/* -if exec is NULL, shell_term is unused
+		   -otherwise this string describes shell to be executed by the
+		    exec function, the '%' char means string to be executed
+		   -shell cannot be NULL
+		   -if exec is !NULL and shell is empty, exec should use some
+		    default shell (e.g. "xterm -e %")
+		*/
 
 struct driver_param *get_driver_param(unsigned char *);
 

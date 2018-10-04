@@ -453,7 +453,7 @@ static const struct color_spec color_specs[] = {
 	{"yellowgreen",		0x9ACD32},
 };
 
-#define endof(T) ((T)+sizeof(T)/sizeof(*(T)))
+#define endof(T) ((T) + array_elements(T))
 
 int decode_color(unsigned char *str, struct rgb *col)
 {
@@ -1009,10 +1009,10 @@ static void html_font(unsigned char *a)
 	get_color(a, cast_uchar "color", &format_.fg);
 }
 
-static unsigned char *get_url_val_nonempty(unsigned char *a, unsigned char *name)
+static unsigned char *get_url_val_img(unsigned char *a, unsigned char *name)
 {
 	unsigned char *v = get_url_val(a, name);
-	if (v && !*v) {
+	if (v && !v[strcspn(cast_const_char v, "./")]) {
 		free(v);
 		v = NULL;
 	}
@@ -1042,18 +1042,19 @@ static void html_img(unsigned char *a)
 	ismap = format_.link && (F || !has_attr(a, cast_uchar "usemap")) && has_attr(a, cast_uchar "ismap");
 	free(format_.image);
 	format_.image = NULL;
-	if ((s = get_url_val_nonempty(a, cast_uchar "data-full"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-normal"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-src"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-defer-src"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-li-src"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-original"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-small"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data-lazy"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "src"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "dynsrc"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "data"))
-	|| (s = get_url_val_nonempty(a, cast_uchar "content"))) {
+	if ((s = get_url_val_img(a, cast_uchar "data-full"))
+	|| (s = get_url_val_img(a, cast_uchar "data-normal"))
+	|| (s = get_url_val_img(a, cast_uchar "data-src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-defer-src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-li-src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-original"))
+	|| (s = get_url_val_img(a, cast_uchar "data-small"))
+	|| (s = get_url_val_img(a, cast_uchar "data-lazy"))
+	|| (s = get_url_val_img(a, cast_uchar "src"))
+	|| (s = get_url_val_img(a, cast_uchar "dynsrc"))
+	|| (s = get_url_val_img(a, cast_uchar "data"))
+	|| (s = get_url_val_img(a, cast_uchar "content"))
+	|| (s = get_url_val(a, cast_uchar "src"))) {
 		 format_.image = join_urls(format_.href_base, s);
 		 orig_link = s;
 	}
@@ -2720,6 +2721,7 @@ static void html_link(unsigned char *a)
 	}
 	if (
 	    !casecmp(name, cast_uchar "schema", 6) ||
+	    !casecmp(name, cast_uchar "mw-", 3) ||
 	    !casestrcmp(name, cast_uchar "Edit-Time-Data") ||
 	    !casestrcmp(name, cast_uchar "File-List") ||
 	    !casestrcmp(name, cast_uchar "alternate stylesheet") ||

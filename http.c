@@ -172,6 +172,7 @@ static int check_http_server_bugs(unsigned char *url, struct http_connection_inf
 
 static void http_end_request(struct connection *c, int notrunc, int nokeepalive, int state)
 {
+	struct http_connection_info *info = c->info;
 	if (state == S__OK && c->cache) {
 		if (!notrunc)
 			truncate_entry(c->cache, c->from, 1);
@@ -179,8 +180,8 @@ static void http_end_request(struct connection *c, int notrunc, int nokeepalive,
 	}
 	setcstate(c, state);
 	if (c->info
-	&& !((struct http_connection_info *)c->info)->close
-	&& !((struct http_connection_info *)c->info)->send_close
+	&& !info->close
+	&& !info->send_close
 	&& !nokeepalive) {
 		add_keepalive_socket(c, HTTP_KEEPALIVE_TIMEOUT, 0);
 	} else
@@ -902,7 +903,6 @@ again:
 		unsigned char *cookie;
 		unsigned char *ch = head;
 		while ((cookie = parse_http_header(ch, cast_uchar "Set-Cookie", &ch))) {
-			unsigned char *host = remove_proxy_prefix(c->url);
 			set_cookie(NULL, host, cookie);
 			free(cookie);
 		}

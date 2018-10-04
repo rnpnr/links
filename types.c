@@ -984,7 +984,8 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 		&& !end_of_dir(url, ext[extl]))
 			extl++;
 	if ((extl == 3 && !casecmp(ext, cast_uchar "htm", 3))
-	|| (extl == 4 && !casecmp(ext, cast_uchar "html", 4)))
+	|| (extl == 4 && !casecmp(ext, cast_uchar "html", 4))
+	|| (extl == 5 && !casecmp(ext, cast_uchar "xhtml", 5)))
 		return stracpy(cast_uchar "text/html");
 	foreach(struct list, l, ll, extensions.list_entry) {
 		struct extension *e = get_struct(l, struct extension, head);

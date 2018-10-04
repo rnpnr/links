@@ -609,17 +609,18 @@ static unsigned char disp_green_g[VO_GAMMA_LEN];
 static unsigned char disp_blue_g[VO_GAMMA_LEN];
 static unsigned char user_g[VO_GAMMA_LEN];
 static unsigned char aspect_str[VO_GAMMA_LEN];
-tcount gamma_stamp; /* stamp counter for gamma changes */
 
 static void reinit_video(void);
 
 static void refresh_video(void *xxx)
 {
-	display_red_gamma=atof(cast_const_char disp_red_g);
-	display_green_gamma=atof(cast_const_char disp_green_g);
-	display_blue_gamma=atof(cast_const_char disp_blue_g);
-	user_gamma=atof(cast_const_char user_g);
-	bfu_aspect=atof(cast_const_char aspect_str);
+	display_red_gamma = atof(cast_const_char disp_red_g);
+	display_green_gamma = atof(cast_const_char disp_green_g);
+	display_blue_gamma = atof(cast_const_char disp_blue_g);
+	user_gamma = atof(cast_const_char user_g);
+	bfu_aspect = atof(cast_const_char aspect_str);
+	if (F && drv->flags & (GD_SELECT_PALETTE | GD_SWITCH_PALETTE) && drv->set_palette)
+		drv->set_palette();
 	reinit_video();
 }
 
@@ -630,10 +631,6 @@ static void reinit_video(void)
 
 	/* Flush font cache */
 	update_aspect();
-	gamma_stamp++;
-
-	/* Flush dip_get_color cache */
-	gamma_cache_rgb = -2;
 
 	/* Recompute dithering tables for the new gamma */
 	init_dither(drv->depth);
@@ -662,21 +659,50 @@ static unsigned char * const video_msg_2[] = {
 	TEXT_(T_8_BIT_GAMMA_CORRECTION),
 	TEXT_(T_16_BIT_GAMMA_CORRECTION),
 	TEXT_(T_AUTO_GAMMA_CORRECTION),
+};
+
+#define video_option_select_palette    (drv->flags & GD_SELECT_PALETTE)
+#define video_option_switch_palette    (drv->flags & GD_SWITCH_PALETTE)
+#define video_option_scrolling         (drv->flags & GD_DONT_USE_SCROLL)
+
+static unsigned char * const video_msg_select_palette[] = {
+	TEXT_(T_RGB_PALETTE_6x6x6),
+	TEXT_(T_RGB_PALETTE_8x8x4),
+};
+
+static unsigned char * const video_msg_switch_palette[] = {
+	TEXT_(T_SWITCH_PALETTE),
+};
+
+static unsigned char * const video_msg_scrolling[] = {
 	TEXT_(T_OVERWRITE_SCREEN_INSTEAD_OF_SCROLLING_IT),
 };
 
 static void videoopt_fn(struct dialog_data *dlg)
 {
 	struct terminal *term = dlg->win->term;
+	struct dialog_item_data *did;
 	int max = 0, min = 0;
 	int w, rw;
 	int y = gf_val(-1, -G_BFU_FONT_SIZE);
 	max_text_width(term, video_msg_0, &max, AL_LEFT);
 	min_text_width(term, video_msg_0, &min, AL_LEFT);
-	max_group_width(term, video_msg_1, dlg->items, 5, &max);
-	min_group_width(term, video_msg_1, dlg->items, 5, &min);
-	checkboxes_width(term, video_msg_2, dlg->n-2-5, &max, max_text_width);
-	checkboxes_width(term, video_msg_2, dlg->n-2-5, &min, min_text_width);
+	max_group_width(term, video_msg_1, dlg->items, array_elements(video_msg_1), &max);
+	min_group_width(term, video_msg_1, dlg->items, array_elements(video_msg_1), &min);
+	checkboxes_width(term, video_msg_2, array_elements(video_msg_2), &max, max_text_width);
+	checkboxes_width(term, video_msg_2, array_elements(video_msg_2), &min, min_text_width);
+	if (video_option_select_palette) {
+		checkboxes_width(term, video_msg_select_palette, array_elements(video_msg_select_palette), &max, max_text_width);
+		checkboxes_width(term, video_msg_select_palette, array_elements(video_msg_select_palette), &min, min_text_width);
+	}
+	if (video_option_switch_palette) {
+		checkboxes_width(term, video_msg_switch_palette, array_elements(video_msg_switch_palette), &max, max_text_width);
+		checkboxes_width(term, video_msg_switch_palette, array_elements(video_msg_switch_palette), &min, min_text_width);
+	}
+	if (video_option_scrolling) {
+		checkboxes_width(term, video_msg_scrolling, array_elements(video_msg_scrolling), &max, max_text_width);
+		checkboxes_width(term, video_msg_scrolling, array_elements(video_msg_scrolling), &min, min_text_width);
+	}
 	max_buttons_width(term, dlg->items + dlg->n-2, 2, &max);
 	min_buttons_width(term, dlg->items + dlg->n-2, 2, &min);
 	w = dlg->win->term->x * 9 / 10 - 2 * DIALOG_LB;
@@ -687,11 +713,26 @@ static void videoopt_fn(struct dialog_data *dlg)
 	rw = 0;
 	dlg_format_text(dlg, NULL, video_msg_0, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_group(dlg, NULL, video_msg_1, dlg->items, 5, 0, &y, w, &rw);
+	did = dlg->items;
+	dlg_format_group(dlg, NULL, video_msg_1, did, array_elements(video_msg_1), 0, &y, w, &rw);
+	did += array_elements(video_msg_1);
 	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_checkboxes(dlg, NULL, dlg->items+5, dlg->n-2-5, dlg->x + DIALOG_LB, &y, w, &rw, video_msg_2);
+	dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_2), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_2);
+	did += array_elements(video_msg_2);
+	if (video_option_select_palette) {
+		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_select_palette), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_select_palette);
+		did += array_elements(video_msg_select_palette);
+	}
+	if (video_option_switch_palette) {
+		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_switch_palette), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_switch_palette);
+		did += array_elements(video_msg_switch_palette);
+	}
+	if (video_option_scrolling) {
+		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_scrolling), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_scrolling);
+		did += array_elements(video_msg_scrolling);
+	}
 	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_buttons(dlg, NULL, dlg->items+dlg->n-2, 2, 0, &y, w, &rw, AL_CENTER);
+	dlg_format_buttons(dlg, NULL, did, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
@@ -700,9 +741,24 @@ static void videoopt_fn(struct dialog_data *dlg)
 	y = dlg->y + DIALOG_TB;
 	dlg_format_text(dlg, term, video_msg_0, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += gf_val(2, G_BFU_FONT_SIZE);
-	dlg_format_group(dlg, term, video_msg_1, dlg->items, 5, dlg->x + DIALOG_LB, &y, w, NULL);
+	did = dlg->items;
+	dlg_format_group(dlg, term, video_msg_1, did, array_elements(video_msg_1), dlg->x + DIALOG_LB, &y, w, NULL);
+	did += array_elements(video_msg_1);
 	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_checkboxes(dlg, term, dlg->items+5, dlg->n-2-5, dlg->x + DIALOG_LB, &y, w, NULL, video_msg_2);
+	dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_2), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_2);
+	did += array_elements(video_msg_2);
+	if (video_option_select_palette) {
+		dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_select_palette), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_select_palette);
+		did += array_elements(video_msg_select_palette);
+	}
+	if (video_option_switch_palette) {
+		dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_switch_palette), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_switch_palette);
+		did += array_elements(video_msg_switch_palette);
+	}
+	if (video_option_scrolling) {
+		dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_scrolling), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_scrolling);
+		did += array_elements(video_msg_scrolling);
+	}
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_buttons(dlg, term, dlg->items+dlg->n-2, 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
@@ -731,7 +787,7 @@ static void video_options(struct terminal *term, void *xxx, void *ses_)
 	remove_zeroes(user_g);
 	snprintf(cast_char aspect_str, VO_GAMMA_LEN, "%f", bfu_aspect);
 	remove_zeroes(aspect_str);
-	d = mem_calloc(sizeof(struct dialog) + 13 * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + 15 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_VIDEO_OPTIONS);
 	d->fn = videoopt_fn;
 	d->refresh = refresh_video;
@@ -793,7 +849,29 @@ static void video_options(struct terminal *term, void *xxx, void *ses_)
 	d->items[a].dlen = sizeof(int);
 	d->items[a++].data = (void *)&gamma_bits;
 
-	if (drv->flags & GD_DONT_USE_SCROLL) {
+	if (video_option_select_palette) {
+		int *palette_mode_p = &drv->param->palette_mode;
+		d->items[a].type = D_CHECKBOX;
+		d->items[a].gid = 3;
+		d->items[a].gnum = 0;
+		d->items[a].dlen = sizeof(int);
+		d->items[a++].data = (void *)palette_mode_p;
+		d->items[a].type = D_CHECKBOX;
+		d->items[a].gid = 3;
+		d->items[a].gnum = 1;
+		d->items[a].dlen = sizeof(int);
+		d->items[a++].data = (void *)palette_mode_p;
+	}
+
+	if (video_option_switch_palette) {
+		int *palette_mode_p = &drv->param->palette_mode;
+		d->items[a].type = D_CHECKBOX;
+		d->items[a].gid = 0;
+		d->items[a].dlen = sizeof(int);
+		d->items[a++].data = (void *)palette_mode_p;
+	}
+
+	if (video_option_scrolling) {
 		d->items[a].type = D_CHECKBOX;
 		d->items[a].gid = 0;
 		d->items[a].dlen = sizeof(int);
@@ -1660,7 +1738,7 @@ static void net_programs(struct terminal *term, void *xxx, void *yyy)
 	if (have_extra_exec()) {
 		d->items[a].type = D_FIELD;
 		d->items[a].dlen = MAX_STR_LEN;
-		d->items[a++].data = drv->shell;
+		d->items[a++].data = drv->param->shell_term;
 	}
 #endif
 	d->items[a].type = D_BUTTON;
@@ -1876,9 +1954,8 @@ static int dlg_kb_cp(struct dialog_data *dlg, struct dialog_item_data *di)
 }
 #endif
 
-static void menu_html_options(struct terminal *term, void *xxx, void *ses_)
+void dialog_html_options(struct session *ses)
 {
-	struct session *ses = (struct session *)ses_;
 	struct dialog *d;
 	int a;
 
@@ -1996,7 +2073,13 @@ static void menu_html_options(struct terminal *term, void *xxx, void *ses_)
 	d->items[a].text = TEXT_(T_CANCEL);
 	a++;
 	d->items[a].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
+	do_dialog(ses->term, d, getml(d, NULL));
+}
+
+static void menu_html_options(struct terminal *term, void *xxx, void *ses_)
+{
+	struct session *ses = (struct session *)ses_;
+	dialog_html_options(ses);
 }
 
 static unsigned char * const color_texts[] = { cast_uchar "", cast_uchar "", cast_uchar "", TEXT_(T_IGNORE_DOCUMENT_COLOR) };
@@ -2150,21 +2233,16 @@ static void refresh_misc(void *ses_)
 	struct session *ses = (struct session *)ses_;
 #ifdef G
 	if (F) {
-		struct session *ses;
-		struct list_head *lses;
-
-		menu_font_size=(int)strtol(cast_const_char menu_font_str,NULL,10);
-		G_BFU_FG_COLOR=(int)strtol(cast_const_char fg_color_str,NULL,16);
-		G_BFU_BG_COLOR=(int)strtol(cast_const_char bg_color_str,NULL,16);
-		G_SCROLL_BAR_AREA_COLOR=(int)strtol(cast_const_char scroll_area_color_str,NULL,16);
-		G_SCROLL_BAR_BAR_COLOR=(int)strtol(cast_const_char scroll_bar_color_str,NULL,16);
-		G_SCROLL_BAR_FRAME_COLOR=(int)strtol(cast_const_char scroll_frame_color_str,NULL,16);
+		menu_font_size = (int)strtol(cast_const_char menu_font_str, NULL, 10);
+		G_BFU_FG_COLOR = (int)strtol(cast_const_char fg_color_str, NULL, 16);
+		G_BFU_BG_COLOR = (int)strtol(cast_const_char bg_color_str, NULL, 16);
+		G_SCROLL_BAR_AREA_COLOR = (int)strtol(cast_const_char scroll_area_color_str, NULL, 16);
+		G_SCROLL_BAR_BAR_COLOR = (int)strtol(cast_const_char scroll_bar_color_str, NULL, 16);
+		G_SCROLL_BAR_FRAME_COLOR = (int)strtol(cast_const_char scroll_frame_color_str, NULL, 16);
 		shutdown_bfu();
 		init_bfu();
 		init_grview();
-		foreach(struct session, ses, lses, sessions) {
-			ses->term->dev->resize_handler(ses->term->dev);
-		}
+		cls_redraw_all_terminals();
 	}
 #endif
 	if (strcmp((char *)new_bookmarks_file, (char *)bookmarks_file))
@@ -2385,7 +2463,7 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 		d->items[a].gid = 0;
 		d->items[a].fn = dlg_kb_cp;
 		d->items[a].text = TEXT_(T_KEYBOARD_CODEPAGE);
-		d->items[a].data = (unsigned char *) &(drv->kbd_codepage);
+		d->items[a].data = (unsigned char *)&drv->param->kbd_codepage;
 		d->items[a].dlen = sizeof(int);
 		a++;
 	}

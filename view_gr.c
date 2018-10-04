@@ -20,23 +20,6 @@ static struct g_object_text * g_find_nearest_object(struct f_data *f, int x, int
 
 static int previous_link=-1;	/* for mouse event handlers */
 
-void g_draw_background(struct graphics_device *dev, struct background *bg, int x, int y, int xw, int yw)
-{
-	if (xw > 4096) {
-		int halfx = x + xw / 2;
-		if (dev->clip.x1 < halfx) g_draw_background(dev, bg, x, y, halfx - x, yw);
-		if (dev->clip.x2 > halfx) g_draw_background(dev, bg, halfx, y, x + xw - halfx, yw);
-		return;
-	}
-	if (yw > 4096) {
-		int halfy = y + yw / 2;
-		if (dev->clip.y1 < halfy) g_draw_background(dev, bg, x, y, xw, halfy - y);
-		if (dev->clip.y2 > halfy) g_draw_background(dev, bg, x, halfy, xw, y + yw - halfy);
-		return;
-	}
-	drv->fill_area(dev, x, y, x + xw, y + yw , dip_get_color_sRGB(bg->u.sRGB));
-}
-
 void g_dummy_draw(struct f_data_c *fd, struct g_object *t, int x, int y)
 {
 }
@@ -118,7 +101,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 	int i, j;
 	int yy;
 	int cur;
-	struct line_info *ln, *lnx;
+	struct format_text_cache_entry *ftce;
 	struct graphics_device *dev = fd->ses->term->dev;
 
 	if (x + t->goti.go.xw <= fd->ses->term->dev->clip.x1)
@@ -137,7 +120,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 		fs = find_form_state(fd, form);
 		switch (form->type) {
 			struct style *inv;
-			int in;
+			int in, lid;
 			case FC_RADIO:
 				if (link
 				&& fd->active
@@ -190,20 +173,20 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 				if (fs->state >= fs->vpos + form->size) fs->vpos = fs->state - form->size + 1;
 				if (fs->state < fs->vpos) fs->vpos = fs->state;
 				*/
-				if ((size_t)fs->vpos > strlen(cast_const_char fs->value)) fs->vpos = (int)strlen(cast_const_char fs->value);
-				while ((size_t)fs->vpos < strlen(cast_const_char fs->value) && textptr_diff(fs->value + fs->state, fs->value + fs->vpos, fd->f_data->opt.cp) >= form->size) {
-					unsigned char *p = fs->value + fs->vpos;
+				if ((size_t)fs->vpos > strlen(cast_const_char fs->string)) fs->vpos = (int)strlen(cast_const_char fs->string);
+				while ((size_t)fs->vpos < strlen(cast_const_char fs->string) && textptr_diff(fs->string + fs->state, fs->string + fs->vpos, fd->f_data->opt.cp) >= form->size) {
+					unsigned char *p = fs->string + fs->vpos;
 					FWD_UTF_8(p);
-					fs->vpos = (int)(p - fs->value);
+					fs->vpos = (int)(p - fs->string);
 				}
 				while (fs->vpos > fs->state) {
-					unsigned char *p = fs->value + fs->vpos;
-					BACK_UTF_8(p, fs->value);
-					fs->vpos = (int)(p - fs->value);
+					unsigned char *p = fs->string + fs->vpos;
+					BACK_UTF_8(p, fs->string);
+					fs->vpos = (int)(p - fs->string);
 				}
 				l = 0;
 				i = 0;
-				ll = (int)strlen(cast_const_char fs->value);
+				ll = (int)strlen(cast_const_char fs->string);
 				while (l < t->goti.go.xw) {
 					struct style *st = t->style;
 					int sm = 0;
@@ -217,7 +200,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 						tx[1] = 0;
 						i++;
 					} else {
-						i += prepare_input_field_char(fs->value + fs->vpos + i, tx);
+						i += prepare_input_field_char(fs->string + fs->vpos + i, tx);
 						if (form->type == FC_PASSWORD) {
 							tx[0] = '*';
 							tx[1] = 0;
@@ -230,16 +213,26 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 				return;
 			case FC_TEXTAREA:
 				cur = area_cursor(fd, form, fs);
-				lnx = format_text(fs->value, form->cols, form->wrap, fd->f_data->opt.cp);
-				ln = lnx;
+				ftce = format_text(fd, form, fs);
+
 				yy = y - t->goti.link_order * t->style->height;
-				for (j = 0; j < fs->vypos; j++) if (ln->st) ln++;
+				lid = fs->vypos;
 				for (j = 0; j < form->rows; j++) {
-					unsigned char *pp = ln->st;
+					unsigned char *pp, *en;
+					int remaining_chars;
 					int xx = fs->vpos;
-					while (ln->st && pp < ln->en && xx > 0) {
+					if (lid < ftce->n_lines) {
+						pp = fs->string + ftce->ln[lid].st_offs;
+						en = fs->string + ftce->ln[lid].en_offs;
+						remaining_chars = ftce->ln[lid].chars;
+					} else {
+						pp = en = NULL;
+						remaining_chars = 0;
+					}
+					while(pp && pp < en && xx > 0) {
 						FWD_UTF_8(pp);
 						xx--;
+						remaining_chars--;
 					}
 					if (cur >= 0 && cur < form->cols
 					&& t->goti.link_num == fd->vs->current_link
@@ -249,7 +242,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 
 						if (print_all_textarea || j == t->goti.link_order) while (xx < x + t->goti.go.xw) {
 							struct style *st = t->style;
-							if (ln->st && pp < ln->en) {
+							if (pp && pp < en) {
 								pp += prepare_input_field_char(pp, tx);
 							} else {
 								tx[0] = '_';
@@ -270,20 +263,26 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 						} else cur -= form->cols;
 					} else {
 						if (print_all_textarea || j == t->goti.link_order) {
-							int aa;
 							unsigned char *a;
 							struct rect old;
-							if (ln->st && pp < ln->en) a = memacpy(pp, ln->en - pp);
-							else a = stracpy(cast_uchar "");
-							for (aa = 0; aa < form->cols; aa += 4) add_to_strn(&a, cast_uchar "____");
+							size_t text_size;
+							if (remaining_chars <= form->cols)
+								remaining_chars = form->cols - remaining_chars;
+							else
+								remaining_chars = 0;
+							text_size = pp ? en - pp : 0;
+							a = xmalloc(text_size + remaining_chars + 1);
+							if (text_size) memcpy(a, pp, text_size);
+							memset(a + text_size, '_', remaining_chars);
+							a[text_size + remaining_chars] = 0;
 							restrict_clip_area(dev, &old, x, 0, x + t->goti.go.xw, dev->size.y2);
 							g_print_text(dev, x, yy + j * t->style->height, t->style, a, NULL);
-							drv->set_clip_area(dev, &old);
+							set_clip_area(dev, &old);
 							free(a);
 						}
 						cur -= form->cols;
 					}
-					if (ln->st) ln++;
+					if (lid < ftce->n_lines) lid++;
 				}
 				return;
 		}
@@ -584,13 +583,13 @@ static void draw_root(struct f_data_c *scr, int x, int y)
 
 void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 {
-	int r = 0;
 	struct rect old;
 	struct view_state *vs = scr->vs;
 	struct rect_set *rs;
 	int xw = scr->xw;
 	int yw = scr->yw;
 	int vx, vy;
+	int j;
 
 	if (active) {
 		if (scr->ses->search_word && scr->ses->search_word[0]) {
@@ -639,97 +638,24 @@ void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active)
 	|| (scr->xl - vx > xw || vx - scr->xl > xw || scr->yl - vy > yw
 	|| vy - scr->yl > yw))
 		goto rrr;
-	if (scr->xl != vx) {
-		rs = NULL;
-		r |= drv->scroll(t->dev, &rs, scr->xl - vx, 1);
-		if (rs) {
-			int j;
-			for (j = 0; j < rs->m; j++) {
-				struct rect *r = &rs->r[j];
-				struct rect clip1;
-				restrict_clip_area(t->dev, &clip1, r->x1, r->y1,
-					r->x2, r->y2);
-				draw_root(scr, scr->xp - vs->view_posx,
-					scr->yp - vs->view_pos - (scr->yl - vy));
-				drv->set_clip_area(t->dev, &clip1);
-			}
-			free(rs);
-		}
-	}
 
-	if (scr->yl != vy) {
-		rs = NULL;
-		r |= drv->scroll(t->dev, &rs, scr->yl - vy, 0);
-		if (rs) {
-			int j;
-			for (j = 0; j < rs->m; j++) {
-				struct rect *r = &rs->r[j];
-				struct rect clip1;
-				restrict_clip_area(t->dev, &clip1, r->x1, r->y1,
-					r->x2, r->y2);
-				draw_root(scr, scr->xp - vs->view_posx,
-					scr->yp - vs->view_pos);
-				drv->set_clip_area(t->dev, &clip1);
-			}
-			free(rs);
-		}
-	}
-
-	if (r) {
+	rs = g_scroll(t->dev, scr->xl - vx, scr->yl - vy);
+	for (j = 0; j < rs->m; j++) {
+		struct rect *r = &rs->r[j];
 		struct rect clip1;
-		if (scr->xl < vx)  {
-			if (scr->yl < vy)
-				restrict_clip_area(t->dev, &clip1,
-					scr->xp + xw - scr->vsb
-					* G_SCROLL_BAR_WIDTH - (vx - scr->xl),
-					scr->yp, scr->xp + xw - scr->vsb
-					* G_SCROLL_BAR_WIDTH,
-					scr->yp + yw - scr->hsb
-					* G_SCROLL_BAR_WIDTH - (vy - scr->yl));
-			else
-				restrict_clip_area(t->dev, &clip1,
-					scr->xp + xw - scr->vsb
-					* G_SCROLL_BAR_WIDTH - (vx - scr->xl),
-					scr->yp + (scr->yl - vy),
-					scr->xp + xw - scr->vsb
-					* G_SCROLL_BAR_WIDTH,
-					scr->yp + yw - scr->hsb
-					* G_SCROLL_BAR_WIDTH);
-		} else {
-			if (scr->yl < vy)
-				restrict_clip_area(t->dev, &clip1, scr->xp,
-					scr->yp, scr->xp + (scr->xl - vx),
-					scr->yp + yw - scr->hsb
-					* G_SCROLL_BAR_WIDTH - (vy - scr->yl));
-			else
-				restrict_clip_area(t->dev, &clip1, scr->xp,
-					scr->yp + (scr->yl - vy),
-					scr->xp + (scr->xl - vx),
-					scr->yp + yw - scr->hsb
-					* G_SCROLL_BAR_WIDTH);
-		}
+		restrict_clip_area(t->dev, &clip1, r->x1, r->y1, r->x2, r->y2);
 		draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
-		drv->set_clip_area(t->dev, &clip1);
-		if (scr->yl < vy)
-			restrict_clip_area(t->dev, NULL, scr->xp,
-				scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH
-				- (vy - scr->yl),
-				scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH,
-				scr->yp + yw - scr->hsb * G_SCROLL_BAR_WIDTH);
-		else
-			restrict_clip_area(t->dev, NULL, scr->xp, scr->yp,
-				scr->xp + xw - scr->vsb * G_SCROLL_BAR_WIDTH,
-				scr->yp + (scr->yl - vy));
+		set_clip_area(t->dev, &clip1);
+	}
+	free(rs);
+
+	if (0) {
+ rrr:
 		draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
 	}
-
-	goto eee;
- rrr:
-	draw_root(scr, scr->xp - vs->view_posx, scr->yp - vs->view_pos);
- eee:
 	scr->xl = vx;
 	scr->yl = vy;
-	drv->set_clip_area(t->dev, &old);
+	set_clip_area(t->dev, &old);
 
 	highlight_positions = NULL;
 	highlight_lengths = NULL;
@@ -754,7 +680,7 @@ static void draw_one_object_fn(struct terminal *t, void *d_)
 	get_object_pos(o, &x, &y);
 	o->draw(scr, o, scr->xp - scr->vs->view_posx + x,
 		scr->yp - scr->vs->view_pos + y);
-	drv->set_clip_area(t->dev, &clip);
+	set_clip_area(t->dev, &clip);
 }
 
 void draw_one_object(struct f_data_c *scr, struct g_object *o)
@@ -902,8 +828,7 @@ static void g_set_current_link(struct f_data_c *fd, struct g_object_text_image *
 			if (!l->form) return;
 			if (l->type == L_AREA) {
 				struct g_object_text *at = get_struct(a, struct g_object_text, goti);
-				struct line_info *ln;
-				int aa;
+				struct format_text_cache_entry *ftce;
 				fs = find_form_state(fd,l->form);
 
 				if (g_char_width(at->style, ' '))
@@ -911,16 +836,17 @@ static void g_set_current_link(struct f_data_c *fd, struct g_object_text_image *
 				else
 					xx = x;
 				xx += fs->vpos;
-				xx= xx < 0 ? 0 : xx;
+				xx = xx < 0 ? 0 : xx;
 				yy = a->link_order;
 				yy += fs->vypos;
-				ln = format_text(fs->value, l->form->cols, l->form->wrap, fd->f_data->opt.cp);
-				for (aa = 0; ln[aa].st; aa++) if (aa==yy){
-					int bla = textptr_diff(ln[aa].en, ln[aa].st, fd->f_data->opt.cp);
+				ftce = format_text(fd, l->form, fs);
+				if (yy >= ftce->n_lines)
+					yy = ftce->n_lines - 1;
+				if (yy >= 0) {
+					int bla = textptr_diff(fs->string + ftce->ln[yy].en_offs, fs->string + ftce->ln[yy].st_offs, fd->f_data->opt.cp);
 
-					fs->state = (int)(ln[aa].st-fs->value);
-					fs->state = (int)(textptr_add(fs->value + fs->state, xx<bla?xx:bla, fd->f_data->opt.cp) - fs->value);
-					break;
+					fs->state = ftce->ln[yy].st_offs;
+					fs->state = (int)(textptr_add(fs->string + fs->state, xx < bla ? xx : bla, fd->f_data->opt.cp) - fs->string);
 				}
 				return;
 			}
@@ -931,7 +857,7 @@ static void g_set_current_link(struct f_data_c *fd, struct g_object_text_image *
 					xx = x / g_char_width(at->style, ' ');
 				else
 					xx = x;
-				fs->state = (int)(textptr_add(fs->value + ((size_t)fs->vpos > strlen(cast_const_char fs->value) ? strlen(cast_const_char fs->value) : (size_t)fs->vpos), (xx<0?0:xx), fd->f_data->opt.cp) - fs->value);
+				fs->state = (int)(textptr_add(fs->string + ((size_t)fs->vpos > strlen(cast_const_char fs->string) ? strlen(cast_const_char fs->string) : (size_t)fs->vpos), (xx < 0 ? 0 : xx), fd->f_data->opt.cp) - fs->string);
 			}
 		}
 	}
@@ -1065,7 +991,7 @@ static int lr_link(struct f_data_c *fd, int nl)
 	return xx != fd->vs->view_posx;
 }
 
-int g_next_link(struct f_data_c *fd, int dir)
+int g_next_link(struct f_data_c *fd, int dir, int do_scroll)
 {
 	int orig_link = -1;
 	int r = 2;
@@ -1080,6 +1006,8 @@ retry:
 	}
 	again:
 	if (n < 0 || n >= fd->f_data->nlinks) {
+		if (!do_scroll)
+			return 0;
 		if (r == 1) {
 			fd->vs->current_link = -1;
 			if (fd->vs->view_pos > fd->f_data->y - fd->yw + fd->hsb * G_SCROLL_BAR_WIDTH) fd->vs->view_pos = fd->f_data->y - fd->yw + fd->hsb * G_SCROLL_BAR_WIDTH;
@@ -1119,7 +1047,7 @@ retry:
 	if (fd->f_data->links[fd->vs->current_link].type == L_FIELD || fd->f_data->links[fd->vs->current_link].type == L_AREA) {
 		if ((fd->f_data->locked_on = fd->f_data->links[fd->vs->current_link].obj)) fd->ses->locked_link = 1;
 	}
-	set_textarea(fd->ses, fd, dir < 0 ? KBD_DOWN : KBD_UP);
+	set_textarea(fd->ses, fd, -dir);
 	change_screen_status(fd->ses);
 	print_screen_status(fd->ses);
 	if (lr_link(fd, fd->vs->current_link)) r = 1;
@@ -1167,14 +1095,35 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 	if (!fd->f_data) return 0;
 	switch ((int)ev->ev) {
 		case EV_MOUSE:
-			if ((ev->b & BM_BUTT) == B_WHEELUP) goto up;
-			if ((ev->b & BM_BUTT) == B_WHEELDOWN) goto down;
-			if ((ev->b & BM_BUTT) == B_WHEELUP1) goto up1;
-			if ((ev->b & BM_BUTT) == B_WHEELDOWN1) goto down1;
-			if ((ev->b & BM_BUTT) == B_WHEELLEFT) goto left;
-			if ((ev->b & BM_BUTT) == B_WHEELRIGHT) goto right;
-			if ((ev->b & BM_BUTT) == B_WHEELLEFT1) goto left1;
-			if ((ev->b & BM_BUTT) == B_WHEELRIGHT1) goto right1;
+			if (BM_IS_WHEEL(ev->b) && ses->locked_link) {
+				if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks && fd->f_data->links[fd->vs->current_link].type == L_AREA) {
+					if (field_op(ses, fd, &fd->f_data->links[fd->vs->current_link], ev)) {
+						if (fd->f_data->locked_on) {
+							print_all_textarea = 1;
+							draw_one_object(fd, fd->f_data->locked_on);
+							print_all_textarea = 0;
+							return 2;
+						}
+					}
+				}
+				return 1;
+			}
+			if ((ev->b & BM_BUTT) == B_WHEELUP)
+				return scroll_v(fd, -64);
+			if ((ev->b & BM_BUTT) == B_WHEELDOWN)
+				return scroll_v(fd, 64);
+			if ((ev->b & BM_BUTT) == B_WHEELUP1)
+				return scroll_v(fd, -16);
+			if ((ev->b & BM_BUTT) == B_WHEELDOWN1)
+				return scroll_v(fd, 16);
+			if ((ev->b & BM_BUTT) == B_WHEELLEFT)
+				return scroll_h(fd, -64);
+			if ((ev->b & BM_BUTT) == B_WHEELRIGHT)
+				return scroll_h(fd, 64);
+			if ((ev->b & BM_BUTT) == B_WHEELLEFT1)
+				return scroll_h(fd, -16);
+			if ((ev->b & BM_BUTT) == B_WHEELRIGHT1)
+				return scroll_h(fd, 16);
 			if ((ev->b & BM_ACT) == B_MOVE) ses->scrolling = 0;
 			if (ses->scrolling == 1) process_sb_move(fd, ses->scrolltype ? ev->x : ev->y);
 			if (ses->scrolling == 2) {
@@ -1182,7 +1131,7 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				fd->vs->view_posx = -ev->x + ses->scrolltype;
 				fd->vs->orig_view_pos = fd->vs->view_pos;
 				fd->vs->orig_view_posx = fd->vs->view_posx;
-				draw_graphical_doc(fd->ses->term, fd, 1);
+				draw_graphical_doc(ses->term, fd, 1);
 				if ((ev->b & BM_ACT) == B_UP) {
 					ses->scrolling = 0;
 				}
@@ -1266,7 +1215,7 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 							while ((p = cast_uchar strchr(cast_const_char p, 1))) *p++ = ' ';
 							p = m;
 							while ((p = cast_uchar strstr(cast_const_char p, "\302\255"))) memmove(p, p + 2, strlen(cast_const_char(p + 2)) + 1);
-							if (*m) set_clipboard_text(fd->ses->term, m);
+							if (*m) set_clipboard_text(ses->term, m);
 							free(m);
 						}
 					}
@@ -1283,7 +1232,7 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 			break;
 		case EV_KBD:
 			if (ses->locked_link && fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks && (fd->f_data->links[fd->vs->current_link].type == L_FIELD || fd->f_data->links[fd->vs->current_link].type == L_AREA)) {
-				if (field_op(ses, fd, &fd->f_data->links[fd->vs->current_link], ev, 0)) {
+				if (field_op(ses, fd, &fd->f_data->links[fd->vs->current_link], ev)) {
 					if (fd->f_data->locked_on) {
 						print_all_textarea = 1;
 						draw_one_object(fd, fd->f_data->locked_on);
@@ -1292,11 +1241,11 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 					}
 					return 1;
 				}
-				if (ev->x == KBD_ENTER && !(ev->y & KBD_PASTE)) {
+				if (ev->x == KBD_ENTER && !(ev->y & KBD_PASTING)) {
 					return enter(ses, fd, 0);
 				}
 			}
-			if (ev->y & KBD_PASTE)
+			if (ev->y & KBD_PASTING)
 				return 0;
 			if (ev->x == KBD_ENTER && fd->f_data->opt.plain == 2) {
 				ses->ds.porn_enable ^= 1;
@@ -1326,49 +1275,31 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				unset_link(fd);
 				return scroll_v(fd, -vertical_page_jump(fd));
 			}
-			if (0) {
-				down:
-				return scroll_v(fd, 64);
-			}
-			if (0) {
-				up:
-				return scroll_v(fd, -64);
-			}
-			if (ev->x == KBD_DEL || (upcase(ev->x) == 'N' && ev->y & KBD_CTRL) || (upcase(ev->x) == 'L' && !(ev->y & (KBD_CTRL | KBD_ALT)))) {
+			if (ev->x == KBD_DEL || (upcase(ev->x) == 'N' && ev->y & KBD_CTRL) || (ev->x == 'l' && !(ev->y & (KBD_CTRL | KBD_ALT)))) {
 				return scroll_v(fd, 32);
 			}
-			if (ev->x == KBD_INS || (upcase(ev->x) == 'P' && ev->y & KBD_CTRL) || (upcase(ev->x) == 'P' && !(ev->y & (KBD_CTRL | KBD_ALT)))) {
+			if (ev->x == KBD_INS || (upcase(ev->x) == 'P' && ev->y & KBD_CTRL) || (ev->x == 'p' && !(ev->y & (KBD_CTRL | KBD_ALT)))) {
 				return scroll_v(fd, -32);
 			}
-			if (/*ev->x == KBD_DOWN*/ 0) {
-				down1:
-				return scroll_v(fd, 16);
-			}
-			if (/*ev->x == KBD_UP*/ 0) {
-				up1:
-				return scroll_v(fd, -16);
-			}
 			if (ev->x == KBD_DOWN) {
-				return g_next_link(fd, 1);
+				return g_next_link(fd, 1, 1);
 			}
 			if (ev->x == KBD_UP) {
-				return g_next_link(fd, -1);
+				return g_next_link(fd, -1, 1);
+			}
+			if (ev->x == 'H' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+				unset_link(fd);
+				return g_next_link(fd, 1, 0);
+			}
+			if (ev->x == 'L' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+				unset_link(fd);
+				return g_next_link(fd, -1, 0);
 			}
 			if (ev->x == '[') {
-				left:
 				return scroll_h(fd, -64);
 			}
 			if (ev->x == ']') {
-				right:
 				return scroll_h(fd, 64);
-			}
-			if (/*ev->x == KBD_LEFT*/ 0) {
-				left1:
-				return scroll_h(fd, -16);
-			}
-			if (/*ev->x == KBD_RIGHT*/ 0) {
-				right1:
-				return scroll_h(fd, 16);
 			}
 			if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) {
 				fd->vs->view_pos = 0;
@@ -1382,7 +1313,7 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				unset_link(fd);
 				return 3;
 			}
-			if (upcase(ev->x) == 'F' && !(ev->y & (KBD_ALT | KBD_CTRL))) {
+			if ((upcase(ev->x) == 'F' && !(ev->y & (KBD_ALT | KBD_CTRL))) || ev->x == KBD_FRONT) {
 				set_frame(ses, fd, 0);
 				return 2;
 			}
@@ -1404,21 +1335,28 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				if (!anonymous) frm_download(ses, fd);
 				return 2;
 			}
-			if (ev->x == '/') {
+			if (ev->x == '/' || (ev->x == KBD_FIND && !(ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT)))) {
 				search_dlg(ses, fd, 0);
 				return 2;
 			}
-			if (ev->x == '?') {
+			if (ev->x == '?' || (ev->x == KBD_FIND && ev->y & (KBD_SHIFT | KBD_CTRL | KBD_ALT))) {
 				search_back_dlg(ses, fd, 0);
 				return 2;
 			}
-			if (ev->x == 'n' && !(ev->y & KBD_ALT)) {
+			if ((ev->x == 'n' && !(ev->y & KBD_ALT)) || ev->x == KBD_REDO) {
 				find_next(ses, fd, 0);
 				return 2;
 			}
-			if (ev->x == 'N' && !(ev->y & KBD_ALT)) {
+			if ((ev->x == 'N' && !(ev->y & KBD_ALT)) || ev->x == KBD_UNDO) {
 				find_next_back(ses, fd, 0);
 				return 2;
+			}
+			if (ev->x == KBD_MENU) {
+				if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
+					ses->win->xp = fd->f_data->links[fd->vs->current_link].r.x1 + fd->xp - fd->vs->view_posx;
+					ses->win->yp = fd->f_data->links[fd->vs->current_link].r.y2 + fd->yp - fd->vs->view_pos;
+					link_menu(ses->term, NULL, ses);
+				}
 			}
 			break;
 	}

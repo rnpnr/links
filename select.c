@@ -67,32 +67,34 @@ void portable_sleep(unsigned msec)
 
 static int can_do_io(int fd, int wr, int sec)
 {
+	fd_set fds;
+	struct timeval tv, *tvp;
+	int rs;
+
+	if (fd < 0)
+		die("can_do_io: handle %d", fd);
+
 #if defined(USE_POLL)
 	struct pollfd p;
-	int rs;
 	p.fd = fd;
 	p.events = !wr ? POLLIN : POLLOUT;
 	EINTRLOOP(rs, poll(&p, 1, sec < 0 ? -1 : sec * 1000));
 	if (rs < 0)
-		die("poll for %s (%d) failed: %s\n", !wr ? "read" : "write", fd, strerror(errno));
-	if (!rs) return 0;
+		die("poll for %s (%d) failed: %s", !wr ? "read" : "write", fd, strerror(errno));
+	if (!rs)
+		return 0;
 	if (p.revents & POLLNVAL)
-		die("poll for %s (%d) failed: %s\n", !wr ? "read" : "write", fd, strerror(errno));
+		goto fallback;
 	return 1;
-#else
-	fd_set fds;
-	struct timeval tv, *tvp;
-	int rs;
+ fallback:
+#endif
 	if (sec >= 0) {
 		tv.tv_sec = sec;
 		tv.tv_usec = 0;
 		tvp = &tv;
-	} else {
+	} else
 		tvp = NULL;
-	}
 	FD_ZERO(&fds);
-	if (fd < 0)
-		die("can_do_io: handle %d\n", fd);
 	if (fd >= (int)FD_SETSIZE)
 		die("too big handle %d\n", fd);
 	FD_SET(fd, &fds);
@@ -103,7 +105,6 @@ static int can_do_io(int fd, int wr, int sec)
 	if (rs < 0)
 		die("select for %s (%d) failed: %s\n", !wr ? "read" : "write", fd, strerror(errno));
 	return rs;
-#endif
 }
 
 int can_write(int fd)

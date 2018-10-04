@@ -457,7 +457,6 @@ static void terminate_all_subsystems(void)
 	abort_all_connections();
 
 	free_all_caches();
-	free_format_text_cache();
 	ssl_finish();
 	if (init_b)
 		save_url_history();

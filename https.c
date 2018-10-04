@@ -222,7 +222,7 @@ static void set_session_cache_entry(SSL_CTX *ctx, char *host, int port, SSL_SESS
 	if (!s)
 		return;
 	sl = strlen(host);
-	if (sl > INT_MAX - sizeof(sizeof(struct session_cache_entry))) return;
+	if (sl > INT_MAX - sizeof(struct session_cache_entry)) return;
 	sce = xmalloc(sizeof(struct session_cache_entry) + sl);
 	sce->absolute_time = get_absolute_time();
 	sce->ctx = ctx;

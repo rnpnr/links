@@ -238,7 +238,7 @@ static const struct { const char *s; int c; } entities [1010] = {
   {"aogon",	0x0105},  /* LATIN SMALL LETTER A WITH OGONEK		   */
   {"ap",	0x2248},  /* ALMOST EQUAL TO				   */
   {"ape",	0x224A},  /* ALMOST EQUAL OR EQUAL TO			   */
-  {"apos",	0x02BC},  /* MODIFIER LETTER APOSTROPHE 		   */
+  {"apos",	0x0027},  /* APOSTROPHE 		   		   */
   {"aring",	0x00E5},  /* LATIN SMALL LETTER A WITH RING ABOVE	   */
   {"ast",	0x002A},  /* ASTERISK					   */
   {"asymp",	0x2248},  /* ALMOST EQUAL TO				   */

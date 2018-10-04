@@ -1160,9 +1160,9 @@ void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict s
  * We assume unsigned short holds at least 16 bits. */
 void make_gamma_table(struct cached_image *cimg)
 {
-	float rg=(float)((float)user_gamma/cimg->red_gamma);
-	float gg=(float)((float)user_gamma/cimg->green_gamma);
-	float bg=(float)((float)user_gamma/cimg->blue_gamma);
+	float rg = (float)(user_gamma / cimg->red_gamma);
+	float gg = (float)(user_gamma / cimg->green_gamma);
+	float bg = (float)(user_gamma / cimg->blue_gamma);
 	int a;
 	unsigned short *ptr_16;
 	unsigned short last_val;
@@ -1568,9 +1568,9 @@ static struct font_cache_entry *supply_color_cache_entry(struct style *style, st
 	mix_two_colors(primary_data, found->bitmap.data,
 		found->bitmap.x*found->bitmap.y,
 		red,green,blue,
-		ags_8_to_16(style->r1,(float)((float)user_gamma/(float)sRGB_gamma)),
-		ags_8_to_16(style->g1,(float)((float)user_gamma/(float)sRGB_gamma)),
-		ags_8_to_16(style->b1,(float)((float)user_gamma/(float)sRGB_gamma))
+		ags_8_to_16(style->r1, (float)(user_gamma / sRGB_gamma)),
+		ags_8_to_16(style->g1, (float)(user_gamma / sRGB_gamma)),
+		ags_8_to_16(style->b1, (float)(user_gamma / sRGB_gamma))
 	);
 	/* We have a buffer with photons */
 	if (drv->get_empty_bitmap(&(neww->bitmap)))
@@ -1633,24 +1633,24 @@ static inline int print_letter(struct graphics_device *device, int x, int y, str
 	struct letter *letter;
 
 	/* Find a suitable letter */
-	letter=find_stored_letter(style->table,char_number);
+	letter = find_stored_letter(style->table, char_number);
 #ifdef DEBUG
 	if (!letter) internal("print_letter could not find a letter - even not the blotch!");
 #endif /* #ifdef DEBUG */
-	templat.r0=style->r0;
-	templat.r1=style->r1;
-	templat.g0=style->g0;
-	templat.g1=style->g1;
-	templat.b0=style->b0;
-	templat.b1=style->b1;
-	templat.bitmap.y=style->height;
-	templat.mono_space=style->mono_space;
-	templat.mono_height=style->mono_height;
+	templat.r0 = style->r0;
+	templat.r1 = style->r1;
+	templat.g0 = style->g0;
+	templat.g1 = style->g1;
+	templat.b0 = style->b0;
+	templat.b1 = style->b1;
+	templat.bitmap.y = style->height;
+	templat.mono_space = style->mono_space;
+	templat.mono_height = style->mono_height;
 
-	found=lru_lookup(&font_cache, &templat, &letter->color_list);
-	if (!found) found=supply_color_cache_entry(style, letter);
+	found = lru_lookup(&font_cache, &templat, &letter->color_list);
+	if (!found) found = supply_color_cache_entry(style, letter);
 	else locked_color_entry = found;
-	drv->draw_bitmap(device, &(found->bitmap), x, y);
+	drv->draw_bitmap(device, &found->bitmap, x, y);
 	xw = found->bitmap.x;
 	if (locked_color_entry != found) internal("bad letter lock");
 	locked_color_entry = NULL;
@@ -1696,7 +1696,7 @@ void g_print_text(struct graphics_device *device, int x, int y, struct style *st
 		restrict_clip_area(device, &saved_clip, 0, 0, device->size.x2, y+
 			top_underline);
 		g_print_text(device, x, y, style, text, width);
-		drv->set_clip_area(device, &saved_clip);
+		set_clip_area(device, &saved_clip);
 		if (bottom_underline-top_underline==1){
 			/* Line */
 			drv->draw_hline(device, x, y+top_underline,
@@ -1718,7 +1718,7 @@ void g_print_text(struct graphics_device *device, int x, int y, struct style *st
 				y+bottom_underline, device->size.x2,
 				device->size.y2);
 			g_print_text(device, x, y, style, text, width);
-			drv->set_clip_area(device, &saved_clip);
+			set_clip_area(device, &saved_clip);
 		}
 		style->flags=original_flags;
 		return;
@@ -2104,6 +2104,8 @@ void g_free_style(struct style *st)
 	free(st);
 }
 
+tcount gamma_stamp = 1; /* stamp counter for gamma changes */
+
 long gamma_cache_color;
 int gamma_cache_rgb = -2;
 
@@ -2120,9 +2122,9 @@ long real_dip_get_color_sRGB(int rgb)
 	rgb = hack_rgb(rgb);
 
 	round_color_sRGB_to_48(&r,&g,&b,rgb);
-	r=ags_16_to_8(r,(float)(1/(float)display_red_gamma));
-	g=ags_16_to_8(g,(float)(1/(float)display_green_gamma));
-	b=ags_16_to_8(b,(float)(1/(float)display_blue_gamma));
+	r = ags_16_to_8(r, (float)(1 / display_red_gamma));
+	g = ags_16_to_8(g, (float)(1 / display_green_gamma));
+	b = ags_16_to_8(b, (float)(1 / display_blue_gamma));
 	new_rgb=b|(g<<8)|(r<<16);
 	gamma_cache_rgb = rgb;
 	/* The get_color takes values with gamma of display_*_gamma */
@@ -2152,9 +2154,20 @@ static inline void qb_palette(unsigned r_max, unsigned g_max, unsigned b_max, un
 
 void q_palette(unsigned size, unsigned color, unsigned scale, unsigned rgb[3])
 {
+	if (color >= size) {
+		rgb[0] = rgb[1] = rgb[2] = 0;
+		return;
+	}
+
 	switch (size) {
+		case 8:
+			qb_palette(1, 1, 1, color >> 2, (color >> 1) & 1, color & 1, scale, rgb);
+			break;
 		case 16:
 			qb_palette(1, 3, 1, color >> 3, (color >> 1) & 3, color & 1, scale, rgb);
+			break;
+		case 216:
+			qb_palette(5, 5, 5, color / 36, color / 6 % 6, color % 6, scale, rgb);
 			break;
 		case 256:
 			qb_palette(7, 7, 3, color >> 5, (color >> 2) & 7, color & 3, scale, rgb);

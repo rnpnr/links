@@ -1,3 +1,105 @@
+=== RELEASE 2.17 ===
+
+Fri Sep  7 00:04:41 CEST 2018 mikulas:
+
+	Fix verifying SSL certificates for numeric IPv6 addresses
+
+Thu Sep  6 22:07:03 CEST 2018 mikulas:
+
+	Delete the option -ftp.fast - it doesn't always work and ftp performance
+	is not an issue anymore
+
+	Passive ftp enabled by default because it will more likely work than
+	the port command
+
+Wed Sep  5 22:39:11 CEST 2018 mikulas:
+
+	Add bold and monospaced Turkish letter 'i' without a dot
+
+Wed Sep  5 01:28:31 cet 2018 mikulas:
+
+	On OS/2 allocate OpenSSL memory from the lower heap
+	It fixes SSL on systems with old 16-bit TCP/IP stack
+
+Fri Aug 31 18:06:26 CEST 2018 mikulas:
+
+	Fix IPv6 on OpenVMS Alpha
+
+Thu Jul 26 07:34:24 CEST 2018 mikulas:
+
+	Support mouse scroll wheel in textarea
+
+Thu Jul 26 05:24:17 CEST 2018 mikulas:
+
+	Delete the option -http-bugs.bug-302-redirect - RFC7231 allows the
+	"buggy" behavior and defines new codes 307 and 308 that retain the
+	post data
+
+Wed Jul 18 21:00:23 CEST 2018 mikulas:
+
+	X11 - fixed colormap leak when creating a new window
+
+Mon Jul 16 02:33:26 CEST 2018 mikulas:
+
+	Fixed an infinite loop that happened in graphics mode if the user
+	clicked on OK in "Miscellaneous options" dialog and more than one
+	windows were open.
+	This bug was introduced in Links 2.15.
+
+Sun Jul 15 21:36:04 CEST 2018 mikulas:
+
+	Support 6x6x6 RGB palette in 256-bit color mode on framebuffer
+	The palette may be switched in the "video options" menu
+	The 8x8x4 palette has better image quality
+	The 6x6x6 palette preserves gray
+
+Sat Jul 14 04:49:45 cet 2018 mikulas:
+
+	Implement dithering properly on OS/2 in 15-bit and 16-bit color mode
+
+	In 8-bit mode, Links may optionally use a private palette - it
+	improves visual quality of Links images, but degrades visual
+	quality of other concurrently running programs.
+
+Thu Jul 12 23:06:48 CEST 2018 mikulas:
+
+	Improve scrolling smoothness when the user drags the whole document
+
+Thu Jul 12 06:48:00 cet 2018 mikulas:
+
+	On OS/2, allocate large memory blocks directly (not with malloc)
+	- it reduces memory waste
+
+Thu Jul 12 00:56:57 cet 2018 mikulas:
+
+	Fixed a bug that setting terminal title and resizing a terminal didn't
+	work on OS/2 and Windows. The bug was introduced in Links 2.16 when
+	shutting up coverity warnings.
+
+Sun Jun 17 15:31:28 CEST 2018 mikulas:
+
+	Set link color to yellow by default
+
+Sun Jun 17 14:04:07 CEST 2018 mikulas:
+
+	Delete the option -http-bugs.bug-post-no-keepalive
+	It was needed in 1999 to avoid some bug in some http server and it is
+	not needed anymore
+
+Tue Jun  5 20:24:42 CEST 2018 mikulas:
+
+	Trust Content-Length on HTTP/1.0 redirect requests
+
+	This fixes hangs with misbehaving servers that honor Connection:
+	keep-alive but send out HTTP/1.0 reply without Connection: keep-alive.
+	Links thought that they don't support keep-alive and waited for the
+	connection to close (for example http://www.raspberrypi.org/)
+
+Tue May 22 00:51:35 CEST 2018 mikulas:
+
+	Use keys 'H' and 'L' to select the top and bottom link on the current
+	page
+
 === RELEASE 2.16 ===
 
 Sun Apr 29 17:12:24 CEST 2018 mikulas:
