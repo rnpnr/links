@@ -78,7 +78,7 @@ void shutdown_graphics(void)
 
 void update_driver_param(void)
 {
-	if (drv) {
+	if (drv && drv->param) {
 		struct driver_param *dp = drv->param;
 		free(dp->param);
 		dp->param = NULL;
