@@ -5,6 +5,7 @@
 
 #include <errno.h>
 #include <search.h>
+#include <unistd.h>
 #include "links.h"
 
 static struct list_head cache = {&cache, &cache};
@@ -541,7 +542,7 @@ ret:
 void init_cache(void)
 {
 	int getpg;
-	EINTRLOOP(getpg, getpagesize());
+	EINTRLOOP(getpg, sysconf(_SC_PAGESIZE));
 	if (getpg > 0 && getpg < 0x10000 && !(getpg & (getpg - 1)))
 		page_size = getpg;
 	register_cache_upcall(shrink_file_cache, 0, cast_uchar "file");
