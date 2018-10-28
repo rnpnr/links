@@ -2518,7 +2518,7 @@ static void ses_go_to_2nd_state(struct session *ses)
 	}
 	type_query(ses, ct, a, n);
 	return;
-	go:
+ go:
 	ses_go_forward(ses, r, ses->wtd_refresh);
 	free(ct);
 }
@@ -2532,27 +2532,29 @@ static void ses_finished_1st_state(struct object_request *rq, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	if (rq->state != O_WAITING) {
-		if (ses->wtd_refresh && ses->wtd_target_base && ses->wtd_target_base->refresh_timer != NULL) {
+		if (ses->wtd_refresh && ses->wtd_target_base
+		&& ses->wtd_target_base->refresh_timer != NULL) {
 			kill_timer(ses->wtd_target_base->refresh_timer);
 			ses->wtd_target_base->refresh_timer = NULL;
 		}
 	}
 	switch (rq->state) {
-		case O_WAITING:
-			change_screen_status(ses);
-			print_screen_status(ses);
-			break;
-		case O_FAILED:
-			if (!rq->dont_print_error)
-				print_error_dialog(ses, &rq->stat, rq->url);
-			ses_abort_1st_state_loading(ses);
-			break;
-		case O_LOADING:
-		case O_INCOMPLETE:
-		case O_OK:
-			if (!ses->goto_position && rq->goto_position) ses->goto_position = stracpy(rq->goto_position);
-			ses->wtd(ses);
-			break;
+	case O_WAITING:
+		change_screen_status(ses);
+		print_screen_status(ses);
+		break;
+	case O_FAILED:
+		if (!rq->dont_print_error)
+			print_error_dialog(ses, &rq->stat, rq->url);
+		ses_abort_1st_state_loading(ses);
+		break;
+	case O_LOADING:
+	case O_INCOMPLETE:
+	case O_OK:
+		if (!ses->goto_position && rq->goto_position)
+			ses->goto_position = stracpy(rq->goto_position);
+		ses->wtd(ses);
+		break;
 	}
 }
 
@@ -2681,7 +2683,8 @@ void map_selected(struct terminal *term, void *ld_, void *ses_)
 		current_frame(ses);
 		x = 1;
 	}
-	if (ld->link) goto_url_f(ses, NULL, ld->link, ld->target, current_frame(ses), -1, x, 0, 0);
+	if (ld->link)
+		goto_url_f(ses, NULL, ld->link, ld->target, current_frame(ses), -1, x, 0, 0);
 }
 
 void go_back(struct session *ses, int num_steps)
@@ -2727,12 +2730,15 @@ static void reload_frame(struct f_data_c *fd, int no_cache)
 		return;
 	}
 	if (!fd->rq) return;
-	if (fd->f_data && !f_is_finished(fd->f_data)) return;
+	if (fd->f_data && !f_is_finished(fd->f_data))
+		return;
 	u = stracpy(fd->rq->url);
 	release_object(&fd->rq);
-	if (fd->f_data) release_object(&fd->f_data->rq);
+	if (fd->f_data)
+		release_object(&fd->f_data->rq);
 	request_object(fd->ses->term, u, NULL, PRI_MAIN, no_cache, ALLOW_ALL, fd_loaded, fd, &fd->rq);
-	if (fd->f_data) clone_object(fd->rq, &fd->f_data->rq);
+	if (fd->f_data)
+		clone_object(fd->rq, &fd->f_data->rq);
 	fd->last_update = get_time();
 	fd->next_update_interval = 0;
 	fd->done = 0;
@@ -2743,8 +2749,10 @@ static void reload_frame(struct f_data_c *fd, int no_cache)
 void reload(struct session *ses, int no_cache)
 {
 	ses_destroy_defered_jump(ses);
-	if (no_cache == -1) no_cache = ++ses->reloadlevel;
-	else ses->reloadlevel = no_cache;
+	if (no_cache == -1)
+		no_cache = ++ses->reloadlevel;
+	else
+		ses->reloadlevel = no_cache;
 	reload_frame(ses->screen, no_cache);
 }
 
@@ -2753,8 +2761,10 @@ static void set_doc_view(struct session *ses)
 	ses->screen->xp = 0;
 	ses->screen->yp = gf_val(1, G_BFU_FONT_SIZE);
 	ses->screen->xw = ses->term->x;
-	if (ses->term->y < gf_val(2, 2 * G_BFU_FONT_SIZE)) ses->screen->yw = 0;
-	else ses->screen->yw = ses->term->y - gf_val(2, 2 * G_BFU_FONT_SIZE);
+	if (ses->term->y < gf_val(2, 2 * G_BFU_FONT_SIZE))
+		ses->screen->yw = 0;
+	else
+		ses->screen->yw = ses->term->y - gf_val(2, 2 * G_BFU_FONT_SIZE);
 }
 
 static struct session *create_session(struct window *win)
@@ -2797,8 +2807,10 @@ void *create_session_info(int cp, unsigned char *url, unsigned char *framename, 
 	int l = (int)sl;
 	int l1 = (int)sl1;
 	unsigned char *i;
-	if (sl > INT_MAX || sl1 > INT_MAX) overalloc();
-	if (framename && !strcmp(cast_const_char framename, "_blank")) l1 = 0;
+	if (sl > INT_MAX || sl1 > INT_MAX)
+		overalloc();
+	if (framename && !strcmp(cast_const_char framename, "_blank"))
+		l1 = 0;
 
 	i = init_str();
 	*ll = 0;
@@ -2819,7 +2831,8 @@ static int read_session_info(struct session *ses, void *data, int len)
 	int cpfrom, sz, sz1;
 	struct session *s;
 	struct list_head *ls;
-	if (len < 3 * (int)sizeof(int)) return -1;
+	if (len < 3 * (int)sizeof(int))
+		return -1;
 	cpfrom = *(int *)data;
 	sz = *((int *)data + 1);
 	sz1= *((int *)data + 2);
@@ -2828,12 +2841,12 @@ static int read_session_info(struct session *ses, void *data, int len)
 		if (!sz) {
 			if (!list_empty(s->history)) {
 				struct location *loc = list_struct(s->history.next, struct location);
-				if (loc->url) goto_url_utf8(ses, loc->url);
+				if (loc->url)
+					goto_url_utf8(ses, loc->url);
 			}
 			return 0;
-		} else {
+		} else
 			break;
-		}
 	}
 	if (sz1) {
 		unsigned char *tgt;
@@ -2846,7 +2859,7 @@ static int read_session_info(struct session *ses, void *data, int len)
 		ses->wanted_framename=NULL;
 		ses->wanted_framename=tgt;
 	}
-	bla:
+ bla:
 	if (sz) {
 		unsigned char *u, *uu;
 		if (len < 3 * (int)sizeof(int) + sz) return -1;
@@ -2922,41 +2935,46 @@ void win_func(struct window *win, struct links_event *ev, int fw)
 {
 	struct session *ses = win->data;
 	switch ((int)ev->ev) {
-		case EV_ABORT:
-			if (ses) destroy_session(ses);
-			break;
-		case EV_INIT:
-			ses = win->data = create_session(win);
-			if (read_session_info(ses, (char *)(ev->b + sizeof(int)), *(int *)ev->b)) {
-				register_bottom_half(destroy_terminal, win->term);
-				return;
-			}
-			/*-fallthrough*/
-		case EV_RESIZE:
-			move_session_to_front(ses);
-			free(ses->st_old);
-			ses->st_old = NULL;
-			GF(set_window_pos(win, 0, 0, ev->x, ev->y));
-			set_doc_view(ses);
-			html_interpret_recursive(ses->screen);
-			draw_fd(ses->screen);
-			break;
-		case EV_REDRAW:
-			free(ses->st_old);
-			ses->st_old = NULL;
-			draw_formatted(ses);
-			break;
-		case EV_MOUSE:
+	case EV_ABORT:
+		if (ses)
+			destroy_session(ses);
+		break;
+	case EV_INIT:
+		ses = win->data = create_session(win);
+		if (read_session_info(ses, (char *)(ev->b + sizeof(int)), *(int *)ev->b)) {
+			register_bottom_half(destroy_terminal, win->term);
+			return;
+		}
+		/*-fallthrough*/
+	case EV_RESIZE:
+		move_session_to_front(ses);
+		free(ses->st_old);
+		ses->st_old = NULL;
+		GF(set_window_pos(win, 0, 0, ev->x, ev->y));
+		set_doc_view(ses);
+		html_interpret_recursive(ses->screen);
+		draw_fd(ses->screen);
+		break;
+	case EV_REDRAW:
+		free(ses->st_old);
+		ses->st_old = NULL;
+		draw_formatted(ses);
+		break;
+	case EV_MOUSE:
 #ifdef G
-			if (F) set_window_ptr(win, ev->x, ev->y);
+		if (F)
+			set_window_ptr(win, ev->x, ev->y);
 #endif
-			/*-fallthrough*/
-		case EV_KBD:
-			if (ev->ev == EV_KBD || (ev->b & BM_ACT) != B_MOVE || BM_IS_WHEEL(ev->b)) move_session_to_front(ses);
-			send_event(ses, ev);
-			break;
-		default:
-			error("ERROR: unknown event");
+		/*-fallthrough*/
+	case EV_KBD:
+		if (ev->ev == EV_KBD
+		|| (ev->b & BM_ACT) != B_MOVE
+		|| BM_IS_WHEEL(ev->b))
+			move_session_to_front(ses);
+		send_event(ses, ev);
+		break;
+	default:
+		die("session.c win_func(): unknown event\n");
 	}
 }
 
@@ -2978,7 +2996,7 @@ unsigned char *get_current_url(struct session *ses, unsigned char *str, size_t s
 
 	/* Ensure that the url size is not greater than str_size */
 	if (url_len >= str_size)
-			url_len = str_size - 1;
+		url_len = str_size - 1;
 
 	safe_strncpy(str, here, url_len + 1);
 
