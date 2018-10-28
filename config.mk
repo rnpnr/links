@@ -6,8 +6,9 @@ MANPREFIX = $(PREFIX)/share/man
 X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib
 
-INCS = -I. -I/usr/include -I$(X11INC)
-LIBS = -L$(X11LIB) -L/usr/lib -lX11 -levent -lpng -ljpeg -lcrypto -lssl -lz
+INCS = -I. -I/usr/include -I/usr/local/include -I$(X11INC)
+LIBS = -L$(X11LIB) -L/usr/lib -L/usr/local/lib \
+       -lX11 -lcrypto -levent -ljpeg -lm -lpng -lssl -lz
 
 CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_BSD_SOURCE
 CFLAGS = -O2 -std=c99 -Wall -pedantic $(CPPFLAGS) \
