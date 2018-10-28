@@ -2827,7 +2827,6 @@ void *create_session_info(int cp, unsigned char *url, unsigned char *framename, 
  */
 static int read_session_info(struct session *ses, void *data, int len)
 {
-	unsigned char *h;
 	int cpfrom, sz, sz1;
 	struct session *s;
 	struct list_head *ls;
@@ -2871,8 +2870,6 @@ static int read_session_info(struct session *ses, void *data, int len)
 		goto_url(ses, uu);
 		free(u);
 		free(uu);
-	} else if ((h = cast_uchar getenv("WWW_HOME")) && *h) {
-		goto_url(ses, h);
 	}
 	return 0;
 }
