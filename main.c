@@ -10,6 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __OpenBSD__
+#include <unistd.h>
+#else
+#define pledge(a,b) 0
+#endif
+
 #include "links.h"
 
 int retval = RET_OK;
@@ -487,6 +493,9 @@ main(int argc, char *argv[])
 	g_argc = argc;
 	g_argv = (unsigned char **)argv;
 	argv0 = argv[0];
+
+	if (pledge("stdio rpath wpath cpath inet dns tty unix", NULL) < 0)
+		die("pledge: %s\n", strerror(errno));
 
 	select_loop(init);
 	terminate_all_subsystems();

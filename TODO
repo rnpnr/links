@@ -5,6 +5,8 @@
 - xembed support
 
 - pledge(2) and unveil(2) for OpenBSD
+  - limit pledge(2) promises
+    - unix for example should be removed
 
 - cleanup empty functions
 
