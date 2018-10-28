@@ -2825,12 +2825,13 @@ void *create_session_info(int cp, unsigned char *url, unsigned char *framename, 
 /* dostane data z create_session_info a nainicializuje podle nich session
    vraci -1 pokud jsou data vadna
  */
-static int read_session_info(struct session *ses, void *data, int len)
+/* FIXME: this is a disaster */
+static int read_session_info(struct session *ses, void *data, size_t len)
 {
 	int cpfrom, sz, sz1;
 	struct session *s;
 	struct list_head *ls;
-	if (len < 3 * (int)sizeof(int))
+	if (len < 3 * sizeof(int))
 		return -1;
 	cpfrom = *(int *)data;
 	sz = *((int *)data + 1);
@@ -2849,7 +2850,8 @@ static int read_session_info(struct session *ses, void *data, int len)
 	}
 	if (sz1) {
 		unsigned char *tgt;
-		if (len<3*(int)sizeof(int)+sz+sz1) goto bla;
+		if (len < 3 * sizeof(int) + sz + sz1)
+			goto bla;
 		if ((unsigned)sz1 >= INT_MAX) overalloc();
 		tgt = xmalloc(sz1 + 1);
 		memcpy(tgt, (unsigned char*)((int*)data+3)+sz,sz1);
@@ -2861,7 +2863,7 @@ static int read_session_info(struct session *ses, void *data, int len)
  bla:
 	if (sz) {
 		unsigned char *u, *uu;
-		if (len < 3 * (int)sizeof(int) + sz) return -1;
+		if (len < 3 * sizeof(int) + sz) return -1;
 		if ((unsigned)sz >= INT_MAX) overalloc();
 		u = xmalloc(sz + 1);
 		memcpy(u, (int *)data + 3, sz);
@@ -2938,7 +2940,7 @@ void win_func(struct window *win, struct links_event *ev, int fw)
 		break;
 	case EV_INIT:
 		ses = win->data = create_session(win);
-		if (read_session_info(ses, (char *)(ev->b + sizeof(int)), *(int *)ev->b)) {
+		if (read_session_info(ses, (char *)(ev->b + sizeof(int)), ev->b)) {
 			register_bottom_half(destroy_terminal, win->term);
 			return;
 		}
