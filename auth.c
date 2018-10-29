@@ -20,7 +20,7 @@ static const unsigned char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi
 static unsigned char *base64_encode(unsigned char *in, size_t inlen)
 {
 	unsigned char *out, *outstr;
-	int data_len;
+	size_t data_len;
 	int line_mask = ~0;
 	int col;
 	if (inlen > INT_MAX / 2) overalloc();
@@ -135,7 +135,7 @@ static unsigned char *auth_from_url(unsigned char *url, int proxy)
 
 unsigned char *get_auth_string(unsigned char *url, int proxy)
 {
-	struct http_auth *a;
+	struct http_auth *a = NULL;
 	struct list_head *la;
 	unsigned char *host;
 	int port;
@@ -191,7 +191,7 @@ void free_auth(void)
 
 void add_auth(unsigned char *url, unsigned char *realm, unsigned char *user, unsigned char *password, int proxy)
 {
-	struct http_auth *a;
+	struct http_auth *a = NULL;
 	struct list_head *la;
 	unsigned char *host = NULL;
 	int port = 0	/* against warning */;
@@ -231,7 +231,7 @@ void add_auth(unsigned char *url, unsigned char *realm, unsigned char *user, uns
 
 int find_auth(unsigned char *url, unsigned char *realm)
 {
-	struct http_auth *a;
+	struct http_auth *a = NULL;
 	struct list_head *la;
 	unsigned char *data, *d;
 	unsigned char *host = get_host_name(url);

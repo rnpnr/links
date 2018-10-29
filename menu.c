@@ -428,7 +428,7 @@ void go_backwards(struct terminal *term, void *id_ptr, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	unsigned want_id = (unsigned)(long)id_ptr;
-	struct location *l;
+	struct location *l = NULL;
 	struct list_head *ll;
 	int n = 0;
 	foreach(struct location, l, ll, ses->history) {
@@ -471,7 +471,7 @@ static void add_history_menu_entry(struct terminal *term, struct menu_item **mi,
 static void history_menu(struct terminal *term, void *ddd, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	struct location *l;
+	struct location *l = NULL;
 	struct list_head *ll;
 	struct menu_item *mi = NULL;
 	int n = 0;
@@ -495,7 +495,7 @@ static const struct menu_item no_downloads_menu[] = {
 static void downloads_menu(struct terminal *term, void *ddd, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	struct download *d;
+	struct download *d = NULL;
 	struct list_head *ld;
 	struct menu_item *mi = NULL;
 	int n = 0;
@@ -1138,7 +1138,7 @@ void reset_settings_for_tor(void)
 
 static void data_cleanup(void)
 {
-	struct session *ses;
+	struct session *ses = NULL;
 	struct list_head *lses;
 	reset_settings_for_tor();
 	foreach(struct session, ses, lses, sessions) {

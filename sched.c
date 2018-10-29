@@ -33,7 +33,7 @@ static void check_keepalive_connections(void);
 unsigned long connect_info(int type)
 {
 	int i = 0;
-	struct connection *ce;
+	struct connection *ce = NULL;
 	struct list_head *lce;
 	switch (type) {
 	case CI_FILES:
@@ -67,7 +67,7 @@ static int getpri(struct connection *c)
 
 static int connection_disappeared(struct connection *c, tcount count)
 {
-	struct connection *d;
+	struct connection *d = NULL;
 	struct list_head *ld;
 	foreach(struct connection, d, ld, queue) if (c == d && count == d->count) return 0;
 	return 1;
@@ -76,7 +76,7 @@ static int connection_disappeared(struct connection *c, tcount count)
 static struct h_conn *is_host_on_list(struct connection *c)
 {
 	char *ho = (char *)get_host_name(c->url);
-	struct h_conn *h;
+	struct h_conn *h = NULL;
 	struct list_head *lh;
 	if (!ho)
 		return NULL;
@@ -127,7 +127,7 @@ static void stat_timer(void *c_)
 
 void setcstate(struct connection *c, int state)
 {
-	struct status *stat;
+	struct status *stat = NULL;
 	struct list_head *lstat;
 	if (c->state < 0 && state >= 0)
 		c->prev_error = c->state;
@@ -166,7 +166,7 @@ static struct k_conn *is_host_on_keepalive_list(struct connection *c)
 	char *ho = (char *)get_keepalive_id(c->url);
 	const int po = get_port(c->url);
 	void (*ph)(struct connection *);
-	struct k_conn *h;
+	struct k_conn *h = NULL;
 	struct list_head *lh;
 	if (!(ph = get_protocol_handle(c->url)))
 		return NULL;
@@ -348,7 +348,7 @@ static void keepalive_timer(void *x)
 
 static void check_keepalive_connections(void)
 {
-	struct k_conn *kc;
+	struct k_conn *kc = NULL;
 	struct list_head *lkc;
 	uttime ct = get_absolute_time();
 	int p = 0;
@@ -374,7 +374,7 @@ static void check_keepalive_connections(void)
 
 static void add_to_queue(struct connection *c)
 {
-	struct connection *cc;
+	struct connection *cc = NULL;
 	struct list_head *lcc;
 	int pri = getpri(c);
 	foreach(struct connection, cc, lcc, queue) if (getpri(cc) > pri) break;
@@ -383,7 +383,7 @@ static void add_to_queue(struct connection *c)
 
 static void sort_queue(void)
 {
-	struct connection *c, *n;
+	struct connection *c = NULL, *n;
 	struct list_head *lc;
 	int swp;
 	do {
@@ -418,7 +418,7 @@ static void suspend_connection(struct connection *c)
 static int try_to_suspend_connection(struct connection *c, unsigned char *ho)
 {
 	int pri = getpri(c);
-	struct connection *d;
+	struct connection *d = NULL;
 	struct list_head *ld;
 	foreachback(struct connection, d, ld, queue) {
 		if (getpri(d) <= pri)
@@ -605,12 +605,12 @@ static int try_connection(struct connection *c)
 
 void check_queue(void *dummy)
 {
-	struct connection *c;
+	struct connection *c = NULL;
 	struct list_head *lc;
 again:
 	check_keepalive_connections();
 	foreach(struct connection, c, lc, queue) {
-		struct connection *d;
+		struct connection *d = NULL;
 		struct list_head *ld;
 		const int cp = getpri(c);
 		foreachfrom(struct connection, d, ld, queue, &c->list_entry) {
@@ -708,7 +708,7 @@ void load_url(unsigned char *url, unsigned char *prev_url, struct status *stat,
 	int pri, int no_cache, int no_compress, int allow_flags, off_t position)
 {
 	struct cache_entry *e = NULL;
-	struct connection *c;
+	struct connection *c = NULL;
 	struct list_head *lc;
 	unsigned char *u;
 	int must_detach = 0;
@@ -819,7 +819,7 @@ skip_cache:
 	else if (no_cache >= NC_IF_MOD || !e)
 		c->from = 0;
 	else {
-		struct fragment *frag;
+		struct fragment *frag = NULL;
 		struct list_head *lfrag;
 		c->from = 0;
 		foreach(struct fragment, frag, lfrag, e->frag) {
@@ -1023,7 +1023,7 @@ void abort_all_connections(void)
 
 void abort_background_connections(void)
 {
-	struct connection *c;
+	struct connection *c = NULL;
 	struct list_head *lc;
 again:
 	foreach(struct connection, c, lc, queue) {
@@ -1038,7 +1038,7 @@ again:
 
 int is_entry_used(struct cache_entry *e)
 {
-	struct connection *c;
+	struct connection *c = NULL;
 	struct list_head *lc;
 	foreach(struct connection, c, lc, queue)
 		if (c->cache == e)
@@ -1057,7 +1057,7 @@ static struct list_head blacklist = { &blacklist, &blacklist };
 
 void add_blacklist_entry(unsigned char *host, int flags)
 {
-	struct blacklist_entry *b;
+	struct blacklist_entry *b = NULL;
 	struct list_head *lb;
 	size_t sl;
 	foreach(struct blacklist_entry, b, lb, blacklist)
@@ -1076,7 +1076,7 @@ void add_blacklist_entry(unsigned char *host, int flags)
 
 void del_blacklist_entry(unsigned char *host, int flags)
 {
-	struct blacklist_entry *b;
+	struct blacklist_entry *b = NULL;
 	struct list_head *lb;
 	foreach(struct blacklist_entry, b, lb, blacklist)
 		if (!casestrcmp(host, b->host)) {
@@ -1091,7 +1091,7 @@ void del_blacklist_entry(unsigned char *host, int flags)
 
 int get_blacklist_flags(unsigned char *host)
 {
-	struct blacklist_entry *b;
+	struct blacklist_entry *b = NULL;
 	struct list_head *lb;
 	foreach(struct blacklist_entry, b, lb, blacklist)
 		if (!casestrcmp(host, b->host))

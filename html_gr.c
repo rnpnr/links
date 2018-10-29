@@ -968,7 +968,7 @@ struct g_part *g_format_html_part(unsigned char *start, unsigned char *end, int 
 	int wa;
 	struct g_part *p;
 	struct html_element *e;
-	struct form_control *fc;
+	struct form_control *fc = NULL;
 	struct list_head *lfc;
 	int lm = margin;
 

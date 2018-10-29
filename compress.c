@@ -64,7 +64,7 @@ static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, 
 	off_t offset;
 	int r;
 	unsigned char *p;
-	struct fragment *f;
+	struct fragment *f = NULL;
 	struct list_head *lf;
 	size_t size;
 

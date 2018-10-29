@@ -17,7 +17,7 @@ static struct list_head cache_upcalls = { &cache_upcalls, &cache_upcalls }; /* c
 
 int shrink_memory(int type)
 {
-	struct cache_upcall *c;
+	struct cache_upcall *c = NULL;
 	struct list_head *lc;
 	int a = 0;
 	foreach(struct cache_upcall, c, lc, cache_upcalls) {
@@ -38,7 +38,7 @@ void register_cache_upcall(int (*upcall)(int), int flags, unsigned char *name)
 
 void free_all_caches(void)
 {
-	struct cache_upcall *c;
+	struct cache_upcall *c = NULL;
 	struct list_head *lc;
 	int a, b;
 	do {

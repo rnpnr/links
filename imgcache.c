@@ -13,7 +13,7 @@ static struct list_head image_cache = { &image_cache, &image_cache };
 /* xyw_meaning either MEANING_DIMS or MEANING_AUTOSCALE. */
 struct cached_image *find_cached_image(int bg, unsigned char *url, int xw, int yw, int xyw_meaning, int scale, unsigned aspect)
 {
-	struct cached_image *i;
+	struct cached_image *i = NULL;
 	struct list_head *li;
 	if (xw >= 0 && yw >= 0 && xyw_meaning == MEANING_DIMS) {
 	/* The xw and yw is already scaled so that scale and
@@ -80,7 +80,7 @@ static unsigned long image_size(struct cached_image *cimg)
 
 static int shrink_image_cache(int u)
 {
-	struct cached_image *i;
+	struct cached_image *i = NULL;
 	struct list_head *li;
 	longlong si = 0;
 	int r = 0;
@@ -105,7 +105,7 @@ static int shrink_image_cache(int u)
 
 int imgcache_info(int type)
 {
-	struct cached_image *i;
+	struct cached_image *i = NULL;
 	struct list_head *li;
 	int n = 0;
 	foreach(struct cached_image, i, li, image_cache) {

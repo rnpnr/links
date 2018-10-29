@@ -187,7 +187,7 @@ unsigned char *get_cipher_string(links_ssl *ssl)
 
 static struct session_cache_entry *find_session_cache_entry(SSL_CTX *ctx, char *host, int port)
 {
-	struct session_cache_entry *sce;
+	struct session_cache_entry *sce = NULL;
 	struct list_head *lsce;
 	foreach(struct session_cache_entry, sce, lsce, session_cache)
 		if (sce->ctx == ctx && !strcmp(&sce->host, host))
@@ -257,7 +257,7 @@ void retrieve_ssl_session(struct connection *c)
 static int shrink_session_cache(int u)
 {
 	uttime now = get_absolute_time();
-	struct session_cache_entry *d;
+	struct session_cache_entry *d = NULL;
 	struct list_head *ld;
 	int f = 0;
 	if (u == SH_FREE_SOMETHING && !list_empty(session_cache)) {

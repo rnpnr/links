@@ -227,7 +227,7 @@ void gfx_connection(int h)
 		goto err_close;
 	if (hard_read(h, (unsigned char *)&info_len, sizeof(int)) != sizeof(int) || info_len < 0)
 		goto err_close;
-	info = xmalloc(info_len);
+	info = xmalloc((size_t)info_len);
 	if (hard_read(h, info, info_len) != info_len)
 		goto err_close_free;
 	term = init_gfx_term(win_func, cwd, info, info_len);
@@ -259,7 +259,7 @@ static void end_dump(struct object_request *r, void *p)
 	ce = r->ce;
 	if (dmp == D_SOURCE) {
 		if (ce) {
-			struct fragment *frag;
+			struct fragment *frag = NULL;
 			struct list_head *lfrag;
 			nextfrag:
 			foreach(struct fragment, frag, lfrag, ce->frag) if (frag->offset <= dump_pos && frag->offset + frag->length > dump_pos) {

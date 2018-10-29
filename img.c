@@ -538,7 +538,7 @@ end:
  */
 static void buffer_to_bitmap(struct cached_image *cimg)
 {
-	unsigned short *tmp, *tmp1;
+	unsigned short *tmp = NULL, *tmp1;
 	int ix, iy, ox, oy, gonna_be_smart;
 	int *dregs;
 

@@ -114,7 +114,7 @@ void redraw_below_window(struct window *win)
 {
 	int tr;
 	struct terminal *term = win->term;
-	struct window *w;
+	struct window *w = NULL;
 	struct list_head *lw;
 	struct links_event ev = { EV_REDRAW, 0, 0, 0 };
 	ev.x = term->x;
@@ -132,7 +132,7 @@ void redraw_below_window(struct window *win)
 
 static void redraw_terminal_ev(struct terminal *term, int e)
 {
-	struct window *win;
+	struct window *win = NULL;
 	struct list_head *lwin;
 	struct links_event ev = {0, 0, 0, 0};
 	ev.ev = e;
@@ -170,7 +170,7 @@ static void redraw_terminal_cls(struct terminal *term)
 
 void cls_redraw_all_terminals(void)
 {
-	struct terminal *term;
+	struct terminal *term = NULL;
 	struct list_head *lterm;
 	foreach(struct terminal, term, lterm, terminals) {
 		if (!F) redraw_terminal_cls(term);
@@ -184,7 +184,7 @@ void cls_redraw_all_terminals(void)
 void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *), void *data)
 {
 	struct terminal *term = win->term;
-	struct window *w;
+	struct window *w = NULL;
 	struct list_head *lw;
 	if (!F) {
 		pr(fn(term, data)) {};
@@ -237,9 +237,9 @@ void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *
 static void redraw_windows(void *term_)
 {
 	struct terminal *term = (struct terminal *)term_;
-	struct terminal *t1;
+	struct terminal *t1 = NULL;
 	struct list_head *lt1;
-	struct window *win;
+	struct window *win = NULL;
 	struct list_head *lwin;
 	foreach(struct terminal, t1, lt1, terminals) if (t1 == term) goto ok;
 	return;
@@ -264,7 +264,7 @@ void set_window_pos(struct window *win, int x1, int y1, int x2, int y2)
 	r.x2 = x2;
 	r.y2 = y2;
 	if (is_rect_valid(&win->pos) && (x1 > win->pos.x1 || x2 < win->pos.x2 || y1 > win->pos.y1 || y2 < win->pos.y2) && term->redrawing < 2) {
-		struct window *w;
+		struct window *w = NULL;
 		struct list_head *lw;
 		foreachfrom(struct window, w, lw, term->windows, win->list_entry.next) unite_rect(&w->redr, &win->pos, &w->redr);
 		register_bottom_half(redraw_windows, term);
@@ -305,7 +305,7 @@ void delete_window(struct window *win)
 	if (!F) redraw_terminal(term);
 #ifdef G
 	else {
-		struct window *w;
+		struct window *w = NULL;
 		struct list_head *lw;
 		foreachfrom(struct window, w, lw, term->windows, nxw) unite_rect(&w->redr, &win->pos, &w->redr);
 		register_bottom_half(redraw_windows, term);
@@ -419,7 +419,7 @@ static struct term_spec *default_term_spec(unsigned char *term)
 
 static struct term_spec *get_term_spec(unsigned char *term)
 {
-	struct term_spec *t;
+	struct term_spec *t = NULL;
 	struct list_head *lt;
 	foreach(struct term_spec, t, lt, term_specs) if (!casestrcmp(t->term, term)) return t;
 	return default_term_spec(term);
@@ -427,14 +427,14 @@ static struct term_spec *get_term_spec(unsigned char *term)
 
 static void sync_term_specs(void)
 {
-	struct terminal *term;
+	struct terminal *term = NULL;
 	struct list_head *lterm;
 	foreach(struct terminal, term, lterm, terminals) term->spec = get_term_spec(term->term);
 }
 
 struct term_spec *new_term_spec(unsigned char *term)
 {
-	struct term_spec *t;
+	struct term_spec *t = NULL;
 	struct list_head *lt;
 	foreach(struct term_spec, t, lt, term_specs) if (!casestrcmp(t->term, term)) return t;
 	t = xmalloc(sizeof(struct term_spec));
@@ -576,7 +576,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 void t_redraw(struct graphics_device *dev, struct rect *r)
 {
 	struct terminal *term = dev->user_data;
-	struct window *win;
+	struct window *win = NULL;
 	struct list_head *lwin;
 	foreach(struct window, win, lwin, term->windows) unite_rect(&win->redr, r, &win->redr);
 	register_bottom_half(redraw_windows, term);
@@ -585,7 +585,7 @@ void t_redraw(struct graphics_device *dev, struct rect *r)
 void t_resize(struct graphics_device *dev)
 {
 	struct terminal *term = dev->user_data;
-	struct window *win;
+	struct window *win = NULL;
 	struct list_head *lwin;
 	struct links_event ev = { EV_RESIZE, 0, 0, 0 };
 	term->x = ev.x = dev->size.x2;
@@ -700,7 +700,7 @@ static void in_term(void *term_)
 		sync_term_specs();
 	}
 	if (ev->ev == EV_REDRAW || ev->ev == EV_RESIZE || ev->ev == EV_INIT) {
-		struct window *win;
+		struct window *win = NULL;
 		struct list_head *lwin;
 
 		term->real_x = ev->x;
@@ -717,7 +717,8 @@ static void in_term(void *term_)
 		clear_terminal(term);
 		erase_screen(term);
 		term->redrawing = 1;
-		foreachback(struct window, win, lwin, term->windows) win->handler(win, ev, 0);
+		foreachback(struct window, win, lwin, term->windows)
+				win->handler(win, ev, 0);
 		term->redrawing = 0;
 	}
 	if (ev->ev == EV_MOUSE) {
@@ -914,7 +915,7 @@ static void redraw_screen(struct terminal *term)
 
 void redraw_all_terminals(void)
 {
-	struct terminal *term;
+	struct terminal *term = NULL;
 	struct list_head *lterm;
 	foreach(struct terminal, term, lterm, terminals) redraw_screen(term);
 }
@@ -1281,7 +1282,7 @@ void set_terminal_title(struct terminal *term, unsigned char *title)
 
 struct terminal *find_terminal(tcount count)
 {
-	struct terminal *term;
+	struct terminal *term = NULL;
 	struct list_head *lterm;
 	foreach(struct terminal, term, lterm, terminals) if (term->count == count) return term;
 	return NULL;

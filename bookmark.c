@@ -77,7 +77,7 @@ struct kawasaki {
 /* clears the bookmark list */
 static void free_bookmarks(void)
 {
-	struct list *b;
+	struct list *b = NULL;
 	struct list_head *lb;
 
 	foreach(struct list, b, lb, bookmarks.list_entry) {
@@ -704,7 +704,7 @@ static unsigned char *convert_to_entity_string(unsigned char *str)
 /* writes bookmarks to disk */
 static void save_bookmarks(struct session *ses)
 {
-	struct list *li;
+	struct list *li = NULL;
 	struct list_head *lli;
 	int depth;
 	int a;

@@ -104,7 +104,7 @@ static void set_link(struct f_data_c *f)
 
 static int find_tag(struct f_data *f, unsigned char *name)
 {
-	struct tag *tag;
+	struct tag *tag = NULL;
 	struct list_head *ltag;
 	unsigned char *tt;
 	int ll;
@@ -958,7 +958,7 @@ void draw_doc(struct terminal *t, void *scr_)
 	}
 	check_vs(scr);
 	if (scr->f_data->frame_desc) {
-		struct f_data_c *f;
+		struct f_data_c *f = NULL;
 		struct list_head *lf;
 		int n;
 		if (!F) {
@@ -1041,7 +1041,7 @@ void draw_doc(struct terminal *t, void *scr_)
 
 static void clr_xl(struct f_data_c *fd)
 {
-	struct f_data_c *fdd;
+	struct f_data_c *fdd = NULL;
 	struct list_head *lfdd;
 	fd->xl = fd->yl = -1;
 	foreach(struct f_data_c, fdd, lfdd, fd->subframes) clr_xl(fdd);
@@ -1373,7 +1373,7 @@ static void x_end(struct session *ses, struct f_data_c *f, int a)
 
 static int has_form_submit(struct f_data *f, struct form_control *form)
 {
-	struct form_control *i;
+	struct form_control *i = NULL;
 	struct list_head *li;
 	int q = 0;
 	foreach (struct form_control, i, li, f->forms) if (i->form_num == form->form_num) {
@@ -1397,7 +1397,7 @@ struct submitted_value {
 
 static void free_succesful_controls(struct list_head *submit)
 {
-	struct submitted_value *v;
+	struct submitted_value *v = NULL;
 	struct list_head *lv;
 	foreach(struct submitted_value, v, lv, *submit) {
 		free(v->name);
@@ -1428,7 +1428,7 @@ static int compare_submitted(struct submitted_value *sub1, struct submitted_valu
 static void get_succesful_controls(struct f_data_c *f, struct form_control *fc, struct list_head *subm)
 {
 	int ch;
-	struct form_control *form;
+	struct form_control *form = NULL;
 	struct list_head *lform;
 	init_list(*subm);
 	foreach(struct form_control, form, lform, f->f_data->forms) {
@@ -1489,7 +1489,7 @@ static void get_succesful_controls(struct f_data_c *f, struct form_control *fc, 
 		}
 	}
 	do {
-		struct submitted_value *sub, *nx;
+		struct submitted_value *sub = NULL, *nx;
 		struct list_head *lsub;
 		ch = 0;
 		foreach(struct submitted_value, sub, lsub, *subm) if (sub->list_entry.next != subm) {
@@ -1543,7 +1543,7 @@ static void encode_string(unsigned char *name, unsigned char **data, int *len)
 static void encode_controls(struct list_head *l, unsigned char **data, int *len,
 		     int cp_from, int cp_to)
 {
-	struct submitted_value *sv;
+	struct submitted_value *sv = NULL;
 	struct list_head *lsv;
 	int lst = 0;
 	unsigned char *p2;
@@ -1700,7 +1700,7 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 
 void reset_form(struct f_data_c *f, int form_num)
 {
-	struct form_control *form;
+	struct form_control *form = NULL;
 	struct list_head *lform;
 	foreach(struct form_control, form, lform, f->f_data->forms) if (form->form_num == form_num) {
 		struct form_state *fs;
@@ -1899,7 +1899,7 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 		if (link->form->ro) return 1;
 		if (link->form->type == FC_CHECKBOX) fs->state = !fs->state;
 		else {
-			struct form_control *fc;
+			struct form_control *fc = NULL;
 			struct list_head *lfc;
 #ifdef G
 			int re = 0;
@@ -2192,7 +2192,10 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 					if (fs->state > ftce->ln[y - 1].en_offs) fs->state = ftce->ln[y - 1].en_offs;
 				} else
 					goto b;
-			} else r = 0, f->vs->brl_in_field = 0;
+			} else {
+				r = 0;
+				f->vs->brl_in_field = 0;
+			}
 		} else if (ev->x == KBD_DOWN) {
 			if (form->type == FC_TEXTAREA) {
 				ftce = format_text(f, form, fs);
@@ -2201,10 +2204,14 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 					if (y >= ftce->n_lines - 1)
 						goto b;
 					fs->state = (int)(textptr_add(fs->string + ftce->ln[y + 1].st_offs, textptr_diff(fs->string + fs->state, fs->string + ftce->ln[y].st_offs, f->f_data->opt.cp), f->f_data->opt.cp) - fs->string);
-					if (fs->state > ftce->ln[y + 1].en_offs) fs->state = ftce->ln[y + 1].en_offs;
+					if (fs->state > ftce->ln[y + 1].en_offs)
+						fs->state = ftce->ln[y + 1].en_offs;
 				} else 
 					goto b;
-			} else r = 0, f->vs->brl_in_field = 0;
+			} else {
+				r = 0;
+				f->vs->brl_in_field = 0;
+			}
 		} else if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL) || ev->x == KBD_COPY) {
 			set_br_pos(f, l);
 			set_clipboard_text(ses->term, fs->string);
@@ -2711,7 +2718,7 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 
 struct f_data_c *current_frame(struct session *ses)
 {
-	struct f_data_c *fd, *fdd;
+	struct f_data_c *fd, *fdd = NULL;
 	struct list_head *lfdd;
 	fd = ses->screen;
 	while (!list_empty(fd->subframes)) {
@@ -2729,7 +2736,7 @@ struct f_data_c *current_frame(struct session *ses)
 
 static int is_active_frame(struct session *ses, struct f_data_c *f)
 {
-	struct f_data_c *fd, *fdd;
+	struct f_data_c *fd, *fdd = NULL;
 	struct list_head *lfdd;
 	fd = ses->screen;
 	if (f == fd) return 1;
@@ -2777,7 +2784,7 @@ void next_frame(struct session *ses, int p)
 {
 	int n;
 	struct view_state *vs;
-	struct f_data_c *fd, *fdd;
+	struct f_data_c *fd, *fdd = NULL;
 	struct list_head *lfdd;
 
 	if (!(fd = current_frame(ses))) return;

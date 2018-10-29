@@ -3161,7 +3161,7 @@ do {					\
 					}
 				}
 			} else {
-				struct html_element *e, *fx;
+				struct html_element *e = NULL, *fx = NULL;
 				struct list_head *le, *lfx;
 				int lnb = 0;
 				int xxx = 0;

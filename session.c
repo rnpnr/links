@@ -18,7 +18,7 @@ static void destroy_location(struct location *loc);
 
 int are_there_downloads(void)
 {
-	struct download *down;
+	struct download *down = NULL;
 	struct list_head *ldown;
 	foreach(struct download, down, ldown, downloads) if (!down->prog) return 1;
 	return 0;
@@ -124,7 +124,7 @@ unsigned char *get_err_msg(int state)
 {
 	unsigned char *e;
 	size_t sl;
-	struct strerror_val *s;
+	struct strerror_val *s = NULL;
 	struct list_head *ls;
 	if ((state >= S_MAX && state <= S__OK) || state >= S_WAIT) {
 		int i;
@@ -236,7 +236,7 @@ void change_screen_status(struct session *ses)
 		if (fd->rq) stat = &fd->rq->stat;
 		if (stat && stat->state == S__OK && fd->af) {
 			unsigned count = 0;
-			struct additional_file *af;
+			struct additional_file *af = NULL;
 			struct list_head *laf;
 			foreachback(struct additional_file, af, laf, fd->af->af) {
 				if (af->rq && af->rq->stat.state >= 0) {
@@ -406,7 +406,7 @@ unsigned char *decode_url(unsigned char *url)
 
 struct session *get_download_ses(struct download *down)
 {
-	struct session *ses;
+	struct session *ses = NULL;
 	struct list_head *lses;
 	if (down) foreach(struct session, ses, lses, sessions) if (ses == down->ses) return ses;
 	if (!list_empty(sessions)) return list_struct(sessions.next, struct session);
@@ -477,7 +477,7 @@ static void abort_and_delete_download(void *down_)
 int test_abort_downloads_to_file(unsigned char *file, unsigned char *cwd, int abort_downloads)
 {
 	int ret = 0;
-	struct download *down;
+	struct download *down = NULL;
 	struct list_head *ldown;
 	foreach(struct download, down, ldown, downloads) {
 		if (strcmp(cast_const_char down->cwd, cast_const_char cwd)) {
@@ -693,7 +693,7 @@ void display_download(struct terminal *term, void *down_, void *ses_)
 	struct download *down = (struct download *)down_;
 	struct session *ses = (struct session *)ses_;
 	struct dialog *dlg;
-	struct download *dd;
+	struct download *dd = NULL;
 	struct list_head *ldd;
 	foreach(struct download, dd, ldd, downloads) if (dd == down) goto found;
 	return;
@@ -890,7 +890,7 @@ static void download_data(struct status *stat, void *down_)
 {
 	struct download *down = (struct download *)down_;
 	struct cache_entry *ce;
-	struct fragment *frag;
+	struct fragment *frag = NULL;
 	struct list_head *lfrag;
 	int rs;
 	if (!(ce = stat->ce)) goto end_store;
@@ -1239,7 +1239,7 @@ void abort_all_downloads(void)
 
 int f_is_finished(struct f_data *f)
 {
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	if (!f || f->rq->state >= 0) return 0;
 	if (f->fd && f->fd->rq && f->fd->rq->state >= 0) return 0;
@@ -1256,7 +1256,7 @@ static int f_is_cacheable(struct f_data *f)
 
 static int f_need_reparse(struct f_data *f)
 {
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	if (!f || f->rq->state >= 0) return 1;
 	if (f->af) foreach(struct additional_file, af, laf, f->af->af) if (af->need_reparse > 0) return 1;
@@ -1276,7 +1276,7 @@ static struct f_data *format_html(struct f_data_c *fd, struct object_request *rq
 	if (f->rq->ce) {
 		unsigned char *start; unsigned char *end;
 		int stl = -1;
-		struct additional_file *af;
+		struct additional_file *af = NULL;
 		struct list_head *laf;
 
 		if (fd->af) foreach(struct additional_file, af, laf, fd->af->af) if (af->need_reparse > 0) af->need_reparse = 0;
@@ -1312,7 +1312,7 @@ static struct f_data *format_html(struct f_data_c *fd, struct object_request *rq
 
 static void count_frames(struct f_data_c *fd, unsigned long *i)
 {
-	struct f_data_c *sub;
+	struct f_data_c *sub = NULL;
 	struct list_head *lsub;
 	if (!fd) return;
 	if (fd->f_data) (*i)++;
@@ -1322,7 +1322,7 @@ static void count_frames(struct f_data_c *fd, unsigned long *i)
 unsigned long formatted_info(int type)
 {
 	unsigned long i = 0;
-	struct session *ses;
+	struct session *ses = NULL;
 	struct list_head *lses;
 	switch (type) {
 		case CI_FILES:
@@ -1341,7 +1341,7 @@ unsigned long formatted_info(int type)
 
 static void f_data_attach(struct f_data_c *fd, struct f_data *f)
 {
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	f->rq->upcall = fd_loaded;
 	f->rq->data = fd;
@@ -1363,7 +1363,7 @@ static void f_data_attach(struct f_data_c *fd, struct f_data *f)
 static inline int is_format_cache_entry_uptodate(struct f_data *f)
 {
 	struct cache_entry *ce = f->rq->ce;
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	if (!ce || ce->count != f->use_tag) return 0;
 	if (f->af) foreach(struct additional_file, af, laf, f->af->af) {
@@ -1407,10 +1407,10 @@ static int shrink_format_cache(int u)
 	int scc;
 	int r = 0;
 	int c = 0;
-	struct session *ses;
+	struct session *ses = NULL;
 	struct list_head *lses;
 	foreach(struct session, ses, lses, sessions) {
-		struct f_data *f;
+		struct f_data *f = NULL;
 		struct list_head *lf;
 		foreach(struct f_data, f, lf, ses->format_cache) {
 			if (u == SH_FREE_ALL || !is_format_cache_entry_uptodate(f)) {
@@ -1485,7 +1485,7 @@ static void calculate_scrollbars(struct f_data_c *fd, struct f_data *f)
 struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq, unsigned char *url, struct document_options *opt, int *cch, int report_status)
 {
 	struct session *ses = fd->ses;
-	struct f_data *f;
+	struct f_data *f = NULL;
 	struct list_head *lf;
 	if (fd->marginwidth != -1) {
 		int marg = (fd->marginwidth + G_HTML_MARGIN - 1) / G_HTML_MARGIN;
@@ -1603,7 +1603,7 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 {
 	int i;
 	int oxw; int oyw; int oxp; int oyp;
-	struct f_data_c *sf;
+	struct f_data_c *sf = NULL;
 	struct list_head *lsf;
 	int cch;
 	struct document_options o;
@@ -1690,7 +1690,7 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 
 void html_interpret_recursive(struct f_data_c *f)
 {
-	struct f_data_c *fd;
+	struct f_data_c *fd = NULL;
 	struct list_head *lfd;
 	if (f->rq) html_interpret(f, 1);
 	foreach(struct f_data_c, fd, lfd, f->subframes) html_interpret_recursive(fd);
@@ -1702,7 +1702,7 @@ void html_interpret_recursive(struct f_data_c *f)
 struct additional_file *request_additional_file(struct f_data *f, unsigned char *url_)
 {
 	size_t sl;
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	unsigned char *url;
 	url = stracpy(url_);
@@ -1739,7 +1739,7 @@ struct additional_file *request_additional_file(struct f_data *f, unsigned char 
 static void copy_additional_files(struct additional_files **a)
 {
 	struct additional_files *afs;
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	if (!*a || (*a)->refcount == 1) return;
 	(*a)->refcount--;
@@ -1764,7 +1764,7 @@ static void image_timer(void *fd_)
 {
 	struct f_data_c *fd = (struct f_data_c *)fd_;
 	uttime now;
-	struct image_refresh *ir;
+	struct image_refresh *ir = NULL;
 	struct list_head *lir;
 	struct list_head neww;
 	init_list(neww);
@@ -1787,7 +1787,7 @@ static void image_timer(void *fd_)
 
 void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm)
 {
-	struct image_refresh *ir;
+	struct image_refresh *ir = NULL;
 	struct list_head *lir;
 	uttime now, e;
 	if (!fd->f_data) return;
@@ -1812,9 +1812,9 @@ void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm)
 
 void reinit_f_data_c(struct f_data_c *fd)
 {
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
-	struct f_data_c *fd1;
+	struct f_data_c *fd1 = NULL;
 	struct list_head *lfd1;
 #ifdef G
 	if (F)
@@ -2023,7 +2023,7 @@ static struct location *alloc_ses_location(struct session *ses)
 
 static void subst_location(struct f_data_c *fd, struct location *old, struct location *neww)
 {
-	struct f_data_c *f;
+	struct f_data_c *f = NULL;
 	struct list_head *lf;
 	foreach(struct f_data_c, f, lf, fd->subframes) subst_location(f, old, neww);
 	if (fd->loc == old) fd->loc = neww;
@@ -2031,7 +2031,7 @@ static void subst_location(struct f_data_c *fd, struct location *old, struct loc
 
 static struct location *copy_sublocations(struct session *ses, struct location *d, struct location *s, struct location *x)
 {
-	struct location *sl, *y;
+	struct location *sl = NULL, *y;
 	struct list_head *lsl;
 	d->name = stracpy(s->name);
 	if (s == x) return d;
@@ -2092,7 +2092,7 @@ static struct f_data_c *copy_location_and_replace_frame(struct session *ses, str
  */
 struct f_data_c *find_frame(struct session *ses, unsigned char *target, struct f_data_c *base)
 {
-	struct f_data_c *f, *ff;
+	struct f_data_c *f, *ff = NULL;
 	struct list_head *lff;
 	if (!base) base = ses->screen;
 	if (!target || !*target) return base;
@@ -2689,7 +2689,7 @@ void map_selected(struct terminal *term, void *ld_, void *ses_)
 
 void go_back(struct session *ses, int num_steps)
 {
-	struct location *loc;
+	struct location *loc = NULL;
 	struct list_head *lloc;
 	int n;
 	if (!num_steps) return;
@@ -2722,7 +2722,7 @@ static void reload_frame(struct f_data_c *fd, int no_cache)
 {
 	unsigned char *u;
 	if (!list_empty(fd->subframes)) {
-		struct f_data_c *fdd;
+		struct f_data_c *fdd = NULL;
 		struct list_head *lfdd;
 		foreach(struct f_data_c, fdd, lfdd, fd->subframes) {
 			reload_frame(fdd, no_cache);
@@ -2829,7 +2829,7 @@ void *create_session_info(int cp, unsigned char *url, unsigned char *framename, 
 static int read_session_info(struct session *ses, void *data, size_t len)
 {
 	int cpfrom, sz, sz1;
-	struct session *s;
+	struct session *s = NULL;
 	struct list_head *ls;
 	if (len < 3 * sizeof(int))
 		return -1;
@@ -2878,7 +2878,7 @@ static int read_session_info(struct session *ses, void *data, size_t len)
 
 void cleanup_session(struct session *ses)
 {
-	struct download *d;
+	struct download *d = NULL;
 	struct list_head *ld;
 	foreach(struct download, d, ld, downloads) if (d->ses == ses && d->prog) {
 		ld = ld->prev;

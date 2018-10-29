@@ -76,7 +76,7 @@ struct frameset_desc *copy_frameset_desc(struct frameset_desc *fd)
 
 void free_additional_files(struct additional_files **a)
 {
-	struct additional_file *af;
+	struct additional_file *af = NULL;
 	struct list_head *laf;
 	if (!*a) return;
 	if (--(*a)->refcount) {
@@ -93,7 +93,7 @@ static void clear_formatted(struct f_data *scr)
 {
 	int n;
 	int y;
-	struct form_control *fc;
+	struct form_control *fc = NULL;
 	struct list_head *lfc;
 	if (!scr)
 		return;
@@ -404,7 +404,7 @@ static struct list_head *last_tag_for_newline;
 static inline void move_links(struct part *p, int xf, int yf, int xt, int yt)
 {
 	int n;
-	struct tag *t;
+	struct tag *t = NULL;
 	struct list_head *lt;
 	int w = 0;
 	if (!p->data) return;
@@ -811,7 +811,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 static void line_break(void *p_)
 {
 	struct part *p = p_;
-	struct tag *t;
+	struct tag *t = NULL;
 	struct list_head *lt;
 	if (p->cx >= 0 && safe_add(p->cx, par_format.rightmargin) > p->x) p->x = p->cx + par_format.rightmargin;
 	if (nobreak) {
@@ -1014,7 +1014,7 @@ struct part *format_html_part(unsigned char *start, unsigned char *end, int alig
 	struct list_head *ltm = last_tag_to_move;
 	int lm = margin;
 	int ef = empty_format;
-	struct form_control *fc;
+	struct form_control *fc = NULL;
 	struct list_head *lfc;
 
 	if (par_format.implicit_pre_wrap) {
@@ -1446,7 +1446,7 @@ static int add_srch_chr(struct f_data *f, unsigned c, int x, int y, int nn)
 
 static int get_srch(struct f_data *f)
 {
-	struct node *n;
+	struct node *n = NULL;
 	struct list_head *ln;
 	get_srch_reset();
 #define add_srch(c_, x_, y_, n_)		\

@@ -236,7 +236,7 @@ static void select_menu(struct terminal *term, struct menu *menu)
 		return;
 	flush_terminal(term);
 	if (!it->in_m) {
-		struct window *win;
+		struct window *win = NULL;
 		struct list_head *lwin;
 		foreach(struct window, win, lwin, term->windows) {
 			if (win->handler != menu_func && win->handler != mainmenu_func)
@@ -504,7 +504,7 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			}
 			if (ev->x < menu->x || ev->x >= menu->x+menu->xw || ev->y < menu->y || ev->y >= menu->y+menu->yw) {
 				int f = 1;
-				struct window *w1;
+				struct window *w1 = NULL;
 				struct list_head *w1l;
 				foreachfrom(struct window, w1, w1l, win->term->windows, &win->list_entry) {
 					struct menu *m1;
@@ -733,7 +733,7 @@ static void select_mainmenu(struct terminal *term, struct mainmenu *menu)
 	it = &menu->items[menu->selected];
 	if (it->hotkey == M_BAR) return;
 	if (!it->in_m) {
-		struct window *win;
+		struct window *win = NULL;
 		struct list_head *lwin;
 		foreach(struct window, win, lwin, term->windows) {
 			if (win->handler != menu_func && win->handler != mainmenu_func)
@@ -1240,7 +1240,7 @@ static void do_tab_compl(struct terminal *term, struct list_head *history, struc
 {
 	unsigned char *cdata = ((struct dialog_data*)win->data)->items[((struct dialog_data*)win->data)->selected].cdata;
 	int l = (int)strlen(cast_const_char cdata), n = 0;
-	struct history_item *hi;
+	struct history_item *hi = NULL;
 	struct list_head *lhi;
 	struct menu_item *items = NULL;
 	foreach(struct history_item, hi, lhi, *history) {
@@ -1310,7 +1310,7 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 				di->cur_hist = &di->history;
 				if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) {
 					if (di->item->history) {
-						struct history_item *j;
+						struct history_item *j = NULL;
 						struct list_head *lj;
 						foreach(struct history_item, j, lj, di->item->history->items) {
 							struct history_item *hi;
@@ -2285,7 +2285,7 @@ void msg_box(struct terminal *term, struct memory_list *ml, unsigned char *title
 void add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 {
 	unsigned char *s;
-	struct history_item *hi, *hs;
+	struct history_item *hi, *hs = NULL;
 	struct list_head *lhs;
 	size_t l;
 	if (!h || !t || !*t) return;
@@ -2421,7 +2421,7 @@ void input_field(struct terminal *term, struct memory_list *ml, unsigned char *t
 
 int find_msg_box(struct terminal *term, unsigned char *title, int (*sel)(void *, void *), void *data)
 {
-	struct window *win;
+	struct window *win = NULL;
 	struct list_head *lwin;
 	foreach(struct window, win, lwin, term->windows) if (win->handler == dialog_func) {
 		struct dialog_data *dd = win->data;

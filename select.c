@@ -187,7 +187,7 @@ static struct list_head bottom_halves = { &bottom_halves, &bottom_halves };
 
 void register_bottom_half(void (*fn)(void *), void *data)
 {
-	struct bottom_half *bh;
+	struct bottom_half *bh = NULL;
 	struct list_head *lbh;
 	foreach(struct bottom_half, bh, lbh, bottom_halves)
 		if (bh->fn == fn && bh->data == data)
@@ -200,7 +200,7 @@ void register_bottom_half(void (*fn)(void *), void *data)
 
 void unregister_bottom_half(void (*fn)(void *), void *data)
 {
-	struct bottom_half *bh;
+	struct bottom_half *bh = NULL;
 	struct list_head *lbh;
 	foreach(struct bottom_half, bh, lbh, bottom_halves)
 		if (bh->fn == fn && bh->data == data) {
@@ -355,7 +355,7 @@ static void set_event_for_timer(struct timer *tm)
 static void enable_libevent(void)
 {
 	int i;
-	struct timer *tm;
+	struct timer *tm = NULL;
 	struct list_head *ltm;
 
 	if (disable_libevent)
@@ -443,7 +443,7 @@ static uttime last_time;
 static void check_timers(void)
 {
 	uttime interval = get_time() - last_time;
-	struct timer *t;
+	struct timer *t = NULL;
 	struct list_head *lt;
 	foreach(struct timer, t, lt, timers) {
 		if (t->interval < interval)
@@ -483,7 +483,7 @@ struct timer *install_timer(uttime t, void (*func)(void *), void *data)
 	} else
 #endif
 	{
-		struct timer *tt;
+		struct timer *tt = NULL;
 		struct list_head *ltt;
 		foreach(struct timer, tt, ltt, timers) if (tt->interval >= t) break;
 		add_before_list_entry(ltt, &tm->list_entry);

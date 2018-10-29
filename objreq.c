@@ -28,7 +28,7 @@ struct auth_dialog {
 
 static inline struct object_request *find_rq(tcount c)
 {
-	struct object_request *rq;
+	struct object_request *rq = NULL;
 	struct list_head *lrq;
 	foreach(struct object_request, rq, lrq, requests) if (rq->count == c) return rq;
 	return NULL;
@@ -210,7 +210,7 @@ static void cert_action(struct object_request *rq, int yes)
 
 static void cert_forall(struct cert_dialog *cs, int yes)
 {
-	struct object_request *rq;
+	struct object_request *rq = NULL;
 	struct list_head *lrq;
 	if (yes) add_blacklist_entry(cs->host, cs->bl);
 	foreach(struct object_request, rq, lrq, requests) if (rq->term == cs->term && rq->hold == HOLD_CERT && rq->stat.state == cs->state) {

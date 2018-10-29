@@ -2075,7 +2075,7 @@ void add_table_cache_entry(unsigned char *start, unsigned char *end, int align, 
 
 static void free_table_cache(void)
 {
-	struct table_cache_entry *tce;
+	struct table_cache_entry *tce = NULL;
 	struct list_head *ltce;
 	foreach(struct table_cache_entry, tce, ltce, table_cache) {
 		int hash = make_hash(tce->start, tce->xs);

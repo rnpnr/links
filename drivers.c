@@ -216,7 +216,10 @@ void set_clip_area(struct graphics_device *dev, struct rect *r)
 int restrict_clip_area(struct graphics_device *dev, struct rect *r, int x1, int y1, int x2, int y2)
 {
 	struct rect v, rr;
-	rr.x1 = x1, rr.x2 = x2, rr.y1 = y1, rr.y2 = y2;
+	rr.x1 = x1;
+	rr.x2 = x2;
+	rr.y1 = y1;
+	rr.y2 = y2;
 	if (r) memcpy(r, &dev->clip, sizeof(struct rect));
 	intersect_rect(&v, &dev->clip, &rr);
 	set_clip_area(dev, &v);

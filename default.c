@@ -596,7 +596,7 @@ static unsigned char *type_rd(struct option *o, unsigned char *c)
 
 static void type_wr(struct option *o, unsigned char **s, int *l)
 {
-	struct list *a;
+	struct list *a = NULL;
 	struct list_head *la;
 	foreachback(struct list, a, la, assoc.list_entry) {
 		struct assoc *as = get_struct(a, struct assoc, head);
@@ -630,7 +630,7 @@ static unsigned char *ext_rd(struct option *o, unsigned char *c)
 
 static void ext_wr(struct option *o, unsigned char **s, int *l)
 {
-	struct list *a;
+	struct list *a = NULL;
 	struct list_head *la;
 	foreachback(struct list, a, la, extensions.list_entry) {
 		struct extension *e = get_struct(a, struct extension, head);
@@ -723,7 +723,7 @@ static unsigned char *term2_rd(struct option *o, unsigned char *c)
 
 static void term_wr(struct option *o, unsigned char **s, int *l)
 {
-	struct term_spec *ts;
+	struct term_spec *ts = NULL;
 	struct list_head *lts;
 	foreachback(struct term_spec, ts, lts, term_specs) {
 		add_nm(o, s, l);
@@ -754,7 +754,7 @@ static struct list_head driver_params = { &driver_params, &driver_params };
 
 struct driver_param *get_driver_param(unsigned char *n)
 {
-	struct driver_param *dp;
+	struct driver_param *dp = NULL;
 	size_t sl;
 	struct list_head *ldp;
 	foreach(struct driver_param, dp, ldp, driver_params) if (!casestrcmp(dp->name, n)) return dp;
@@ -804,7 +804,7 @@ static unsigned char *dp_rd(struct option *o, unsigned char *c)
 
 static void dp_wr(struct option *o, unsigned char **s, int *l)
 {
-	struct driver_param *dp;
+	struct driver_param *dp = NULL;
 	struct list_head *ldp;
 	foreachback(struct driver_param, dp, ldp, driver_params) {
 		if ((!dp->param || !*dp->param) && !*dp->shell_term && dp->kbd_codepage < 0 && !dp->palette_mode)
@@ -956,7 +956,7 @@ static unsigned char *printhelp_cmd(struct option *o, unsigned char ***argv, int
 
 void end_config(void)
 {
-	struct driver_param *dp;
+	struct driver_param *dp = NULL;
 	struct list_head *ldp;
 	foreach(struct driver_param, dp, ldp, driver_params) {
 		free(dp->param);
@@ -1254,7 +1254,7 @@ void load_url_history(void)
 
 void save_url_history(void)
 {
-	struct history_item *hi;
+	struct history_item *hi = NULL;
 	struct list_head *lhi;
 	unsigned char *history_file;
 	unsigned char *hs;

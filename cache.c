@@ -58,7 +58,7 @@ static struct cache_entry *cache_search_tree(unsigned char *url)
 int cache_info(int type)
 {
 	int i = 0;
-	struct cache_entry *ce;
+	struct cache_entry *ce = NULL;
 	struct list_head *lce;
 	switch (type) {
 	case CI_BYTES:
@@ -82,7 +82,7 @@ int cache_info(int type)
 int decompress_info(int type)
 {
 	int i = 0;
-	struct cache_entry *ce;
+	struct cache_entry *ce = NULL;
 	struct list_head *lce;
 	switch (type) {
 	case CI_BYTES:
@@ -198,7 +198,7 @@ int page_size = 4096;
 
 int add_fragment(struct cache_entry *e, off_t offset, const unsigned char *data, off_t length)
 {
-	struct fragment *f;
+	struct fragment *f = NULL;
 	struct list_head *lf;
 	struct fragment *nf;
 	int trunc = 0;
@@ -355,7 +355,7 @@ int defrag_entry(struct cache_entry *e)
 void truncate_entry(struct cache_entry *e, off_t off, int final)
 {
 	int modified = final == 2;
-	struct fragment *f, *g;
+	struct fragment *f = NULL, *g;
 	struct list_head *lf;
 	if (e->length > off) {
 		e->length = off;
@@ -395,7 +395,7 @@ void truncate_entry(struct cache_entry *e, off_t off, int final)
 
 void free_entry_to(struct cache_entry *e, off_t off)
 {
-	struct fragment *f;
+	struct fragment *f = NULL;
 	struct list_head *lf;
 	e->incomplete = 1;
 	free_decompressed_data(e);
@@ -424,7 +424,7 @@ void delete_entry_content(struct cache_entry *e)
 
 void trim_cache_entry(struct cache_entry *e)
 {
-	struct fragment *f, *nf;
+	struct fragment *f = NULL, *nf;
 	struct list_head *lf;
 	foreach(struct fragment, f, lf, e->frag) {
 		if (f->length != f->real_length) {
@@ -457,7 +457,7 @@ void delete_cache_entry(struct cache_entry *e)
 static int shrink_file_cache(int u)
 {
 	int r = 0;
-	struct cache_entry *e, *f;
+	struct cache_entry *e = NULL, *f = NULL;
 	struct list_head *le, *lf;
 	int ncs = cache_size;
 	int ccs = 0, ccs2 = 0;

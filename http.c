@@ -720,7 +720,7 @@ next_chunk:
 		} else if (info->chunk_remaining == -1) {
 			int l;
 			if ((l = is_line_in_buffer(rb))) {
-				unsigned char *de;
+				unsigned char *de = NULL;
 				long n = 0;
 				if (l != -1)
 					n = strtol((char *)rb->data, (char **)(void *)&de, 16);

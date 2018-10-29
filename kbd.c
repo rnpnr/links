@@ -44,7 +44,7 @@ int is_blocked(void)
 {
 #ifdef G
 	if (F) {
-		struct terminal *term;
+		struct terminal *term = NULL;
 		struct list_head *lterm;
 		foreach(struct terminal, term, lterm, terminals)
 			if (term->blocked != -1)

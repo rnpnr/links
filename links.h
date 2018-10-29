@@ -160,8 +160,8 @@ do {									\
 
 static inline int test_int_overflow(int x, int y, int *result)
 {
-	int z = *result = (int)((unsigned)(x) + (unsigned)(y));
-	return ~((unsigned)(x) ^ (unsigned)(y)) & ((unsigned)(x) ^ ((unsigned)(z))) & (1U << (sizeof(unsigned) * 8 - 1));
+	int z = *result = x + y;
+	return ~(x ^ y) & (x ^ z) & (int)(1U << (sizeof(unsigned int) * 8 - 1));
 }
 
 static inline int safe_add_function(int x, int y, unsigned char *file, int line)
@@ -1236,7 +1236,10 @@ void exclude_rect_from_set(struct rect_set **, struct rect *);
 static inline void exclude_from_set(struct rect_set **s, int x1, int y1, int x2, int y2)
 {
 	struct rect r;
-	r.x1 = x1, r.x2 = x2, r.y1 = y1, r.y2 = y2;
+	r.x1 = x1;
+	r.x2 = x2;
+	r.y1 = y1;
+	r.y2 = y2;
 	exclude_rect_from_set(s, &r);
 }
 
@@ -2569,7 +2572,7 @@ extern struct style *bfu_style_wb, *bfu_style_bw, *bfu_style_wb_b, *bfu_style_bw
 extern long bfu_bg_color, bfu_fg_color;
 
 struct memory_list {
-	int n;
+	size_t n;
 	void *p[1];
 };
 

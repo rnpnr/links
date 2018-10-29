@@ -48,7 +48,7 @@ int set_cookie(struct terminal *term, unsigned char *url, unsigned char *str)
 		return 0;
 	int noval = 0;
 	struct cookie *cookie;
-	struct c_server *cs;
+	struct c_server *cs = NULL;
 	struct list_head *lcs;
 	unsigned char *p, *q, *s, *server, *date, *dom;
 	for (p = str; *p != ';' && *p; p++);
@@ -121,9 +121,9 @@ ok:
 
 static void accept_cookie(struct cookie *c)
 {
-	struct c_domain *cd;
+	struct c_domain *cd = NULL;
 	struct list_head *lcd;
-	struct cookie *d;
+	struct cookie *d = NULL;
 	struct list_head *ld;
 	size_t sl;
 	foreach(struct cookie, d, ld, all_cookies)
@@ -186,9 +186,9 @@ int cookie_expired(struct cookie *c)	/* parse_http_date is broken */
 void add_cookies(unsigned char **s, int *l, unsigned char *url)
 {
 	int nc = 0;
-	struct c_domain *cd;
+	struct c_domain *cd = NULL;
 	struct list_head *lcd;
-	struct cookie *c;
+	struct cookie *c = NULL;
 	struct list_head *lc;
 	unsigned char *server = get_host_name(url);
 	unsigned char *data = get_url_data(url);

@@ -288,7 +288,7 @@ static void check_dns_cache_addr_preference(void)
 
 static int find_in_dns_cache(unsigned char *name, struct dnsentry **dnsentry)
 {
-	struct dnsentry *e;
+	struct dnsentry *e = NULL;
 	struct list_head *le;
 	check_dns_cache_addr_preference();
 	foreach(struct dnsentry, e, le, dns_cache)
@@ -434,7 +434,7 @@ unsigned long dns_info(int type)
 static int shrink_dns_cache(int u)
 {
 	uttime now = get_absolute_time();
-	struct dnsentry *d;
+	struct dnsentry *d = NULL;
 	struct list_head *ld;
 	int f = 0;
 	if (u == SH_FREE_SOMETHING && !list_empty(dns_cache)) {

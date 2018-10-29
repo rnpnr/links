@@ -360,7 +360,7 @@ static struct list *assoc_find_item(struct list *s, unsigned char *str, int dire
 void update_assoc(struct assoc *neww)
 {
 	struct assoc *repl;
-	struct list *r;
+	struct list *r = NULL;
 	struct list_head *lr;
 	if (!neww->label[0] || !neww->ct[0] || !neww->prog[0])
 		return;
@@ -684,7 +684,7 @@ static struct list *ext_find_item(struct list *s, unsigned char *str, int direct
 void update_ext(struct extension *neww)
 {
 	struct extension *repl;
-	struct list *r;
+	struct list *r = NULL;
 	struct list_head *lr;
 	if (!neww->ext[0] || !neww->ct[0])
 		return;
@@ -706,7 +706,7 @@ void update_ext(struct extension *neww)
 
 void update_prog(struct list_head *l, unsigned char *p, int s)
 {
-	struct protocol_program *repl;
+	struct protocol_program *repl = NULL;
 	struct list_head *lrepl;
 	foreach(struct protocol_program, repl, lrepl, *l) if (repl->system == s) {
 		free(repl->prog);
@@ -722,7 +722,7 @@ ss:
 
 unsigned char *get_prog(struct list_head *l)
 {
-	struct protocol_program *repl;
+	struct protocol_program *repl = NULL;
 	struct list_head *lrepl;
 	foreach(struct protocol_program, repl, lrepl, *l) if (repl->system == SYSTEM_ID) return repl->prog;
 	update_prog(l, cast_uchar "", SYSTEM_ID);
@@ -962,7 +962,7 @@ unsigned char *get_compress_by_extension(char *ext, char *ext_end)
 
 unsigned char *get_content_type_by_extension(unsigned char *url)
 {
-	struct list *l;
+	struct list *l = NULL;
 	struct list_head *ll;
 	unsigned char *ct, *eod, *ext, *exxt;
 	int extl, el;
@@ -1054,7 +1054,7 @@ static unsigned char *get_content_type_by_header_and_extension(unsigned char *he
 
 static unsigned char *get_extension_by_content_type(unsigned char *ct)
 {
-	struct list *l;
+	struct list *l = NULL;
 	struct list_head *ll;
 	unsigned char *x, *y;
 	if (is_html_type(ct))
@@ -1248,7 +1248,7 @@ unsigned char *encoding_2_extension(unsigned char *encoding)
 struct assoc *get_type_assoc(struct terminal *term, unsigned char *type, int *n)
 {
 	struct assoc *assoc_array;
-	struct list *l;
+	struct list *l = NULL;
 	struct list_head *ll;
 	int count = 0;
 	foreach(struct list, l, ll, assoc.list_entry) {
@@ -1449,7 +1449,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 static void free_prog_list(struct list_head *l)
 {
 	struct list_head *lp;
-	struct protocol_program *p;
+	struct protocol_program *p = NULL;
 	foreach(struct protocol_program, p, lp, *l)
 		free(p->prog);
 	free_list(struct protocol_program, *l);
@@ -1457,7 +1457,7 @@ static void free_prog_list(struct list_head *l)
 
 void free_types(void)
 {
-	struct list *l;
+	struct list *l = NULL;
 	struct list_head *ll;
 	foreach(struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);

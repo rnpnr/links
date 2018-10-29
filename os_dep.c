@@ -282,13 +282,13 @@ int is_xterm(void)
 
 void close_fork_tty(void)
 {
-	struct terminal *t;
+	struct terminal *t = NULL;
 	struct list_head *lt;
-	struct download *d;
+	struct download *d = NULL;
 	struct list_head *ld;
-	struct connection *c;
+	struct connection *c = NULL;
 	struct list_head *lc;
-	struct k_conn *k;
+	struct k_conn *k = NULL;
 	struct list_head *lk;
 	int rs;
 #ifndef NO_SIGNAL_HANDLERS
