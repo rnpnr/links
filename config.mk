@@ -12,5 +12,5 @@ LIBS = -L$(X11LIB) -L/usr/lib -L/usr/local/lib \
 
 CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_BSD_SOURCE
 CFLAGS = -O2 -std=c99 -Wall -pedantic $(CPPFLAGS) \
-	-DG=1 -DHAVE_JPEG=1 -DHAVE_PNG_H=1
+         -DG=1 -DHAVE_JPEG=1 -DHAVE_PNG_H=1
 LDFLAGS = $(LIBS) $(INCS)
