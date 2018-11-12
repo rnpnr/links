@@ -804,7 +804,7 @@ void select_loop(void (*init)(void))
 		die("can't create pipe for signal handling\n");
 	set_nonblock(signal_pipe[0]);
 	set_nonblock(signal_pipe[1]);
-	set_handlers(signal_pipe[0], clear_events_ptr, NULL, signal_pipe);
+	set_handlers(signal_pipe[0], clear_events_ptr, NULL, (void *)(long)signal_pipe[0]);
 #endif
 	init();
 	CHK_BH;
