@@ -319,7 +319,6 @@ struct open_in_new {
 };
 
 void close_fork_tty(void);
-int is_twterm(void);
 int is_screen(void);
 int is_xterm(void);
 int get_terminal_size(int, int *, int *);
@@ -1480,11 +1479,6 @@ struct window {
 
 #define ENV_XWIN	1
 #define ENV_SCREEN	2
-#define ENV_OS2VIO	4
-#define ENV_BE		8
-#define ENV_TWIN	16
-#define ENV_WIN32	32
-#define ENV_INTERIX	64
 #define ENV_G		32768
 
 struct term_spec;

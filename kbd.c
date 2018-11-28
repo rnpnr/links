@@ -310,10 +310,9 @@ void handle_trm(int sock_out, void *init_string, int init_len)
 	ev.y = y;
 	handle_terminal_resize(0, resize_terminal);
 	queue_event(itrm, (unsigned char *)&ev, sizeof(struct links_event));
-	xwin = is_xterm() * ENV_XWIN + is_twterm() * ENV_TWIN + is_screen() * ENV_SCREEN;
+	xwin = is_xterm() * ENV_XWIN + is_screen() * ENV_SCREEN;
 	itrm->flags = 0;
 	if (!(ts = cast_uchar getenv("TERM"))) ts = cast_uchar "";
-	if ((xwin & ENV_TWIN) && !strcmp(cast_const_char ts, "linux")) itrm->flags |= USE_TWIN_MOUSE;
 	if (strlen(cast_const_char ts) >= MAX_TERM_LEN) queue_event(itrm, ts, MAX_TERM_LEN);
 	else {
 		unsigned char *mm;

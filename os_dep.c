@@ -256,13 +256,6 @@ DIR *c_opendir(unsigned char *path)
 
 /* Exec */
 
-int is_twterm(void)
-{
-	static int xt = -1;
-	if (xt == -1) xt = !!getenv("TWDISPLAY");
-	return xt;
-}
-
 int is_screen(void)
 {
 	static int xt = -1;
@@ -432,14 +425,6 @@ static void exec_new_links(struct terminal *term, unsigned char *xterm, unsigned
 	free(str);
 }
 
-static int open_in_new_twterm(struct terminal *term, unsigned char *exe, unsigned char *param)
-{
-	unsigned char *twterm;
-	if (!(twterm = cast_uchar getenv("LINKS_TWTERM"))) twterm = cast_uchar "twterm -e";
-	exec_new_links(term, twterm, exe, param);
-	return 0;
-}
-
 unsigned char *links_xterm(void)
 {
 	unsigned char *xterm;
@@ -494,7 +479,6 @@ static const struct {
 	unsigned char *hk;
 } oinw[] = {
 	{ENV_XWIN, open_in_new_xterm, TEXT_(T_XTERM), TEXT_(T_HK_XTERM)},
-	{ENV_TWIN, open_in_new_twterm, TEXT_(T_TWTERM), TEXT_(T_HK_TWTERM)},
 	{ENV_SCREEN, open_in_new_screen, TEXT_(T_SCREEN), TEXT_(T_HK_SCREEN)},
 #ifdef G
 	{ENV_G, open_in_new_g, TEXT_(T_WINDOW), TEXT_(T_HK_WINDOW)},
