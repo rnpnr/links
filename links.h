@@ -3704,10 +3704,6 @@ extern struct list assoc;
 extern struct list extensions;
 
 extern struct list_head mailto_prog;
-extern struct list_head telnet_prog;
-extern struct list_head tn3270_prog;
-extern struct list_head mms_prog;
-extern struct list_head magnet_prog;
 
 unsigned char *get_compress_by_extension(char *, char *);
 unsigned char *get_content_type_by_extension(unsigned char *url);
