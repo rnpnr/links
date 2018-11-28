@@ -761,15 +761,6 @@ struct os2_key os2xtd[256] = {
 
 static int xterm_button = -1;
 
-static int is_uwin(void)
-{
-#ifdef _UWIN
-	return 1;
-#else
-	return 0;
-#endif
-}
-
 static int is_ibm(void)
 {
 	unsigned char *term = cast_uchar getenv("TERM");
@@ -830,10 +821,7 @@ static int process_queue(struct itrm *itrm)
 				case 'W': ev.x = KBD_F8; break;
 				case 'X': ev.x = KBD_F9; break;
 				case 'Y':
-					if (is_uwin())
-						ev.x = itrm->kqueue[1] == '[' ? KBD_END : KBD_F10;
-					else
-						ev.x = KBD_F11;
+					ev.x = KBD_F11;
 					break;
 
 				case 'q': switch (v) {

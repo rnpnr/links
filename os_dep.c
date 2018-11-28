@@ -155,9 +155,6 @@ int get_terminal_size(int fd, int *x, int *y)
 #endif
 		) && !(*x = get_e("COLUMNS"))) {
 		*x = 80;
-#ifdef _UWIN
-		*x = 79;
-#endif
 	}
 	if ((rs == -1
 #ifdef TIOCGWINSZ
