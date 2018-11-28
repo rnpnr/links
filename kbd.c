@@ -761,12 +761,6 @@ struct os2_key os2xtd[256] = {
 
 static int xterm_button = -1;
 
-static int is_ibm(void)
-{
-	unsigned char *term = cast_uchar getenv("TERM");
-	return term && !strncmp(cast_const_char term, "ibm", 3);
-}
-
 static int process_queue(struct itrm *itrm)
 {
 	struct links_event ev = { EV_KBD, -1, 0, 0 };
@@ -808,10 +802,6 @@ static int process_queue(struct itrm *itrm)
 				case 'U':
 				case 'G': ev.x = KBD_PAGE_DOWN; break;
 				case 'P':
-					if (is_ibm()) {
-						ev.x = KBD_DEL;
-						break;
-					}
 					ev.x = KBD_F1; break;
 				case 'Q': ev.x = KBD_F2; break;
 				case 'S':
