@@ -761,12 +761,6 @@ struct os2_key os2xtd[256] = {
 
 static int xterm_button = -1;
 
-static int is_interix(void)
-{
-	unsigned char *term = cast_uchar getenv("TERM");
-	return term && !strncmp(cast_const_char term, "interix", 7);
-}
-
 static int is_uwin(void)
 {
 #ifdef _UWIN
@@ -821,11 +815,6 @@ static int process_queue(struct itrm *itrm)
 				case 'V':
 				case 'I': ev.x = KBD_PAGE_UP; break;
 				case 'U':
-					if (is_interix()) {
-						ev.x = KBD_END;
-						break;
-					}
-					/*-fallthrough*/
 				case 'G': ev.x = KBD_PAGE_DOWN; break;
 				case 'P':
 					if (is_ibm()) {
@@ -835,16 +824,8 @@ static int process_queue(struct itrm *itrm)
 					ev.x = KBD_F1; break;
 				case 'Q': ev.x = KBD_F2; break;
 				case 'S':
-					if (is_interix()) {
-						ev.x = KBD_PAGE_UP;
-						break;
-					}
 					ev.x = KBD_F4; break;
 				case 'T':
-					if (is_interix()) {
-						ev.x = KBD_PAGE_DOWN;
-						break;
-					}
 					ev.x = KBD_F5; break;
 				case 'W': ev.x = KBD_F8; break;
 				case 'X': ev.x = KBD_F9; break;
@@ -1001,37 +982,7 @@ static int process_queue(struct itrm *itrm)
 				ev.x = KBD_DEL;
 				ev.y = 0;
 				goto l2;
-			} else if (itrm->kqueue[1] == 'F' && is_interix()) {
-				int num;
-				if (itrm->qlen < 3) goto ret;
-				if (itrm->kqueue[2] >= '1' && itrm->kqueue[2] <= '9') {
-					num = itrm->kqueue[2] - '1';
-				} else if (itrm->kqueue[2] >= 'A' && itrm->kqueue[2] <= 'Z') {
-					num = itrm->kqueue[2] - 'A' + 9;
-				} else if (itrm->kqueue[2] >= 'a' && itrm->kqueue[2] <= 'k') {
-					num = itrm->kqueue[2] - 'a' + 35;
-				} else if (itrm->kqueue[2] >= 'm' && itrm->kqueue[2] <= 'z') {
-					num = itrm->kqueue[2] - 'a' + 34;
-				} else goto do_alt;
-				if (num < 12) {
-					ev.x = KBD_F1 - num;
-				} else if (num < 24) {
-					ev.x = KBD_F1 - (num - 12);
-					ev.y |= KBD_SHIFT;
-				} else if (num < 36) {
-					ev.x = KBD_F1 - (num - 24);
-					ev.y |= KBD_ALT;
-				} else if (num < 48) {
-					ev.x = KBD_F1 - (num - 36);
-					ev.y |= KBD_CTRL;
-				} else {
-					ev.x = KBD_F1 - (num - 48);
-					ev.y |= KBD_SHIFT | KBD_CTRL;
-				}
-				el = 3;
-				goto l1;
 			} else {
-do_alt:
 				ev.x = itrm->kqueue[1];
 				ev.y |= KBD_ALT;
 				goto l2;
@@ -1059,10 +1010,7 @@ do_alt:
 	if (ev.x == 9) ev.x = KBD_TAB;
 	if (ev.x == 10) ev.x = KBD_ENTER /*, ev.y = KBD_CTRL*/;
 	if (ev.x == 13) ev.x = KBD_ENTER;
-	if (ev.x == 127) {
-		if (is_interix()) ev.x = KBD_DEL;
-		else ev.x = KBD_BS;
-	}
+	if (ev.x == 127) ev.x = KBD_BS;
 	if (ev.x >= 0 && ev.x < ' ') {
 		ev.x += 'A' - 1;
 		ev.y |= KBD_CTRL;
