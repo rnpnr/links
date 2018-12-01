@@ -22,15 +22,10 @@
 
 #define FG_POLL_TIME			500
 
-#define HEAPMIN_FACTOR			100
-#define HEAPMIN_INTERVAL		10000
-#define MALLOC_TRIM_INTERVAL		300000
-
 #define DNS_TIMEOUT			3600000UL
 #define SESSION_TIMEOUT			14400000UL
 
 #define HTTP_KEEPALIVE_TIMEOUT		300000
-#define FTP_KEEPALIVE_TIMEOUT		600000
 #define MAX_KEEPALIVE_CONNECTIONS	30
 #define KEEPALIVE_CHECK_TIME		20000
 
@@ -180,9 +175,3 @@
 #define BFU_GRX_WIDTH                 (G_BFU_FONT_SIZE>>1)
 #define BFU_ELEMENT_WIDTH             (gf_val(5,5*BFU_GRX_WIDTH))
 #define BFU_GRX_HEIGHT                        G_BFU_FONT_SIZE
-
-/* higher number=more sensitive scrolling */
-/* used in list_event_handler in listedit.c */
-#define MOUSE_SCROLL_DIVIDER          1
-
-#define MAGICKA_KONSTANTA_NA_MAXIMALNI_DYLKU_JS_KODU_PRI_ERRORU	256

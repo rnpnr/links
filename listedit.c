@@ -1639,7 +1639,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 		}
 #endif
 		if ((ev->b & BM_ACT) == B_DRAG && (ev->b & BM_BUTT) == B_MIDDLE) {
-			long delta=(ev->y-last_mouse_y)/MOUSE_SCROLL_DIVIDER;
+			long delta = ev->y-last_mouse_y;
 
 			last_mouse_y=ev->y;
 			if (delta>0)  /* scroll down */
