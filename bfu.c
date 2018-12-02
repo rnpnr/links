@@ -383,15 +383,27 @@ static void display_menu_item_gfx(struct terminal *term, struct menu *menu, int 
 	if (it < menu->view || it >= menu->ni || it >= menu->view + menu->nview) return;
 	y = menu->y + G_MENU_TOP_BORDER + (it - menu->view) * G_BFU_FONT_SIZE;
 	if (item->hotkey == M_BAR && !get_text_translation(item->text, term)[0]) {
-		drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + (G_BFU_FONT_SIZE - 1) / 2, bfu_bg_color);
-		drv->draw_hline(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y + (G_BFU_FONT_SIZE - 1) / 2, menu->x + menu->xw - G_MENU_LEFT_BORDER / 2, bfu_fg_color);
-		drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y + (G_BFU_FONT_SIZE - 1) / 2 + 1, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + G_BFU_FONT_SIZE, bfu_bg_color);
+		drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1,
+			y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2,
+			y + (G_BFU_FONT_SIZE - 1) / 2, bfu_bg_color);
+		drv->draw_hline(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1,
+			y + (G_BFU_FONT_SIZE - 1) / 2,
+			menu->x + menu->xw - G_MENU_LEFT_BORDER / 2,
+			bfu_fg_color);
+
+		drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1,
+			y + (G_BFU_FONT_SIZE - 1) / 2 + 1,
+			menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2,
+			y + G_BFU_FONT_SIZE, bfu_bg_color);
 	} else {
 		int p;
 		struct rect r;
 		unsigned char *rtext = get_text_translation(get_rtext(item->rtext), term);
 		if (it != menu->selected) {
-			drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y, menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER, y + G_BFU_FONT_SIZE, bfu_bg_color);
+			drv->fill_area(dev,
+				menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y,
+				menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER,
+				y + G_BFU_FONT_SIZE, bfu_bg_color);
 		} else {
 			menu->xl1 = menu->x;
 			menu->yl1 = y;
@@ -399,11 +411,22 @@ static void display_menu_item_gfx(struct terminal *term, struct menu *menu, int 
 			menu->yl2 = y + G_BFU_FONT_SIZE;
 			menu_ptr_set = 1;
 			set_window_ptr(menu->win, menu->x + menu->xw, y);
-			drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y, menu->x + G_MENU_LEFT_BORDER, y + G_BFU_FONT_SIZE, bfu_bg_color);
-			drv->fill_area(dev, menu->x + menu->xw - G_MENU_LEFT_BORDER, y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + G_BFU_FONT_SIZE, bfu_bg_color);
-			drv->fill_area(dev, menu->x + G_MENU_LEFT_BORDER, y, menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER, y + G_BFU_FONT_SIZE, bfu_fg_color);
+			drv->fill_area(dev,
+				menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y,
+				menu->x + G_MENU_LEFT_BORDER,
+				y + G_BFU_FONT_SIZE, bfu_bg_color);
+			drv->fill_area(dev,
+				menu->x + menu->xw - G_MENU_LEFT_BORDER, y,
+				menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2,
+				y + G_BFU_FONT_SIZE, bfu_bg_color);
+			drv->fill_area(dev, menu->x + G_MENU_LEFT_BORDER, y,
+				menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER,
+				y + G_BFU_FONT_SIZE, bfu_fg_color);
 		}
-		restrict_clip_area(dev, &r, menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER, y, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER, y + G_BFU_FONT_SIZE);
+		restrict_clip_area(dev, &r,
+			menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER,
+			y, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER,
+			y + G_BFU_FONT_SIZE);
 		if (it == menu->selected) {
 			p = menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER;
 			g_print_text(dev, p, y, bfu_style_wb, menu->hktxt1[it], &p);
@@ -475,168 +498,185 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 	struct menu *menu = win->data;
 	menu->win = win;
 	switch ((int)ev->ev) {
-		case EV_INIT:
-		case EV_RESIZE:
-			get_parent_ptr(win, &menu->xp, &menu->yp);
+	case EV_INIT:
+	case EV_RESIZE:
+		get_parent_ptr(win, &menu->xp, &menu->yp);
+		count_menu_size(win->term, menu);
+		goto xxx;
+	case EV_REDRAW:
+		get_parent_ptr(win, &xp, &yp);
+		if (xp != menu->xp || yp != menu->yp) {
+			menu->xp = xp;
+			menu->yp = yp;
 			count_menu_size(win->term, menu);
-			goto xxx;
-		case EV_REDRAW:
-			get_parent_ptr(win, &xp, &yp);
-			if (xp != menu->xp || yp != menu->yp) {
-				menu->xp = xp;
-				menu->yp = yp;
-				count_menu_size(win->term, menu);
+		}
+ xxx:
+		menu->selected--;
+		scroll_menu(menu, 1);
+		draw_to_window(win, gf_val(display_menu_txt, display_menu_gfx), menu);
+		break;
+	case EV_MOUSE:
+		if ((ev->b & BM_ACT) == B_MOVE) break;
+		if ((ev->b & BM_BUTT) == B_FOURTH
+		|| (ev->b & BM_BUTT) == B_FIFTH) {
+			if ((ev->b & BM_ACT) == B_DOWN) goto go_lr;
+			break;
+		}
+		if ((ev->b & BM_BUTT) == B_SIXTH)
+			break;
+
+		if (ev->x < menu->x || ev->x >= menu->x+menu->xw
+		|| ev->y < menu->y || ev->y >= menu->y+menu->yw) {
+			int f = 1;
+			struct window *w1 = NULL;
+			struct list_head *w1l;
+			foreachfrom(struct window, w1, w1l, win->term->windows, &win->list_entry) {
+				struct menu *m1;
+				if (w1->handler == mainmenu_func) {
+#ifdef G
+					struct mainmenu *m2 = w1->data;
+					if (F && !f && ev->x >= m2->xl1 && ev->x < m2->xl2 && ev->y >= m2->yl1 && ev->y < m2->yl2) goto bbb;
+#endif
+					if (ev->y < gf_val(1, G_BFU_FONT_SIZE)) goto del;
+					break;
+				}
+				if (w1->handler != menu_func) break;
+				m1 = w1->data;
+#ifdef G
+				if (F && !f && ev->x >= m1->xl1
+				&& ev->x < m1->xl2 && ev->y >= m1->yl1
+				&& ev->y < m1->yl2)
+					goto bbb;
+#endif
+				if (ev->x > m1->x && ev->x < m1->x+m1->xw-1
+				&& ev->y > m1->y && ev->y < m1->y+m1->yw-1)
+					goto del;
+				f--;
 			}
-			xxx:
-			menu->selected--;
+			if ((ev->b & BM_ACT) == B_DOWN) goto del;
+			if (0)
+ del:				delete_window_ev(win, ev);
+#ifdef G
+ bbb:;
+#endif
+		} else {
+			if (!(ev->x < menu->x || ev->x >= menu->x+menu->xw
+			|| ev->y < menu->y + gf_val(1, G_MENU_TOP_BORDER)
+			|| ev->y >= menu->y + menu->yw - gf_val(1, G_MENU_TOP_BORDER))) {
+				int s = gf_val(ev->y - menu->y-1 + menu->view, (ev->y - menu->y - G_MENU_TOP_BORDER) / G_BFU_FONT_SIZE + menu->view);
+				if (s >= 0 && s < menu->ni && menu->items[s].hotkey != M_BAR) {
+					menu_oldview = menu->view;
+					menu_oldsel = menu->selected;
+					menu->selected = s;
+					scroll_menu(menu, 0);
+					draw_to_window(win, gf_val(display_menu_txt, display_menu_gfx), menu);
+					menu_oldview = menu_oldsel = -1;
+					if ((ev->b & BM_ACT) == B_UP)
+						select_menu(win->term, menu);
+				}
+			}
+		}
+		break;
+	case EV_KBD:
+		if (ev->y & KBD_PASTING) break;
+		if (ev->x == KBD_LEFT || ev->x == KBD_RIGHT) {
+ go_lr:
+			if (win->list_entry.next == &win->term->windows)
+				goto mm;
+			if (list_struct(win->list_entry.next, struct window)->handler == mainmenu_func)
+				goto mm;
+			if (ev->ev == EV_MOUSE && (ev->b & BM_BUTT) == B_FIFTH)
+				goto mm;
+			if (ev->ev == EV_KBD && ev->x == KBD_RIGHT) goto enter;
+			delete_window(win);
+			break;
+		}
+		if (ev->x == KBD_ESC) {
+			if (win->list_entry.next == &win->term->windows)
+				ev = NULL;
+			else if (list_struct(win->list_entry.next, struct window)->handler != mainmenu_func)
+				ev = NULL;
+			delete_window_ev(win, ev);
+			break;
+		}
+		if (KBD_ESCAPE_MENU(ev->x) || ev->y & KBD_ALT) {
+ mm:
+			delete_window_ev(win, ev);
+			break;
+		}
+		menu_oldview = menu->view;
+		menu_oldsel = menu->selected;
+		if (ev->x == KBD_UP) scroll_menu(menu, -1);
+		else if (ev->x == KBD_DOWN) scroll_menu(menu, 1);
+		else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A'
+		&& ev->y & KBD_CTRL)) {
+			menu->selected = -1;
 			scroll_menu(menu, 1);
-			draw_to_window(win, gf_val(display_menu_txt, display_menu_gfx), menu);
-			break;
-		case EV_MOUSE:
-			if ((ev->b & BM_ACT) == B_MOVE) break;
-			if ((ev->b & BM_BUTT) == B_FOURTH ||
-			    (ev->b & BM_BUTT) == B_FIFTH) {
-				if ((ev->b & BM_ACT) == B_DOWN) goto go_lr;
-				break;
-			}
-			if ((ev->b & BM_BUTT) == B_SIXTH) {
-				break;
-			}
-			if (ev->x < menu->x || ev->x >= menu->x+menu->xw || ev->y < menu->y || ev->y >= menu->y+menu->yw) {
-				int f = 1;
-				struct window *w1 = NULL;
-				struct list_head *w1l;
-				foreachfrom(struct window, w1, w1l, win->term->windows, &win->list_entry) {
-					struct menu *m1;
-					if (w1->handler == mainmenu_func) {
-#ifdef G
-						struct mainmenu *m2 = w1->data;
-						if (F && !f && ev->x >= m2->xl1 && ev->x < m2->xl2 && ev->y >= m2->yl1 && ev->y < m2->yl2) goto bbb;
-#endif
-						if (ev->y < gf_val(1, G_BFU_FONT_SIZE)) goto del;
-						break;
-					}
-					if (w1->handler != menu_func) break;
-					m1 = w1->data;
-#ifdef G
-					if (F && !f && ev->x >= m1->xl1 && ev->x < m1->xl2 && ev->y >= m1->yl1 && ev->y < m1->yl2) goto bbb;
-#endif
-					if (ev->x > m1->x && ev->x < m1->x+m1->xw-1 && ev->y > m1->y && ev->y < m1->y+m1->yw-1) goto del;
-					f--;
-				}
-				if ((ev->b & BM_ACT) == B_DOWN) goto del;
-				if (0) del:delete_window_ev(win, ev);
-#ifdef G
-				bbb:;
-#endif
-			} else {
-				if (!(ev->x < menu->x || ev->x >= menu->x+menu->xw || ev->y < menu->y + gf_val(1, G_MENU_TOP_BORDER) || ev->y >= menu->y + menu->yw - gf_val(1, G_MENU_TOP_BORDER))) {
-					int s = gf_val(ev->y - menu->y-1 + menu->view, (ev->y - menu->y - G_MENU_TOP_BORDER) / G_BFU_FONT_SIZE + menu->view);
-					if (s >= 0 && s < menu->ni && menu->items[s].hotkey != M_BAR) {
-						menu_oldview = menu->view;
-						menu_oldsel = menu->selected;
-						menu->selected = s;
-						scroll_menu(menu, 0);
-						draw_to_window(win, gf_val(display_menu_txt, display_menu_gfx), menu);
-						menu_oldview = menu_oldsel = -1;
-						if ((ev->b & BM_ACT) == B_UP /*|| menu->items[s].in_m*/) select_menu(win->term, menu);
-					}
+		} else if (ev->x == KBD_END || (upcase(ev->x) == 'E'
+		&& ev->y & KBD_CTRL)) {
+			menu->selected = menu->ni;
+			scroll_menu(menu, -1);
+		} else if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B'
+		&& ev->y & KBD_CTRL)) {
+			if ((menu->selected -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) < -1) menu->selected = -1;
+			if ((menu->view -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) < 0) menu->view = 0;
+			scroll_menu(menu, -1);
+		}
+		else if (ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F'
+		&& ev->y & KBD_CTRL)) {
+			if ((menu->selected += menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) > menu->ni) menu->selected = menu->ni;
+			if ((menu->view += menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) >= menu->ni - menu->yw + 2) menu->view = menu->ni - menu->yw + 2;
+			scroll_menu(menu, 1);
+		}
+		else if (ev->x > ' ') {
+			int i;
+			for (i = 0; i < menu->ni; i++) {
+				if (charset_upcase(ev->x, term_charset(win->term)) == menu->hotkeys[i]) {
+					menu->selected = i;
+					scroll_menu(menu, 0);
+					s = 1;
 				}
 			}
-			break;
-		case EV_KBD:
-			if (ev->y & KBD_PASTING) break;
-			if (ev->x == KBD_LEFT || ev->x == KBD_RIGHT) {
-go_lr:
-				if (win->list_entry.next == &win->term->windows)
-					goto mm;
-				if (list_struct(win->list_entry.next, struct window)->handler == mainmenu_func)
-					goto mm;
-				if (ev->ev == EV_MOUSE && (ev->b & BM_BUTT) == B_FIFTH) goto mm;
-				if (ev->ev == EV_KBD && ev->x == KBD_RIGHT) goto enter;
-				delete_window(win);
-				break;
-			}
-			if (ev->x == KBD_ESC) {
-				if (win->list_entry.next == &win->term->windows)
-					ev = NULL;
-				else if (list_struct(win->list_entry.next, struct window)->handler != mainmenu_func)
-					ev = NULL;
-				delete_window_ev(win, ev);
-				break;
-			}
-			if (KBD_ESCAPE_MENU(ev->x) || ev->y & KBD_ALT) {
-				mm:
-				delete_window_ev(win, ev);
-				break;
-			}
-			menu_oldview = menu->view;
-			menu_oldsel = menu->selected;
-			if (ev->x == KBD_UP) scroll_menu(menu, -1);
-			else if (ev->x == KBD_DOWN) scroll_menu(menu, 1);
-			else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) {
-				menu->selected = -1;
-				scroll_menu(menu, 1);
-			} else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
-				menu->selected = menu->ni;
-				scroll_menu(menu, -1);
-			} else if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
-				if ((menu->selected -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) < -1) menu->selected = -1;
-				if ((menu->view -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) < 0) menu->view = 0;
-				scroll_menu(menu, -1);
-			}
-			else if (ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F' && ev->y & KBD_CTRL)) {
-				if ((menu->selected += menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) > menu->ni) menu->selected = menu->ni;
-				if ((menu->view += menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) >= menu->ni - menu->yw + 2) menu->view = menu->ni - menu->yw + 2;
-				scroll_menu(menu, 1);
-			}
-			else if (ev->x > ' ') {
-				int i;
-				for (i = 0; i < menu->ni; i++) {
-					if (charset_upcase(ev->x, term_charset(win->term)) == menu->hotkeys[i]) {
-						menu->selected = i;
-						scroll_menu(menu, 0);
-						s = 1;
-					}
-				}
-			}
-			draw_to_window(win, gf_val(display_menu_txt, display_menu_gfx), menu);
-			if (s || ev->x == KBD_ENTER || ev->x == ' ') {
-				enter:
-				menu_oldview = menu_oldsel = -1;
-				select_menu(win->term, menu);
-			}
+		}
+		draw_to_window(win, gf_val(display_menu_txt, display_menu_gfx),
+			menu);
+		if (s || ev->x == KBD_ENTER || ev->x == ' ') {
+ enter:
 			menu_oldview = menu_oldsel = -1;
-			break;
-		case EV_ABORT:
+			select_menu(win->term, menu);
+		}
+		menu_oldview = menu_oldsel = -1;
+		break;
+	case EV_ABORT:
 #ifdef G
-			if (F) {
-				int i;
-				for (i = 0; i < menu->ni; i++) {
-					free(menu->hktxt1[i]);
-					free(menu->hktxt2[i]);
-					free(menu->hktxt3[i]);
-				}
-				free(menu->hktxt1);
-				free(menu->hktxt2);
-				free(menu->hktxt3);
+		if (F) {
+			int i;
+			for (i = 0; i < menu->ni; i++) {
+				free(menu->hktxt1[i]);
+				free(menu->hktxt2[i]);
+				free(menu->hktxt3[i]);
 			}
+			free(menu->hktxt1);
+			free(menu->hktxt2);
+			free(menu->hktxt3);
+		}
 #endif
-			if (menu->items->free_i) {
-				int i;
-				for (i = 0; i < menu->ni; i++) {
-					if (menu->items[i].free_i & 2)
-						free(menu->items[i].text);
-					if (menu->items[i].free_i & 4)
-						free(menu->items[i].rtext);
-					if (menu->items[i].free_i & 8)
-						free(menu->items[i].hotkey);
-				}
-				free(menu->items);
+		if (menu->items->free_i) {
+			int i;
+			for (i = 0; i < menu->ni; i++) {
+				if (menu->items[i].free_i & 2)
+					free(menu->items[i].text);
+				if (menu->items[i].free_i & 4)
+					free(menu->items[i].rtext);
+				if (menu->items[i].free_i & 8)
+					free(menu->items[i].hotkey);
 			}
-			if (menu->free_function)
-				register_bottom_half(menu->free_function, menu->free_data);
-			break;
+			free(menu->items);
+		}
+		if (menu->free_function)
+			register_bottom_half(menu->free_function,
+				menu->free_data);
+		break;
 	}
 }
 
@@ -702,7 +742,8 @@ static void display_mainmenu(struct terminal *term, void *menu_)
 	} else {
 		struct graphics_device *dev = term->dev;
 		int i, p;
-		drv->fill_area(dev, 0, 0, p = G_MAINMENU_LEFT_BORDER, G_BFU_FONT_SIZE, bfu_bg_color);
+		drv->fill_area(dev, 0, 0, p = G_MAINMENU_LEFT_BORDER,
+			G_BFU_FONT_SIZE, bfu_bg_color);
 		for (i = 0; i < menu->ni; i++) {
 			int s = i == menu->selected;
 			unsigned char *text = get_text_translation(menu->items[i].text, term);
@@ -713,8 +754,11 @@ static void display_mainmenu(struct terminal *term, void *menu_)
 			}
 			drv->fill_area(dev, p, 0, p + G_MAINMENU_BORDER, G_BFU_FONT_SIZE, s ? bfu_fg_color : bfu_bg_color);
 			p += G_MAINMENU_BORDER;
-			g_print_text(dev, p, 0, s ? bfu_style_wb : bfu_style_bw, text, &p);
-			drv->fill_area(dev, p, 0, p + G_MAINMENU_BORDER, G_BFU_FONT_SIZE, s ? bfu_fg_color : bfu_bg_color);
+			g_print_text(dev, p, 0, s ? bfu_style_wb : bfu_style_bw,
+				text, &p);
+			drv->fill_area(dev, p, 0, p + G_MAINMENU_BORDER,
+				G_BFU_FONT_SIZE,
+				s ? bfu_fg_color : bfu_bg_color);
 			p += G_MAINMENU_BORDER;
 			if (s) {
 				menu->xl2 = p;
@@ -752,88 +796,95 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 	struct mainmenu *menu = win->data;
 	menu->win = win;
 	switch ((int)ev->ev) {
-		case EV_INIT:
-		case EV_RESIZE:
+	case EV_INIT:
+	case EV_RESIZE:
 #ifdef G
-			if (F) set_window_pos(win, 0, 0, win->term->x, G_BFU_FONT_SIZE);
+		if (F) set_window_pos(win, 0, 0, win->term->x, G_BFU_FONT_SIZE);
 #endif
-			/*-fallthrough*/
-		case EV_REDRAW:
-			draw_to_window(win, display_mainmenu, menu);
+		/*-fallthrough*/
+	case EV_REDRAW:
+		draw_to_window(win, display_mainmenu, menu);
+		break;
+	case EV_MOUSE:
+		in_menu = ev->x >= 0 && ev->x < win->term->x && ev->y >= 0 && ev->y < gf_val(1, G_BFU_FONT_SIZE);
+		if ((ev->b & BM_ACT) == B_MOVE) break;
+		if ((ev->b & BM_BUTT) == B_FOURTH) {
+			if ((ev->b & BM_ACT) == B_DOWN) goto go_left;
 			break;
-		case EV_MOUSE:
-			in_menu = ev->x >= 0 && ev->x < win->term->x && ev->y >= 0 && ev->y < gf_val(1, G_BFU_FONT_SIZE);
-			if ((ev->b & BM_ACT) == B_MOVE) break;
-			if ((ev->b & BM_BUTT) == B_FOURTH) {
-				if ((ev->b & BM_ACT) == B_DOWN) goto go_left;
-				break;
-			}
-			if ((ev->b & BM_BUTT) == B_FIFTH) {
-				if ((ev->b & BM_ACT) == B_DOWN) goto go_right;
-				break;
-			}
-			if ((ev->b & BM_BUTT) == B_SIXTH) {
-				break;
-			}
-			if ((ev->b & BM_ACT) == B_DOWN && !in_menu) delete_window_ev(win, ev);
-			else if (in_menu) {
-				int i;
-				int p = gf_val(2, G_MAINMENU_LEFT_BORDER);
-				for (i = 0; i < menu->ni; i++) {
-					int o = p;
-					unsigned char *tmptext = get_text_translation(menu->items[i].text, win->term);
-					p += txtlen(win->term, tmptext) + gf_val(4, 2 * G_MAINMENU_BORDER);
-					if (ev->x >= o && ev->x < p) {
-						menu->selected = i;
-						draw_to_window(win, display_mainmenu, menu);
-						if ((ev->b & BM_ACT) == B_UP
-						|| menu->items[s].in_m)
-							select_mainmenu(win->term, menu);
-						break;
-					}
+		}
+		if ((ev->b & BM_BUTT) == B_FIFTH) {
+			if ((ev->b & BM_ACT) == B_DOWN) goto go_right;
+			break;
+		}
+		if ((ev->b & BM_BUTT) == B_SIXTH) {
+			break;
+		}
+		if ((ev->b & BM_ACT) == B_DOWN && !in_menu)
+			delete_window_ev(win, ev);
+		else if (in_menu) {
+			int i;
+			int p = gf_val(2, G_MAINMENU_LEFT_BORDER);
+			for (i = 0; i < menu->ni; i++) {
+				int o = p;
+				unsigned char *tmptext = get_text_translation(menu->items[i].text, win->term);
+				p += txtlen(win->term, tmptext) + gf_val(4, 2 * G_MAINMENU_BORDER);
+				if (ev->x >= o && ev->x < p) {
+					menu->selected = i;
+					draw_to_window(win, display_mainmenu, menu);
+					if ((ev->b & BM_ACT) == B_UP
+					|| menu->items[s].in_m)
+						select_mainmenu(win->term, menu);
+					break;
 				}
 			}
+		}
+		break;
+	case EV_KBD:
+		if (ev->y & KBD_PASTING) break;
+		if (ev->x == ' ' || ev->x == KBD_ENTER || ev->x == KBD_DOWN
+		|| ev->x == KBD_UP || ev->x == KBD_PAGE_DOWN
+		|| (upcase(ev->x) == 'F' && ev->y & KBD_CTRL)
+		|| ev->x == KBD_PAGE_UP
+		|| (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
+			select_mainmenu(win->term, menu);
 			break;
-		case EV_KBD:
-			if (ev->y & KBD_PASTING) break;
-			if (ev->x == ' ' || ev->x == KBD_ENTER || ev->x == KBD_DOWN || ev->x == KBD_UP || ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F' && ev->y & KBD_CTRL) || ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)) {
-				select_mainmenu(win->term, menu);
-				break;
-			} else if (ev->x == KBD_LEFT) {
-go_left:
-				if (!menu->selected--) menu->selected = menu->ni - 1;
-				s = 1;
-				if (fwd) s = 2;
-			} else if (ev->x == KBD_RIGHT) {
-go_right:
-				if (++menu->selected >= menu->ni) menu->selected = 0;
-				s = 1;
-				if (fwd) s = 2;
-			} else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) {
-				menu->selected = 0;
-				s = 1;
-			} else if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
-				menu->selected = menu->ni - 1;
-				s = 1;
-			} else if (ev->x > ' ') {
-				int i;
-				s = 1;
-				for (i = 0; i < menu->ni; i++) {
-					if (charset_upcase(ev->x, term_charset(win->term)) == menu->hotkeys[i]) {
-						menu->selected = i;
-						s = 2;
-					}
+		} else if (ev->x == KBD_LEFT) {
+ go_left:
+			if (!menu->selected--) menu->selected = menu->ni - 1;
+			s = 1;
+			if (fwd) s = 2;
+		} else if (ev->x == KBD_RIGHT) {
+ go_right:
+			if (++menu->selected >= menu->ni) menu->selected = 0;
+			s = 1;
+			if (fwd) s = 2;
+		} else if (ev->x == KBD_HOME || (upcase(ev->x) == 'A'
+		&& ev->y & KBD_CTRL)) {
+			menu->selected = 0;
+			s = 1;
+		} else if (ev->x == KBD_END || (upcase(ev->x) == 'E'
+		&& ev->y & KBD_CTRL)) {
+			menu->selected = menu->ni - 1;
+			s = 1;
+		} else if (ev->x > ' ') {
+			int i;
+			s = 1;
+			for (i = 0; i < menu->ni; i++) {
+				if (charset_upcase(ev->x, term_charset(win->term)) == menu->hotkeys[i]) {
+					menu->selected = i;
+					s = 2;
 				}
 			}
-			if (!s) {
-				delete_window_ev(win, KBD_ESCAPE_MENU(ev->x) || ev->y & KBD_ALT ? ev : NULL);
-				break;
-			}
-			draw_to_window(win, display_mainmenu, menu);
-			if (s == 2) select_mainmenu(win->term, menu);
+		}
+		if (!s) {
+			delete_window_ev(win, KBD_ESCAPE_MENU(ev->x) || ev->y & KBD_ALT ? ev : NULL);
 			break;
-		case EV_ABORT:
-			break;
+		}
+		draw_to_window(win, display_mainmenu, menu);
+		if (s == 2) select_mainmenu(win->term, menu);
+		break;
+	case EV_ABORT:
+		break;
 	}
 }
 
@@ -852,9 +903,8 @@ void add_to_menu(struct menu_item **mi, unsigned char *text, unsigned char *rtex
 	if (pos != -1) {
 		n = pos;
 		if ((*mi)[n].text) internal("invalid menu position %d", n);
-	} else {
+	} else
 		for (n = 0; (*mi)[n].text; n++) if (n == INT_MAX) overalloc();
-	}
 	if (((unsigned)n + 2) > INT_MAX / sizeof(struct menu_item))
 		overalloc();
 	mii = xrealloc(*mi, (n + 2) * sizeof(struct menu_item));
@@ -929,7 +979,8 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 			if (di->item->type == D_FIELD_PASS) 
 				free(t);
 			if (sel) {
-				set_cursor(term, di->x + vposlen - cposlen, di->y, di->x + vposlen - cposlen, di->y);
+				set_cursor(term, di->x + vposlen - cposlen,
+					di->y, di->x + vposlen - cposlen, di->y);
 				set_window_ptr(dlg->win, di->x, di->y);
 			}
 			break;
@@ -938,9 +989,11 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 			text = get_text_translation(di->item->text, term);
 			print_text(term, di->x, di->y, 2, cast_uchar "[ ", co);
 			print_text(term, di->x + 2, di->y, strlen((char *)text), text, co);
-			print_text(term, di->x + 2 + strlen((char *)text), di->y, 2, cast_uchar " ]", co);
+			print_text(term, di->x + 2 + strlen((char *)text),
+				di->y, 2, cast_uchar " ]", co);
 			if (sel) {
-				set_cursor(term, di->x + 2, di->y, di->x + 2, di->y);
+				set_cursor(term, di->x + 2, di->y, di->x + 2,
+					di->y);
 				set_window_ptr(dlg->win, di->x, di->y);
 			}
 			break;
@@ -950,117 +1003,130 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 	} else {
 		struct rect rr;
 		struct graphics_device *dev = term->dev;
-		if (!dlg->s) restrict_clip_area(dev, &rr, dlg->rr.x1, dlg->rr.y1, dlg->rr.x2, dlg->rr.y2);
+		if (!dlg->s)
+			restrict_clip_area(dev, &rr, dlg->rr.x1, dlg->rr.y1,
+				dlg->rr.x2, dlg->rr.y2);
 		switch (di->item->type) {
 			int p, pp;
 			struct style *st;
 			unsigned char *text, *text2, *text3, *tt, *t;
 			struct rect r;
-			case D_CHECKBOX:
-				p = di->x;
-				if (di->checked) {
-					if (!sel) g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar(G_DIALOG_RADIO_L G_DIALOG_RADIO_X G_DIALOG_RADIO_R):cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R), &p);
-					else {
-						g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_L:cast_uchar G_DIALOG_CHECKBOX_L, &p);
-						g_print_text(dev, p, di->y, bfu_style_bw_u, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X, &p);
-						g_print_text(dev, p, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_R:cast_uchar G_DIALOG_CHECKBOX_R, &p);
-					}
-				} else {
-					int s = g_text_width(bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X);
+		case D_CHECKBOX:
+			p = di->x;
+			if (di->checked) {
+				if (!sel)
+					g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid ? cast_uchar(G_DIALOG_RADIO_L G_DIALOG_RADIO_X G_DIALOG_RADIO_R) : cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R), &p);
+				else {
 					g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_L:cast_uchar G_DIALOG_CHECKBOX_L, &p);
-					if (!sel) {
-						drv->fill_area(dev, p, di->y,
-							p + s,
-							di->y + G_BFU_FONT_SIZE,
-							bfu_bg_color);
-						p += s;
-					} else {
-						restrict_clip_area(dev, &r, p, di->y, p + s, di->y + G_BFU_FONT_SIZE);
-						g_print_text(dev, p, di->y, bfu_style_bw_u, cast_uchar "          ", NULL);
-						p += s;
-						set_clip_area(dev, &r);
-					}
+					g_print_text(dev, p, di->y, bfu_style_bw_u, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X, &p);
 					g_print_text(dev, p, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_R:cast_uchar G_DIALOG_CHECKBOX_R, &p);
 				}
-				di->l = p - di->x;
-				if (sel) set_window_ptr(dlg->win, di->x, di->y + G_BFU_FONT_SIZE);
-				if (dlg->s) exclude_from_set(&dlg->s, di->x, di->y, p, di->y + G_BFU_FONT_SIZE);
-				break;
-			case D_FIELD:
-			case D_FIELD_PASS:
-				text = memacpy(di->cdata, di->cpos);
-				if (*(text2 = text3 = di->cdata + di->cpos)) {
-					GET_UTF_8(text3, p);
-					text2 = memacpy(text2, text3 - text2);
+			} else {
+				int s = g_text_width(bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X);
+				g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_L:cast_uchar G_DIALOG_CHECKBOX_L, &p);
+				if (!sel) {
+					drv->fill_area(dev, p, di->y,
+						p + s,
+						di->y + G_BFU_FONT_SIZE,
+						bfu_bg_color);
+					p += s;
 				} else {
-					text2 = stracpy(cast_uchar " ");
-					text3 = cast_uchar "";
+					restrict_clip_area(dev, &r, p, di->y, p + s, di->y + G_BFU_FONT_SIZE);
+					g_print_text(dev, p, di->y, bfu_style_bw_u, cast_uchar "          ", NULL);
+					p += s;
+					set_clip_area(dev, &r);
 				}
-				if (!text2) {
-					free(text);
-					break;
+				g_print_text(dev, p, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_R:cast_uchar G_DIALOG_CHECKBOX_R, &p);
+			}
+			di->l = p - di->x;
+			if (sel) set_window_ptr(dlg->win, di->x, di->y + G_BFU_FONT_SIZE);
+			if (dlg->s) exclude_from_set(&dlg->s, di->x, di->y, p, di->y + G_BFU_FONT_SIZE);
+			break;
+		case D_FIELD:
+		case D_FIELD_PASS:
+			text = memacpy(di->cdata, di->cpos);
+			if (*(text2 = text3 = di->cdata + di->cpos)) {
+				GET_UTF_8(text3, p);
+				text2 = memacpy(text2, text3 - text2);
+			} else {
+				text2 = stracpy(cast_uchar " ");
+				text3 = cast_uchar "";
+			}
+			if (!text2) {
+				free(text);
+				break;
+			}
+			text3 = stracpy(text3);
+			if (di->item->type == D_FIELD_PASS) {
+				unsigned d;
+				for (tt = t = text; *tt; ) {
+					t = tt;
+					GET_UTF_8(tt, d);
+					*t++ = '*';
 				}
-				text3 = stracpy(text3);
-				if (di->item->type == D_FIELD_PASS) {
-					unsigned d;
-					for (tt = t = text; *tt; ) {
+				*t = 0;
+				if (di->cdata[di->cpos]) {
+					for (tt = t = text2; *tt; ) {
 						t = tt;
 						GET_UTF_8(tt, d);
 						*t++ = '*';
 					}
 					*t = 0;
-					if (di->cdata[di->cpos]) {
-						for (tt = t = text2; *tt; ) {
-							t = tt;
-							GET_UTF_8(tt, d);
-							*t++ = '*';
-						}
-						*t = 0;
-						for (tt = t = text3; *tt; ) {
-							t = tt;
-							GET_UTF_8(tt, d);
-							*t++ = '*';
-						}
-						*t = 0;
+					for (tt = t = text3; *tt; ) {
+						t = tt;
+						GET_UTF_8(tt, d);
+						*t++ = '*';
 					}
+					*t = 0;
 				}
-				p = g_text_width(bfu_style_wb_mono, text);
-				pp = g_text_width(bfu_style_wb_mono, text2);
-				if (di->vpos + di->l < p + pp) di->vpos = p + pp - di->l;
-				if (di->vpos > p) di->vpos = p;
-				if (di->vpos < 0) di->vpos = 0;
+			}
+			p = g_text_width(bfu_style_wb_mono, text);
+			pp = g_text_width(bfu_style_wb_mono, text2);
+			if (di->vpos + di->l < p + pp) di->vpos = p + pp - di->l;
+			if (di->vpos > p) di->vpos = p;
+			if (di->vpos < 0) di->vpos = 0;
 
-				if (dlg->s) exclude_from_set(&dlg->s, di->x, di->y, di->x + di->l, di->y + G_BFU_FONT_SIZE);
-				restrict_clip_area(dev, &r, di->x, di->y, di->x + di->l, di->y + G_BFU_FONT_SIZE);
-				p = di->x - di->vpos;
-				g_print_text(dev, p, di->y, bfu_style_wb_mono, text, &p);
-				g_print_text(dev, p, di->y, sel ? bfu_style_wb_mono_u : bfu_style_wb_mono, text2, &p);
-				g_print_text(dev, p, di->y, bfu_style_wb_mono, text3, &p);
-				drv->fill_area(dev, p, di->y, di->x + di->l, di->y + G_BFU_FONT_SIZE, bfu_fg_color);
-				set_clip_area(dev, &r);
-				free(text);
-				free(text2);
-				free(text3);
-				if (sel) {
-					set_window_ptr(dlg->win, di->x, di->y);
-				}
+			if (dlg->s)
+				exclude_from_set(&dlg->s, di->x, di->y,
+					di->x + di->l, di->y + G_BFU_FONT_SIZE);
+			restrict_clip_area(dev, &r, di->x, di->y, di->x + di->l,
+				di->y + G_BFU_FONT_SIZE);
+			p = di->x - di->vpos;
+			g_print_text(dev, p, di->y, bfu_style_wb_mono, text, &p);
+			g_print_text(dev, p, di->y,
+				sel ? bfu_style_wb_mono_u : bfu_style_wb_mono,
+				text2, &p);
+			g_print_text(dev, p, di->y, bfu_style_wb_mono, text3, &p);
+			drv->fill_area(dev, p, di->y, di->x + di->l,
+				di->y + G_BFU_FONT_SIZE, bfu_fg_color);
+			set_clip_area(dev, &r);
+			free(text);
+			free(text2);
+			free(text3);
+			if (sel) {
+				set_window_ptr(dlg->win, di->x, di->y);
+			}
 
-				break;
-			case D_BUTTON:
-				st = sel ? bfu_style_wb_b : bfu_style_bw;
-				text = get_text_translation(di->item->text, term);
-				text2 = xmalloc(strlen(cast_const_char text) + 5);
-				strcpy(cast_char text2, cast_const_char G_DIALOG_BUTTON_L);
-				strcpy(cast_char(text2 + 2), cast_const_char text);
-				strcat(cast_char text2, cast_const_char G_DIALOG_BUTTON_R);
-				di->l = 0;
-				g_print_text(dev, di->x, di->y, st, text2, &di->l);
-				free(text2);
-				if (dlg->s) exclude_from_set(&dlg->s, di->x, di->y, di->x + di->l, di->y + G_BFU_FONT_SIZE);
-				if (sel) set_window_ptr(dlg->win, di->x, di->y + G_BFU_FONT_SIZE);
-				break;
-			default:
-				internal("display_dlg_item: unknown item: %d", di->item->type);
+			break;
+		case D_BUTTON:
+			st = sel ? bfu_style_wb_b : bfu_style_bw;
+			text = get_text_translation(di->item->text, term);
+			text2 = xmalloc(strlen(cast_const_char text) + 5);
+			strcpy(cast_char text2, cast_const_char G_DIALOG_BUTTON_L);
+			strcpy(cast_char(text2 + 2), cast_const_char text);
+			strcat(cast_char text2, cast_const_char G_DIALOG_BUTTON_R);
+			di->l = 0;
+			g_print_text(dev, di->x, di->y, st, text2, &di->l);
+			free(text2);
+			if (dlg->s)
+				exclude_from_set(&dlg->s, di->x, di->y,
+					di->x + di->l, di->y + G_BFU_FONT_SIZE);
+			if (sel)
+				set_window_ptr(dlg->win, di->x,
+					di->y + G_BFU_FONT_SIZE);
+			break;
+		default:
+			internal("display_dlg_item: unknown item: %d", di->item->type);
 		}
 		if (!dlg->s) set_clip_area(dev, &rr);
 #endif
@@ -1091,7 +1157,8 @@ static void x_display_dlg_item(struct dialog_data *dlg, struct dialog_item_data 
 static void dlg_select_item(struct dialog_data *dlg, struct dialog_item_data *di)
 {
 	if (di->item->type == D_CHECKBOX) {
-		if (!di->item->gid) di -> checked = *(int *)di->cdata = !*(int *)di->cdata;
+		if (!di->item->gid)
+			di -> checked = *(int *)di->cdata = !*(int *)di->cdata;
 		else {
 			int i;
 			for (i = 0; i < dlg->n; i++) {
@@ -1145,51 +1212,62 @@ static void dlg_set_history(struct terminal *term, struct dialog_item_data *di)
 static int dlg_mouse(struct dialog_data *dlg, struct dialog_item_data *di, struct links_event *ev)
 {
 	switch (di->item->type) {
-		case D_BUTTON:
-			if (gf_val(ev->y != di->y, ev->y < di->y || ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x || ev->x >= di->x + gf_val(strlen((char *)get_text_translation(di->item->text, dlg->win->term)) + 4, di->l)) return 0;
-			if (dlg->selected != di - dlg->items) {
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
-				dlg->selected = (int)(di - dlg->items);
-				x_display_dlg_item(dlg, di, 1);
-			}
-			if ((ev->b & BM_ACT) == B_UP) dlg_select_item(dlg, di);
-			return 1;
-		case D_FIELD:
-		case D_FIELD_PASS:
-			if (gf_val(ev->y != di->y, ev->y < di->y || ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x || ev->x >= di->x + di->l) return 0;
-			if (!is_utf_8(dlg->win->term)) {
-				if ((size_t)(di->cpos = di->vpos + ev->x - di->x) > strlen(cast_const_char di->cdata)) di->cpos = (int)strlen(cast_const_char di->cdata);
-			} else {
-				int p, u;
-				unsigned char *t = di->cdata;
-				p = di->x - di->vpos;
-				while (1) {
-					di->cpos = (int)(t - di->cdata);
-					if (!*t) break;
-					GET_UTF_8(t, u);
-					if (!u) continue;
-					if (!F) p++;
+	case D_BUTTON:
+		if (gf_val(ev->y != di->y, ev->y < di->y
+		|| ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x
+		|| ev->x >= di->x + gf_val(strlen((char *)get_text_translation(di->item->text, dlg->win->term)) + 4, di->l))
+			return 0;
+		if (dlg->selected != di - dlg->items) {
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
+			dlg->selected = (int)(di - dlg->items);
+			x_display_dlg_item(dlg, di, 1);
+		}
+		if ((ev->b & BM_ACT) == B_UP) dlg_select_item(dlg, di);
+		return 1;
+	case D_FIELD:
+	case D_FIELD_PASS:
+		if (gf_val(ev->y != di->y, ev->y < di->y
+		|| ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x
+		|| ev->x >= di->x + di->l)
+			return 0;
+		if (!is_utf_8(dlg->win->term)) {
+			if ((size_t)(di->cpos = di->vpos + ev->x - di->x) > strlen(cast_const_char di->cdata))
+				di->cpos = (int)strlen(cast_const_char di->cdata);
+		} else {
+			int p, u;
+			unsigned char *t = di->cdata;
+			p = di->x - di->vpos;
+			while (1) {
+				di->cpos = (int)(t - di->cdata);
+				if (!*t) break;
+				GET_UTF_8(t, u);
+				if (!u) continue;
+				if (!F) p++;
 #ifdef G
-					else p += g_char_width(bfu_style_wb_mono, u);
+				else p += g_char_width(bfu_style_wb_mono, u);
 #endif
-					if (p > ev->x) break;
-				}
+				if (p > ev->x) break;
 			}
-			if (dlg->selected != di - dlg->items) {
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
-				dlg->selected = (int)(di - dlg->items);
-				x_display_dlg_item(dlg, di, 1);
-			} else x_display_dlg_item(dlg, di, 1);
-			return 1;
-		case D_CHECKBOX:
-			if (gf_val(ev->y != di->y, ev->y < di->y || ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x || ev->x >= di->x + gf_val(3, di->l)) return 0;
-			if (dlg->selected != di - dlg->items) {
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
-				dlg->selected = (int)(di - dlg->items);
-				x_display_dlg_item(dlg, di, 1);
-			}
-			if ((ev->b & BM_ACT) == B_UP) dlg_select_item(dlg, di);
-			return 1;
+		}
+		if (dlg->selected != di - dlg->items) {
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
+			dlg->selected = (int)(di - dlg->items);
+			x_display_dlg_item(dlg, di, 1);
+		} else
+			x_display_dlg_item(dlg, di, 1);
+		return 1;
+	case D_CHECKBOX:
+		if (gf_val(ev->y != di->y, ev->y < di->y
+		|| ev->y >= di->y + G_BFU_FONT_SIZE) || ev->x < di->x
+		|| ev->x >= di->x + gf_val(3, di->l))
+			return 0;
+		if (dlg->selected != di - dlg->items) {
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
+			dlg->selected = (int)(di - dlg->items);
+			x_display_dlg_item(dlg, di, 1);
+		}
+		if ((ev->b & BM_ACT) == B_UP) dlg_select_item(dlg, di);
+		return 1;
 	}
 	return 0;
 }
@@ -1198,7 +1276,8 @@ static void redraw_dialog_items(struct terminal *term, void *dlg_)
 {
 	struct dialog_data *dlg = (struct dialog_data *)dlg_;
 	int i;
-	for (i = 0; i < dlg->n; i++) display_dlg_item(dlg, &dlg->items[i], i == dlg->selected);
+	for (i = 0; i < dlg->n; i++)
+		display_dlg_item(dlg, &dlg->items[i], i == dlg->selected);
 }
 
 static void redraw_dialog(struct terminal *term, void *dlg_)
@@ -1293,276 +1372,288 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 	}
 
 	switch ((int)ev->ev) {
-		case EV_INIT:
-			for (i = 0; i < dlg->n; i++) {
-				struct dialog_item_data *di = &dlg->items[i];
-				memset(di, 0, sizeof(struct dialog_item_data));
-				di->item = &dlg->dlg->items[i];
-				di->cdata = xmalloc(di->item->dlen);
-				if (di->item->dlen)
-					memcpy(di->cdata, di->item->data, di->item->dlen);
-				if (di->item->type == D_CHECKBOX) {
-					if (di->item->gid) {
-						if (*(int *)di->cdata == di->item->gnum) di->checked = 1;
-					} else if (*(int *)di->cdata) di->checked = 1;
-				}
-				init_list(di->history);
-				di->cur_hist = &di->history;
-				if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) {
-					if (di->item->history) {
-						struct history_item *j = NULL;
-						struct list_head *lj;
-						foreach(struct history_item, j, lj, di->item->history->items) {
-							struct history_item *hi;
-							size_t sl = strlen(cast_const_char j->str);
-							if (sl > INT_MAX - sizeof(struct history_item)) overalloc();
-							hi = xmalloc(sizeof(struct history_item) + sl);
-							strcpy(cast_char hi->str, cast_const_char j->str);
-							add_to_list(di->history, hi);
-						}
-					}
-					di->cpos = (int)strlen(cast_const_char di->cdata);
-				}
+	case EV_INIT:
+		for (i = 0; i < dlg->n; i++) {
+			struct dialog_item_data *di = &dlg->items[i];
+			memset(di, 0, sizeof(struct dialog_item_data));
+			di->item = &dlg->dlg->items[i];
+			di->cdata = xmalloc(di->item->dlen);
+			if (di->item->dlen)
+				memcpy(di->cdata, di->item->data, di->item->dlen);
+			if (di->item->type == D_CHECKBOX) {
+				if (di->item->gid) {
+					if (*(int *)di->cdata == di->item->gnum) di->checked = 1;
+				} else if (*(int *)di->cdata) di->checked = 1;
 			}
-			dlg->selected = 0;
-			/*-fallthrough*/
-		case EV_RESIZE:
-				/* this must be really called twice !!! */
-			draw_to_window(dlg->win, redraw_dialog, dlg);
-			/*-fallthrough*/
-		case EV_REDRAW:
-			draw_to_window(dlg->win, redraw_dialog, dlg);
-			break;
-		case EV_MOUSE:
-			if ((ev->b & BM_ACT) == B_MOVE) break;
-			if ((ev->b & BM_BUTT) == B_FOURTH) {
-				if ((ev->b & BM_ACT) == B_DOWN) goto go_prev;
-				break;
-			}
-			if ((ev->b & BM_BUTT) == B_FIFTH) {
-				if ((ev->b & BM_ACT) == B_DOWN) goto go_next;
-				break;
-			}
-			if ((ev->b & BM_BUTT) == B_SIXTH) {
-				if ((ev->b & BM_ACT) == B_DOWN) goto go_enter;
-				break;
-			}
-			for (i = 0; i < dlg->n; i++) if (dlg_mouse(dlg, &dlg->items[i], ev)) break;
-			if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_MIDDLE) {
-				di = &dlg->items[dlg->selected];  /* don't delete this!!! it's here because of jump from mouse event */
-				if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) goto clipbd_paste;
-			}
-			break;
-		case EV_KBD:
-			di = &dlg->items[dlg->selected];
-			if (ev->y & KBD_PASTING) {
-				if (!((di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) &&
-				      (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT)))))
-					break;
-			}
+			init_list(di->history);
+			di->cur_hist = &di->history;
 			if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) {
-				if (ev->x == KBD_UP && di->cur_hist->prev != &di->history) {
-					di->cur_hist = di->cur_hist->prev;
-					dlg_set_history(term, di);
-					goto dsp_f;
-				}
-				if (ev->x == KBD_DOWN && di->cur_hist != &di->history) {
-					di->cur_hist = di->cur_hist->next;
-					dlg_set_history(term, di);
-					goto dsp_f;
-				}
-				if (ev->x == KBD_RIGHT) {
-					if ((size_t)di->cpos < strlen(cast_const_char di->cdata)) {
-						if (!is_utf_8(term)) di->cpos++;
-						else {
-							int u;
-							unsigned char *p = di->cdata + di->cpos;
-							GET_UTF_8(p, u);
-							di->cpos = (int)(p - di->cdata);
-						}
+				if (di->item->history) {
+					struct history_item *j = NULL;
+					struct list_head *lj;
+					foreach(struct history_item, j, lj, di->item->history->items) {
+						struct history_item *hi;
+						size_t sl = strlen(cast_const_char j->str);
+						if (sl > INT_MAX - sizeof(struct history_item)) overalloc();
+						hi = xmalloc(sizeof(struct history_item) + sl);
+						strcpy(cast_char hi->str, cast_const_char j->str);
+						add_to_list(di->history, hi);
 					}
-					goto dsp_f;
 				}
-				if (ev->x == KBD_LEFT) {
-					if (di->cpos > 0) {
-						if (!is_utf_8(term)) di->cpos--;
-						else {
-							unsigned char *p = di->cdata + di->cpos;
-							BACK_UTF_8(p, di->cdata);
-							di->cpos = (int)(p - di->cdata);
-						}
-					}
-					goto dsp_f;
-				}
-				if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) {
-					di->cpos = 0;
-					goto dsp_f;
-				}
-				if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
-					di->cpos = (int)strlen(cast_const_char di->cdata);
-					goto dsp_f;
-				}
-				if (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
-					unsigned char *u;
-					unsigned char p[2] = { 0, 0 };
-					if (cp2u(ev->x, term_charset(term)) == -1)
-						break;
-					if (!is_utf_8(term)) {
-						p[0] = (unsigned char)ev->x;
-						u = p;
-					} else {
-						u = encode_utf_8(ev->x);
-					}
-					if (strlen(cast_const_char di->cdata) + strlen(cast_const_char u) < (size_t)di->item->dlen) {
-						memmove(di->cdata + di->cpos + strlen(cast_const_char u), di->cdata + di->cpos, strlen(cast_const_char di->cdata) - di->cpos + 1);
-						memcpy(&di->cdata[di->cpos], u, strlen(cast_const_char u));
-						di->cpos += (int)strlen(cast_const_char u);
-					}
-					goto dsp_f;
-				}
-				if (ev->x == KBD_BS) {
-					if (di->cpos) {
-						int s = 1;
-						if (is_utf_8(term)) {
-							unsigned u;
-							unsigned char *p, *pp;
-							p = di->cdata;
-							a:
-							pp = p;
-							GET_UTF_8(p, u);
-							if (p < di->cdata + di->cpos) goto a;
-							s = (int)(p - pp);
-						}
-						memmove(di->cdata + di->cpos - s, di->cdata + di->cpos, strlen(cast_const_char di->cdata) - di->cpos + s);
-						di->cpos -= s;
-					}
-					goto dsp_f;
-				}
-				if (ev->x == KBD_DEL || (upcase(ev->x) == 'D' && ev->y & KBD_CTRL)) {
-					if ((size_t)di->cpos < strlen(cast_const_char di->cdata)) {
-						int s = 1;
-						if (is_utf_8(term)) {
-							unsigned u;
-							unsigned char *p = di->cdata + di->cpos;
-							GET_UTF_8(p, u);
-							s = (int)(p - (di->cdata + di->cpos));
-						}
-						memmove(di->cdata + di->cpos, di->cdata + di->cpos + s, strlen(cast_const_char di->cdata) - di->cpos + s);
-					}
-					goto dsp_f;
-				}
-				if (upcase(ev->x) == 'U' && ev->y & KBD_CTRL) {
-					unsigned char *a = memacpy(di->cdata, di->cpos);
-					if (a) {
-						set_clipboard_text(term, a);
-						free(a);
-					}
-					memmove(di->cdata, di->cdata + di->cpos, strlen(cast_const_char di->cdata + di->cpos) + 1);
-					di->cpos = 0;
-					goto dsp_f;
-				}
-				if (upcase(ev->x) == 'K' && ev->y & KBD_CTRL) {
-					set_clipboard_text(term, di->cdata + di->cpos);
-					di->cdata[di->cpos] = 0;
-					goto dsp_f;
-				}
-				/* Copy to clipboard */
-				if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL) || ev->x == KBD_COPY) {
-					set_clipboard_text(term, di->cdata);
-					break;	/* We don't need to redraw */
-				}
-				/* FIXME -- why keyboard shortcuts with shift don't works??? */
-				/* Cut to clipboard */
-				if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'X' && ev->y & KBD_CTRL) || ev->x == KBD_CUT) {
-					set_clipboard_text(term, di->cdata);
-					di->cdata[0] = 0;
-					di->cpos = 0;
-					goto dsp_f;
-				}
-				/* Paste from clipboard */
-				if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL) || ev->x == KBD_PASTE) {
-					unsigned char *clipboard;
-clipbd_paste:
-					clipboard = get_clipboard_text(term);
-					if (clipboard) {
-						unsigned char *nl = clipboard;
-						while ((nl = cast_uchar strchr(cast_const_char nl, '\n'))) *nl = ' ';
-						if (strlen(cast_const_char di->cdata) + strlen(cast_const_char clipboard) < (size_t)di->item->dlen ||
-						    strlen(cast_const_char di->cdata) + strlen(cast_const_char clipboard) < strlen(cast_const_char di->cdata)) {
-							memmove(di->cdata + di->cpos + strlen(cast_const_char clipboard), di->cdata + di->cpos, strlen(cast_const_char di->cdata) - di->cpos + 1);
-							memcpy(&di->cdata[di->cpos], clipboard, strlen(cast_const_char clipboard));
-							di->cpos += (int)strlen(cast_const_char clipboard);
-						}
-						free(clipboard);
-					}
-					goto dsp_f;
-				}
-				if ((upcase(ev->x) == 'W' && ev->y & KBD_CTRL) || ev->x == KBD_FIND) {
-					do_tab_compl(term, &di->history, win);
-					goto dsp_f;
-				}
-				goto gh;
-				dsp_f:
-				x_display_dlg_item(dlg, di, 1);
-				break;
+				di->cpos = (int)strlen(cast_const_char di->cdata);
 			}
-			if ((ev->x == KBD_ENTER && di->item->type == D_BUTTON) || ev->x == ' ') {
-				dlg_select_item(dlg, di);
-				break;
-			}
-			gh:
-			if (ev->x > ' ') for (i = 0; i < dlg->n; i++) {
-				unsigned char *tx = get_text_translation(dlg->dlg->items[i].text, term);
-				if (dlg->dlg->items[i].type == D_BUTTON && charset_upcase(GET_TERM_CHAR(term, &tx), term_charset(term)) == charset_upcase(ev->x, term_charset(term))) goto sel;
-			}
-			if (ev->x == KBD_ENTER) {
-go_enter:
-				for (i = 0; i < dlg->n; i++)
-					if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ENTER) goto sel;
-				break;
-			}
-			if (ev->x == KBD_ESC) {
-				for (i = 0; i < dlg->n; i++)
-					if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ESC) goto sel;
-				break;
-			}
-			if (0) {
-				sel:
-				if (dlg->selected != i) {
-					x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
-					x_display_dlg_item(dlg, &dlg->items[i], 1);
-					dlg->selected = i;
-				}
-				dlg_select_item(dlg, &dlg->items[i]);
-				break;
-			}
-			if (((ev->x == KBD_TAB && !ev->y) || ev->x == KBD_DOWN
-			|| ev->x == KBD_RIGHT) && dlg->n > 1) {
- go_next:
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
-				if ((++dlg->selected) >= dlg->n) dlg->selected = 0;
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
-				break;
-			}
-			if (((ev->x == KBD_TAB && ev->y) || ev->x == KBD_UP
-			|| ev->x == KBD_LEFT) && dlg->n > 1) {
- go_prev:
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
-				if ((--dlg->selected) < 0) dlg->selected = dlg->n - 1;
-				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
-				break;
-			}
+		}
+		dlg->selected = 0;
+		/*-fallthrough*/
+	case EV_RESIZE:
+		/* this must be really called twice !!! */
+		draw_to_window(dlg->win, redraw_dialog, dlg);
+		/*-fallthrough*/
+	case EV_REDRAW:
+		draw_to_window(dlg->win, redraw_dialog, dlg);
+		break;
+	case EV_MOUSE:
+		if ((ev->b & BM_ACT) == B_MOVE) break;
+		if ((ev->b & BM_BUTT) == B_FOURTH) {
+			if ((ev->b & BM_ACT) == B_DOWN) goto go_prev;
 			break;
-		case EV_ABORT:
-		/* Moved this line up so that the dlg would have access to its
-		   member vars before they get freed. */
-			if (dlg->dlg->abort) dlg->dlg->abort(dlg);
-			for (i = 0; i < dlg->n; i++) {
-				struct dialog_item_data *di = &dlg->items[i];
-				free(di->cdata);
-				free_list(struct history_item, di->history);
+		}
+		if ((ev->b & BM_BUTT) == B_FIFTH) {
+			if ((ev->b & BM_ACT) == B_DOWN) goto go_next;
+			break;
+		}
+		if ((ev->b & BM_BUTT) == B_SIXTH) {
+			if ((ev->b & BM_ACT) == B_DOWN) goto go_enter;
+			break;
+		}
+		for (i = 0; i < dlg->n; i++) if (dlg_mouse(dlg, &dlg->items[i], ev)) break;
+		if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_MIDDLE) {
+	/* don't delete this!!! it's here because of jump from mouse event */
+			di = &dlg->items[dlg->selected];
+			if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) goto clipbd_paste;
+		}
+		break;
+	case EV_KBD:
+		di = &dlg->items[dlg->selected];
+		if (ev->y & KBD_PASTING) {
+			if (!((di->item->type == D_FIELD
+			|| di->item->type == D_FIELD_PASS)
+			&& (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT)))))
+				break;
+		}
+		if (di->item->type == D_FIELD || di->item->type == D_FIELD_PASS) {
+			if (ev->x == KBD_UP && di->cur_hist->prev != &di->history) {
+				di->cur_hist = di->cur_hist->prev;
+				dlg_set_history(term, di);
+				goto dsp_f;
 			}
-			freeml(dlg->ml);
+			if (ev->x == KBD_DOWN && di->cur_hist != &di->history) {
+				di->cur_hist = di->cur_hist->next;
+				dlg_set_history(term, di);
+				goto dsp_f;
+			}
+			if (ev->x == KBD_RIGHT) {
+				if ((size_t)di->cpos < strlen(cast_const_char di->cdata)) {
+					if (!is_utf_8(term))
+						di->cpos++;
+					else {
+						int u;
+						unsigned char *p = di->cdata + di->cpos;
+						GET_UTF_8(p, u);
+						di->cpos = (int)(p - di->cdata);
+					}
+				}
+				goto dsp_f;
+			}
+			if (ev->x == KBD_LEFT) {
+				if (di->cpos > 0) {
+					if (!is_utf_8(term))
+						di->cpos--;
+					else {
+						unsigned char *p = di->cdata + di->cpos;
+						BACK_UTF_8(p, di->cdata);
+						di->cpos = (int)(p - di->cdata);
+					}
+				}
+				goto dsp_f;
+			}
+			if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL)) {
+				di->cpos = 0;
+				goto dsp_f;
+			}
+			if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL)) {
+				di->cpos = (int)strlen(cast_const_char di->cdata);
+				goto dsp_f;
+			}
+			if (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
+				unsigned char *u;
+				unsigned char p[2] = { 0, 0 };
+				if (cp2u(ev->x, term_charset(term)) == -1)
+					break;
+				if (!is_utf_8(term)) {
+					p[0] = (unsigned char)ev->x;
+					u = p;
+				} else {
+					u = encode_utf_8(ev->x);
+				}
+				if (strlen(cast_const_char di->cdata) + strlen(cast_const_char u) < (size_t)di->item->dlen) {
+					memmove(di->cdata + di->cpos + strlen(cast_const_char u), di->cdata + di->cpos, strlen(cast_const_char di->cdata) - di->cpos + 1);
+					memcpy(&di->cdata[di->cpos], u, strlen(cast_const_char u));
+					di->cpos += (int)strlen(cast_const_char u);
+				}
+				goto dsp_f;
+			}
+			if (ev->x == KBD_BS) {
+				if (di->cpos) {
+					int s = 1;
+					if (is_utf_8(term)) {
+						unsigned u;
+						unsigned char *p, *pp;
+						p = di->cdata;
+ a:
+						pp = p;
+						GET_UTF_8(p, u);
+						if (p < di->cdata + di->cpos)
+							goto a;
+						s = (int)(p - pp);
+					}
+					memmove(di->cdata + di->cpos - s, di->cdata + di->cpos, strlen(cast_const_char di->cdata) - di->cpos + s);
+					di->cpos -= s;
+				}
+				goto dsp_f;
+			}
+			if (ev->x == KBD_DEL || (upcase(ev->x) == 'D' && ev->y & KBD_CTRL)) {
+				if ((size_t)di->cpos < strlen(cast_const_char di->cdata)) {
+					int s = 1;
+					if (is_utf_8(term)) {
+						unsigned u;
+						unsigned char *p = di->cdata + di->cpos;
+						GET_UTF_8(p, u);
+						s = (int)(p - (di->cdata + di->cpos));
+					}
+					memmove(di->cdata + di->cpos, di->cdata + di->cpos + s, strlen(cast_const_char di->cdata) - di->cpos + s);
+				}
+				goto dsp_f;
+			}
+			if (upcase(ev->x) == 'U' && ev->y & KBD_CTRL) {
+				unsigned char *a = memacpy(di->cdata, di->cpos);
+				if (a) {
+					set_clipboard_text(term, a);
+					free(a);
+				}
+				memmove(di->cdata, di->cdata + di->cpos, strlen(cast_const_char di->cdata + di->cpos) + 1);
+				di->cpos = 0;
+				goto dsp_f;
+			}
+			if (upcase(ev->x) == 'K' && ev->y & KBD_CTRL) {
+				set_clipboard_text(term, di->cdata + di->cpos);
+				di->cdata[di->cpos] = 0;
+				goto dsp_f;
+			}
+			/* Copy to clipboard */
+			if ((ev->x == KBD_INS && ev->y & KBD_CTRL)
+			|| (upcase(ev->x) == 'B' && ev->y & KBD_CTRL)
+			|| ev->x == KBD_COPY) {
+				set_clipboard_text(term, di->cdata);
+				break;	/* We don't need to redraw */
+			}
+			/* FIXME -- why keyboard shortcuts with shift don't works??? */
+				/* Cut to clipboard */
+			if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT)
+			|| (upcase(ev->x) == 'X' && ev->y & KBD_CTRL)
+			|| ev->x == KBD_CUT) {
+				set_clipboard_text(term, di->cdata);
+				di->cdata[0] = 0;
+				di->cpos = 0;
+				goto dsp_f;
+			}
+			/* Paste from clipboard */
+			if ((ev->x == KBD_INS && ev->y & KBD_SHIFT)
+			|| (upcase(ev->x) == 'V' && ev->y & KBD_CTRL)
+			|| ev->x == KBD_PASTE) {
+				unsigned char *clipboard;
+ clipbd_paste:
+				clipboard = get_clipboard_text(term);
+				if (clipboard) {
+					unsigned char *nl = clipboard;
+					while ((nl = cast_uchar strchr(cast_const_char nl, '\n'))) *nl = ' ';
+					if (strlen(cast_const_char di->cdata) + strlen(cast_const_char clipboard) < (size_t)di->item->dlen
+					|| strlen(cast_const_char di->cdata) + strlen(cast_const_char clipboard) < strlen(cast_const_char di->cdata)) {
+				    
+						memmove(di->cdata + di->cpos + strlen(cast_const_char clipboard), di->cdata + di->cpos, strlen(cast_const_char di->cdata) - di->cpos + 1);
+						memcpy(&di->cdata[di->cpos], clipboard, strlen(cast_const_char clipboard));
+						di->cpos += (int)strlen(cast_const_char clipboard);
+					}
+					free(clipboard);
+				}
+				goto dsp_f;
+			}
+			if ((upcase(ev->x) == 'W' && ev->y & KBD_CTRL) || ev->x == KBD_FIND) {
+				do_tab_compl(term, &di->history, win);
+				goto dsp_f;
+			}
+			goto gh;
+ dsp_f:
+			x_display_dlg_item(dlg, di, 1);
+			break;
+		}
+		if ((ev->x == KBD_ENTER && di->item->type == D_BUTTON) || ev->x == ' ') {
+			dlg_select_item(dlg, di);
+			break;
+		}
+ gh:
+		if (ev->x > ' ') for (i = 0; i < dlg->n; i++) {
+			unsigned char *tx = get_text_translation(dlg->dlg->items[i].text, term);
+			if (dlg->dlg->items[i].type == D_BUTTON && charset_upcase(GET_TERM_CHAR(term, &tx), term_charset(term)) == charset_upcase(ev->x, term_charset(term))) goto sel;
+		}
+		if (ev->x == KBD_ENTER) {
+ go_enter:
+			for (i = 0; i < dlg->n; i++)
+				if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ENTER) goto sel;
+			break;
+		}
+		if (ev->x == KBD_ESC) {
+			for (i = 0; i < dlg->n; i++)
+				if (dlg->dlg->items[i].type == D_BUTTON && dlg->dlg->items[i].gid & B_ESC) goto sel;
+			break;
+		}
+		if (0) {
+ sel:
+			if (dlg->selected != i) {
+				x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
+				x_display_dlg_item(dlg, &dlg->items[i], 1);
+				dlg->selected = i;
+			}
+			dlg_select_item(dlg, &dlg->items[i]);
+			break;
+		}
+		if (((ev->x == KBD_TAB && !ev->y) || ev->x == KBD_DOWN
+		|| ev->x == KBD_RIGHT) && dlg->n > 1) {
+ go_next:
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
+			if ((++dlg->selected) >= dlg->n) dlg->selected = 0;
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
+			break;
+		}
+		if (((ev->x == KBD_TAB && ev->y) || ev->x == KBD_UP
+		|| ev->x == KBD_LEFT) && dlg->n > 1) {
+ go_prev:
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
+			if ((--dlg->selected) < 0) dlg->selected = dlg->n - 1;
+			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);
+			break;
+		}
+		break;
+	case EV_ABORT:
+	/* Moved this line up so that the dlg would have access to its
+	   member vars before they get freed. */
+		if (dlg->dlg->abort) dlg->dlg->abort(dlg);
+		for (i = 0; i < dlg->n; i++) {
+			struct dialog_item_data *di = &dlg->items[i];
+			free(di->cdata);
+			free_list(struct history_item, di->history);
+		}
+		freeml(dlg->ml);
 	}
 }
 
@@ -1571,12 +1662,19 @@ int check_float(struct dialog_data *dlg, struct dialog_item_data *di)
 {
 	unsigned char *end;
 	double d = strtod(cast_const_char di->cdata, (char **)(void *)&end);
-	if (!*di->cdata || *end || di->cdata[strspn(cast_const_char di->cdata, "0123456789.")] || *di->cdata == (unsigned char)'.') {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	if (!*di->cdata || *end
+	|| di->cdata[strspn(cast_const_char di->cdata, "0123456789.")]
+	|| *di->cdata == (unsigned char)'.') {
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
+			TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1,
+			TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
-	if (d < 0 || d > di->item->gnum || 100*d < di->item->gid || 100*d > di->item->gnum) {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_OUT_OF_RANGE), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	if (d < 0 || d > di->item->gnum || 100*d < di->item->gid
+	|| 100*d > di->item->gnum) {
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
+			TEXT_(T_NUMBER_OUT_OF_RANGE), MSG_BOX_END, NULL, 1,
+			TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
 	return 0;
@@ -1587,11 +1685,15 @@ int check_number(struct dialog_data *dlg, struct dialog_item_data *di)
 	unsigned char *end;
 	long l = strtol(cast_const_char di->cdata, (char **)(void *)&end, 10);
 	if (!*di->cdata || *end) {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
+			TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1,
+			TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
 	if (l < di->item->gid || l > di->item->gnum) {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_OUT_OF_RANGE), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
+			TEXT_(T_NUMBER_OUT_OF_RANGE), MSG_BOX_END, NULL, 1,
+			TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
 	return 0;
@@ -1602,11 +1704,15 @@ int check_hex_number(struct dialog_data *dlg, struct dialog_item_data *di)
 	unsigned char *end;
 	long l = strtol(cast_const_char di->cdata, (char **)(void *)&end, 16);
 	if (!*di->cdata || *end) {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
+			TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1,
+			TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
 	if (l < di->item->gid || l > di->item->gnum) {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER, TEXT_(T_NUMBER_OUT_OF_RANGE), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
+			TEXT_(T_NUMBER_OUT_OF_RANGE), MSG_BOX_END, NULL, 1,
+			TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		return 1;
 	}
 	return 0;
@@ -1616,7 +1722,9 @@ int check_nonempty(struct dialog_data *dlg, struct dialog_item_data *di)
 {
 	unsigned char *p;
 	for (p = di->cdata; *p; p++) if (*p > ' ') return 0;
-	msg_box(dlg->win->term, NULL, TEXT_(T_BAD_STRING), AL_CENTER, TEXT_(T_EMPTY_STRING_NOT_ALLOWED), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	msg_box(dlg->win->term, NULL, TEXT_(T_BAD_STRING), AL_CENTER,
+		TEXT_(T_EMPTY_STRING_NOT_ALLOWED), MSG_BOX_END, NULL, 1,
+		TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 	return 1;
 }
 
@@ -1633,13 +1741,16 @@ static int check_local_ip_address_internal(struct dialog_data *dlg, struct dialo
 	else
 		rs = numeric_ip_address((char *)p, NULL);
 	if (rs) {
-		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_IP_ADDRESS), AL_CENTER, TEXT_(T_INVALID_IP_ADDRESS_SYNTAX), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_IP_ADDRESS),
+			AL_CENTER, TEXT_(T_INVALID_IP_ADDRESS_SYNTAX),
+			MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null,
+			B_ENTER | B_ESC);
 		return 1;
 	}
 	s = socket_and_bind(pf, p);
-	if (s != -1) {
+	if (s != -1)
 		EINTRLOOP(rs, close(s));
-	} else {
+	else {
 		if (1
 #ifdef ENFILE
 			&& errno != ENFILE
@@ -1656,7 +1767,13 @@ static int check_local_ip_address_internal(struct dialog_data *dlg, struct dialo
 			) {
 				unsigned char *er = stracpy(cast_uchar strerror(errno));
 				unsigned char *ad = stracpy(p);
-				msg_box(dlg->win->term, getml(er, ad, NULL), TEXT_(T_BAD_IP_ADDRESS), AL_CENTER, TEXT_(T_UNABLE_TO_USE_LOCAL_IP_ADDRESS), cast_uchar " ", ad, cast_uchar ": ", er, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+				msg_box(dlg->win->term, getml(er, ad, NULL),
+					TEXT_(T_BAD_IP_ADDRESS), AL_CENTER,
+					TEXT_(T_UNABLE_TO_USE_LOCAL_IP_ADDRESS),
+					cast_uchar " ", ad, cast_uchar ": ",
+					er, MSG_BOX_END, NULL, 1,
+					TEXT_(T_CANCEL), msg_box_null,
+					B_ENTER | B_ESC);
 				return 1;
 		}
 	}
@@ -1725,8 +1842,13 @@ void draw_dlg(struct dialog_data *dlg)
 	if (!F) {
 		int i, tpos;
 		struct terminal *term = dlg->win->term;
-		fill_area(term, dlg->x, dlg->y, dlg->xw, dlg->yw, ' ', COLOR_DIALOG);
-		draw_frame(term, dlg->x + DIALOG_LEFT_BORDER, dlg->y + DIALOG_TOP_BORDER, dlg->xw - 2 * DIALOG_LEFT_BORDER, dlg->yw - 2 * DIALOG_TOP_BORDER, COLOR_DIALOG_FRAME, DIALOG_FRAME);
+		fill_area(term, dlg->x, dlg->y, dlg->xw, dlg->yw, ' ',
+			COLOR_DIALOG);
+		draw_frame(term, dlg->x + DIALOG_LEFT_BORDER,
+			dlg->y + DIALOG_TOP_BORDER,
+			dlg->xw - 2 * DIALOG_LEFT_BORDER,
+			dlg->yw - 2 * DIALOG_TOP_BORDER, COLOR_DIALOG_FRAME,
+			DIALOG_FRAME);
 		i = strlen((char *)get_text_translation(dlg->dlg->title, term));
 		tpos = (dlg->xw - i) / 2;
 		print_text(term, tpos + dlg->x - 1, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
@@ -1745,7 +1867,8 @@ void draw_dlg(struct dialog_data *dlg)
 		TXT_X = dlg->x + (dlg->xw - tl) / 2;
 		TXT_Y = dlg->y + G_DIALOG_TOP_BORDER + (G_DIALOG_HLINE_SPACE + 1) / 2 - G_BFU_FONT_SIZE / 2;
 		if (TXT_Y < dlg->y) TXT_Y = dlg->y;
-		if (TXT_Y < dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 - G_BFU_FONT_SIZE) TXT_Y = dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 - G_BFU_FONT_SIZE;
+		if (TXT_Y < dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 - G_BFU_FONT_SIZE)
+			TXT_Y = dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 - G_BFU_FONT_SIZE;
 		set_window_pos(dlg->win, dlg->x, dlg->y, dlg->x + dlg->xw, dlg->y + dlg->yw);
 
 		restrict_clip_area(dev, &r, TXT_X, TXT_Y, TXT_X + tl, TXT_Y + G_BFU_FONT_SIZE);
@@ -1753,38 +1876,100 @@ void draw_dlg(struct dialog_data *dlg)
 		rt.x2 = TXT_X + tl;
 		rt.y1 = TXT_Y;
 		rt.y2 = TXT_Y + G_BFU_FONT_SIZE;
-		if (xtl > tl) g_print_text(dev, TXT_X, TXT_Y, bfu_style_wb, text, NULL);
+		if (xtl > tl)
+			g_print_text(dev, TXT_X, TXT_Y, bfu_style_wb, text, NULL);
 		else {
-			drv->fill_area(dev, TXT_X, TXT_Y, TXT_X + (tl - xtl) / 2, TXT_Y + G_BFU_FONT_SIZE, bfu_fg_color);
-			g_print_text(dev, TXT_X + (tl - xtl) / 2, TXT_Y, bfu_style_wb, text, NULL);
-			drv->fill_area(dev, TXT_X + (tl - xtl) / 2 + xtl, TXT_Y, TXT_X + tl, TXT_Y + G_BFU_FONT_SIZE, bfu_fg_color);
+			drv->fill_area(dev, TXT_X, TXT_Y,
+				TXT_X + (tl - xtl) / 2, TXT_Y + G_BFU_FONT_SIZE,
+				bfu_fg_color);
+			g_print_text(dev, TXT_X + (tl - xtl) / 2, TXT_Y,
+				bfu_style_wb, text, NULL);
+			drv->fill_area(dev, TXT_X + (tl - xtl) / 2 + xtl,
+				TXT_Y, TXT_X + tl, TXT_Y + G_BFU_FONT_SIZE,
+				bfu_fg_color);
 		}
 		set_clip_area(dev, &r);
 
-		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER, dlg->y + G_DIALOG_TOP_BORDER, TXT_X, bfu_fg_color);
-		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, TXT_X, bfu_fg_color);
-		drv->draw_hline(dev, TXT_X + tl, dlg->y + G_DIALOG_TOP_BORDER, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, bfu_fg_color);
-		drv->draw_hline(dev, TXT_X + tl, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE, bfu_fg_color);
-		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, bfu_fg_color);
-		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE, bfu_fg_color);
+		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER,
+			dlg->y + G_DIALOG_TOP_BORDER, TXT_X, bfu_fg_color);
+		drv->draw_hline(dev,
+			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
+			TXT_X, bfu_fg_color);
+		drv->draw_hline(dev, TXT_X + tl, dlg->y + G_DIALOG_TOP_BORDER,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, bfu_fg_color);
+		drv->draw_hline(dev, TXT_X + tl,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE,
+			bfu_fg_color);
+		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, bfu_fg_color);
+		drv->draw_hline(dev,
+			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE,
+			bfu_fg_color);
 
-		drv->draw_vline(dev, dlg->x + G_DIALOG_LEFT_BORDER, dlg->y + G_DIALOG_TOP_BORDER + 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, bfu_fg_color);
-		drv->draw_vline(dev, dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1, bfu_fg_color);
-		drv->draw_vline(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1, dlg->y + G_DIALOG_TOP_BORDER + 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, bfu_fg_color);
-		drv->draw_vline(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE - 1, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1, bfu_fg_color);
+		drv->draw_vline(dev, dlg->x + G_DIALOG_LEFT_BORDER,
+			dlg->y + G_DIALOG_TOP_BORDER + 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1,
+			bfu_fg_color);
+		drv->draw_vline(dev,
+			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1,
+			bfu_fg_color);
+		drv->draw_vline(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
+			dlg->y + G_DIALOG_TOP_BORDER + 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, bfu_fg_color);
+		drv->draw_vline(dev,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE - 1,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1,
+			bfu_fg_color);
 
-		drv->fill_area(dev, dlg->x, dlg->y, TXT_X, dlg->y + G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, TXT_X, dlg->y, TXT_X + tl, TXT_Y, bfu_bg_color);
-		drv->fill_area(dev, TXT_X + tl, dlg->y, dlg->x + dlg->xw, dlg->y + G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, dlg->x, dlg->y + G_DIALOG_TOP_BORDER, dlg->x + G_DIALOG_LEFT_BORDER, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, dlg->y + G_DIALOG_TOP_BORDER, dlg->x + dlg->xw, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, dlg->x, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, dlg->x + dlg->xw, dlg->y + dlg->yw, bfu_bg_color);
+		drv->fill_area(dev, dlg->x, dlg->y, TXT_X,
+			dlg->y + G_DIALOG_TOP_BORDER, bfu_bg_color);
+		drv->fill_area(dev, TXT_X, dlg->y, TXT_X + tl, TXT_Y,
+			bfu_bg_color);
+		drv->fill_area(dev, TXT_X + tl, dlg->y, dlg->x + dlg->xw,
+			dlg->y + G_DIALOG_TOP_BORDER, bfu_bg_color);
+		drv->fill_area(dev, dlg->x, dlg->y + G_DIALOG_TOP_BORDER,
+			dlg->x + G_DIALOG_LEFT_BORDER,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, bfu_bg_color);
+		drv->fill_area(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER,
+			dlg->y + G_DIALOG_TOP_BORDER, dlg->x + dlg->xw,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, bfu_bg_color);
+		drv->fill_area(dev, dlg->x,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER,
+			dlg->x + dlg->xw, dlg->y + dlg->yw, bfu_bg_color);
 
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1, dlg->y + G_DIALOG_TOP_BORDER + 1, TXT_X, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, bfu_bg_color);
-		drv->fill_area(dev, TXT_X + tl, dlg->y + G_DIALOG_TOP_BORDER + 1, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, bfu_bg_color);
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE, bfu_bg_color);
-		drv->fill_area(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE, dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE, bfu_bg_color);
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1, dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, bfu_bg_color);
+		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1,
+			dlg->y + G_DIALOG_TOP_BORDER + 1, TXT_X,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
+			bfu_bg_color);
+		drv->fill_area(dev, TXT_X + tl,
+			dlg->y + G_DIALOG_TOP_BORDER + 1,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
+			bfu_bg_color);
+		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
+			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE,
+			bfu_bg_color);
+		drv->fill_area(dev,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE,
+			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE,
+			bfu_bg_color);
+		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE,
+			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
+			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1,
+			bfu_bg_color);
 
 		dlg->s = init_rect_set();
 		dlg->rr.x1 = dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1;
@@ -1793,7 +1978,8 @@ void draw_dlg(struct dialog_data *dlg)
 		dlg->rr.y2 = dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1;
 		add_to_rect_set(&dlg->s, &dlg->rr);
 		exclude_rect_from_set(&dlg->s, &rt);
-		restrict_clip_area(dev, &dlg->r, dlg->rr.x1, dlg->rr.y1, dlg->rr.x2, dlg->rr.y2);
+		restrict_clip_area(dev, &dlg->r, dlg->rr.x1, dlg->rr.y1,
+			dlg->rr.x2, dlg->rr.y2);
 #endif
 	}
 }
@@ -1945,7 +2131,8 @@ void max_buttons_width(struct terminal *term, struct dialog_item_data *butt, int
 {
 	int w = gf_val(-2, -G_DIALOG_BUTTON_SPACE);
 	int i;
-	for (i = 0; i < n; i++) w += txtlen(term, get_text_translation((butt++)->item->text, term)) + gf_val(6, G_DIALOG_BUTTON_SPACE + txtlen(term, cast_uchar G_DIALOG_BUTTON_L) + txtlen(term, cast_uchar G_DIALOG_BUTTON_R));
+	for (i = 0; i < n; i++)
+		w += txtlen(term, get_text_translation((butt++)->item->text, term)) + gf_val(6, G_DIALOG_BUTTON_SPACE + txtlen(term, cast_uchar G_DIALOG_BUTTON_L) + txtlen(term, cast_uchar G_DIALOG_BUTTON_R));
 	if (w > *width) *width = w;
 }
 
@@ -2289,11 +2476,10 @@ void add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 	struct list_head *lhs;
 	size_t l;
 	if (!h || !t || !*t) return;
-	if (term) {
+	if (term)
 		s = convert(term_charset(term), 0, t, NULL);
-	} else {
+	else
 		s = t;
-	}
 	l = strlen(cast_const_char s);
 	if (l > INT_MAX - sizeof(struct history_item)) overalloc();
 	hi = xmalloc(sizeof(struct history_item) + l);
@@ -2359,9 +2545,11 @@ static void input_field_fn(struct dialog_data *dlg)
 	if (w > max) w = max;
 	if (w < min) w = min;
 	rw = w;
-	dlg_format_text_and_field(dlg, NULL, dlg->dlg->udata, dlg->items, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, NULL, dlg->dlg->udata, dlg->items, 0,
+		&y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += LL;
-	dlg_format_buttons(dlg, NULL, dlg->items + 1, dlg->n - 1, 0, &y, w, &rw, AL_CENTER);
+	dlg_format_buttons(dlg, NULL, dlg->items + 1, dlg->n - 1, 0, &y, w,
+		&rw, AL_CENTER);
 	w = rw;
 	dlg->xw = rw + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
@@ -2370,7 +2558,8 @@ static void input_field_fn(struct dialog_data *dlg)
 	y = dlg->y + DIALOG_TB;
 	dlg_format_text_and_field(dlg, term, dlg->dlg->udata, dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	y += LL;
-	dlg_format_buttons(dlg, term, dlg->items + 1, dlg->n - 1, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
+	dlg_format_buttons(dlg, term, dlg->items + 1, dlg->n - 1,
+		dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
 
 void input_field_null(void)
