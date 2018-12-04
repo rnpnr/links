@@ -81,7 +81,8 @@ static void free_bookmarks(void)
 	struct list_head *lb;
 
 	foreach(struct list, b, lb, bookmarks.list_entry) {
-		struct bookmark_list *bm = get_struct(b, struct bookmark_list, head);
+		struct bookmark_list *bm = get_struct(b, struct bookmark_list,
+						head);
 		free(bm->title);
 		free(bm->url);
 		lb = lb->prev;
@@ -97,8 +98,6 @@ void finalize_bookmarks(void)
 	free_bookmarks();
 	free_history(bookmark_search_history);
 }
-
-
 
 /* allocates struct kawasaki and puts current page title and url */
 /* type: 0=item, 1=directory */
@@ -116,12 +115,14 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 	zelena->title = NULL;
 	if (get_current_url(ses, txt, MAX_STR_LEN)) {
 		if (ses->screen->f_data) {
-			zelena->url = convert(term_charset(ses->term), 0, txt, NULL);
+			zelena->url = convert(term_charset(ses->term), 0, txt,
+					NULL);
 			clr_white(zelena->url);
 		} else
 			zelena->url = stracpy(txt);
 	}
-	if (get_current_title(ses->screen, txt, MAX_STR_LEN)) {  /* ses->screen->f_data must exist here */
+	/* ses->screen->f_data must exist here */
+	if (get_current_title(ses->screen, txt, MAX_STR_LEN)) {
 		zelena->title = convert(term_charset(ses->term), 0, txt, NULL);
 		clr_white(zelena->title);
 	}
@@ -131,11 +132,12 @@ static void *bookmark_default_value(struct session *ses, unsigned char type)
 	return zelena;
 }
 
-
 static void bookmark_copy_item(struct list *in, struct list *out)
 {
-	struct bookmark_list *item_in = get_struct(in, struct bookmark_list, head);
-	struct bookmark_list *item_out = get_struct(out, struct bookmark_list, head);
+	struct bookmark_list *item_in = get_struct(in, struct bookmark_list,
+						head);
+	struct bookmark_list *item_out = get_struct(out, struct bookmark_list,
+						head);
 
 	item_out->head.type = item_in->head.type;
 	item_out->head.depth = item_in->head.depth;
@@ -145,7 +147,6 @@ static void bookmark_copy_item(struct list *in, struct list *out)
 	free(item_out->url);
 	item_out->url = stracpy(item_in->url);
 }
-
 
 static unsigned char * const bm_add_msg[] = {
 	TEXT_(T_NNAME),
@@ -200,7 +201,6 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 		dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
 
-
 /* Puts url and title into the bookmark item */
 static void bookmark_edit_done(void *data)
 {
@@ -229,7 +229,6 @@ static void bookmark_edit_done(void *data)
 	d->udata = NULL;  /* for abort function */
 }
 
-
 /* destroys an item, this function is called when edit window is aborted */
 static void bookmark_edit_abort(struct dialog_data *data)
 {
@@ -246,7 +245,8 @@ static void bookmark_edit_abort(struct dialog_data *data)
 /* edit item function */
 static void bookmark_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_fn)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *ok_arg, unsigned char dlg_title)
 {
-	struct bookmark_list *item = get_struct(data, struct bookmark_list, head);
+	struct bookmark_list *item = get_struct(data, struct bookmark_list,
+					head);
 	unsigned char *title, *url, *txt;
 	struct dialog *d;
 	struct bookmark_ok_struct *s;
@@ -391,7 +391,8 @@ static void bookmark_goto_item(struct session *ses, struct list *i)
 /* delete bookmark from list */
 static void bookmark_delete_item(struct list *data)
 {
-	struct bookmark_list *item = get_struct(data, struct bookmark_list, head);
+	struct bookmark_list *item = get_struct(data, struct bookmark_list,
+					head);
 
 	if (item->head.list_entry.next) del_from_list(&item->head);
 	free(item->url);
@@ -422,23 +423,21 @@ static struct list *bookmark_find_item(struct list *s, unsigned char *str, int d
 {
 	struct list *e;
 
-	if (direction >= 0) {
+	if (direction >= 0)
 		for (e = list_next(s); e != s; e = list_next(e)) {
 			if (e->depth >= 0 && test_entry(e, str))
 				return e;
 		}
-	} else {
+	else
 		for (e = list_prev(s); e != s; e = list_prev(e))
 			if (e->depth >= 0 && test_entry(e, str))
 				return e;
-	}
 
 	if (e->depth >= 0 && test_entry(e, str))
 		return e;
 
 	return NULL;
 }
-
 
 /* returns previous item in the same folder and with same the depth, or father if there's no previous item */
 /* we suppose that previous items have correct pointer fotr */
@@ -449,7 +448,6 @@ static struct list *previous_on_this_level(struct list *item)
 	for (p = list_prev(item); p->depth > item->depth; p = p->fotr);
 	return p;
 }
-
 
 /* create new bookmark at the end of the list */
 /* if url is NULL, create folder */
@@ -514,12 +512,12 @@ static void load_bookmarks(struct session *ses)
 	dop.plain = 1;
 
 	/* status:
-	 *		0 = find <dt> or </dl> element
-	 *		1 = find <a> or <h3> element
-	 *		2 = reading bookmark, find </a> element, title is pointer
-	 *		    behind the leading <a> element
-	 *		3 = reading folder name, find </h3> element, title is
-	 *		pointer behind leading <h3> element
+	 *	0 = find <dt> or </dl> element
+	 *	1 = find <a> or <h3> element
+	 *	2 = reading bookmark, find </a> element, title is pointer
+	 *	    behind the leading <a> element
+	 *	3 = reading folder name, find </h3> element, title is
+	 *	pointer behind leading <h3> element
 	 */
 
 	buf = read_config_file(bookmarks_file);
@@ -580,7 +578,9 @@ static void load_bookmarks(struct session *ses)
 			continue;
 
 		case 2:   /* find "/a" element */
-			if (namelen != 2 || casecmp(name, cast_uchar "/a", 2)) continue;   /* ignore all other elements */
+			if (namelen != 2 || casecmp(name, cast_uchar "/a", 2))
+				/* ignore all other elements */
+				continue;
 			*s = 0;
 			add_bookmark(title, url, depth);
 			free(url);
@@ -615,9 +615,12 @@ void init_bookmarks(void)
 	memset(&bookmarks_st, -1, sizeof bookmarks_st);
 	if (!*bookmarks_file) {
 		unsigned char *e;
-		safe_strncpy(bookmarks_file, links_home ? links_home : (unsigned char*)"", MAX_STR_LEN);
+		safe_strncpy(bookmarks_file,
+			links_home ? links_home : (unsigned char*)"",
+			MAX_STR_LEN);
 		e = cast_uchar strchr((char *) bookmarks_file, 0);
-		safe_strncpy(e, cast_uchar "bookmarks.html", MAX_STR_LEN - (e - bookmarks_file));
+		safe_strncpy(e, cast_uchar "bookmarks.html",
+			MAX_STR_LEN - (e - bookmarks_file));
 	}
 
 	load_bookmarks(NULL);
@@ -646,7 +649,6 @@ void reinit_bookmarks(struct session *ses, unsigned char *new_bookmarks_file)
 		save_bookmarks(ses);
 	}
 }
-
 
 /* gets str, converts all < = > & to appropriate entity
  * returns allocated string with result
@@ -702,20 +704,21 @@ static void save_bookmarks(struct session *ses)
 	data = init_str();
 	l = 0;
 	add_to_str(&data, &l, cast_uchar
-	"<HTML>\n"
-	"<HEAD>\n"
-	"<!-- This is an automatically generated file.\n"
-	"It will be read and overwritten.\n"
-	"Do Not Edit! -->\n"
-	"<TITLE>Links bookmarks</TITLE>\n"
-	"</HEAD>\n"
-	"<H1>Links bookmarks</H1>\n\n"
-	"<DL><P>\n"
-	);
+		"<HTML>\n"
+		"<HEAD>\n"
+		"<!-- This is an automatically generated file.\n"
+		"It will be read and overwritten.\n"
+		"Do Not Edit! -->\n"
+		"<TITLE>Links bookmarks</TITLE>\n"
+		"</HEAD>\n"
+		"<H1>Links bookmarks</H1>\n\n"
+		"<DL><P>\n");
 	depth = 0;
 	foreach(struct list, li, lli, bookmarks.list_entry) {
-		struct bookmark_list *b = get_struct(li, struct bookmark_list, head);
-		for (a = b->head.depth; a < depth; a++) add_to_str(&data, &l, cast_uchar "</DL>\n");
+		struct bookmark_list *b = get_struct(li, struct bookmark_list,
+						head);
+		for (a = b->head.depth; a < depth; a++)
+			add_to_str(&data, &l, cast_uchar "</DL>\n");
 		depth = b->head.depth;
 
 		if (b->head.type & 1) {
@@ -746,20 +749,21 @@ static void save_bookmarks(struct session *ses)
 			free(txt11);
 		}
 	}
-	for (a = 0; a <depth; a++) add_to_str(&data, &l, cast_uchar "</DL>\n");
-	add_to_str(&data, &l, cast_uchar
-	"</DL><P>\n"
-	"</HTML>\n"
-	);
+	for (a = 0; a < depth; a++)
+		add_to_str(&data, &l, cast_uchar "</DL>\n");
+	add_to_str(&data, &l, cast_uchar "</DL><P>\n" "</HTML>\n");
 	err = write_to_config_file(bookmarks_file, data, 1);
 	free(data);
-	if (!err) {
+	if (!err)
 		bookmark_ld.modified = 0;
-	} else
-		if (ses) {
-			unsigned char *f = stracpy(bookmarks_file);
-			msg_box(ses->term, getml(f, NULL), TEXT_(T_BOOKMARK_ERROR), AL_CENTER, TEXT_(T_UNABLE_TO_WRITE_TO_BOOKMARK_FILE), cast_uchar " ", f, cast_uchar ": ", get_err_msg(err), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
-		}
+	else if (ses) {
+		unsigned char *f = stracpy(bookmarks_file);
+		msg_box(ses->term, getml(f, NULL), TEXT_(T_BOOKMARK_ERROR),
+			AL_CENTER, TEXT_(T_UNABLE_TO_WRITE_TO_BOOKMARK_FILE),
+			cast_uchar " ", f, cast_uchar ": ", get_err_msg(err),
+			MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null,
+			B_ENTER | B_ESC);
+	}
 
 	EINTRLOOP(rs, stat(cast_const_char bookmarks_file, &bookmarks_st));
 	if (rs)
@@ -772,10 +776,9 @@ void menu_bookmark_manager(struct terminal *term, void *fcp, void *ses_)
 	struct stat st;
 	int rs;
 	EINTRLOOP(rs, stat(cast_const_char bookmarks_file, &st));
-	if (!rs &&
-	    (st.st_ctime != bookmarks_st.st_ctime ||
-	     st.st_mtime != bookmarks_st.st_mtime ||
-	     st.st_size != bookmarks_st.st_size)) {
+	if (!rs && (st.st_ctime != bookmarks_st.st_ctime
+	|| st.st_mtime != bookmarks_st.st_mtime
+	|| st.st_size != bookmarks_st.st_size)) {
 		if (!test_list_window_in_use(&bookmark_ld, NULL)) {
 			free_bookmarks();
 			load_bookmarks(ses);
