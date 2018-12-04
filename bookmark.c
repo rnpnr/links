@@ -494,20 +494,6 @@ static void add_bookmark(unsigned char *title, unsigned char *url, int depth)
 	free(dop);
 }
 
-/* Created pre-cooked bookmarks */
-static void create_initial_bookmarks(void)
-{
-	add_bookmark(cast_uchar "Links", NULL, 0);
-	add_bookmark(cast_uchar "English", NULL, 1);
-	add_bookmark(cast_uchar "Calibration Procedure", cast_uchar "http://atrey.karlin.mff.cuni.cz/~clock/twibright/links/calibration.html", 2);
-	add_bookmark(cast_uchar "Links Homepage", cast_uchar "http://atrey.karlin.mff.cuni.cz/~clock/twibright/links/", 2);
-	add_bookmark(cast_uchar "Links Manual", cast_uchar "http://links.twibright.com/user_en.html", 2);
-	add_bookmark(cast_uchar "Cesky", NULL, 1);
-	add_bookmark(cast_uchar "Kalibracni procedura", cast_uchar "http://atrey.karlin.mff.cuni.cz/~clock/twibright/links/kalibrace.html", 2);
-	add_bookmark(cast_uchar "Links: domaci stranka", cast_uchar "http://atrey.karlin.mff.cuni.cz/~clock/twibright/links/index_cz.html", 2);
-	add_bookmark(cast_uchar "Manual k Linksu", cast_uchar "http://links.twibright.com/user.html", 2);
-}
-
 static void load_bookmarks(struct session *ses)
 {
 	unsigned char *buf;
@@ -538,7 +524,6 @@ static void load_bookmarks(struct session *ses)
 
 	buf = read_config_file(bookmarks_file);
 	if (!buf) {
-		create_initial_bookmarks();
 		bookmark_ld.modified = 1;
 		save_bookmarks(ses);
 		return;
