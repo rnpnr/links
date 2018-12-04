@@ -51,32 +51,7 @@ static const unsigned char strings[256][2] = {
 	"\370", "\371", "\372", "\373", "\374", "\375", "\376", "\377",
 };
 
-static void free_translation_table(struct conv_table *p)
-{
-	int i;
-	for (i = 0; i < 256; i++)
-		if (p[i].t)
-			free_translation_table(p[i].u.tbl);
-	free(p);
-}
-
 static const unsigned char no_str[] = "*";
-
-static void new_translation_table(struct conv_table *p)
-{
-	int i;
-	for (i = 0; i < 256; i++)
-		if (p[i].t)
-			free_translation_table(p[i].u.tbl);
-	for (i = 0; i < 128; i++) {
-		p[i].t = 0;
-		p[i].u.str = (unsigned char *)strings[i];
-	}
-	for (; i < 256; i++) {
-		p[i].t = 0;
-		p[i].u.str = (unsigned char *)no_str;
-	}
-}
 
 #define U_EQUAL(a, b) unicode_7b[a].x == (b)
 #define U_ABOVE(a, b) unicode_7b[a].x > (b)
@@ -144,35 +119,6 @@ unsigned char *encode_utf_8(int u)
 		utf_buffer[5] = 0x80 | (u & 0x3f);
 	}
 	return utf_buffer;
-}
-
-static void add_utf_8(struct conv_table *ct, int u, unsigned char *str)
-{
-	unsigned char *p = encode_utf_8(u);
-	while (p[1]) {
-		if (ct[*p].t)
-			ct = ct[*p].u.tbl;
-		else {
-			struct conv_table *nct;
-			if (ct[*p].u.str != no_str) {
-				internal("bad utf encoding #1");
-				return;
-			}
-			nct = xmalloc(sizeof(struct conv_table) * 256);
-			memset(nct, 0, sizeof(struct conv_table) * 256);
-			new_translation_table(nct);
-			ct[*p].t = 1;
-			ct[*p].u.tbl = nct;
-			ct = nct;
-		}
-		p++;
-	}
-	if (ct[*p].t) {
-		internal("bad utf encoding #2");
-		return;
-	}
-	if (ct[*p].u.str == no_str)
-		ct[*p].u.str = str;
 }
 
 static struct conv_table utf_table[256];
@@ -274,41 +220,17 @@ unsigned get_utf_8(unsigned char **s)
 	return v;
 }
 
-static struct conv_table table[256];
-static int table_init = 1;
-
 void free_conv_table(void)
 {
 	if (!utf_table_init)
 		free_utf_table();
-	if (!table_init)
-		new_translation_table(table);
 }
 
 struct conv_table *get_translation_table(const int from, const int to)
 {
-	int i;
-	static int lfr = -1;
-	static int lto = -1;
 	if (from == -1 || to == -1)
 		return NULL;
-	if (!to)
-		return get_translation_table_to_utf_8(from);
-	if (table_init) {
-		memset(table, 0, sizeof(struct conv_table) * 256);
-		table_init = 0;
-	}
-	if (from == lfr && to == lto)
-		return table;
-	lfr = from;
-	lto = to;
-	new_translation_table(table);
-	if (!from)
-		for (i = 0; unicode_7b[i].x != -1; i++)
-			if (unicode_7b[i].x >= 0x80)
-				add_utf_8(table, unicode_7b[i].x,
-					cast_uchar unicode_7b[i].s);
-	return table;
+	return get_translation_table_to_utf_8(from);
 }
 
 static inline int xxstrcmp(unsigned char *s1, unsigned char *s2, int l2)
@@ -470,12 +392,9 @@ unsigned char *convert(int from, int to, unsigned char *c, struct document_optio
 	unsigned char *cc;
 	struct conv_table *ct;
 
-	for (cc = c; *cc; cc++) {
-		if (*cc >= 128 && from != to)
-			goto need_table;
+	for (cc = c; *cc; cc++)
 		if (*cc == '&' && dopt && !dopt->plain)
 			goto need_table;
-	}
 	return stracpy(c);
 
 need_table:
