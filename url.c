@@ -23,7 +23,6 @@ static const struct {
 		{"https", 443, https_func, NULL,	0, 1, 1, 1, 0},
 		{"http", 80, http_func, NULL,		0, 1, 1, 1, 0},
 		{"proxy", 3128, proxy_func, NULL,	0, 1, 1, 1, 0},
-		{"mailto", 0, NULL, mailto_func,	0, 0, 0, 0, 0},
 		{NULL, 0, NULL, NULL,			0, 0, 0, 0, 0}
 };
 

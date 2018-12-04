@@ -864,10 +864,6 @@ void create_initial_extensions(void)
 
 /* --------------------------- PROG -----------------------------*/
 
-
-struct list_head mailto_prog = { &mailto_prog, &mailto_prog };
-
-
 static int is_in_list(unsigned char *list, unsigned char *str, int l)
 {
 	unsigned char *l2, *l3;
@@ -1446,15 +1442,6 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 	return f;
 }
 
-static void free_prog_list(struct list_head *l)
-{
-	struct list_head *lp;
-	struct protocol_program *p = NULL;
-	foreach(struct protocol_program, p, lp, *l)
-		free(p->prog);
-	free_list(struct protocol_program, *l);
-}
-
 void free_types(void)
 {
 	struct list *l = NULL;
@@ -1476,7 +1463,6 @@ void free_types(void)
 		del_from_list(&e->head);
 		free(e);
 	}
-	free_prog_list(&mailto_prog);
 
 	free_history(ext_search_history);
 	free_history(assoc_search_history);

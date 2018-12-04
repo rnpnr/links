@@ -1657,102 +1657,6 @@ static void dlg_http_options(struct terminal *term, void *xxx, void *yyy)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static unsigned char * const prg_msg[] = {
-	TEXT_(T_MAILTO_PROG),
-	TEXT_(T_SHELL_PROG),
-	cast_uchar ""
-};
-
-static void netprog_fn(struct dialog_data *dlg)
-{
-	struct terminal *term = dlg->win->term;
-	int max = 0, min = 0;
-	int w, rw;
-	int y = gf_val(-1, -G_BFU_FONT_SIZE);
-	int a;
-	a=0;
-	max_text_width(term, prg_msg[a], &max, AL_LEFT);
-	min_text_width(term, prg_msg[a++], &min, AL_LEFT);
-#ifdef G
-	if (have_extra_exec()) {
-		max_text_width(term, prg_msg[a], &max, AL_LEFT);
-		min_text_width(term, prg_msg[a++], &min, AL_LEFT);
-	}
-#endif
-	max_buttons_width(term, dlg->items + a, 2, &max);
-	min_buttons_width(term, dlg->items + a, 2, &min);
-	w = dlg->win->term->x * 9 / 10 - 2 * DIALOG_LB;
-	if (w > max) w = max;
-	if (w < min) w = min;
-	if (w > dlg->win->term->x - 2 * DIALOG_LB) w = dlg->win->term->x - 2 * DIALOG_LB;
-	if (w < 1) w = 1;
-	rw = 0;
-	a=0;
-	dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-#ifdef G
-	if (have_extra_exec()) {
-		dlg_format_text_and_field(dlg, NULL, prg_msg[a], &dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-		a++;
-		y += gf_val(1, G_BFU_FONT_SIZE);
-	}
-#endif
-	dlg_format_buttons(dlg, NULL, dlg->items + a, 2, 0, &y, w, &rw, AL_CENTER);
-	w = rw;
-	dlg->xw = w + 2 * DIALOG_LB;
-	dlg->yw = y + 2 * DIALOG_TB;
-	center_dlg(dlg);
-	draw_dlg(dlg);
-	y = dlg->y + DIALOG_TB;
-	a=0;
-	dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	a++;
-#ifdef G
-	if (have_extra_exec()) {
-		dlg_format_text_and_field(dlg, term, prg_msg[a], &dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-		a++;
-		y += gf_val(1, G_BFU_FONT_SIZE);
-	}
-#endif
-	dlg_format_buttons(dlg, term, &dlg->items[a], 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
-}
-
-static void net_programs(struct terminal *term, void *xxx, void *yyy)
-{
-	struct dialog *d;
-	int a;
-	d = mem_calloc(sizeof(struct dialog) + 8 * sizeof(struct dialog_item));
-#ifdef G
-	if (have_extra_exec())
-		d->title = TEXT_(T_MAIL_TELNET_AND_SHELL_PROGRAMS);
-	else
-#endif
-	d->title = TEXT_(T_MAIL_AND_TELNET_PROGRAMS);
-
-	d->fn = netprog_fn;
-	a=0;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = MAX_STR_LEN;
-	d->items[a++].data = get_prog(&mailto_prog);
-#ifdef G
-	if (have_extra_exec()) {
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = MAX_STR_LEN;
-		d->items[a++].data = drv->param->shell_term;
-	}
-#endif
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ENTER;
-	d->items[a].fn = ok_dialog;
-	d->items[a++].text = TEXT_(T_OK);
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ESC;
-	d->items[a].fn = cancel_dialog;
-	d->items[a++].text = TEXT_(T_CANCEL);
-	d->items[a].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-}
-
 static unsigned char mc_str[8];
 #ifdef G
 static unsigned char ic_str[8];
@@ -2773,7 +2677,6 @@ static const struct menu_item setup_menu_6[] = {
 
 static const struct menu_item setup_menu_7[] = {
 	{ TEXT_(T_CACHE), cast_uchar "", TEXT_(T_HK_CACHE), cache_opt, NULL, 0, 1 },
-	{ TEXT_(T_MAIL_AND_TELNEL), cast_uchar "", TEXT_(T_HK_MAIL_AND_TELNEL), net_programs, NULL, 0, 1 },
 	{ TEXT_(T_ASSOCIATIONS), cast_uchar "", TEXT_(T_HK_ASSOCIATIONS), menu_assoc_manager, NULL, 0, 1 },
 	{ TEXT_(T_FILE_EXTENSIONS), cast_uchar "", TEXT_(T_HK_FILE_EXTENSIONS), menu_ext_manager, NULL, 0, 1 },
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },

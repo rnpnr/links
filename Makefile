@@ -26,7 +26,6 @@ SRC = \
 	kbd.c\
 	language.c\
 	listedit.c\
-	mailto.c\
 	main.c\
 	memory.c\
 	menu.c\

@@ -891,10 +891,6 @@ void data_func(struct connection *);
 
 void file_func(struct connection *);
 
-/* mailto.c */
-
-void mailto_func(struct session *, unsigned char *);
-
 /* kbd.c */
 
 #define BM_BUTT		15
@@ -3696,8 +3692,6 @@ struct protocol_program {
 
 extern struct list assoc;
 extern struct list extensions;
-
-extern struct list_head mailto_prog;
 
 unsigned char *get_compress_by_extension(char *, char *);
 unsigned char *get_content_type_by_extension(unsigned char *url);
