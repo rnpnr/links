@@ -60,37 +60,13 @@
  *	-- mikulas
  */
 
-
-/* #define X_DEBUG */
-/* #define SC_DEBUG */
-
-#if defined(X_DEBUG) || defined(SC_DEBUG)
-#define MESSAGE(a) fprintf(stderr,"%s",a);
-#endif
-
 #include "links.h"
 
-/* Mikulas je PRASE: definuje makro "format" a navrch to jeste nechce vopravit */
-#ifdef format
-#undef format
-#endif
-
-#include <X11/Xlib.h>
-#include <X11/X.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>
-#include <X11/Xlocale.h>
-
-#ifndef XK_MISCELLANY
-#define XK_MISCELLANY
-#endif
-
-#ifndef XK_LATIN1
-#define XK_LATIN1
-#endif
-#include <X11/keysymdef.h>
-
 #include <langinfo.h>
+#include <X11/Xatom.h>
+#include <X11/Xlib.h>
+#include <X11/Xlocale.h>
+#include <X11/Xutil.h>
 
 #define X_BORDER_WIDTH 4
 #define X_HASH_TABLE_SIZE 64
@@ -704,9 +680,6 @@ static void x_process_events(void *data)
 
 	process_events_in_progress = 0;
 
-#ifdef SC_DEBUG
-	MESSAGE("x_process_event\n");
-#endif
 	memset(&last_event, 0, sizeof last_event);	/* against warning */
 	last_was_mouse=0;
 	while (XPending(x_display) || replay_event)
@@ -718,14 +691,6 @@ static void x_process_events(void *data)
 			int a,b;
 
 			last_was_mouse=0;
-#ifdef X_DEBUG
-			MESSAGE("(MotionNotify event)\n");
-			{
-				unsigned char txt[256];
-				sprintf(txt,"x=%d y=%d\n",last_event.xmotion.x,last_event.xmotion.y);
-				MESSAGE(txt);
-			}
-#endif
 			dev = x_find_gd(last_event.xmotion.window);
 			if (!dev) break;
 			a=B_LEFT;
@@ -734,25 +699,16 @@ static void x_process_events(void *data)
 			{
 				a=B_LEFT;
 				b=B_DRAG;
-#ifdef X_DEBUG
-				MESSAGE("left button/drag\n");
-#endif
 			}
 			if ((last_event.xmotion.state)&Button2Mask)
 			{
 				a=B_MIDDLE;
 				b=B_DRAG;
-#ifdef X_DEBUG
-				MESSAGE("middle button/drag\n");
-#endif
 			}
 			if ((last_event.xmotion.state)&Button3Mask)
 			{
 				a=B_RIGHT;
 				b=B_DRAG;
-#ifdef X_DEBUG
-				MESSAGE("right button/drag\n");
-#endif
 			}
 			x_clip_number(&last_event.xmotion.x, dev->size.x1, dev->size.x2 - 1);
 			x_clip_number(&last_event.xmotion.y, dev->size.y1, dev->size.y2 - 1);
