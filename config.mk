@@ -1,6 +1,6 @@
 VERSION = 2.16
 
-PREFIX = /
+PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/share/man
 
 X11INC = /usr/X11R6/include
