@@ -1634,9 +1634,6 @@ static inline int print_letter(struct graphics_device *device, int x, int y, str
 
 	/* Find a suitable letter */
 	letter = find_stored_letter(style->table, char_number);
-#ifdef DEBUG
-	if (!letter) internal("print_letter could not find a letter - even not the blotch!");
-#endif /* #ifdef DEBUG */
 	templat.r0 = style->r0;
 	templat.r1 = style->r1;
 	templat.g0 = style->g0;

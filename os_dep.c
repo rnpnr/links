@@ -281,10 +281,8 @@ void close_fork_tty(void)
 	struct k_conn *k = NULL;
 	struct list_head *lk;
 	int rs;
-#ifndef NO_SIGNAL_HANDLERS
 	EINTRLOOP(rs, close(signal_pipe[0]));
 	EINTRLOOP(rs, close(signal_pipe[1]));
-#endif
 	if (terminal_pipe[1] != -1) EINTRLOOP(rs, close(terminal_pipe[1]));
 	foreach(struct terminal, t, lt, terminals) {
 		if (t->fdin > 0)

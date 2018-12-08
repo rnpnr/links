@@ -537,24 +537,6 @@ void kill_html_stack_item(struct html_element *e)
 	free(e);
 }
 
-#if defined(DEBUG) && 0
-void debug_stack(void)
-{
-	struct html_element *e;
-	struct list_head *le;
-	printf("HTML stack debug: \n");
-	foreachback(struct html_element, e, le, html_stack) {
-		int i;
-		printf("\"");
-		for (i = 0; i < e->namelen; i++) printf("%c", e->name[i]);
-		printf("\"\n");
-	}
-	printf("%c", 7);
-	fflush(stdout);
-	portable_sleep(1000);
-}
-#endif
-
 void html_stack_dup(void)
 {
 	struct html_element *e;

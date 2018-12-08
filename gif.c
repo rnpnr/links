@@ -563,9 +563,6 @@ static void gif_restart_internal(unsigned char *data, int length)
 
 void gif_restart(unsigned char *data, int length)
 {
-#ifdef DEBUG
-	if (!global_cimg->decoder) internal("NULL decoder in gif_restart");
-#endif /* #ifdef DEBUG */
 	end_callback_hit=0;
 	gif_restart_internal(data, length);
 	if (end_callback_hit) img_end(global_cimg);

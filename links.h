@@ -8,11 +8,11 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <event.h>
 #include <fcntl.h>
 #include <grp.h>
-#include <inttypes.h>
-#include <limits.h>
 #include <netdb.h>
+#include <poll.h>
 #include <pwd.h>
 #include <search.h>
 #include <signal.h>
@@ -21,34 +21,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <sys/file.h>
-#include <sys/resource.h>
-#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <termios.h>
-#include <time.h>
 #include <unistd.h>
-#include <utime.h>
 
 #include "os_dep.h"
 #include "setup.h"
 
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
 
 #include <openssl/ssl.h>
-#include <openssl/rand.h>
-#include <openssl/x509v3.h>
 #include <openssl/err.h>
-#include <openssl/crypto.h>
 
 #if defined(G)
 #if defined(HAVE_PNG_H)
@@ -62,11 +48,6 @@
 #endif /* _SETJMP_H */
 #endif /* #if defined(G) */
 
-#define USE_POLL
-#include <poll.h>
-
-#include <event.h>
-#define USE_LIBEVENT
 
 #define longlong long long
 #define ulonglong unsigned long long

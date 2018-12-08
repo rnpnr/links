@@ -99,12 +99,6 @@ void img_destruct_cached_image(struct cached_image *cimg)
 		case 15:
 		drv->unregister_bitmap(&(cimg->bmp));
 		break;
-
-#ifdef DEBUG
-		default:
-		fprintf(stderr,"img_destruct_cached_image: state=%d\n",cimg->state);
-		internal("Invalid state in struct cached_image");
-#endif /* #ifdef DEBUG */
 	}
 	free(cimg->url);
 	free(cimg);
@@ -206,12 +200,6 @@ int header_dimensions_known(struct cached_image *cimg)
 {
 	unsigned short red, green, blue;
 
-#ifdef DEBUG
-	if ((cimg->state^8)&13){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid state in header_dimensions_known");
-	}
-#endif /* #ifdef DEBUG */
 	if (cimg->width<1||cimg->height<1){
 		/*fprintf(stderr,"width=%d height=%d\n",cimg->width, cimg->height);*/
 		return 1;
@@ -284,13 +272,6 @@ int header_dimensions_known(struct cached_image *cimg)
 		round_color_sRGB_to_48(&red, &green, &blue
 			, cimg->background_color);
 		mix_one_color_48(buf_16,cimg->width, red, green, blue);
-#ifdef DEBUG
-		if (cimg->height<=0){
-			fprintf(stderr,"cimg->height=%d\n",cimg->height);
-			internal("Invalid cimg->height in strip_optimized section of\
- header_dimensions_known");
-		}
-#endif /* #ifdef DEBUG */
 		/* The skip is uninitialized here and is read by dither_start
 		 * but is not used in any malicious way so it doesn't matter
 		 */
@@ -372,12 +353,6 @@ static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *ci
 {
 	unsigned short red, green, blue;
 
-#ifdef DEBUG
-	if (cimg->state != 12 && cimg->state != 14) {
-		fprintf(stderr, "cimg->state=%d\n", cimg->state);
-		internal("invalid state in buffer_to_16");
-	}
-#endif /* #ifdef DEBUG */
 	switch (cimg->buffer_bytes_per_pixel) {
 		case 3:
 			if (cimg->gamma_table)
@@ -437,12 +412,6 @@ static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *ci
 					(float)(user_gamma / cimg->blue_gamma),
 					red, green, blue);
 		break;
-
-#ifdef DEBUG
-		default:
-			internal("buffer_to_16: unknown mem organization");
-#endif /* #ifdef DEBUG */
-
 	}
 	return tmp;
 }
@@ -471,22 +440,6 @@ void buffer_to_bitmap_incremental(struct cached_image *cimg
 	struct bitmap tmpbmp;
 	int add1=0, add2;
 
-#ifdef DEBUG
-	if (cimg->state!=12&&cimg->state!=14){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid state in buffer_to_bitmap_incremental\n");
-	}
-	if (height<1){
-		fprintf(stderr,"height=%d\n",height);
-		internal("Invalid height in buffer_to_bitmap_incremental\n");
-	}
-	if (cimg->width<1||cimg->height<1){
-		fprintf(stderr,"cimg->width=%d, cimg->height=%d\n",cimg->width,
-				cimg->height);
-		internal("Invalid cimg->width x cimg->height in\
-buffer_to_bitmap_incremental");
-	}
-#endif /* #ifdef DEBUG */
 	if ((unsigned)cimg->width > INT_MAX / max_height / 3 / sizeof(*tmp)) overalloc();
 	tmp = xmalloc(cimg->width*(height<max_height?height:max_height)*3*sizeof(*tmp));
 	/* Prepare a fake bitmap for dithering */
@@ -542,21 +495,6 @@ static void buffer_to_bitmap(struct cached_image *cimg)
 	int ix, iy, ox, oy, gonna_be_smart;
 	int *dregs;
 
-#ifdef DEBUG
-	if(cimg->state!=12&&cimg->state!=14){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("buffer_to_bitmap called in invalid state");
-	}
-	if (cimg->strip_optimized) internal("strip_optimized in buffer_to_bitmap");
-	if (cimg->width<1||cimg->height<1){
-		fprintf(stderr,"cimg->width=%d, cimg->height=%d\n",cimg->width,
-				cimg->height);
-		internal("Invalid cimg->width x cimg->height in\
-buffer_to_bitmap");
-	}
-#endif /* #ifdef DEBUG */
-
-
 	if (!cimg->rows_added) return;
 
 	/* Here of course width and height must be already filled */
@@ -578,11 +516,6 @@ buffer_to_bitmap");
 		}
 
 		/* Scale the image to said size */
-#ifdef DEBUG
-		if (ox<=0||oy<=0){
-			internal("ox or oy <=0 before resampling image");
-		}
-#endif /* #ifdef DEBUG */
 		if (tmp && (ix!=ox || iy!=oy)) {
 			/* We must really scale */
 			tmp1=tmp;
@@ -659,11 +592,6 @@ void img_end(struct cached_image *cimg)
 		case 13:
 		case 15:
 		break;
-#ifdef DEBUG
-		default:
-		fprintf(stderr,"state=%d\n",cimg->state);
-		internal("Invalid state encountered in end");
-#endif /* #ifdef DEBUG */
 	}
 	cimg->state|=1;
 }
@@ -713,12 +641,6 @@ static void r3l0ad(struct cached_image *cimg, struct g_object_image *goi)
 			drv->unregister_bitmap(&cimg->bmp);
 		}
 		break;
-
-#ifdef DEBUG
-		default:
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid state in r3l0ad()");
-#endif /* #ifdef DEBUG */
 	}
 	cimg->state&=2;
 }
@@ -734,12 +656,6 @@ static inline int dtest(unsigned char *templat, unsigned char *test)
 /* This may be called only in state 0 or 2 */
 static void type(struct cached_image *cimg, unsigned char *content_type, unsigned char *data /* at least 4 bytes */)
 {
-#ifdef DEBUG
-	if (cimg->state!=0&&cimg->state!=2){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid state encountered in type()");
-	}
-#endif /* #ifdef DEBUG */
 #ifdef HAVE_JPEG
 	if (data[0] == 0xff && data[1] == 0xd8)
 		goto have_jpeg;
@@ -795,13 +711,6 @@ static int img_process_download(struct g_object_image *goi, struct f_data_c *fda
 	struct cached_image *cimg = goi->cimg;
 	int chopped=0;
 
-#ifdef DEBUG
-	if (!goi->af) internal("NULL goi->af in process_download\n");
-	if (cimg->state>=16){ /* Negative don't occur because it's unsigned char */
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid cimg->state in img_process_download\n");
-	}
-#endif /* #ifdef DEBUG */
 	if (!goi->af->rq) return 0;
 	if (get_file(goi->af->rq, &data, &dataend)) goto end;
 	if (dataend - data < 4) goto end;
@@ -853,12 +762,6 @@ static int img_process_download(struct g_object_image *goi, struct f_data_c *fda
 		case IM_GIF:
 			gif_restart(data,length);
 			break;
-#ifdef DEBUG
-		default:
-			fprintf(stderr,"cimg->image_type=%d\n",cimg->state);
-			internal("Invalid image_type encountered when processing data in\
-img_process_download.\n");
-#endif /* #ifdef DEBUG */
 		}
 		cimg->last_length+=length;
 	}
@@ -906,9 +809,6 @@ int get_foreground(int rgb)
 
 static void draw_frame_mark(struct graphics_device *dev, int x, int y, int xw, int yw, long bg, long fg, int broken)
 {
-#ifdef DEBUG
-	if (xw<1||yw<1) internal("zero dimension in draw_frame_mark");
-#endif /* #ifdef DEBUG */
 	if (broken == 1){
 		/* Draw between ( 0 and 1/4 ) and ( 3/4 and 1 ) of each
 		 * side (0-1)
@@ -977,22 +877,10 @@ static void draw_picture(struct f_data_c *fdatac, struct g_object_image *goi,
 	struct cached_image *cimg=goi->cimg;
 	struct rect saved;
 
-#ifdef DEBUG
-	if (goi->cimg->state<12||goi->cimg->state>=16){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid cimg->state in draw_picture");
-	}
-#endif /* #ifdef DEBUG */
 	if (!(cimg->state&1)){
 		if (!cimg->bmp_used)
 			buffer_to_bitmap(cimg);
 	}
-#ifdef DEBUG
-	else if (!cimg->bmp_used){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Nonexistent bitmap in said cimg->state in draw_picture");
-	}
-#endif /* #ifdef DEBUG */
 	restrict_clip_area(dev, &saved, x, y, x+goi->goti.go.xw, y+goi->goti.go.yw);
 	drv->draw_bitmap(dev, &cimg->bmp,x,y);
 	drv->fill_area(dev, x + cimg->bmp.x, y, x + goi->goti.go.xw, y + cimg->bmp.y, bg);
@@ -1005,12 +893,6 @@ static void draw_picture(struct f_data_c *fdatac, struct g_object_image *goi,
  */
 static void update_bitmap(struct cached_image *cimg)
 {
-#ifdef DEBUG
-	if (cimg->state<12||cimg->state>=16){
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid state in update_bitmap");
-	}
-#endif /* #ifdef DEBUG */
 	if (!(cimg->state&1)&&
 		!cimg->strip_optimized
 		&&cimg->rows_added) buffer_to_bitmap(cimg);
@@ -1054,27 +936,12 @@ static void img_draw_image(struct f_data_c *fdatac, struct g_object *goi_, int x
 	if (!cimg || cimg->state<12){
 		draw_frame_mark(fdatac->ses->term->dev,x,y,goi->goti.go.xw,
 			goi->goti.go.yw,color_bg,color_fg,!cimg || cimg->state&1);
-	}else
-#ifdef DEBUG
-	if (cimg->state<16){
-#else
-	{
-#endif /* #ifdef DEBUG */
+	} else {
 		update_bitmap(cimg);
 		draw_picture(fdatac,goi,x,y,color_bg);
 	}
-#ifdef DEBUG
-	else{
-		fprintf(stderr,"cimg->state=%d\n",cimg->state);
-		internal("Invalid state in img_draw_image");
-	}
-#endif /* #ifdef DEBUG */
 	ret:
 	set_clip_area(fdatac->ses->term->dev, &r);
-#ifdef LINKS_TESTMODE_IMAGE_AUTO_EXIT
-	if (cimg->state & 1)
-		terminate_loop = 1;
-#endif
 }
 
 /* Prior to calling this function you have to fill out
@@ -1096,11 +963,6 @@ static void find_or_make_cached_image(struct g_object_image *image, unsigned cha
 		cimg = xmalloc(sizeof(*cimg));
 		cimg->refcount = 1;
 		cimg->background_color = image->background;
-#ifdef DEBUG
-		if (!url)
-			internal ("NULL url as argument of\
-find_or_make_cached_image");
-#endif /* #ifdef DEBUG */
 		cimg->scale = scale;
 		cimg->aspect = aspect;
 		cimg->url = stracpy(url);

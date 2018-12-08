@@ -3,23 +3,6 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-/* DEBUG LEVEL:
- *		 0=vsechno vypnuty
- *		 1=leaky
- *		 2=leaky, ruda zona
- *		 3=leaky, ruda zona, alloc, realloc a free patterny
- *		-1=tajny level ;-)
- */
-/* nastavuje se v configure --enable-debuglevel=-1,0,1,2,3 */
-
-#define LINKS_SOCK_NAME			"socket"
-#define LINKS_ANONYMOUS_SOCK_SUFFIX	"-a"
-#define LINKS_PORT			23755
-#define LINKS_G_PORT_START		32768
-#define LINKS_G_PORT_LEN		16384
-#define MAX_BIND_TRIES			3
-#define AF_UNIX_SOCKET_TIMEOUT		2
-
 #define FG_POLL_TIME			500
 
 #define DNS_TIMEOUT			3600000UL

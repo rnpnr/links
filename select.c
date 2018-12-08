@@ -6,11 +6,6 @@
 
 #include "links.h"
 
-/*
-#define DEBUG_CALLS
-*/
-
-#ifdef USE_LIBEVENT
 #if defined(evtimer_set) && !defined(timeout_set)
 #define timeout_set	evtimer_set
 #endif
@@ -20,16 +15,13 @@
 #if defined(evtimer_del) && !defined(timeout_del)
 #define timeout_del	evtimer_del
 #endif
-#endif
 
 struct thread {
 	void (*read_func)(void *);
 	void (*write_func)(void *);
 	void *data;
-#ifdef USE_LIBEVENT
 	struct event *read_event;
 	struct event *write_event;
-#endif
 };
 
 static struct thread *threads = NULL;
@@ -74,7 +66,6 @@ static int can_do_io(int fd, int wr, int sec)
 	if (fd < 0)
 		die("can_do_io: handle %d", fd);
 
-#if defined(USE_POLL)
 	struct pollfd p;
 	p.fd = fd;
 	p.events = !wr ? POLLIN : POLLOUT;
@@ -87,7 +78,6 @@ static int can_do_io(int fd, int wr, int sec)
 		goto fallback;
 	return 1;
  fallback:
-#endif
 	if (sec >= 0) {
 		tv.tv_sec = sec;
 		tv.tv_usec = 0;
@@ -252,8 +242,6 @@ skip_limit:;
 unsigned char *sh_file;
 int sh_line;
 
-#ifdef USE_LIBEVENT
-
 static int event_enabled = 0;
 
 #ifndef HAVE_EVENT_GET_STRUCT_EVENT_SIZE
@@ -398,15 +386,10 @@ static void do_event_loop(int flags)
 		die("event_base_loop: %s\n", strerror(errno));
 }
 
-#endif
-
 void add_event_string(unsigned char **s, int *l, struct terminal *term)
 {
-#ifdef USE_LIBEVENT
 	if (!event_enabled)
-#endif
 		add_to_str(s, l, get_text_translation(TEXT_(T_SELECT_SYSCALL), term));
-#ifdef USE_LIBEVENT
 	if (!event_enabled)
 		add_to_str(s, l, cast_uchar " (");
 #if defined(HAVE_LIBEV)
@@ -434,7 +417,6 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 		add_to_str(s, l, cast_uchar " ");
 		add_to_str(s, l, cast_uchar event_base_get_method(event_base));
 	}
-#endif
 }
 
 
@@ -465,24 +447,15 @@ static void check_timers(void)
 struct timer *install_timer(uttime t, void (*func)(void *), void *data)
 {
 	struct timer *tm;
-#ifdef USE_LIBEVENT
-	{
-		unsigned char *q = xmalloc(sizeof_struct_event + sizeof(struct timer));
-		tm = (struct timer *)(q + sizeof_struct_event);
-	}
-#else
-	tm = xmalloc(sizeof(struct timer));
-#endif
+	unsigned char *q = xmalloc(sizeof_struct_event + sizeof(struct timer));
+	tm = (struct timer *)(q + sizeof_struct_event);
 	tm->interval = t;
 	tm->func = func;
 	tm->data = data;
-#ifdef USE_LIBEVENT
 	if (event_enabled) {
 		set_event_for_timer(tm);
 		add_to_list(timers, tm);
-	} else
-#endif
-	{
+	} else {
 		struct timer *tt = NULL;
 		struct list_head *ltt;
 		foreach(struct timer, tt, ltt, timers) if (tt->interval >= t) break;
@@ -494,13 +467,9 @@ struct timer *install_timer(uttime t, void (*func)(void *), void *data)
 void kill_timer(struct timer *tm)
 {
 	del_from_list(tm);
-#ifdef USE_LIBEVENT
 	if (event_enabled)
 		timeout_del(timer_event(tm));
 	free(timer_event(tm));
-#else
-	free(tm);
-#endif
 }
 
 void (*get_handler(int fd, int tp))(void *)
@@ -530,9 +499,7 @@ void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func
 {
 	if (fd < 0)
 		goto invl;
-#if defined(USE_POLL) && defined(USE_LIBEVENT)
 	if (!event_enabled)
-#endif
 		if (fd >= (int)FD_SETSIZE) {
 			die("too big handle %d at %s:%d\n", fd, sh_file, sh_line);
 			return;
@@ -558,12 +525,10 @@ void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func
 				break;
 		w_max = i + 1;
 	}
-#ifdef USE_LIBEVENT
 	if (event_enabled) {
 		set_events_for_handle(fd);
 		return;
 	}
-#endif
 	if (read_func) FD_SET(fd, &w_read);
 	else {
 		FD_CLR(fd, &w_read);
@@ -599,13 +564,10 @@ void clear_events(int h, int blocking)
 #define NUM_SIGNALS	32
 #endif
 
-#ifndef NO_SIGNAL_HANDLERS
-
 static void clear_events_ptr(void *handle)
 {
 	clear_events((int)(long)handle, 0);
 }
-
 
 struct signal_handler {
 	void (*fn)(void *);
@@ -647,8 +609,6 @@ static void got_signal(int sig)
 
 static struct sigaction sa_zero;
 
-#endif
-
 void install_signal_handler(int sig, void (*fn)(void *), void *data, int critical)
 {
 	int rs;
@@ -672,7 +632,6 @@ void install_signal_handler(int sig, void (*fn)(void *), void *data, int critica
 
 void interruptible_signal(int sig, int in)
 {
-#if !defined(NO_SIGNAL_HANDLERS)
 	struct sigaction sa = sa_zero;
 	int rs;
 	if (sig >= NUM_SIGNALS || sig < 0) {
@@ -684,7 +643,6 @@ void interruptible_signal(int sig, int in)
 	sigfillset(&sa.sa_mask);
 	if (!in) sa.sa_flags = SA_RESTART;
 	EINTRLOOP(rs, sigaction(sig, &sa, NULL));
-#endif
 }
 
 static sigset_t sig_old_mask;
@@ -728,7 +686,6 @@ void unblock_signals(void)
 static int check_signals(void)
 {
 	int r = 0;
-#ifndef NO_SIGNAL_HANDLERS
 	int i;
 	for (i = 0; i < NUM_SIGNALS; i++)
 		if (signal_mask[i]) {
@@ -740,7 +697,6 @@ static int check_signals(void)
 			CHK_BH;
 			r = 1;
 		}
-#endif
 	return r;
 }
 
@@ -769,58 +725,44 @@ void set_sigcld(void)
 
 void reinit_child(void)
 {
-#if !defined(NO_SIGNAL_HANDLERS)
 	signal_pid = getpid();
-#endif
-#ifdef USE_LIBEVENT
 	if (event_enabled) {
 		if (event_reinit(event_base))
 			die("event_reinit: %s\n", strerror(errno));
 	}
-#endif
 }
 
 int terminate_loop = 0;
 
 void select_loop(void (*init)(void))
 {
-#if !defined(USE_LIBEVENT) || !defined(USE_POLL)
-	restrict_fds();
-#endif
 
-#if !defined(NO_SIGNAL_HANDLERS)
 	memset(&sa_zero, 0, sizeof sa_zero);
 	memset((void *)signal_mask, 0, sizeof signal_mask);
 	memset((void *)signal_handlers, 0, sizeof signal_handlers);
-#endif
 	FD_ZERO(&w_read);
 	FD_ZERO(&w_write);
 	w_max = 0;
 	last_time = get_time();
 	ignore_signals();
-#if !defined(NO_SIGNAL_HANDLERS)
 	signal_pid = getpid();
 	if (c_pipe(signal_pipe))
 		die("can't create pipe for signal handling\n");
 	set_nonblock(signal_pipe[0]);
 	set_nonblock(signal_pipe[1]);
 	set_handlers(signal_pipe[0], clear_events_ptr, NULL, (void *)(long)signal_pipe[0]);
-#endif
 	init();
 	CHK_BH;
 
-#ifdef USE_LIBEVENT
 #ifdef G
 	if (!F || !(drv->flags & GD_NO_LIBEVENT))
 #endif
 	{
 		enable_libevent();
 	}
-#if defined(USE_POLL)
 	if (!event_enabled) {
 		restrict_fds();
 	}
-#endif
 	if (event_enabled) {
 		while (!terminate_loop) {
 			check_signals();
@@ -833,7 +775,6 @@ void select_loop(void (*init)(void))
 			do_event_loop(EVLOOP_ONCE);
 		}
 	} else
-#endif
 
 	while (!terminate_loop) {
 		volatile int n;	/* volatile because of setjmp */
@@ -883,8 +824,6 @@ void select_loop(void (*init)(void))
 
 void terminate_select(void)
 {
-#ifdef USE_LIBEVENT
 	terminate_libevent();
-#endif
 	free(threads);
 }

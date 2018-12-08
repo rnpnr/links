@@ -6,13 +6,7 @@
 
 #include "links.h"
 
-#ifdef DEBUG
-#undef DEBUG
-#endif
-
 static void free_table_cache(void);
-
-/*#define DEBUG*/
 
 #define RECT_BOUND_BITS	10	/* --- bound at 1024 pixels */
 
@@ -163,11 +157,7 @@ struct table {
 };
 
 
-#ifdef DEBUG
-#define CELL(t, x, y) (((x) < 0 || (x) >= (t)->rx || (y) < 0 || (y) >= (t)->ry) ? (internal("accessing cell out of table (%d,%d) - limit (%d,%d)", (x), (y), (t)->rx, (t)->ry), (t)->cells) : &(t)->cells[(y) * (t)->rx + (x)])
-#else
 #define CELL(t, x, y) (&(t)->cells[(y) * (t)->rx + (x)])
-#endif
 
 static unsigned char frame_table[81] = {
 	0x00, 0xb3, 0xba,	0xc4, 0xc0, 0xd3,	0xcd, 0xd4, 0xc8,
@@ -1327,13 +1317,8 @@ if (H_LINE_X((ii), (jj)) >= 0) xset_hchars(t->p, (xx), (yy), (ll), hline_table[H
 	int qq;					\
 	if (V_LINE_X((ii), (jj)) >= 0) for (qq = 0; qq < (ll); qq++) xset_hchar(t->p, (xx), safe_add((yy), qq), vline_table[V_LINE((ii), (jj))], AF); }
 
-#ifndef DEBUG
 #define H_LINE_X(xx, yy) fh[(xx) + 1 + (t->x + 2) * (yy)]
 #define V_LINE_X(xx, yy) fv[(yy) + 1 + (t->y + 2) * (xx)]
-#else
-#define H_LINE_X(xx, yy) (*((xx) < -1 || (xx) > t->x + 1 || (yy) < 0 || (yy) > t->y ? (short *)NULL : &fh[(xx) + 1 + (t->x + 2) * (yy)]))
-#define V_LINE_X(xx, yy) (*((xx) < 0 || (xx) > t->x || (yy) < -1 || (yy) > t->y + 1 ? (short *)NULL : &fv[(yy) + 1 + (t->y + 2) * (xx)]))
-#endif
 #define H_LINE(xx, yy) (H_LINE_X((xx), (yy)) < 0 ? 0 : H_LINE_X((xx), (yy)))
 #define V_LINE(xx, yy) (V_LINE_X((xx), (yy)) < 0 ? 0 : V_LINE_X((xx), (yy)))
 

@@ -183,9 +183,6 @@ void jpeg_restart(struct cached_image *cimg, unsigned char *data, int length)
 	struct jpg_decoder *deco;
 
 	deco=(struct jpg_decoder *)(cimg->decoder);
-#ifdef DEBUG
-	if (!deco) internal("NULL decoder in jpeg_restart");
-#endif /* #ifdef DEBUG */
 	global_cinfo=((struct jpg_decoder *)(cimg->decoder))->cinfo;
 	global_jerr=((struct jpg_decoder *)(cimg->decoder))->jerr;
 	/* These global variables are here so that we don't have to pass lots

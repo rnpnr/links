@@ -161,11 +161,6 @@ void png_restart(struct cached_image *cimg, unsigned char *data, int length)
 	png_infop info_ptr;
 	volatile int h;
 
-#ifdef DEBUG
-	if (!cimg->decoder)
-		internal("decoder NULL in png_restart\n");
-
-#endif /* #ifdef DEBUG */
 	h = close_stderr();
 	png_ptr=((struct png_decoder *)(cimg->decoder))->png_ptr;
 	info_ptr=((struct png_decoder *)(cimg->decoder))->info_ptr;

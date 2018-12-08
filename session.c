@@ -1995,10 +1995,6 @@ more_data:
 priint:
 	/* process onload handler of a frameset */
 	if (rq && (rq->state == O_FAILED || rq->state == O_INCOMPLETE) && (fd->rq == rq || fd->ses->rq == rq) && !rq->dont_print_error) print_error_dialog(fd->ses, &rq->stat, rq->url);
-#ifdef LINKS_TESTMODE_DOCUMENT_AUTO_EXIT
-	if (f_is_finished(fd->f_data))
-		terminate_loop = 1;
-#endif
 }
 
 static unsigned location_id = 0;

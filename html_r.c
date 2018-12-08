@@ -268,12 +268,6 @@ static void xpand_line(struct part *p, int y, int x)
 	if (!p->data) return;
 	x = safe_add(x, p->xp);
 	y = safe_add(y, p->yp);
-#ifdef DEBUG
-	if (y >= p->data->y) {
-		internal("line does not exist");
-		return;
-	}
-#endif
 	ln = &p->data->data[y];
 	if (x >= ln->l) {
 		int i;
@@ -507,9 +501,6 @@ static int split_line(struct part *p)
 	split:
 	if (safe_add(i, par_format.rightmargin) > p->x) p->x = i + par_format.rightmargin;
 	if (p->data) {
-#ifdef DEBUG
-		if (POS(i, p->cy).ch != ' ') internal("bad split: %c", (unsigned char)POS(i, p->cy).ch);
-#endif
 		move_chars(p, safe_add(i,1), p->cy, par_format.leftmargin, safe_add(p->cy,1));
 		del_chars(p, i, p->cy);
 	}
