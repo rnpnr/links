@@ -5,33 +5,12 @@
 
 #include "links.h"
 
+#include <sys/stat.h>
+
 static void setrwx(unsigned m, unsigned char *p)
 {
 	if (m & S_IRUSR) p[0] = 'r';
 	if (m & S_IWUSR) p[1] = 'w';
-	if (m & S_IXUSR) p[2] = 'x';
-}
-
-static void setst(unsigned m, unsigned char *p)
-{
-#ifdef S_ISUID
-	if (m & S_ISUID) {
-		p[2] = 'S';
-		if (m & S_IXUSR) p[2] = 's';
-	}
-#endif
-#ifdef S_ISGID
-	if (m & S_ISGID) {
-		p[5] = 'S';
-		if (m & S_IXGRP) p[5] = 's';
-	}
-#endif
-#ifdef S_ISVTX
-	if (m & S_ISVTX) {
-		p[8] = 'T';
-		if (m & S_IXOTH) p[8] = 't';
-	}
-#endif
 }
 
 static void stat_mode(unsigned char **p, int *l, struct stat *stp)
@@ -68,7 +47,6 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 			setrwx(mode << 0, &rwx[0]);
 			setrwx(mode << 3, &rwx[3]);
 			setrwx(mode << 6, &rwx[6]);
-			setst(mode, rwx);
 		}
 		add_to_str(p, l, rwx);
 	}
