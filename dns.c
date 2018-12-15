@@ -22,7 +22,7 @@ struct dnsquery {
 	struct dnsquery **s;
 	struct lookup_result *addr;
 	int addr_preference;
-	char name[1];
+	char name[];
 };
 
 static int dns_cache_addr_preference = -1;
@@ -454,20 +454,20 @@ delete_last:
 unsigned char *print_address(struct host_address *a)
 {
 #define SCOPE_ID_LEN	11
-	static unsigned char buffer[INET6_ADDRSTRLEN + SCOPE_ID_LEN];
+	static char buffer[INET6_ADDRSTRLEN + SCOPE_ID_LEN];
 	union {
 		struct in_addr in;
 		struct in6_addr in6;
 		char pad[16];
 	} u;
 	memcpy(&u, a->addr, 16);
-	if (!inet_ntop(a->af, &u, cast_char buffer, sizeof buffer - SCOPE_ID_LEN))
+	if (!inet_ntop(a->af, &u, buffer, sizeof(buffer) - SCOPE_ID_LEN))
 		return NULL;
 	if (a->scope_id) {
-		unsigned char *end = cast_uchar strchr(cast_const_char buffer, 0);
-		snprintf(cast_char end, buffer + sizeof(buffer) - end, "%%%u", a->scope_id);
+		char *end = strchr(buffer, 0);
+		snprintf(end, buffer + sizeof(buffer) - end, "%%%u", a->scope_id);
 	}
-	return buffer;
+	return (unsigned char *)buffer;
 }
 
 int ipv6_full_access(void)
