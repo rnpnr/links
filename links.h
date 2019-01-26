@@ -795,7 +795,7 @@ int is_ipv6(int);
 int get_pasv_socket(struct connection *, int, int *, unsigned char *);
 int get_pasv_socket_ipv6(struct connection *, int, int *, unsigned char *);
 void write_to_socket(struct connection *, int, unsigned char *, int, void (*)(struct connection *));
-struct read_buffer *alloc_read_buffer(struct connection *c);
+struct read_buffer *alloc_read_buffer(void);
 void read_from_socket(struct connection *, int, struct read_buffer *, void (*)(struct connection *, struct read_buffer *));
 void kill_buffer_data(struct read_buffer *, int);
 

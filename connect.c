@@ -890,7 +890,7 @@ success:
 	rb->done(c, rb);
 }
 
-struct read_buffer *alloc_read_buffer(struct connection *c)
+struct read_buffer *alloc_read_buffer(void)
 {
 	struct read_buffer *rb;
 	rb = xmalloc(sizeof(struct read_buffer) + READ_SIZE);
