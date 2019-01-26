@@ -92,7 +92,6 @@ static int x_display_height, x_display_width;   /* screen dimensions */
 static unsigned long x_black_pixel;  /* black pixel */
 static int x_depth, x_bitmap_bpp;   /* bits per pixel and bytes per pixel */
 static int x_bitmap_scanline_pad; /* bitmap scanline_padding in bytes */
-static int x_input_encoding;	/* locales encoding */
 static int x_bitmap_bit_order;
 
 static unsigned char x_have_palette;
@@ -324,7 +323,7 @@ static int x_translate_key(struct graphics_device *dev, XKeyEvent *e,int *key,in
 	static XComposeStatus comp = { NULL, 0 };
 	static unsigned char str[16];
 #define str_size	((int)(sizeof(str) - 1))
-	int table = x_input_encoding < 0 ? g_kbd_codepage(&x_driver) : x_input_encoding;
+	int table = 0;
 	int len;
 
 	if (get_window_info(dev)->xic) {
@@ -921,14 +920,6 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 #if defined(LC_CTYPE)
 	setlocale(LC_CTYPE, "");
 #endif
-	x_input_encoding = -1;
-#if defined(CODESET)
-	{
-		unsigned char *cp;
-		cp = cast_uchar nl_langinfo(CODESET);
-		x_input_encoding = get_cp_index(cp);
-	}
-#endif
 	if (!display || !*display)
 		display = NULL;
 
@@ -1226,9 +1217,6 @@ invalid_param:
 		setlocale(LC_CTYPE, "");
 #endif
 	}
-
-	if (x_input_encoding < 0 && !xim)
-		x_driver.flags |= GD_NEED_CODEPAGE;
 
 	x_fd = XConnectionNumber(x_display);
 	set_handlers(x_fd, x_process_events, NULL, NULL);
@@ -1803,19 +1791,11 @@ static void x_set_window_title(struct graphics_device *dev, unsigned char *title
 {
 	unsigned char *t;
 	XTextProperty windowName;
-	int output_encoding;
 	Status ret;
-
-	if (XSupportsLocale())
-		output_encoding = x_input_encoding >= 0 ? x_input_encoding : 0;
-	else {
-retry_encode_ascii:
-		output_encoding = 0;
-	}
 
 	if (!dev)
 		internal("x_set_window_title called with NULL graphics_device pointer.\n");
-	t = convert(0, output_encoding, title, NULL);
+	t = convert(0, 0, title, NULL);
 	clr_white(t);
 
 	if (XSupportsLocale()) {
@@ -1834,13 +1814,8 @@ retry_encode_ascii:
 							&windowName);
 		}
 #endif
-		if (ret < 0) {
-			if (output_encoding) {
-				free(t);
-				goto retry_encode_ascii;
-			} else
-				goto retry_print_ascii;
-		}
+		if (ret < 0)
+			goto retry_print_ascii;
 	} else {
  retry_print_ascii:
 		ret = XStringListToTextProperty((char**)(&t), 1, &windowName);
@@ -1889,9 +1864,8 @@ static void selection_request(XEvent *event)
 		if (!x_my_clipboard)
 			str = stracpy(cast_uchar "");
 		else
-			str = convert(0,
-				get_cp_index(cast_uchar "iso-8859-1"),
-				x_my_clipboard, NULL);
+			str = convert(0, 0, x_my_clipboard, NULL);
+
 		for (p = cast_uchar strchr((char *)str, 1); p;
 		     p = cast_uchar strchr((char *)(str + 1), 1))
 			*p = 0xa0;
@@ -1974,8 +1948,8 @@ static unsigned char *x_get_clipboard_text(void)
 		if (type_atom == x_utf8_string_atom)
 			x_my_clipboard = stracpy(buffer);
 		else
-			x_my_clipboard = convert(get_cp_index(cast_uchar "iso-8859-1"),
-						0, buffer, NULL);
+			x_my_clipboard = convert(0, 0, buffer, NULL);
+
 		XFree(buffer);
 	} else if (type_atom == x_utf8_string_atom) {
 			type_atom = XA_STRING;

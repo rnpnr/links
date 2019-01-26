@@ -344,7 +344,7 @@ static void init(void)
 		goto ttt;
 	}
 	fixup_g();
-	if ((dds.assume_cp = get_cp_index(cast_uchar "ISO-8859-1")) == -1) dds.assume_cp = 0;
+	dds.assume_cp = 0;
 	load_config();
 	if (proxies.only_proxies)
 		reset_settings_for_tor();

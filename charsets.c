@@ -388,26 +388,6 @@ need_table:
 	return convert_string(ct, c, strlen((char *)c), dopt);
 }
 
-int get_cp_index(const unsigned char *n)
-{
-	int a, p, q, sl, ii = -1, ll = 0;
-	for (a = 0; codepages[0].aliases[a]; a++)
-		for (p = 0; n[p]; p++) {
-			if (upcase(n[p]) == upcase(codepages[0].aliases[a][0])) {
-				for (q = 1; codepages[0].aliases[a][q]; q++)
-					if (upcase(n[p+q]) != upcase(codepages[0].aliases[a][q]))
-						goto fail;
-				sl = strlen((char *)codepages[0].aliases[a]);
-				if (sl > ll) {
-					ll = sl;
-					ii = 0;
-				}
-			}
-fail:;
-		}
-	return ii;
-}
-
 unsigned char *get_cp_name(int index)
 {
 	if (index < 0)

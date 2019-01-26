@@ -1288,7 +1288,6 @@ unsigned char *get_filename_from_header(unsigned char *head)
 	int extended = 0;
 	unsigned char *ct, *x, *y, *codepage;
 	int ly;
-	int cp_idx;
 	if ((ct = parse_http_header(head, cast_uchar "Content-Disposition", NULL))) {
 		x = parse_header_param(ct, cast_uchar "filename*", 1);
 		if (x)
@@ -1339,17 +1338,9 @@ no_extended:
 	free(x);
 	x = y;
 
-	cp_idx = -1;
-	if (codepage) {
-		cp_idx = get_cp_index(codepage);
-		free(codepage);
-	}
-	if (cp_idx < 0) {
-		cp_idx = get_cp_index(cast_uchar "iso-8859-1");
-		if (cp_idx < 0)
-			cp_idx = 0;
-	}
-	y = convert(cp_idx, 0, x, NULL);
+	free(codepage);
+
+	y = convert(0, 0, x, NULL);
 	free(x);
 	x = y;
 

@@ -533,13 +533,10 @@ static void str_wr(struct option *o, unsigned char **s, int *l)
 static unsigned char *cp_rd(struct option *o, unsigned char *c)
 {
 	unsigned char *tok = get_token(&c);
-	unsigned char *e = NULL;
-	int i;
 	if (!tok) return cast_uchar "Missing argument";
-	if ((i = get_cp_index(tok)) == -1) e = cast_uchar "Unknown codepage";
-	else *(int *)o->ptr = i;
+	*(int *)o->ptr = 0;
 	free(tok);
-	return e;
+	return NULL;
 }
 
 static void cp_wr(struct option *o, unsigned char **s, int *l)
@@ -667,8 +664,7 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 	if (!casestrcmp(w, cast_uchar "default"))
 		i = -1;
 	else
-		if ((i = get_cp_index(w)) == -1)
-			goto err_f;
+		i = 0;
 	ts->character_set = i;
 	free(w);
 	ts->left_margin = 0;
@@ -710,8 +706,7 @@ static unsigned char *term2_rd(struct option *o, unsigned char *c)
 	if (!casestrcmp(w, cast_uchar "default"))
 		i = -1;
 	else
-		if ((i = get_cp_index(w)) == -1)
-			goto err_f;
+		i = 0;
 	ts->character_set = i;
 	free(w);
 	return NULL;
@@ -790,10 +785,8 @@ static unsigned char *dp_rd(struct option *o, unsigned char *c)
 		goto err;
 	if (!casestrcmp(cp, cast_uchar "default"))
 		cc = -1;
-	else if ((cc = get_cp_index(cp)) == -1) {
-		free(cp);
-		goto err;
-	}
+	else
+		cc = 0;
 	free(cp);
 	dp->kbd_codepage = cc;
 	dp->nosave = 0;

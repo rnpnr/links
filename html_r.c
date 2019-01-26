@@ -1148,17 +1148,9 @@ struct conv_table *get_convert_table(unsigned char *head, int to, int def, int *
 	unsigned char *p = head;
 	while (from == -1 && (a = parse_http_header(p, cast_uchar "Content-Type", &p))) {
 		if ((b = parse_header_param(a, cast_uchar "charset", 0))) {
-			from = get_cp_index(b);
+			from = 0;
 			free(b);
 		}
-		free(a);
-	}
-	if (from == -1 && (a = parse_http_header(head, cast_uchar "Content-Charset", NULL))) {
-		from = get_cp_index(a);
-		free(a);
-	}
-	if (from == -1 && (a = parse_http_header(head, cast_uchar "Charset", NULL))) {
-		from = get_cp_index(a);
 		free(a);
 	}
 	if (aa) {
