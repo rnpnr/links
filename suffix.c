@@ -39,7 +39,7 @@ int is_tld(unsigned char *name)
 {
 	char *end;
 	unsigned long l;
-	if (strlen((const char *)name) == 2 && upcase(name[0]) >= 'A'
+	if (strlen((char *)name) == 2 && upcase(name[0]) >= 'A'
 	&& upcase(name[0]) <= 'Z' && upcase(name[1]) >= 'A'
 	&& upcase(name[1]) <= 'Z' && casestrcmp(name, cast_uchar "gz")
 	&& casestrcmp(name, cast_uchar "xz"))
@@ -52,8 +52,8 @@ int is_tld(unsigned char *name)
 
 int allow_cookie_domain(unsigned char *server, unsigned char *domain)
 {
-	const int sl = strlen((const char *)server);
-	const int dl = strlen((const char *)domain);
+	int sl = strlen((char *)server);
+	int dl = strlen((char *)domain);
 	if (dl > sl)
 		return 0;
 	if (casestrcmp(domain, server + sl - dl))
