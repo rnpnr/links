@@ -5,18 +5,6 @@
 
 #include "links.h"
 
-static void log_ssl_error(void)
-{
-	unsigned long err;
-	while ((err = ERR_get_error())) ;
-}
-
-void clear_ssl_errors(int line)
-{
-	if (ERR_peek_error())
-		log_ssl_error();
-}
-
 static void connected(void *);
 static void update_dns_priority(struct connection *);
 static void connected_callback(struct connection *);
@@ -368,7 +356,6 @@ static void ssl_want_io(void *c_)
 			set_handlers(*b->sock, NULL, ssl_want_io, c);
 			break;
 		default:
-			log_ssl_error();
 			ssl_downgrade_dance(c);
 			break;
 	}
@@ -673,8 +660,7 @@ skip_numeric_address:
 			case SSL_ERROR_NONE:
 				break;
 			default:
-			ssl_error:
-				log_ssl_error();
+ ssl_error:
 				ssl_downgrade_dance(c);
 				return;
 		}
@@ -793,7 +779,6 @@ static void write_select(void *c_)
 				return;
 			}
 			setcstate(c, wr ? (err == SSL_ERROR_SYSCALL ? get_error_from_errno(errno) : S_SSL_ERROR) : S_CANT_WRITE);
-			log_ssl_error();
 			if (!wr || err == SSL_ERROR_SYSCALL) retry_connection(c);
 			else abort_connection(c);
 			return;
@@ -874,7 +859,6 @@ read_more:
 				return;
 			}
 			setcstate(c, rd ? (err == SSL_ERROR_SYSCALL ? get_error_from_errno(errno) : S_SSL_ERROR) : S_CANT_READ);
-			log_ssl_error();
 			if (!rd || err == SSL_ERROR_SYSCALL) retry_connection(c);
 			else abort_connection(c);
 			return;

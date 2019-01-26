@@ -34,7 +34,6 @@
 #include <arpa/inet.h>
 
 #include <openssl/ssl.h>
-#include <openssl/err.h>
 
 #if defined(G)
 #if defined(HAVE_PNG_H)
@@ -787,7 +786,6 @@ struct read_buffer {
 	unsigned char data[1];
 };
 
-void clear_ssl_errors(int line);
 int socket_and_bind(int pf, unsigned char *address);
 void close_socket(int *);
 void make_connection(struct connection *, int, int *, void (*)(struct connection *));

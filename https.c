@@ -66,7 +66,6 @@ links_ssl *getSSL(void)
 	ssl = xmalloc(sizeof(links_ssl));
 	ssl->ctx = contexts;
 	ssl->ssl = SSL_new(ssl->ctx);
-	clear_ssl_errors(__LINE__);
 	if (!ssl->ssl) {
 		free(ssl);
 		return NULL;
@@ -82,9 +81,7 @@ void freeSSL(links_ssl *ssl)
 	if (!ssl || ssl == DUMMY)
 		return;
 
-	if (SSL_shutdown(ssl->ssl) < 0)
-		clear_ssl_errors(__LINE__);
-
+	SSL_shutdown(ssl->ssl);
 	SSL_free(ssl->ssl);
 	free(ssl);
 }
@@ -122,18 +119,15 @@ int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 	X509 *server_cert;
 	int ret;
 
-	if (SSL_get_verify_result(ssl->ssl) != X509_V_OK) {
-		clear_ssl_errors(__LINE__);
+	if (SSL_get_verify_result(ssl->ssl) != X509_V_OK)
 		return S_INVALID_CERTIFICATE;
-	}
+
 	server_cert = SSL_get_peer_certificate(ssl->ssl);
-	if (!server_cert) {
-		clear_ssl_errors(__LINE__);
+	if (!server_cert)
 		return S_INVALID_CERTIFICATE;
-	}
+
 	ret = verify_ssl_host_name(server_cert, (char *)host);
 	X509_free(server_cert);
-	clear_ssl_errors(__LINE__);
 	return ret;
 }
 
@@ -250,7 +244,6 @@ void retrieve_ssl_session(struct connection *c)
 		p = get_port(orig_url);
 		set_session_cache_entry(c->ssl->ctx, h, p, s);
 		free(h);
-		clear_ssl_errors(__LINE__);
 	}
 }
 
