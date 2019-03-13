@@ -233,6 +233,20 @@ struct conv_table *get_translation_table(const int from, const int to)
 	return get_translation_table_to_utf_8(from);
 }
 
+static inline int xxstrcmp(unsigned char *s1, unsigned char *s2, int l2)
+{
+	while (l2) {
+		if (*s1 > *s2)
+			return 1;
+		if (!*s1 || *s1 < *s2)
+			return -1;
+		s1++;
+		s2++;
+		l2--;
+	}
+	return !!*s1;
+}
+
 int get_entity_number(unsigned char *st, int l)
 {
 	int n = 0;
@@ -283,7 +297,7 @@ unsigned char *get_entity_string(unsigned char *st, int l, int encoding)
 		while (s <= e) {
 			int c;
 			int m = (s + e) / 2;
-			c = strncmp(entities[m].s, (char *)st, l);
+			c = xxstrcmp(cast_uchar entities[m].s, st, l);
 			if (!c) {
 				n = entities[m].c;
 				goto f;
