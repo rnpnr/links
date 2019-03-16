@@ -11,7 +11,6 @@ struct codepage_desc {
 };
 
 #include "codepage.inc"
-#include "uni_7b.inc"
 #include "entity.inc"
 #include "upcase.inc"
 #include "locase.inc"
@@ -53,15 +52,12 @@ static const unsigned char strings[256][2] = {
 
 static const unsigned char no_str[] = "*";
 
-#define U_EQUAL(a, b) unicode_7b[a].x == (b)
-#define U_ABOVE(a, b) unicode_7b[a].x > (b)
-
 static int is_nbsp(int u)
 {
 	return u == 0xa0 || u == 0x202f;
 }
 
-unsigned char *u2cp(int u, int to, int fallback)
+unsigned char *u2cp(int u)
 {
 	if (u < 0)
 		return (unsigned char *)"";
@@ -282,7 +278,7 @@ int get_entity_number(unsigned char *st, int l)
 	return n;
 }
 
-unsigned char *get_entity_string(unsigned char *st, int l, int encoding)
+unsigned char *get_entity_string(unsigned char *st, int l)
 {
 	int n;
 	if (l <= 0)
@@ -309,7 +305,7 @@ unsigned char *get_entity_string(unsigned char *st, int l, int encoding)
 f:;
 	}
 
-	return u2cp(n, encoding, 1);
+	return u2cp(n);
 }
 
 unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, struct document_options *dopt)
@@ -359,7 +355,7 @@ decode:
 			int i = pp + 1;
 			if (!dopt || dopt->plain) goto put_c;
 			while (i < l && c[i] != ';' && c[i] != '&' && c[i] > ' ') i++;
-			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1, dopt->cp)))
+			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1)))
 				goto put_c;
 			pp = i + (i < l && c[i] == ';');
 		}

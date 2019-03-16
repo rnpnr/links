@@ -634,7 +634,7 @@ static int put_chars_conv(unsigned char *c, int l)
 			int i = pp + 1;
 			if (d_opt->plain & 1) goto put_c;
 			while (i < l && c[i] != ';' && c[i] != '&' && c[i] > ' ') i++;
-			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1, d_opt->cp))) goto put_c;
+			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1))) goto put_c;
 			pp = i + (i < l && c[i] == ';');
 		}
 		if (!e[0]) continue;

@@ -765,8 +765,6 @@ static inline int getcompcode(int c)
 unsigned char frame_dumb[49] =	"   ||||++||++++++--|-+||++--|-+----++++++++     ";
 static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmllnnjla    ";
 
-#define utf8_hack(x)	(x)
-
 #define SETPOS(x, y)							\
 {									\
 	add_to_str(&a, &l, cast_uchar "\033[");				\
@@ -818,8 +816,7 @@ static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmlln
 		 * the UTF-8 character and finally set the cursor again.\
 		 */							\
 			unsigned char *r;				\
-			c = utf8_hack(c);				\
-			r = u2cp(c, 0, 1);				\
+			r = u2cp(c);					\
 			if (!(r && r[0] >= 32 && r[0] < 127 && !r[1])) r = cast_uchar "*";\
 			add_chr_to_str(&a, &l, r[0]);			\
 			if (cx + 1 < term->x)				\
