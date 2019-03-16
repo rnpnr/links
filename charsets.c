@@ -194,7 +194,7 @@ static const unsigned min_utf_8[8] = {
 
 unsigned get_utf_8(unsigned char **s)
 {
-	unsigned v, min;
+	unsigned v, min, c;
 	int l;
 	unsigned char *p = *s;
 	l = utf_8_1[p[0]];
@@ -202,7 +202,7 @@ unsigned get_utf_8(unsigned char **s)
 	v = p[0] & ((1 << l) - 1);
 	(*s)++;
 	while (l++ <= 5) {
-		unsigned c = **s - 0x80;
+		c = **s - 0x80;
 		if (c >= 0x40) {
 			return 0;
 		}
@@ -246,13 +246,14 @@ static inline int xxstrcmp(unsigned char *s1, unsigned char *s2, int l2)
 int get_entity_number(unsigned char *st, int l)
 {
 	int n = 0;
+	unsigned char c;
 	if (upcase(st[0]) == 'X') {
 		st++;
 		l--;
 		if (!l)
 			return -1;
 		do {
-			unsigned char c = upcase(*(st++));
+			c = upcase(*(st++));
 			if (c >= '0' && c <= '9')
 				n = n * 16 + c - '0';
 			else if (c >= 'A' && c <= 'F')
@@ -266,7 +267,7 @@ int get_entity_number(unsigned char *st, int l)
 		if (!l)
 			return -1;
 		do {
-			unsigned char c = *(st++);
+			c = *(st++);
 			if (c >= '0' && c <= '9')
 				n = n * 10 + c - '0';
 			else
@@ -280,7 +281,7 @@ int get_entity_number(unsigned char *st, int l)
 
 unsigned char *get_entity_string(unsigned char *st, int l)
 {
-	int n;
+	int n, c, m, s, e;
 	if (l <= 0)
 		return NULL;
 	if (st[0] == '#') {
@@ -289,10 +290,8 @@ unsigned char *get_entity_string(unsigned char *st, int l)
 		if (n < 32 && get_attr_val_nl != 2)
 			n = 32;
 	} else {
-		int s = 0, e = N_ENTITIES - 1;
-		while (s <= e) {
-			int c;
-			int m = (s + e) / 2;
+		for (s = 0, e = N_ENTITIES - 1; s <= e;) {
+			m = (s + e) / 2;
 			c = xxstrcmp(cast_uchar entities[m].s, st, l);
 			if (!c) {
 				n = entities[m].c;
@@ -310,11 +309,10 @@ f:;
 
 unsigned char *convert_string(struct conv_table *ct, unsigned char *c, int l, struct document_options *dopt)
 {
-	unsigned char *buffer;
-	int bp = 0;
-	int pp = 0;
+	unsigned char *buffer, *e = NULL;
+	struct conv_table *t;
+	int i, bp = 0, pp = 0;
 	if (!ct) {
-		int i;
 		for (i = 0; i < l; i++)
 			if (c[i] == '&')
 				goto xx;
@@ -323,7 +321,6 @@ xx:;
 	}
 	buffer = xmalloc(ALLOC_GR);
 	while (pp < l) {
-		unsigned char *e = NULL;
 		if (c[pp] < 128 && c[pp] != '&') {
 put_c:
 			buffer[bp++] = c[pp++];
@@ -335,8 +332,6 @@ put_c:
 			continue;
 		}
 		if (c[pp] != '&') {
-			struct conv_table *t;
-			int i;
 			if (!ct)
 				goto put_c;
 			t = ct;
@@ -352,7 +347,7 @@ decode:
 			}
 			pp = i + 1;
 		} else {
-			int i = pp + 1;
+			i = pp + 1;
 			if (!dopt || dopt->plain) goto put_c;
 			while (i < l && c[i] != ';' && c[i] != '&' && c[i] > ' ') i++;
 			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1)))
@@ -453,10 +448,9 @@ void charset_upcase_string(unsigned char **chp, int cp)
 unsigned char *unicode_upcase_string(unsigned char *ch)
 {
 	unsigned char *r = init_str();
-	int rl = 0;
+	unsigned int c;
+	int res, rl = 0;
 	for (;;) {
-		unsigned c;
-		int res;
 		GET_UTF_8(ch, c);
 		if (!c)
 			break;
@@ -479,7 +473,7 @@ unsigned char *to_utf8_upcase(unsigned char *str, int cp)
 
 int compare_case_utf8(unsigned char *u1, unsigned char *u2)
 {
-	unsigned char *uu1 = u1;
+	unsigned char *x1, *uu1 = u1;
 	unsigned c1, c2;
 	int cc1;
 	for (;;) {
@@ -496,7 +490,6 @@ skip_discr:
 		if (c1 != c2)
 			return 0;
 		if (c1 == ' ') {
-			unsigned char *x1;
 			do {
 				x1 = u1;
 				GET_UTF_8(u1, c1);

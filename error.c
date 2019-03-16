@@ -28,5 +28,5 @@ unsigned char *memacpy(const unsigned char *src, size_t len)
 
 unsigned char *stracpy(const unsigned char *src)
 {
-	return src ? memacpy(src, src != DUMMY ? strlen((const char *)src) : 0) : NULL;
+	return src ? memacpy(src, src != DUMMY ? strlen((char *)src) : 0) : NULL;
 }
