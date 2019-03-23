@@ -576,7 +576,7 @@ struct connection {
 	struct remaining_info prg;
 	struct timer *timer;
 	int detached;
-	unsigned char socks_proxy[MAX_STR_LEN];
+	char socks_proxy[MAX_STR_LEN];
 	unsigned char dns_append[MAX_STR_LEN];
 	struct lookup_state last_lookup_state;
 	links_ssl *ssl;

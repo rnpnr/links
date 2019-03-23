@@ -484,7 +484,7 @@ static void run_connection(struct connection *c)
 		c->socks_proxy[0] = 0;
 		c->dns_append[0] = 0;
 	} else {
-		safe_strncpy(c->socks_proxy, proxies.socks_proxy,
+		safe_strncpy((unsigned char *)c->socks_proxy, proxies.socks_proxy,
 			sizeof(c->socks_proxy));
 		safe_strncpy(c->dns_append, proxies.dns_append,
 			sizeof(c->dns_append));

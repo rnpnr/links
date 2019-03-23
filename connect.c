@@ -100,19 +100,20 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	int socks_port = -1;
 	int as;
 	unsigned char *host;
+	char *p;
 	size_t sl;
 	struct conn_info *b;
 	if (*c->socks_proxy) {
-		unsigned char *p = cast_uchar strchr(cast_const_char c->socks_proxy, '@');
+		p = strchr(c->socks_proxy, '@');
 		if (p) p++;
 		else p = c->socks_proxy;
-		host = stracpy(p);
+		host = (unsigned char *)strdup(p);
 		socks_port = 1080;
-		if ((p = cast_uchar strchr(cast_const_char host, ':'))) {
+		if ((p = strchr(cast_const_char host, ':'))) {
 			long lp;
 			*p++ = 0;
 			if (!*p) goto badu;
-			lp = strtol(cast_const_char p, (char **)(void *)&p, 10);
+			lp = strtol(p, &p, 10);
 			if (*p || lp <= 0 || lp >= 65536) {
 				badu:
 				free(host);
@@ -340,12 +341,11 @@ static void ssl_downgrade_dance(struct connection *c)
 static void ssl_want_io(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
-	int ret1, ret2;
 	struct conn_info *b = c->newconn;
 
 	set_connection_timeout(c);
 
-	switch ((ret2 = SSL_get_error(c->ssl->ssl, ret1 = SSL_connect(c->ssl->ssl)))) {
+	switch (SSL_get_error(c->ssl->ssl, SSL_connect(c->ssl->ssl))) {
 		case SSL_ERROR_NONE:
 			connected_callback(c);
 			break;
@@ -357,7 +357,6 @@ static void ssl_want_io(void *c_)
 			break;
 		default:
 			ssl_downgrade_dance(c);
-			break;
 	}
 }
 
@@ -375,8 +374,8 @@ static void handle_socks(void *c_)
 	add_chr_to_str(&command, &len, b->l.target_port >> 8);
 	add_chr_to_str(&command, &len, b->l.target_port);
 	add_bytes_to_str(&command, &len, cast_uchar "\000\000\000\001", 4);
-	if (strchr(cast_const_char c->socks_proxy, '@'))
-		add_bytes_to_str(&command, &len, c->socks_proxy, strcspn(cast_const_char c->socks_proxy, "@"));
+	if (strchr(c->socks_proxy, '@'))
+		add_bytes_to_str(&command, &len, (unsigned char *)c->socks_proxy, strcspn(c->socks_proxy, "@"));
 	add_chr_to_str(&command, &len, 0);
 	if (!(host = get_host_name(c->url))) {
 		free(command);
@@ -607,14 +606,12 @@ static void connected(void *c_)
 		return;
 	}
 	if (c->ssl) {
-		int ret1, ret2;
 		unsigned char *orig_url = remove_proxy_prefix(c->url);
 		unsigned char *h = get_host_name(orig_url);
 		if (*h && h[strlen(cast_const_char h) - 1] == '.')
 			h[strlen(cast_const_char h) - 1] = 0;
 		c->ssl = getSSL();
 		if (!c->ssl) {
-			ret1 = ret2 = 0;
 			free(h);
 			goto ssl_error;
 		}
@@ -648,7 +645,7 @@ static void connected(void *c_)
 skip_numeric_address:
 #endif
 		free(h);
-		switch ((ret2 = SSL_get_error(c->ssl->ssl, ret1 = SSL_connect(c->ssl->ssl)))) {
+		switch (SSL_get_error(c->ssl->ssl, SSL_connect(c->ssl->ssl))) {
 			case SSL_ERROR_WANT_READ:
 				setcstate(c, S_SSL_NEG);
 				set_handlers(*b->sock, ssl_want_io, NULL, c);
@@ -686,6 +683,7 @@ static void update_dns_priority(struct connection *c)
 
 static void connected_callback(struct connection *c)
 {
+	int flags;
 	struct conn_info *b = c->newconn;
 	update_dns_priority(c);
 	if (c->ssl) {
@@ -694,7 +692,7 @@ static void connected_callback(struct connection *c)
 			int err = verify_ssl_certificate(c->ssl, h);
 			if (err) {
 				if (ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
-					int flags = get_blacklist_flags(h);
+					flags = get_blacklist_flags(h);
 					if (flags & BL_IGNORE_CERTIFICATE)
 						goto ignore_cert;
 				}
@@ -707,7 +705,7 @@ static void connected_callback(struct connection *c)
 
 			if (c->no_tls) {
 				if (ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
-					int flags = get_blacklist_flags(h);
+					flags = get_blacklist_flags(h);
 					if (flags & BL_IGNORE_DOWNGRADE)
 						goto ignore_downgrade;
 				}
@@ -721,7 +719,7 @@ static void connected_callback(struct connection *c)
 			err = verify_ssl_cipher(c->ssl);
 			if (err) {
 				if (ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
-					int flags = get_blacklist_flags(h);
+					flags = get_blacklist_flags(h);
 					if (flags & BL_IGNORE_CIPHER)
 						goto ignore_cipher;
 				}
@@ -762,9 +760,6 @@ static void write_select(void *c_)
 		return;
 	}
 	set_connection_timeout(c);
-	/*printf("ws: %d\n",wb->len-wb->pos);
-	for (wr = wb->pos; wr < wb->len; wr++) printf("%c", wb->data[wr]);
-	printf("-\n");*/
 
 	if (c->ssl) {
 		set_handlers(wb->sock, NULL, write_select, c);
