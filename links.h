@@ -115,9 +115,9 @@ extern int F;
 }									\
 
 void die(const char *, ...);
+void usage(void);
 void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
-void usage(void);
 #define internal die
 #define error die
 #define fatal_exit die
@@ -1474,7 +1474,6 @@ struct terminal {
 	chr *screen;
 	chr *last_screen;
 	struct term_spec *spec;
-	int default_character_set;
 	int cx;
 	int cy;
 	int lcx;
@@ -1531,9 +1530,7 @@ extern struct list_head terminals;
 
 static inline int term_charset(struct terminal *term)
 {
-	if (term->spec->character_set >= 0)
-		return term->spec->character_set;
-	return term->default_character_set;
+	return 0;
 }
 
 int hard_write(int, const unsigned char *, int);
@@ -2862,10 +2859,7 @@ static inline int utf8chrlen(unsigned char c)
 static inline unsigned GET_TERM_CHAR(struct terminal *term, unsigned char **str)
 {
 	unsigned ch;
-	if (!term_charset(term))
-		GET_UTF_8(*str, ch);
-	else
-		ch = *(*str)++;
+	GET_UTF_8(*str, ch);
 	return ch;
 }
 

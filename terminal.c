@@ -481,7 +481,7 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 static int process_utf_8(struct terminal *term, struct links_event *ev)
 {
 	if (ev->ev == EV_KBD) {
-		if ((!F && !term_charset(term))
+		if (!F
 #ifdef G
 		|| (F && !(drv->flags & GD_UNICODE_KEYS) && !g_kbd_codepage(drv))
 #endif
@@ -540,7 +540,6 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	term->environment = !(drv->flags & GD_ONLY_1_WINDOW) ? ENV_G : 0;
 	if (!casestrcmp(drv->name, cast_uchar "x")) term->environment |= ENV_XWIN;
 	term->spec = &gfx_term;
-	term->default_character_set = 0;
 	safe_strncpy(term->cwd, cwd, MAX_CWD_LEN);
 	gfx_term.character_set = 0;
 	if (gfx_term.character_set == -1) gfx_term.character_set = 0;
@@ -694,7 +693,6 @@ static void in_term(void *term_)
 		memcpy(term->cwd, iq + sizeof(struct links_event) + MAX_TERM_LEN, MAX_CWD_LEN);
 		term->cwd[MAX_CWD_LEN - 1] = 0;
 		term->environment = *(int *)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN);
-		term->default_character_set = *(int *)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + sizeof(int));
 		ev->b = (long)(iq + sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + 2 * sizeof(int));
 		r = (int)sizeof(struct links_event) + MAX_TERM_LEN + MAX_CWD_LEN + 3 * (int)sizeof(int) + init_len;
 		sync_term_specs();
@@ -804,9 +802,8 @@ static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmlln
 		if (attrib & 0100) add_to_str(&a, &l, cast_uchar ";1");	\
 		add_to_str(&a, &l, cast_uchar "m");			\
 	}								\
-	if (c >= ' ' && c != 127 && (c != 155 ||			\
-	    (term_charset(term) && cp2u(155, term_charset(term)) != -1))) {\
-		if (c < 128 || frm || term_charset(term)) {		\
+	if (c >= ' ' && c != 127 && c != 155) {				\
+		if (c < 128 || frm) {					\
 			add_chr_to_str(&a, &l, (unsigned char)c);	\
 		} else {						\
 		/*							\

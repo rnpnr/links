@@ -541,7 +541,7 @@ static unsigned char *cp_rd(struct option *o, unsigned char *c)
 
 static void cp_wr(struct option *o, unsigned char **s, int *l)
 {
-	unsigned char *n = get_cp_mime_name(*(int *)o->ptr);
+	unsigned char *n = get_cp_mime_name(0);
 	add_nm(o, s, l);
 	add_to_str(s, l, n);
 }

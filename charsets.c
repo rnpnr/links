@@ -52,22 +52,8 @@ static const unsigned char strings[256][2] = {
 
 static const unsigned char no_str[] = "*";
 
-static int is_nbsp(int u)
-{
-	return u == 0xa0 || u == 0x202f;
-}
-
 unsigned char *u2cp(int u)
 {
-	if (u < 0)
-		return (unsigned char *)"";
-	if (u < 128)
-		return (unsigned char *)strings[u];
-	if (is_nbsp(u))
-		return (unsigned char *)strings[1];
-	if (u == 0xad)
-		return (unsigned char *)strings[0];
-
 	return encode_utf_8(u);
 }
 
@@ -402,8 +388,6 @@ unsigned char *get_cp_name(int index)
 
 unsigned char *get_cp_mime_name(int index)
 {
-	if (index < 0)
-		return (unsigned char *)"none";
 	if (!codepages[index].aliases)
 		return NULL;
 	return (unsigned char *)codepages[index].aliases[0];
