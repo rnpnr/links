@@ -2983,7 +2983,7 @@ extern struct cached_image *global_cimg;
 /* Below are internal functions shared with imgcache.c, gif.c, and xbm.c */
 int header_dimensions_known(struct cached_image *cimg);
 void img_end(struct cached_image *cimg);
-void compute_background_8(unsigned char *rgb, struct cached_image *cimg);
+void compute_background_8(struct cached_image *cimg, unsigned char rgb[3]);
 void buffer_to_bitmap_incremental(struct cached_image *cimg
 	,unsigned char *buffer, int height, int yoff, int *dregs, int use_strip);
 

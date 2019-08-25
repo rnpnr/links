@@ -163,7 +163,7 @@ static int height2width(double height_px, double width_mm, double height_mm)
 
 /* Compute 8-bit background for filling buffer with cimg->*_gamma
  * (performs rounding) */
-void compute_background_8(unsigned char *rgb, struct cached_image *cimg)
+void compute_background_8(struct cached_image *cimg, unsigned char rgb[3])
 {
 	unsigned short red, green, blue;
 
@@ -330,7 +330,7 @@ int header_dimensions_known(struct cached_image *cimg)
 				unsigned char rgb[3];
 
 				/* 8-bit */
-				compute_background_8(rgb, cimg);
+				compute_background_8(cimg, rgb);
 				mix_one_color_24(cimg->buffer,
 					cimg->width * cimg->height, rgb[0],
 					rgb[1], rgb[2]);

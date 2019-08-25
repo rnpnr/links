@@ -330,14 +330,11 @@ accept_byte(unsigned char c)
  * and the buffer must be formatted. */
 static void implant_transparent(struct gif_decoder *deco)
 {
-	if (deco->transparent>=0&&deco->transparent<(1<<deco->im_bpp)){
-		if (global_cimg->strip_optimized){
-			compute_background_8(deco->color_map+3*deco->transparent,
-				global_cimg);
-		}else{
-			memcpy(deco->color_map+3*deco->transparent
-				,deco->actual_line,3);
-	        }
+	if (deco->transparent >= 0 && deco->transparent < (1 << deco->im_bpp)) {
+		if (global_cimg->strip_optimized)
+			compute_background_8(global_cimg, deco->color_map + 3 * deco->transparent);
+		else
+			memcpy(deco->color_map + 3 * deco->transparent, deco->actual_line, 3);
 	}
 }
 
