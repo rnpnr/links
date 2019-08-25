@@ -286,7 +286,7 @@ http_bad_url:
 		c->unrestartable = 2;
 	}
 	if (!proxy) {
-		add_to_str(&hdr, &l, cast_uchar "/");
+		add_chr_to_str(&hdr, &l, '/');
 		u = get_url_data(host);
 	} else
 		u = host;
@@ -489,7 +489,7 @@ static void add_accept_charset(unsigned char **hdr, int *l, struct http_connecti
 		ac = init_str();
 		cs = get_cp_mime_name(0);
 		if (aclen)
-			add_to_str(&ac, &aclen, cast_uchar ",");
+			add_chr_to_str(&ac, &aclen, ',');
 		else
 			add_to_str(&ac, &aclen, cast_uchar "Accept-Charset: ");
 		add_to_str(&ac, &aclen, cs);

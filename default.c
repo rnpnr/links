@@ -20,9 +20,9 @@ static void get_system_name(void)
 			unsigned char *str = init_str();
 			int l = 0;
 			add_to_str(&str, &l, cast_uchar name.sysname);
-			add_to_str(&str, &l, cast_uchar " ");
+			add_chr_to_str(&str, &l, ' ');
 			add_to_str(&str, &l, cast_uchar name.release);
-			add_to_str(&str, &l, cast_uchar " ");
+			add_chr_to_str(&str, &l, ' ');
 			add_to_str(&str, &l, cast_uchar name.machine);
 			safe_strncpy(system_name, str, MAX_STR_LEN);
 			free(str);
@@ -429,7 +429,7 @@ static void add_nm(struct option *o, unsigned char **s, int *l)
 {
 	if (*l) add_to_str(s, l, cast_uchar "\n");
 	add_to_str(s, l, cast_uchar o->cfg_name);
-	add_to_str(s, l, cast_uchar " ");
+	add_chr_to_str(s, l, ' ');
 }
 
 static void add_quoted_to_str(unsigned char **s, int *l, unsigned char *q)
@@ -599,13 +599,13 @@ static void type_wr(struct option *o, unsigned char **s, int *l)
 		struct assoc *as = get_struct(a, struct assoc, head);
 		add_nm(o, s, l);
 		add_quoted_to_str(s, l, as->label);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_quoted_to_str(s, l, as->ct);
 		add_to_str(s, l, cast_uchar " ");
 		add_quoted_to_str(s, l, as->prog);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, (!!as->cons) + (!!as->xwin) * 2 + (!!as->ask) * 4 + (!as->block) * 8 + (!!as->block) * 16 + (!!as->accept_http) * 32 + (!!as->accept_ftp) * 64);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, as->system);
 	}
 }
@@ -633,7 +633,7 @@ static void ext_wr(struct option *o, unsigned char **s, int *l)
 		struct extension *e = get_struct(a, struct extension, head);
 		add_nm(o, s, l);
 		add_quoted_to_str(s, l, e->ext);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_quoted_to_str(s, l, e->ct);
 	}
 }
@@ -723,23 +723,23 @@ static void term_wr(struct option *o, unsigned char **s, int *l)
 	foreachback(struct term_spec, ts, lts, term_specs) {
 		add_nm(o, s, l);
 		add_quoted_to_str(s, l, ts->term);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, ts->mode);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, !!ts->m11_hack);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, !!ts->col + !!ts->restrict_852 * 2 + !!ts->block_cursor * 4);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		if (ts->character_set == -1) add_to_str(s, l, cast_uchar "default");
 		else add_to_str(s, l, get_cp_mime_name(ts->character_set));
 		if (ts->left_margin || ts->right_margin || ts->top_margin || ts->bottom_margin) {
-			add_to_str(s, l, cast_uchar " ");
+			add_chr_to_str(s, l, ' ');
 			add_num_to_str(s, l, ts->left_margin);
-			add_to_str(s, l, cast_uchar " ");
+			add_chr_to_str(s, l, ' ');
 			add_num_to_str(s, l, ts->right_margin);
-			add_to_str(s, l, cast_uchar " ");
+			add_chr_to_str(s, l, ' ');
 			add_num_to_str(s, l, ts->top_margin);
-			add_to_str(s, l, cast_uchar " ");
+			add_chr_to_str(s, l, ' ');
 			add_num_to_str(s, l, ts->bottom_margin);
 		}
 	}
@@ -805,14 +805,14 @@ static void dp_wr(struct option *o, unsigned char **s, int *l)
 		if (dp->nosave) continue;
 		add_nm(o, s, l);
 		add_quoted_to_str(s, l, dp->name);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_quoted_to_str(s, l, dp->param ? dp->param : (unsigned char*)"");
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_quoted_to_str(s, l, dp->shell_term);
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		if (dp->kbd_codepage == -1) add_to_str(s, l, cast_uchar "default");
 		else add_to_str(s, l, get_cp_mime_name(dp->kbd_codepage));
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, dp->palette_mode);
 		/* pokud se sem neco prida, opravit podminku na zacatku cyklu */
 	}

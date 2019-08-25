@@ -397,24 +397,24 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 #else
 	add_to_str(s, l, cast_uchar "LibEvent");
 #endif
-	add_to_str(s, l, cast_uchar " ");
+	add_chr_to_str(s, l, ' ');
 	{
 #if defined(HAVE_LIBEV)
 				/* old libev report bogus version */
 		if (!casestrcmp(cast_uchar event_get_version(), cast_uchar "EV_VERSION_MAJOR.EV_VERSION_MINOR")) {
 			add_num_to_str(s, l, ev_version_major());
-			add_to_str(s, l, cast_uchar ".");
+			add_chr_to_str(s, l, '.');
 			add_num_to_str(s, l, ev_version_minor());
 		} else
 #endif
 		add_to_str(s, l, cast_uchar event_get_version());
 	}
 	if (!event_enabled) {
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_to_str(s, l, get_text_translation(TEXT_(T_dISABLED), term));
-		add_to_str(s, l, cast_uchar ")");
+		add_chr_to_str(s, l, ')');
 	} else {
-		add_to_str(s, l, cast_uchar " ");
+		add_chr_to_str(s, l, ' ');
 		add_to_str(s, l, cast_uchar event_base_get_method(event_base));
 	}
 }

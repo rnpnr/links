@@ -185,7 +185,7 @@ void add_png_version(unsigned char **s, int *l)
 {
 	add_to_str(s, l, cast_uchar "PNG (");
 	add_to_str(s, l, cast_uchar png_get_libpng_ver(NULL));
-	add_to_str(s, l, cast_uchar ")");
+	add_chr_to_str(s, l, ')');
 }
 
 #endif /* #ifdef G */

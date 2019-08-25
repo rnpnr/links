@@ -219,7 +219,7 @@ ok:
 					add_to_str(s, l, cast_uchar "; ");
 				add_to_str(s, l, c->name);
 				if (c->value) {
-					add_to_str(s, l, cast_uchar "=");
+					add_chr_to_str(s, l, '=');
 					add_to_str(s, l, c->value);
 				}
 			}

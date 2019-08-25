@@ -360,14 +360,14 @@ void file_func(struct connection *c)
 			add_to_str(&file, &fl, cast_uchar "<a href=\"./");
 			add_conv_str(&file, &fl, dir[i].f, (int)strlen(cast_const_char dir[i].f), 1);
 			if (dir[i].s[0] == 'd')
-				add_to_str(&file, &fl, cast_uchar "/");
+				add_chr_to_str(&file, &fl, '/');
 			else if (lnk) {
 				struct stat st;
 				unsigned char *n = stracpy(name);
 				add_to_strn(&n, dir[i].f);
 				EINTRLOOP(rs, stat(cast_const_char n, &st));
 				if (!rs && S_ISDIR(st.st_mode))
-					add_to_str(&file, &fl, cast_uchar "/");
+					add_chr_to_str(&file, &fl, '/');
 				free(n);
 			}
 			add_to_str(&file, &fl, cast_uchar "\">");

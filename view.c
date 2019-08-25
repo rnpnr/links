@@ -1551,12 +1551,16 @@ static void encode_controls(struct list_head *l, unsigned char **data, int *len,
 	*data = init_str();
 	foreach(struct submitted_value, sv, lsv, *l) {
 		unsigned char *p = sv->value;
-		if (lst) add_to_str(data, len, cast_uchar "&"); else lst = 1;
+		if (lst)
+			add_chr_to_str(data, len, '&');
+		else
+			lst = 1;
 		encode_string(sv->name, data, len);
-		add_to_str(data, len, cast_uchar "=");
+		add_chr_to_str(data, len, '=');
 		if (sv->type == FC_TEXT || sv->type == FC_PASSWORD || sv->type == FC_TEXTAREA)
 			p2 = convert(cp_from, cp_to, p, NULL);
-		else p2 = stracpy(p);
+		else
+			p2 = stracpy(p);
 		encode_string(p2, data, len);
 		free(p2);
 	}
@@ -3474,7 +3478,7 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 				free(txt);
 			} else {
 				add_to_str(&m, &ll, get_text_translation(TEXT_(T_IMAGE), term));
-				add_to_str(&m, &ll, cast_uchar " ");
+				add_chr_to_str(&m, &ll, ' ');
 				d = display_url(term, l->where_img, 1);
 				add_to_str(&m, &ll, d);
 				free(d);
@@ -3485,7 +3489,7 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 			m = init_str();
 			ll = 0;
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_USEMAP), term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			d = display_url(term, l->where + 4, 1);
 			add_to_str(&m, &ll, d);
 			free(d);
@@ -3515,7 +3519,7 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 		ll = 0;
 		if (l->form->method == FM_GET) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SUBMIT_FORM_TO), term));
 		else add_to_str(&m, &ll, get_text_translation(TEXT_(T_POST_FORM_TO), term));
-		add_to_str(&m, &ll, cast_uchar " ");
+		add_chr_to_str(&m, &ll, ' ');
 		add_to_str(&m, &ll, l->form->action);
 		goto p;
 	}
@@ -3537,7 +3541,7 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_NAME),
 				term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			add_to_str(&m, &ll, l->form->name);
 		}
 		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
@@ -3546,17 +3550,17 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_VALUE),
 				term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			add_to_str(&m, &ll, l->form->default_value);
 		}
 				       /* pri enteru se bude posilat vzdycky   -- Brain */
 		if (l->type == L_FIELD && !has_form_submit(fd->f_data, l->form)  && l->form->action) {
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_HIT_ENTER_TO), term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			if (l->form->method == FM_GET) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SUBMIT_TO), term));
 			else add_to_str(&m, &ll, get_text_translation(TEXT_(T_POST_TO), term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			add_to_str(&m, &ll, l->form->action);
 		}
 		goto p;
@@ -3586,7 +3590,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 		ll = 0;
 		if (l->where && strlen(cast_const_char l->where) >= 4 && !casecmp(l->where, cast_uchar "MAP@", 4)) {
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_USEMAP), term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			d = display_url(term, l->where + 4, 1);
 			add_to_str(&m, &ll, d);
 			free(d);
@@ -3612,7 +3616,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			d = display_url(term, l->where_img, 1);
 			add_to_str(&m, &ll, d);
 			free(d);
-			add_to_str(&m, &ll, cast_uchar "'");
+			add_chr_to_str(&m, &ll, '\'');
 
 			if (l->img_alt)
 			{
@@ -3621,7 +3625,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 				add_to_str(&m, &ll, cast_uchar " alt='");
 				txt = convert(fd->f_data->cp, fd->f_data->opt.cp, l->img_alt, &fd->f_data->opt);
 				add_to_str(&m, &ll, txt);
-				add_to_str(&m, &ll, cast_uchar "'");
+				add_chr_to_str(&m, &ll, '\'');
 				free(txt);
 			}
 #ifdef G
@@ -3629,9 +3633,9 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			{
 				add_to_str(&m, &ll, cast_uchar " size='");
 				add_num_to_str(&m, &ll, l->obj->xw);
-				add_to_str(&m, &ll, cast_uchar "x");
+				add_chr_to_str(&m, &ll, 'x');
 				add_num_to_str(&m, &ll, l->obj->yw);
-				add_to_str(&m, &ll, cast_uchar "'");
+				add_chr_to_str(&m, &ll, '\'');
 			}
 #endif
 			goto p;
@@ -3655,7 +3659,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 		ll = 0;
 		if (l->form->method == FM_GET) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SUBMIT_FORM_TO), term));
 		else add_to_str(&m, &ll, get_text_translation(TEXT_(T_POST_FORM_TO), term));
-		add_to_str(&m, &ll, cast_uchar " ");
+		add_chr_to_str(&m, &ll, ' ');
 		add_to_str(&m, &ll, l->form->action);
 		goto p;
 	}
@@ -3677,7 +3681,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_NAME),
 				term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			add_to_str(&m, &ll, l->form->name);
 		}
 		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
@@ -3686,17 +3690,17 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_VALUE),
 				term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			add_to_str(&m, &ll, l->form->default_value);
 		}
 				       /* pri enteru se bude posilat vzdycky   -- Brain */
 		if (l->type == L_FIELD && !has_form_submit(fd->f_data, l->form)  && l->form->action) {
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll, get_text_translation(TEXT_(T_HIT_ENTER_TO), term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			if (l->form->method == FM_GET) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SUBMIT_TO), term));
 			else add_to_str(&m, &ll, get_text_translation(TEXT_(T_POST_TO), term));
-			add_to_str(&m, &ll, cast_uchar " ");
+			add_chr_to_str(&m, &ll, ' ');
 			add_to_str(&m, &ll, l->form->action);
 		}
 		goto p;
@@ -3758,11 +3762,11 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			if (enc) {
 				add_to_str(&s, &l, cast_uchar " (");
 				add_num_to_str(&s, &l, ce->length);
-				add_to_str(&s, &l, cast_uchar " ");
+				add_chr_to_str(&s, &l, ' ');
 				add_to_str(&s, &l, get_text_translation(TEXT_(T_COMPRESSED_WITH), term));
-				add_to_str(&s, &l, cast_uchar " ");
+				add_chr_to_str(&s, &l, ' ');
 				add_to_str(&s, &l, enc);
-				add_to_str(&s, &l, cast_uchar ")");
+				add_chr_to_str(&s, &l, ')');
 				free(enc);
 			}
 		} else {
@@ -3771,7 +3775,7 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		if (ce->incomplete) {
 			add_to_str(&s, &l, cast_uchar " (");
 			add_to_str(&s, &l, get_text_translation(TEXT_(T_INCOMPLETE), term));
-			add_to_str(&s, &l, cast_uchar ")");
+			add_chr_to_str(&s, &l, ')');
 		}
 		if (frame->f_data->ass >= 0) {
 			add_to_str(&s, &l, cast_uchar "\n");
@@ -3781,12 +3785,12 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			if (frame->f_data->ass == 1) {
 				add_to_str(&s, &l, cast_uchar " (");
 				add_to_str(&s, &l, get_text_translation(TEXT_(T_ASSUMED), term));
-				add_to_str(&s, &l, cast_uchar ")");
+				add_chr_to_str(&s, &l, ')');
 			}
 			if (frame->f_data->ass == 2) {
 				add_to_str(&s, &l, cast_uchar " (");
 				add_to_str(&s, &l, get_text_translation(TEXT_(T_IGNORING_SERVER_SETTING), term));
-				add_to_str(&s, &l, cast_uchar ")");
+				add_chr_to_str(&s, &l, ')');
 			}
 		}
 		if (ce->head && ce->head[0] != '\n' && ce->head[0] != '\r' && (a = parse_http_header(ce->head, cast_uchar "Content-Type", NULL))) {

@@ -767,9 +767,9 @@ static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmlln
 {									\
 	add_to_str(&a, &l, cast_uchar "\033[");				\
 	add_num_to_str(&a, &l, (y) + 1 + term->top_margin);		\
-	add_to_str(&a, &l, cast_uchar ";");				\
+	add_chr_to_str(&a, &l, ';');					\
 	add_num_to_str(&a, &l, (x) + 1 + term->left_margin);		\
-	add_to_str(&a, &l, cast_uchar "H");				\
+	add_chr_to_str(&a, &l, 'H');					\
 	n_chars = 0;							\
 }
 
@@ -800,7 +800,7 @@ static unsigned char frame_vt100[49] =	"aaaxuuukkuxkjjjkmvwtqnttmlvwtqnvvwwmmlln
 		} else if (getcompcode(attrib & 7) < getcompcode(attrib >> 3 & 7))\
 			add_to_str(&a, &l, cast_uchar ";7");		\
 		if (attrib & 0100) add_to_str(&a, &l, cast_uchar ";1");	\
-		add_to_str(&a, &l, cast_uchar "m");			\
+		add_chr_to_str(&a, &l, 'm');				\
 	}								\
 	if (c >= ' ' && c != 127 && c != 155) {				\
 		if (c < 128 || frm) {					\
@@ -898,9 +898,9 @@ static void redraw_screen(struct terminal *term)
 		term->lcy = term->cy;
 		add_to_str(&a, &l, cast_uchar "\033[");
 		add_num_to_str(&a, &l, term->cy + 1 + term->top_margin);
-		add_to_str(&a, &l, cast_uchar ";");
+		add_chr_to_str(&a, &l, ';');
 		add_num_to_str(&a, &l, term->cx + 1 + term->left_margin);
-		add_to_str(&a, &l, cast_uchar "H");
+		add_chr_to_str(&a, &l, 'H');
 	}
 	hard_write(term->fdout, a, l);
 	free(a);

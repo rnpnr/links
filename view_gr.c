@@ -1399,7 +1399,7 @@ static void get_searched_sub(struct g_object *p, struct g_object *c)
 	if (c->get_list) c->get_list(c, get_searched_sub);
 	if (c->draw == g_line_draw) {
 		if (srch_f_data->srch_string_size && srch_f_data->srch_string[srch_f_data->srch_string_size - 1] != ' ')
-			add_to_str(&srch_f_data->srch_string, &srch_f_data->srch_string_size, cast_uchar " ");
+			add_chr_to_str(&srch_f_data->srch_string, &srch_f_data->srch_string_size, ' ');
 	}
 }
 

@@ -408,14 +408,14 @@ void add_jpeg_version(unsigned char **s, int *l)
 #endif
 #if defined(JPEG_LIB_VERSION_MAJOR) && defined(JPEG_LIB_VERSION_MINOR)
 	add_num_to_str(s, l, JPEG_LIB_VERSION_MAJOR);
-	add_to_str(s, l, cast_uchar ".");
+	add_chr_to_str(s, l, '.');
 	add_num_to_str(s, l, JPEG_LIB_VERSION_MINOR);
 #else
 	add_num_to_str(s, l, JPEG_LIB_VERSION / 10);
-	add_to_str(s, l, cast_uchar ".");
+	add_chr_to_str(s, l, '.');
 	add_num_to_str(s, l, JPEG_LIB_VERSION % 10);
 #endif
-	add_to_str(s, l, cast_uchar ")");
+	add_chr_to_str(s, l, ')');
 }
 
 #endif /* #ifdef HAVE_JPEG */

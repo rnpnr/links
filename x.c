@@ -646,7 +646,7 @@ static void x_update_driver_param(int w, int h)
 	free(x_driver_param);
 	x_driver_param = init_str();
 	add_num_to_str(&x_driver_param, &l, x_default_window_width);
-	add_to_str(&x_driver_param, &l ,cast_uchar "x");
+	add_chr_to_str(&x_driver_param, &l, 'x');
 	add_num_to_str(&x_driver_param, &l, x_default_window_height);
 }
 
