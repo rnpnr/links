@@ -186,24 +186,22 @@ static unsigned char *create_config_string(struct option *options)
 	return s;
 }
 
-#define FILE_BUF	1024
-
-static unsigned char cfg_buffer[FILE_BUF];
-
 unsigned char *read_config_file(unsigned char *name)
 {
 	int h, r;
 	int l = 0;
-	unsigned char *s;
+	unsigned char *cfg_buffer, *s;
 	int rs;
 	h = c_open(name, O_RDONLY | O_NOCTTY);
 	if (h == -1) return NULL;
 	s = init_str();
-	while ((r = hard_read(h, cfg_buffer, FILE_BUF)) > 0) {
+	cfg_buffer = xmalloc(page_size);
+	while ((r = hard_read(h, cfg_buffer, page_size)) > 0) {
 		int i;
 		for (i = 0; i < r; i++) if (!cfg_buffer[i]) cfg_buffer[i] = ' ';
 		add_bytes_to_str(&s, &l, cfg_buffer, r);
 	}
+	free(cfg_buffer);
 	if (r == -1) {
 		free(s);
 		s = NULL;
@@ -472,7 +470,7 @@ static void num_wr(struct option *o, unsigned char **s, int *l)
 static unsigned char *dbl_rd(struct option *o, unsigned char *c)
 {
 	unsigned char *tok = get_token(&c);
-	unsigned char *end;
+	char *end;
 	double d;
 
 	if (!tok) return cast_uchar "Missing argument";
@@ -482,7 +480,7 @@ static unsigned char *dbl_rd(struct option *o, unsigned char *c)
 		return cast_uchar "Number is too long";
 	}
 
-	d = strtod(cast_const_char tok, (char **)(void *)&end);
+	d = strtod(cast_const_char tok, &end);
 
 	if (*end) {
 		free(tok);
@@ -510,7 +508,7 @@ static unsigned char *str_rd(struct option *o, unsigned char *c)
 {
 	unsigned char *tok = get_token(&c);
 	unsigned char *e = NULL;
-	if (!tok) return NULL;
+	if (!tok) tok = stracpy(cast_uchar "");
 	if (strlen(cast_const_char tok) + 1 > (size_t)o->max) e = cast_uchar "String too long";
 	else strcpy(cast_char o->ptr, cast_const_char tok);
 	free(tok);
@@ -548,8 +546,8 @@ static void cp_wr(struct option *o, unsigned char **s, int *l)
 
 static int getnum(unsigned char *s, int *n, int r1, int r2)
 {
-	unsigned char *e;
-	long l = strtol(cast_const_char s, (char **)(void *)&e, 10);
+	char *e;
+	long l = strtol(cast_const_char s, &e, 10);
 	if (*e || !*s) return -1;
 	if (l < r1 || l >= r2) return -1;
 	*n = (int)l;
@@ -1170,9 +1168,17 @@ static struct option html_options[] = {
 
 static struct option *all_options[] = { links_options, html_options, NULL, };
 
-unsigned char *parse_options(int argc, unsigned char *argv[])
+unsigned char *parse_options(int argc, char *argv[])
 {
-	return p_arse_options(argc, argv, all_options);
+	int i;
+	unsigned char **u_argv, *ret;
+	if ((argc * sizeof(unsigned char *)) > INT_MAX) overalloc();
+	u_argv = xmalloc(argc * sizeof(unsigned char *));
+	for (i = 0; i < argc; i++)
+		u_argv[i] = cast_uchar argv[i];
+	ret = p_arse_options(argc, u_argv, all_options);
+	free(u_argv);
+	return ret;
 }
 
 static void load_config_file(unsigned char *prefix, unsigned char *name)

@@ -7,6 +7,8 @@
 
 #include <sys/ioctl.h>
 
+int page_size = 4096;
+
 int is_safe_in_shell(unsigned char c)
 {
 	return c == '@' || c == '+' || c == '-' || c == '.' || c == ',' || c == '=' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z');
@@ -49,16 +51,16 @@ int check_shell_url(unsigned char *url)
 	return 0;
 }
 
-unsigned char *escape_path(unsigned char *path)
+unsigned char *escape_path(char *path)
 {
 	unsigned char *result;
 	size_t i;
-	if (strchr(cast_const_char path, '"')) return stracpy(path);
+	if (strchr(path, '"')) return stracpy(cast_uchar path);
 	for (i = 0; path[i]; i++) if (!is_safe_in_url(path[i])) goto do_esc;
-	return stracpy(path);
+	return stracpy(cast_uchar path);
 	do_esc:
 	result = stracpy(cast_uchar "\"");
-	add_to_strn(&result, path);
+	add_to_strn(&result, cast_uchar path);
 	add_to_strn(&result, cast_uchar "\"");
 	return result;
 }
@@ -69,6 +71,13 @@ static int get_e(const char *env)
 	if ((v = getenv(env)))
 		return atoi(v);
 	return 0;
+}
+
+void init_page_size(void) {
+	long getpg = -1;
+	if (getpg < 0)
+		getpg = getpagesize();
+	if (getpg > 0 && !(getpg & (getpg - 1))) page_size = (int)getpg;
 }
 
 void do_signal(int sig, void (*handler)(int))
@@ -121,28 +130,34 @@ void os_free_clipboard(void)
 
 /* Terminal size */
 
+static void (*terminal_resize_callback)(int, int);
+
 #ifdef SIGWINCH
 static void sigwinch(void *s)
 {
-	((void (*)(void))s)();
+	int cur_xsize, cur_ysize;
+	get_terminal_size(&cur_xsize, &cur_ysize);
+	terminal_resize_callback(cur_xsize, cur_ysize);
 }
 #endif
 
-void handle_terminal_resize(int fd, void (*fn)(void))
+void handle_terminal_resize(void (*fn)(int, int), int *x, int *y)
 {
-#ifdef SIGWINCH
-	install_signal_handler(SIGWINCH, sigwinch, (void *)fn, 0);
+	terminal_resize_callback = fn;
+	get_terminal_size(x, y);
+#if defined(SIGWINCH)
+	install_signal_handler(SIGWINCH, sigwinch, NULL, 0);
 #endif
 }
 
-void unhandle_terminal_resize(int fd)
+void unhandle_terminal_resize(void)
 {
-#ifdef SIGWINCH
+#if defined(SIGWINCH)
 	install_signal_handler(SIGWINCH, NULL, NULL, 0);
 #endif
 }
 
-int get_terminal_size(int fd, int *x, int *y)
+void get_terminal_size(int *x, int *y)
 {
 	int rs = -1;
 #ifdef TIOCGWINSZ
@@ -163,7 +178,6 @@ int get_terminal_size(int fd, int *x, int *y)
 		) && !(*y = get_e("LINES"))) {
 		*y = 24;
 	}
-	return 0;
 }
 
 static void new_fd_cloexec(int fd)
@@ -191,66 +205,88 @@ void set_nonblock(int fd)
 #endif
 }
 
-int c_pipe(int *fd)
+static int cleanup_fds(void)
+{
+#ifdef ENFILE
+	if (errno == ENFILE) return abort_background_connections();
+#endif
+#ifdef EMFILE
+	if (errno == EMFILE) return abort_background_connections();
+#endif
+	return 0;
+}
+
+int c_pipe(int fd[2])
 {
 	int r;
-	EINTRLOOP(r, pipe(fd));
-	if (!r) {
-		new_fd_bin(fd[0]);
-		new_fd_bin(fd[1]);
-	}
+	do {
+		EINTRLOOP(r, pipe(fd));
+		if (!r) new_fd_bin(fd[0]), new_fd_bin(fd[1]);
+	} while (r == -1 && cleanup_fds());
 	return r;
 }
 
 int c_dup(int oh)
 {
 	int h;
-	EINTRLOOP(h, dup(oh));
-	if (h != -1) new_fd_cloexec(h);
+	do {
+		EINTRLOOP(h, dup(oh));
+		if (h != -1) new_fd_cloexec(h);
+	} while (h == -1 && cleanup_fds());
 	return h;
 }
 
 int c_socket(int d, int t, int p)
 {
 	int h;
-	EINTRLOOP(h, socket(d, t, p));
-	if (h != -1) new_fd_cloexec(h);
+	do {
+		EINTRLOOP(h, socket(d, t, p));
+		if (h != -1) new_fd_cloexec(h);
+	} while (h == -1 && cleanup_fds());
 	return h;
 }
 
-int c_accept(int h, struct sockaddr *addr, socklen_t *addrlen)
+int c_accept(int sh, struct sockaddr *addr, socklen_t *addrlen)
 {
-	int rh;
-	EINTRLOOP(rh, accept(h, addr, addrlen));
-	if (rh != -1) new_fd_cloexec(rh);
-	return rh;
+	int h;
+	do {
+		EINTRLOOP(h, accept(sh, addr, addrlen));
+		if (h != -1) new_fd_cloexec(h);
+	} while (h == -1 && cleanup_fds());
+	return h;
 }
 
 int c_open(unsigned char *path, int flags)
 {
 	int h;
-	EINTRLOOP(h, open(cast_const_char path, flags));
-	if (h != -1) new_fd_bin(h);
+	do {
+		EINTRLOOP(h, open(cast_const_char path, flags));
+		if (h != -1) new_fd_bin(h);
+	} while (h == -1 && cleanup_fds());
 	return h;
 }
 
 int c_open3(unsigned char *path, int flags, int mode)
 {
 	int h;
-	EINTRLOOP(h, open(cast_const_char path, flags, mode));
-	if (h != -1) new_fd_bin(h);
+	do {
+		EINTRLOOP(h, open(cast_const_char path, flags, mode));
+		if (h != -1) new_fd_bin(h);
+	} while (h == -1 && cleanup_fds());
 	return h;
 }
 
 DIR *c_opendir(unsigned char *path)
 {
 	DIR *d;
-	ENULLLOOP(d, opendir(cast_const_char path));
-	if (d) {
-		int h;
-		EINTRLOOP(h, dirfd(d));
-		if (h != -1) new_fd_cloexec(h);
-	}
+	do {
+		ENULLLOOP(d, opendir(cast_const_char path));
+		if (d) {
+			int h;
+			EINTRLOOP(h, dirfd(d));
+			if (h != -1) new_fd_cloexec(h);
+		}
+	} while (!d && cleanup_fds());
 	return d;
 }
 

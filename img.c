@@ -543,9 +543,9 @@ static void buffer_to_bitmap(struct cached_image *cimg)
 	} else {
 		if (tmp) {
 			if (dither_images)
-				dither(tmp,&(cimg->bmp));
+				dither(tmp, &cimg->bmp);
 			else
-				(*round_fn)(tmp,&(cimg->bmp));
+				(*round_fn)(tmp, &cimg->bmp);
 			free(tmp);
 		} else {
 			int i;
@@ -706,14 +706,15 @@ static void type(struct cached_image *cimg, unsigned char *content_type, unsigne
  */
 static int img_process_download(struct g_object_image *goi, struct f_data_c *fdatac)
 {
-	unsigned char *data, *dataend, *ctype;
-	int length;
+	unsigned char *data, *ctype;
+	size_t total_len;
 	struct cached_image *cimg = goi->cimg;
 	int chopped=0;
 
 	if (!goi->af->rq) return 0;
-	if (get_file(goi->af->rq, &data, &dataend)) goto end;
-	if (dataend - data < 4) goto end;
+	if (get_file(goi->af->rq, &data, &total_len)) goto end;
+	if (total_len < 4) goto end;
+	if (total_len > INT_MAX) total_len = INT_MAX;
 	/*fprintf(stderr, "processing: %s\n", goi->af->rq->ce->url);*/
 	if (goi->af->rq->ce->count2!=cimg->last_count2||
 		(goi->af->rq->ce->count!=cimg->last_count && cimg->eof_hit) ||
@@ -737,7 +738,7 @@ static int img_process_download(struct g_object_image *goi, struct f_data_c *fda
 	 */
 
 	if (!((cimg->state^8)&9)){
-		length = (int)(dataend - data);
+		int length = (int)total_len;
 		if (length<=cimg->last_length) goto end; /* No new data */
 
 		data+=cimg->last_length;
@@ -865,26 +866,41 @@ static void draw_frame_mark(struct graphics_device *dev, int x, int y, int xw, i
 	}
 }
 
+static long image_backgronud(struct cached_image *cimg)
+{
+	if (!cimg) return dip_get_color_sRGB(0x00c0c0c0);
+	return dip_get_color_sRGB(cimg->background_color);
+}
+
+static long image_foregronud(struct cached_image *cimg)
+{
+	if (!cimg) return dip_get_color_sRGB(0x00000000);
+	return dip_get_color_sRGB(get_foreground(cimg->background_color));
+}
+
 /* Entry is allowed only in states 12, 13, 14, 15
  * Draws the picture from bitmap.
  * Before doing so, ensures that bitmap is present and if not, converts it from
  * the buffer.
  */
-static void draw_picture(struct f_data_c *fdatac, struct g_object_image *goi,
-		int x, int y, long bg)
+static void draw_picture(struct f_data_c *fdatac, struct g_object_image *goi, int x, int y)
 {
-	struct graphics_device *dev=fdatac->ses->term->dev;
-	struct cached_image *cimg=goi->cimg;
+	struct graphics_device *dev = fdatac->ses->term->dev;
+	struct cached_image *cimg = goi->cimg;
 	struct rect saved;
 
-	if (!(cimg->state&1)){
+	if (!(cimg->state & 1)) {
 		if (!cimg->bmp_used)
 			buffer_to_bitmap(cimg);
 	}
-	restrict_clip_area(dev, &saved, x, y, x+goi->goti.go.xw, y+goi->goti.go.yw);
-	drv->draw_bitmap(dev, &cimg->bmp,x,y);
-	drv->fill_area(dev, x + cimg->bmp.x, y, x + goi->goti.go.xw, y + cimg->bmp.y, bg);
-	drv->fill_area(dev, x, y + cimg->bmp.y, x + goi->goti.go.xw, y + goi->goti.go.yw,bg);
+	restrict_clip_area(dev, &saved, x, y, x + goi->goti.go.xw, y + goi->goti.go.yw);
+	drv->draw_bitmap(dev, &cimg->bmp, x, y);
+	if (cimg->bmp.x < goi->goti.go.xw
+	|| cimg->bmp.y < goi->goti.go.yw) {
+		long bg = image_backgronud(cimg);
+		drv->fill_area(dev, x + cimg->bmp.x, y, x + goi->goti.go.xw, y + cimg->bmp.y, bg);
+		drv->fill_area(dev, x, y + cimg->bmp.y, x + goi->goti.go.xw, y + goi->goti.go.yw, bg);
+	}
 	set_clip_area(dev, &saved);
 }
 
@@ -893,16 +909,14 @@ static void draw_picture(struct f_data_c *fdatac, struct g_object_image *goi,
  */
 static void update_bitmap(struct cached_image *cimg)
 {
-	if (!(cimg->state&1)&&
-		!cimg->strip_optimized
-		&&cimg->rows_added) buffer_to_bitmap(cimg);
+	if (!(cimg->state & 1) && !cimg->strip_optimized && cimg->rows_added)
+		buffer_to_bitmap(cimg);
 }
 
 /* Draws the image at x,y. Is called from other C sources. */
 static void img_draw_image(struct f_data_c *fdatac, struct g_object *goi_, int x, int y)
 {
 	struct g_object_image *goi = get_struct(goi_, struct g_object_image, goti.go);
-	long color_bg, color_fg;
 	struct cached_image *cimg = goi->cimg;
 	struct rect r;
 	/* refresh_image(fdatac, goi, 1000); To sem asi napsal mikulas jako
@@ -910,21 +924,14 @@ static void img_draw_image(struct f_data_c *fdatac, struct g_object *goi_, int x
 	 * usoudil, ze zadnejch 1000, ale 0.
 	 */
 
-	if (cimg) {
-		color_bg = dip_get_color_sRGB(cimg->background_color);
-		color_fg = dip_get_color_sRGB(get_foreground(cimg->background_color));
-	} else {
-		color_bg = dip_get_color_sRGB(0x00c0c0c0);
-		color_fg = dip_get_color_sRGB(0x00000000);
-	}
-
-	if (!(goi->goti.go.xw && goi->goti.go.yw)) return; /* At least one dimension is zero */
-
+	if (!(goi->goti.go.xw && goi->goti.go.yw))
+		return; /* At least one dimension is zero */
 
 	memcpy(&r, &fdatac->ses->term->dev->clip, sizeof(struct rect));
 	if (fdatac->vs->g_display_link && fdatac->active && fdatac->vs->current_link != -1 && fdatac->vs->current_link == goi->goti.link_num) {
-		draw_frame_mark(fdatac->ses->term->dev,x,y,goi->goti.go.xw,
-			goi->goti.go.yw,color_bg,color_fg,2);
+		long fg = image_foregronud(cimg);
+		draw_frame_mark(fdatac->ses->term->dev, x, y, goi->goti.go.xw,
+			goi->goti.go.yw, fg, fg, 2);
 		restrict_clip_area(fdatac->ses->term->dev, &r, x + 2, y + 2, x + goi->goti.go.xw - 2, y + goi->goti.go.yw - 2);
 	}
 
@@ -933,14 +940,16 @@ static void img_draw_image(struct f_data_c *fdatac, struct g_object *goi_, int x
 	if (img_process_download(goi, fdatac)) goto ret; /* Choked with data, will not
 							* draw. */
 	/* Now we will only draw... */
-	if (!cimg || cimg->state<12){
-		draw_frame_mark(fdatac->ses->term->dev,x,y,goi->goti.go.xw,
-			goi->goti.go.yw,color_bg,color_fg,!cimg || cimg->state&1);
+	if (!cimg || cimg->state < 12) {
+		long fg = image_foregronud(cimg);
+		long bg = image_backgronud(cimg);
+		draw_frame_mark(fdatac->ses->term->dev, x, y, goi->goti.go.xw,
+			goi->goti.go.yw, bg, fg, !cimg || cimg->state & 1);
 	} else {
 		update_bitmap(cimg);
-		draw_picture(fdatac,goi,x,y,color_bg);
+		draw_picture(fdatac, goi, x, y);
 	}
-	ret:
+ ret:
 	set_clip_area(fdatac->ses->term->dev, &r);
 }
 

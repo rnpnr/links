@@ -205,12 +205,16 @@ int get_keepalive_socket(struct connection *c, int *protocol_data)
 	return 0;
 }
 
-static void abort_all_keepalive_connections(void)
+static int abort_all_keepalive_connections(void)
 {
-	while (!list_empty(keepalive_connections))
+	int did_something = 0;
+	while (!list_empty(keepalive_connections)) {
 		del_keepalive_socket(list_struct(keepalive_connections.next,
 						struct k_conn));
+		did_something = 1;
+	}
 	check_keepalive_connections();
+	return did_something;
 }
 
 static void free_connection_data(struct connection *c)
@@ -1021,8 +1025,9 @@ void abort_all_connections(void)
 	abort_all_keepalive_connections();
 }
 
-void abort_background_connections(void)
+int abort_background_connections(void)
 {
+	int did_something = 0;
 	struct connection *c = NULL;
 	struct list_head *lc;
 again:
@@ -1030,10 +1035,11 @@ again:
 		if (getpri(c) >= PRI_CANCEL) {
 			setcstate(c, S_INTERRUPTED);
 			abort_connection(c);
+			did_something = 1;
 			goto again;
 		}
 	}
-	abort_all_keepalive_connections();
+	return did_something | abort_all_keepalive_connections();
 }
 
 int is_entry_used(struct cache_entry *e)

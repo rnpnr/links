@@ -18,6 +18,16 @@ static int is_active_frame(struct session *ses, struct f_data_c *f);
 static void send_open_in_new_xterm(struct terminal *term, void *open_window_, void *ses_);
 static void (* const send_open_in_new_xterm_ptr)(struct terminal *, void *fn_, void *ses_) = send_open_in_new_xterm;
 
+/* FIXME: remove */
+static void free_format_text_cache_entry(struct form_state *fs)
+{
+	struct format_text_cache_entry *ftce = fs->ftce;
+	if (!ftce)
+		return;
+	fs->ftce = NULL;
+	free(ftce);
+}
+
 struct view_state *create_vs(void)
 {
 	struct view_state *vs;
@@ -30,16 +40,6 @@ struct view_state *create_vs(void)
 	vs->form_info = NULL;
 	vs->form_info_len = 0;
 	return vs;
-}
-
-/* FIXME: remove */
-static void free_format_text_cache_entry(struct form_state *fs)
-{
-	struct format_text_cache_entry *ftce = fs->ftce;
-	if (!ftce)
-		return;
-	fs->ftce = NULL;
-	free(ftce);
 }
 
 /* FIXME: remove */
@@ -720,7 +720,9 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 	int vy = vs->view_pos;
 	struct form_state *fs;
 	struct form_control *form = l->form;
-	int i, x, y;
+	int i, x, y, td;
+	size_t sl;
+
 	if (!form) {
 		internal("link %d has no form", (int)(l - f->f_data->links));
 		return;
@@ -734,15 +736,15 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 		case FC_TEXT:
 		case FC_PASSWORD:
 		case FC_FILE:
-				/*
-				if (fs->state >= fs->vpos + form->size) fs->vpos = fs->state - form->size + 1;
-				if (fs->state < fs->vpos) fs->vpos = fs->state;
-				*/
 			if ((size_t)fs->vpos > strlen(cast_const_char fs->string)) fs->vpos = (int)strlen(cast_const_char fs->string);
-			while ((size_t)fs->vpos < strlen(cast_const_char fs->string) && textptr_diff(fs->string + fs->state, fs->string + fs->vpos, f->f_data->opt.cp) >= form->size) {
+			sl = strlen((char *)fs->string);
+			td = textptr_diff(fs->string + fs->state, fs->string + fs->vpos, f->f_data->opt.cp);
+
+			while (fs->vpos < sl && td >= form->size) {
 				unsigned char *p = fs->string + fs->vpos;
 				FWD_UTF_8(p);
 				fs->vpos = (int)(p - fs->string);
+				td--;
 			}
 			while (fs->vpos > fs->state) {
 				unsigned char *p = fs->string + fs->vpos;
@@ -905,14 +907,14 @@ static void draw_frame_lines(struct session *ses, struct frameset_desc *fsd, int
 		for (i = 0; i < fsd->x; i++) {
 			int wwx = fsd->f[i].xw;
 			if (i) {
-				fill_area(t, x, y + 1, 1, wwy, 179, ATTR_FRAME | get_attribute(ses->ds.t_text_color, ses->ds.t_background_color));
+				fill_area(t, x, y + 1, 1, wwy, 179, ATTR_FRAME | get_session_attribute(ses, 0));
 				if (j == fsd->y - 1) set_xchar(t, x, y + wwy + 1, 3);
 			} else if (j) set_xchar(t, x, y, 0);
 			if (j) {
-				fill_area(t, x + 1, y, wwx, 1, 196, ATTR_FRAME | get_attribute(ses->ds.t_text_color, ses->ds.t_background_color));
+				fill_area(t, x + 1, y, wwx, 1, 196, ATTR_FRAME | get_session_attribute(ses, 0));
 				if (i == fsd->x - 1) set_xchar(t, x + wwx + 1, y, 1);
 			} else if (i) set_xchar(t, x, y, 2);
-			if (i && j) set_char(t, x, y, 197, ATTR_FRAME | get_attribute(ses->ds.t_text_color, ses->ds.t_background_color));
+			if (i && j) set_char(t, x, y, 197, ATTR_FRAME | get_session_attribute(ses, 0));
 			/*if (fsd->f[j * fsd->x + i].subframe) {
 				draw_frame_lines(ses, fsd->f[j * fsd->x + i].subframe, x + 1, y + 1);
 			}*/
@@ -940,7 +942,7 @@ void draw_doc(struct terminal *t, void *scr_)
 				if (!scr->parent) set_cursor(t, 0, 0, 0, 0);
 				else set_cursor(t, xp, yp, xp, yp);
 			}
-			fill_area(t, xp, yp, xw, yw, ' ', get_attribute(ses->ds.t_text_color, ses->ds.t_background_color));
+			fill_area(t, xp, yp, xw, yw, ' ', get_session_attribute(ses, 0));
 #ifdef G
 		} else {
 			long color = dip_get_color_sRGB(ses->ds.g_background_color /* 0x808080 */);
@@ -1016,7 +1018,7 @@ void draw_doc(struct terminal *t, void *scr_)
 		free_link(scr);
 		scr->xl = vx;
 		scr->yl = vy;
-		fill_area(t, xp, yp, xw, yw, ' ', scr->f_data->y ? scr->f_data->bg : get_attribute(ses->ds.t_text_color, ses->ds.t_background_color));
+		fill_area(t, xp, yp, xw, yw, ' ', scr->f_data->y ? scr->f_data->bg : get_session_attribute(ses, 0));
 		if (!scr->f_data->y) return;
 		while (vs->view_pos >= scr->f_data->y) vs->view_pos -= yw ? yw : 1;
 		if (vs->view_pos < 0) vs->view_pos = 0;
@@ -3719,11 +3721,6 @@ unsigned char *print_current_title(struct session *ses)
 	return print_current_titlex(current_frame(ses), ses->term->x);
 }
 
-static inline int find_in_cache_idn(unsigned char *xurl, struct cache_entry **ce)
-{
-	return find_in_cache(xurl, ce);
-}
-
 void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 {
 	struct cache_entry *ce;
@@ -3740,8 +3737,9 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 	a = display_url(term, lo->url, 1);
 	add_to_str(&s, &l, a);
 	free(a);
-	if (!find_in_cache_idn(lo->url, &ce)) {
-		unsigned char *start, *end;
+	if (!find_in_cache(lo->url, &ce)) {
+		unsigned char *start;
+		size_t len;
 		if (ce->ip_address) {
 			add_to_str(&s, &l, cast_uchar "\n");
 			if (!strchr(cast_const_char ce->ip_address, ' '))
@@ -3754,10 +3752,10 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		add_to_str(&s, &l, cast_uchar "\n");
 		add_to_str(&s, &l, get_text_translation(TEXT_(T_SIZE), term));
 		add_to_str(&s, &l, cast_uchar ": ");
-		get_file_by_term(NULL, ce, &start, &end, NULL);
+		get_file_by_term(NULL, ce, &start, &len, NULL);
 		if (ce->decompressed) {
 			unsigned char *enc;
-			add_num_to_str(&s, &l, end - start);
+			add_unsigned_long_num_to_str(&s, &l, len);
 			enc = get_content_encoding(ce->head, ce->url, 0);
 			if (enc) {
 				add_to_str(&s, &l, cast_uchar " (");
@@ -3857,7 +3855,7 @@ void head_msg(struct session *ses)
 		msg_box(ses->term, NULL, TEXT_(T_HEADER_INFO), AL_LEFT, TEXT_(T_YOU_ARE_NOWHERE), MSG_BOX_END, NULL, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
 		return;
 	}
-	if (!find_in_cache_idn(cur_loc(ses)->url, &ce)) {
+	if (!find_in_cache(cur_loc(ses)->url, &ce)) {
 		if (ce->head) s = stracpy(ce->head);
 		else s = stracpy(cast_uchar "");
 		len = (int)strlen(cast_const_char s) - 1;

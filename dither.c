@@ -47,6 +47,7 @@
 /* We assume here int holds at least 32 bits */
 static int *red_table = NULL, *green_table = NULL, *blue_table = NULL;
 static int table_16 = 1;
+static unsigned short *real_colors_table = NULL;
 
 /* If we want to represent some 16-bit from-screen-light, it would require certain display input
  * value (0-255 red, 0-255 green, 0-255 blue), possibly not a whole number. [red|green|blue]_table
@@ -90,14 +91,15 @@ static void (*dither_fn_internal)(unsigned short *restrict in, struct bitmap *ou
 
 int slow_fpu = -1;
 
-#define LIN \
-	r+=(int)(in[0]);\
-	g+=(int)(in[1]);\
-	b+=(int)(in[2]);\
-	in+=3;
-
 /* EMPIRE IMAGINE FEAR */
 #define LTABLES \
+	ir = in[0];\
+	ig = in[1];\
+	ib = in[2];\
+	r+=(int)ir;\
+	g+=(int)ig;\
+	b+=(int)ib;\
+	in+=3;\
 	{\
 		int rc=r,gc=g,bc=b;\
 		if ((unsigned)rc>65535) rc=rc<0?0:65535;\
@@ -114,7 +116,6 @@ int slow_fpu = -1;
 
 
 #define BODY \
-	LIN\
 	LTABLES\
 	r=bptr[3];\
 	g=bptr[4];\
@@ -136,7 +137,6 @@ int slow_fpu = -1;
 	bptr[5]=bt;
 
 #define BODYR \
-	LIN\
 	LTABLES\
 	rt+=8;\
 	gt+=8;\
@@ -147,12 +147,11 @@ int slow_fpu = -1;
 	bptr[-3]+=3*rt;\
 	bptr[-2]+=3*gt;\
 	bptr[-1]+=3*bt;\
-	*bptr+=5*rt;\
+	bptr[0]+=5*rt;\
 	bptr[1]+=5*gt;\
 	bptr[2]+=5*bt;
 
 #define BODYC \
-	LIN\
 	LTABLES\
 	r=rt;\
 	g=gt;\
@@ -179,10 +178,11 @@ int slow_fpu = -1;
 	bptr[-1]+=3*bt;\
 	bptr+=3;
 
-#define DITHER_TEMPLATE(template_name) \
+#define DITHER_TEMPLATE(template_name, sh) \
 	static void template_name(unsigned short *restrict in, struct bitmap *out, int *dregs)\
-		{\
-		int shift = 8 - table_16 * 8;\
+	{\
+		const int shift = sh;\
+		unsigned short ir, ig, ib;\
 		int r,g,b,o,rt,gt,bt,y,x;\
 		unsigned char *restrict outp=out->data;\
 		int *restrict bptr;\
@@ -215,36 +215,28 @@ int slow_fpu = -1;
 		}\
 	}
 
-#define ROUND_TEMPLATE(template_name)\
+#define ROUND_TEMPLATE(template_name, sh)\
 	static void template_name(unsigned short *restrict in, struct bitmap *out)\
 	{\
+		const int shift = sh;\
+		unsigned short ir, ig, ib;\
 		int rt,gt,bt,o,x,y;\
 		unsigned char *restrict outp=out->data;\
 		int skip=out->skip-SKIP_CODE;\
 	\
 		o=0;o=o; /*warning go away */\
-		if (table_16) {\
-			for (y=out->y;y;y--){\
-				for (x=out->x;x;x--){\
-					rt = red_table[in[0]];\
-					gt = green_table[in[1]];\
-					bt = blue_table[in[2]];\
-					in+=3;\
-					SAVE_CODE\
-				}\
-				outp+=skip;\
+		for (y=out->y;y;y--){\
+			for (x=out->x;x;x--){\
+				ir = in[0];\
+				ig = in[1];\
+				ib = in[2];\
+				rt=red_table[ir >> shift];\
+				gt=green_table[ig >> shift];\
+				bt=blue_table[ib >> shift];\
+				in+=3;\
+				SAVE_CODE\
 			}\
-		} else {\
-			for (y=out->y;y;y--){\
-				for (x=out->x;x;x--){\
-					rt = red_table[in[0] >> 8];\
-					gt = green_table[in[1] >> 8];\
-					bt = blue_table[in[2] >> 8];\
-					in+=3;\
-					SAVE_CODE\
-				}\
-				outp+=skip;\
-			}\
+			outp+=skip;\
 		}\
 	}
 
@@ -255,12 +247,40 @@ int slow_fpu = -1;
  * that saves appropriate code on *outp (unsigned char *outp). We can use int o;
  * as a scratchpad.
  */
-#define SAVE_CODE \
-	o = (rt >> 16) + (gt >> 16) + (bt >> 16);\
+#define SAVE_CODE					\
+	o = (rt >> 16) + (gt >> 16) + (bt >> 16);	\
 	*outp++ = (unsigned char)o;
 
-DITHER_TEMPLATE(dither_1byte)
-ROUND_TEMPLATE(round_1byte)
+DITHER_TEMPLATE(dither_1byte, 0)
+ROUND_TEMPLATE(round_1byte, 0)
+DITHER_TEMPLATE(dither_1byte_8, 8)
+ROUND_TEMPLATE(round_1byte_8, 8)
+
+#undef SKIP_CODE
+#undef SAVE_CODE
+
+#define SKIP_CODE out->x
+#define SAVE_CODE						\
+	{							\
+		int rr, gr, br, or;				\
+		o = (rt >> 16) + (gt >> 16) + (bt >> 16);	\
+		rr = red_table[ir >> shift];			\
+		gr = green_table[ig >> shift];			\
+		br = blue_table[ib >> shift];			\
+		or = (rr >> 16) + (gr >> 16) + (br >> 16);	\
+		if (!((real_colors_table[or * 3 + 0] - ir) |	\
+		      (real_colors_table[or * 3 + 1] - ig) |	\
+		      (real_colors_table[or * 3 + 2] - ib))) {	\
+			o = or;					\
+		}						\
+		rt = real_colors_table[o * 3 + 0];		\
+		gt = real_colors_table[o * 3 + 1];		\
+		bt = real_colors_table[o * 3 + 2];		\
+		*outp++ = (unsigned char)o;			\
+	}
+
+DITHER_TEMPLATE(dither_1byte_real_colors, 0)
+DITHER_TEMPLATE(dither_1byte_real_colors_8, 8)
 
 #undef SKIP_CODE
 #undef SAVE_CODE
@@ -271,8 +291,10 @@ ROUND_TEMPLATE(round_1byte)
 	*(unsigned short *)outp=(o>>16);\
 	outp+=2;
 
-DITHER_TEMPLATE(dither_2byte)
-ROUND_TEMPLATE(round_2byte)
+DITHER_TEMPLATE(dither_2byte, 0)
+ROUND_TEMPLATE(round_2byte, 0)
+DITHER_TEMPLATE(dither_2byte_8, 8)
+ROUND_TEMPLATE(round_2byte_8, 8)
 #undef SAVE_CODE
 #undef SKIP_CODE
 
@@ -283,8 +305,10 @@ ROUND_TEMPLATE(round_2byte)
 	outp[1]=gt>>16;\
 	outp[2]=rt>>16;\
 	outp+=3;
-DITHER_TEMPLATE(dither_195)
-ROUND_TEMPLATE(round_195)
+DITHER_TEMPLATE(dither_195, 0)
+ROUND_TEMPLATE(round_195, 0)
+DITHER_TEMPLATE(dither_195_8, 8)
+ROUND_TEMPLATE(round_195_8, 8)
 #undef SAVE_CODE
 #undef SKIP_CODE
 
@@ -295,8 +319,10 @@ ROUND_TEMPLATE(round_195)
 	outp[1]=gt>>16;\
 	outp[2]=bt>>16;\
 	outp+=3;
-DITHER_TEMPLATE(dither_451)
-ROUND_TEMPLATE(round_451)
+DITHER_TEMPLATE(dither_451, 0)
+ROUND_TEMPLATE(round_451, 0)
+DITHER_TEMPLATE(dither_451_8, 8)
+ROUND_TEMPLATE(round_451_8, 8)
 #undef SAVE_CODE
 #undef SKIP_CODE
 
@@ -308,8 +334,10 @@ ROUND_TEMPLATE(round_451)
 	outp[2]=rt>>16;\
 	outp[3]=0;\
 	outp+=4;
-DITHER_TEMPLATE(dither_196)
-ROUND_TEMPLATE(round_196)
+DITHER_TEMPLATE(dither_196, 0)
+ROUND_TEMPLATE(round_196, 0)
+DITHER_TEMPLATE(dither_196_8, 8)
+ROUND_TEMPLATE(round_196_8, 8)
 #undef SAVE_CODE
 #undef SKIP_CODE
 
@@ -321,8 +349,10 @@ ROUND_TEMPLATE(round_196)
 	outp[2]=gt>>16;\
 	outp[3]=rt>>16;\
 	outp+=4;
-DITHER_TEMPLATE(dither_452)
-ROUND_TEMPLATE(round_452)
+DITHER_TEMPLATE(dither_452, 0)
+ROUND_TEMPLATE(round_452, 0)
+DITHER_TEMPLATE(dither_452_8, 8)
+ROUND_TEMPLATE(round_452_8, 8)
 #undef SAVE_CODE
 #undef SKIP_CODE
 
@@ -334,8 +364,10 @@ ROUND_TEMPLATE(round_452)
 	outp[2]=gt>>16;\
 	outp[3]=bt>>16;\
 	outp+=4;
-DITHER_TEMPLATE(dither_708)
-ROUND_TEMPLATE(round_708)
+DITHER_TEMPLATE(dither_708, 0)
+ROUND_TEMPLATE(round_708, 0)
+DITHER_TEMPLATE(dither_708_8, 8)
+ROUND_TEMPLATE(round_708_8, 8)
 #undef SAVE_CODE
 #undef SKIP_CODE
 
@@ -852,6 +884,25 @@ static void compress_tables(void)
 	blue_table = bt;
 }
 
+static void make_real_colors_table(void)
+{
+	unsigned short *real_colors;
+	if (real_colors_table) {
+		free(real_colors_table);
+		real_colors_table = NULL;
+	}
+	if (round_fn != round_1byte && round_fn != round_1byte_8)
+		return;
+	if (!drv->get_real_colors)
+		return;
+	real_colors = drv->get_real_colors();
+	if (!real_colors)
+		return;
+	real_colors_table = xmalloc(256 * 3 * sizeof(unsigned short));
+	agx_48_to_48(real_colors_table, real_colors, 256, display_red_gamma, display_green_gamma, display_blue_gamma);
+	free(real_colors);
+}
+
 /* Also makes up the dithering tables.
  * You may call it twice - it doesn't leak any memory.
  */
@@ -864,8 +915,9 @@ void init_dither(int depth)
 		make_red_table(1 << 1, 1 << 3, 0);
 		make_green_table(1 << 2, 1 << 1, 0);
 		make_blue_table(1 << 1, 1 << 0, 0);
-		dither_fn_internal = dither_1byte;
-		round_fn = round_1byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_1byte : dither_1byte_8;
+		round_fn = table_16 ? round_1byte : round_1byte_8;
 		break;
 
 		case 801:
@@ -873,8 +925,9 @@ void init_dither(int depth)
 		make_red_table(1 << 1, 1 << 2, 0);
 		make_green_table(1 << 1, 1 << 1, 0);
 		make_blue_table(1 << 1, 1 << 0, 0);
-		dither_fn_internal = dither_1byte;
-		round_fn = round_1byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_1byte : dither_1byte_8;
+		round_fn = table_16 ? round_1byte : round_1byte_8;
 		break;
 
 		case 65:
@@ -882,8 +935,9 @@ void init_dither(int depth)
 		make_red_table(1 << 3, 1 << 5, 0);
 		make_green_table(1 << 3, 1 << 2, 0);
 		make_blue_table(1 << 2, 1 << 0, 0);
-		dither_fn_internal = dither_1byte;
-		round_fn = round_1byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_1byte : dither_1byte_8;
+		round_fn = table_16 ? round_1byte : round_1byte_8;
 		break;
 
 		case 833:
@@ -891,8 +945,9 @@ void init_dither(int depth)
 		make_red_table(6, 36, 0);
 		make_green_table(6, 6, 0);
 		make_blue_table(6, 1, 0);
-		dither_fn_internal = dither_1byte;
-		round_fn = round_1byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_1byte : dither_1byte_8;
+		round_fn = table_16 ? round_1byte : round_1byte_8;
 		break;
 
 		case 122:
@@ -900,8 +955,9 @@ void init_dither(int depth)
 		make_red_table(1 << 5, 1 << 10, 0);
 		make_green_table(1 << 5, 1 << 5, 0);
 		make_blue_table(1 << 5, 1 << 0, 0);
-		dither_fn_internal = dither_2byte;
-		round_fn = round_2byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_2byte : dither_2byte_8;
+		round_fn = table_16 ? round_2byte : round_2byte_8;
 		break;
 
 		case 378:
@@ -909,8 +965,9 @@ void init_dither(int depth)
 		make_red_table(1 << 5, 1 << 10, 1);
 		make_green_table(1 << 5, 1 << 5, 1);
 		make_blue_table(1 << 5, 1 << 0, 1);
-		dither_fn_internal = dither_2byte;
-		round_fn = round_2byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_2byte : dither_2byte_8;
+		round_fn = table_16 ? round_2byte : round_2byte_8;
 		break;
 
 		case 130:
@@ -918,8 +975,9 @@ void init_dither(int depth)
 		make_red_table(1 << 5, 1 << 11, 0);
 		make_green_table(1 << 6, 1 << 5, 0);
 		make_blue_table(1 << 5, 1 << 0, 0);
-		dither_fn_internal = dither_2byte;
-		round_fn = round_2byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_2byte : dither_2byte_8;
+		round_fn = table_16 ? round_2byte : round_2byte_8;
 		break;
 
 		case 386:
@@ -927,8 +985,9 @@ void init_dither(int depth)
 		make_red_table(1 << 5, 1 << 11, 1);
 		make_green_table(1 << 6, 1 << 5, 1);
 		make_blue_table(1 << 5, 1 << 0, 1);
-		dither_fn_internal = dither_2byte;
-		round_fn = round_2byte;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_2byte : dither_2byte_8;
+		round_fn = table_16 ? round_2byte : round_2byte_8;
 		break;
 
 		case 451:
@@ -939,8 +998,9 @@ void init_dither(int depth)
 		make_red_table(1 << 8, 1 << 0, 0);
 		make_green_table(1 << 8, 1 << 0, 0);
 		make_blue_table(1 << 8, 1 << 0, 0);
-		dither_fn_internal = dither_451;
-		round_fn = round_451;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_451 : dither_451_8;
+		round_fn = table_16 ? round_451 : round_451_8;
 		break;
 
 		case 195:
@@ -951,8 +1011,9 @@ void init_dither(int depth)
 		make_red_table(1 << 8, 1 << 0, 0);
 		make_green_table(1 << 8, 1 << 0, 0);
 		make_blue_table(1 << 8, 1 << 0, 0);
-		dither_fn_internal = dither_195;
-		round_fn = round_195;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_195 : dither_195_8;
+		round_fn = table_16 ? round_195 : round_195_8;
 		break;
 
 		case 452:
@@ -963,8 +1024,9 @@ void init_dither(int depth)
 		make_red_table(1 << 8, 1 << 0, 0);
 		make_green_table(1 << 8, 1 << 0, 0);
 		make_blue_table(1 << 8, 1 << 0, 0);
-		dither_fn_internal = dither_452;
-		round_fn = round_452;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_452 : dither_452_8;
+		round_fn = table_16 ? round_452 : round_452_8;
 		break;
 
 		case 196:
@@ -975,8 +1037,9 @@ void init_dither(int depth)
 		make_red_table(1 << 8, 1 << 0, 0);
 		make_green_table(1 << 8, 1 << 0, 0);
 		make_blue_table(1 << 8, 1 << 0, 0);
-		dither_fn_internal = dither_196;
-		round_fn = round_196;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_196 : dither_196_8;
+		round_fn = table_16 ? round_196 : round_196_8;
 		break;
 
 		case 708:
@@ -987,8 +1050,9 @@ void init_dither(int depth)
 		make_red_table(1 << 8, 1 << 0, 0);
 		make_green_table(1 << 8, 1 << 0, 0);
 		make_blue_table(1 << 8, 1 << 0, 0);
-		dither_fn_internal = dither_708;
-		round_fn = round_708;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_708 : dither_708_8;
+		round_fn = table_16 ? round_708 : round_708_8;
 		break;
 
 		case 15555:
@@ -998,8 +1062,9 @@ void init_dither(int depth)
 		make_red_table(1 << 5, 1 << 3, 0);
 		make_green_table(1 << 5, 1 << 3, 0);
 		make_blue_table(1 << 5, 1 << 3, 0);
-		dither_fn_internal = dither_195;
-		round_fn = round_195;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_195 : dither_195_8;
+		round_fn = table_16 ? round_195 : round_195_8;
 		break;
 
 		case 16579:
@@ -1009,17 +1074,27 @@ void init_dither(int depth)
 		make_red_table(1 << 5, 1 << 3, 0);
 		make_green_table(1 << 6, 1 << 2, 0);
 		make_blue_table(1 << 5, 1 << 3, 0);
-		dither_fn_internal = dither_195;
-		round_fn = round_195;
+		compress_tables();
+		dither_fn_internal = table_16 ? dither_195 : dither_195_8;
+		round_fn = table_16 ? round_195 : round_195_8;
 		break;
 
 		default:
 		internal("Graphics driver returned unsupported pixel memory organisation %d",depth);
 	}
-	compress_tables();
-	make_round_tables();
 
-	gamma_cache_rgb = -2;
+	make_round_tables();
+	make_real_colors_table();
+
+	if (real_colors_table) {
+		if (dither_fn_internal == dither_1byte)
+			dither_fn_internal = dither_1byte_real_colors;
+		if (dither_fn_internal == dither_1byte_8)
+			dither_fn_internal = dither_1byte_real_colors_8;
+	}
+
+	gamma_cache_rgb_1 = -2;
+	gamma_cache_rgb_2 = -2;
 	gamma_stamp++;
 }
 
@@ -1030,9 +1105,20 @@ void init_dither(int depth)
 void round_color_sRGB_to_48(unsigned short *restrict red, unsigned short *restrict green,
 		unsigned short *restrict blue, int rgb)
 {
-	*red=round_red_table[(rgb>>16)&255];
-	*green=round_green_table[(rgb>>8)&255];
-	*blue=round_blue_table[rgb&255];
+	*red = round_red_table[(rgb >> 16) & 255];
+	*green = round_green_table[(rgb >> 8) & 255];
+	*blue = round_blue_table[rgb & 255];
+	if (real_colors_table) {
+		int shift, rt, gt, bt, o;
+		shift = 8 - table_16 * 8;
+		rt = red_table[*red >> shift];
+		gt = green_table[*green >> shift];
+		bt = blue_table[*blue >> shift];
+		o = (rt >> 16) + (gt >> 16) + (bt >> 16);
+		*red = real_colors_table[o * 3 + 0];
+		*green = real_colors_table[o * 3 + 1];
+		*blue = real_colors_table[o * 3 + 2];
+	}
 }
 
 void free_dither(void)
@@ -1043,6 +1129,8 @@ void free_dither(void)
 	green_table = NULL;
 	free(blue_table);
 	blue_table = NULL;
+	free(real_colors_table);
+	real_colors_table = NULL;
 }
 
 #endif

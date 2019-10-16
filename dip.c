@@ -403,7 +403,7 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
  * Automatically mem_frees the "in" and allocates "out". */
 /* We assume unsigned holds at least 32 bits */
 static void scale_gray_horizontal(unsigned char *in, int ix, int y,
-	unsigned char ** out, int ox)
+	unsigned char **out, int ox)
 {
 	unsigned *col_buf;
 	int total=ix*ox;
@@ -664,7 +664,7 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
  * Automatically allocates output and frees input.
  * We assume unsigned holds at least 32 bits */
 static void scale_gray_vertical(unsigned char *in, int x, int iy,
-	unsigned char ** out ,int oy)
+	unsigned char **out ,int oy)
 {
 	unsigned *row_buf;
 	int total=iy*oy;
@@ -1097,7 +1097,7 @@ void agx_48_to_48(unsigned short *restrict dest,
 
 	for (;lenght;lenght--,src+=3,dest+=3)
 	{
-		a=*src;
+		a = src[0];
 		a*=inv_65535;
 		a=powf(a,red_gamma);
 		dest[0]=(unsigned short)((a*65535)+(float)0.5);
@@ -1386,8 +1386,7 @@ static void dip_set_gamma(png_structp png_ptr, png_infop info_ptr)
  * is 34/255ink+(255-34)paper. No gamma is involved in this formula, as you can see.
  * The multiplications and additions take place in photon space.
  */
-static void load_char(unsigned char **dest, int *x, int *y,
-const unsigned char *png_data, int png_length)
+static void load_char(unsigned char **dest, int *x, int *y, const unsigned char *png_data, int png_length)
 {
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -1472,59 +1471,58 @@ const unsigned char *png_data, int png_length)
 
 /* Like load_char, but we dictate the y.
  */
-static void load_scaled_char(void **dest, int *x, int y,
-const unsigned char *png_data, int png_length, struct style *style)
+static void load_scaled_char(unsigned char **dest, int *x, int y, const unsigned char *png_data, int png_length, struct style *style)
 {
 	unsigned char *interm;
 	unsigned char *interm2;
-	unsigned char *i2ptr,*dptr;
+	unsigned char *i2ptr, *dptr;
 	int ix, iy, y0, x0, c;
-	float conv0, conv1,sharpness,contrast;
+	float conv0, conv1, sharpness, contrast;
 
-	load_char(&interm, &ix,&iy,png_data, png_length);
-	if (style->mono_space>=0)
-		*x=compute_width(style->mono_space, style->mono_height, y);
+	load_char(&interm, &ix, &iy, png_data, png_length);
+	if (style->mono_space >= 0)
+		*x = compute_width(style->mono_space, style->mono_height, y);
 	else
-		*x=compute_width(ix,iy,y);
-	scale_gray(interm, ix,iy, (unsigned char **)dest, *x, y);
-	if (y>32||y<=0) return ; /* No convolution */
-	ix=*x+2; /* There is one-pixel border around */
-	iy=y+2;
+		*x = compute_width(ix, iy, y);
+	scale_gray(interm, ix, iy, dest, *x, y);
+	if (y > 32 || y <= 0) return; /* No convolution */
+	ix = *x + 2; /* There is one-pixel border around */
+	iy = y + 2;
 	if (ix && (unsigned)ix * (unsigned)iy / (unsigned)ix != (unsigned)iy) overalloc();
 	if ((unsigned)ix * (unsigned)iy > INT_MAX) overalloc();
 	interm2 = xmalloc(ix * iy);
-	i2ptr=interm2+ix+1;
-	dptr=*dest;
-	memset(interm2,0,ix);
-	memset(interm2+(iy-1)*ix,0,ix);
-	for (y0=y;y0;y0--){
-		i2ptr[-1]=0;
-		memcpy(i2ptr,dptr,*x);
-		i2ptr[*x]=0;
-		i2ptr+=ix;
-		dptr+=*x;
+	i2ptr = interm2 + ix + 1;
+	dptr = *dest;
+	memset(interm2, 0, ix);
+	memset(interm2 + (iy - 1) * ix, 0, ix);
+	for (y0 = y; y0; y0--) {
+		i2ptr[-1] = 0;
+		memcpy(i2ptr, dptr, *x);
+		i2ptr[*x] = 0;
+		i2ptr += ix;
+		dptr += *x;
 	}
-	i2ptr=interm2+ix+1;
-	dptr=*dest;
+	i2ptr = interm2 + ix + 1;
+	dptr = *dest;
 
 	/* Determine the sharpness and contrast */
-	sharpness=fancy_constants[2*y-2];
-	contrast=fancy_constants[2*y-1];
+	sharpness = fancy_constants[2 * y - 2];
+	contrast = fancy_constants[2 * y - 1];
 
 	/* Compute the matrix constants from contrast and sharpness */
-	conv0=(1+sharpness)*contrast;
-	conv1=(float)(-sharpness*(float)0.25*contrast);
+	conv0 = (1 + sharpness) * contrast;
+	conv1 = (float)(-sharpness * (float)0.25 * contrast);
 
-	for (y0=y;y0;y0--){
-		for (x0=*x;x0;x0--){
+	for (y0 = y; y0; y0--) {
+		for (x0 = *x; x0; x0--) {
 			/* Convolution */
-			c=(int)(((*i2ptr)*conv0)+i2ptr[-ix]*conv1+i2ptr[-1]*conv1+i2ptr[1]*conv1+i2ptr[ix]*conv1+(float)0.5);
-			if (c & ~255) c=c<0?0:255;
-			*dptr=(unsigned char)c;
+			c = (int)((*i2ptr * conv0) + i2ptr[-ix] * conv1 + i2ptr[-1] * conv1 + i2ptr[1] * conv1 + i2ptr[ix] * conv1 + (float)0.5);
+			if (c & ~255) c = c < 0 ? 0 : 255;
+			*dptr = (unsigned char)c;
 			dptr++;
 			i2ptr++;
 		}
-		i2ptr+=2;
+		i2ptr += 2;
 	}
 	free(interm2);
 }
@@ -1535,63 +1533,60 @@ static struct font_cache_entry *locked_color_entry = NULL;
  */
 static struct font_cache_entry *supply_color_cache_entry(struct style *style, struct letter *letter)
 {
-	struct font_cache_entry *found, *neww;
+	int found_x, found_y;
+	unsigned char *found_data;
+	struct font_cache_entry *neww;
 	unsigned short *primary_data;
 	unsigned short red, green, blue;
 	unsigned bytes_consumed;
 
-	found = xmalloc(sizeof(*found));
-	found->bitmap.y=style->height;
-	load_scaled_char(&(found->bitmap.data),&(found->bitmap.x),
-		found->bitmap.y, letter->begin,
-		letter->length, style);
+	found_y = style->height;
+	load_scaled_char(&found_data, &found_x, found_y, letter->begin, letter->length, style);
 
 	neww = xmalloc(sizeof(*neww));
 	locked_color_entry = neww;
-	neww->bitmap=found->bitmap;
-	neww->r0=style->r0;
-	neww->g0=style->g0;
-	neww->b0=style->b0;
-	neww->r1=style->r1;
-	neww->g1=style->g1;
-	neww->b1=style->b1;
-	neww->mono_space=style->mono_space;
-	neww->mono_height=style->mono_height;
+	neww->bitmap.x = found_x;
+	neww->bitmap.y = found_y;
+	neww->r0 = style->r0;
+	neww->g0 = style->g0;
+	neww->b0 = style->b0;
+	neww->r1 = style->r1;
+	neww->g1 = style->g1;
+	neww->b1 = style->b1;
+	neww->mono_space = style->mono_space;
+	neww->mono_height = style->mono_height;
 
 	if (neww->bitmap.x && (unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y / (unsigned)neww->bitmap.x != (unsigned)neww->bitmap.y) overalloc();
 	if ((unsigned)neww->bitmap.x * (unsigned)neww->bitmap.y > INT_MAX / 3 / sizeof(*primary_data)) overalloc();
 	primary_data = xmalloc(3 * neww->bitmap.x * neww->bitmap.y * sizeof(*primary_data));
 
 	/* We assume the gamma of HTML styles is in sRGB space */
-	round_color_sRGB_to_48(&red, &green, &blue,
-		((style->r0)<<16)|((style->g0)<<8)|(style->b0));
-	mix_two_colors(primary_data, found->bitmap.data,
-		found->bitmap.x*found->bitmap.y,
-		red,green,blue,
+	round_color_sRGB_to_48(&red, &green, &blue, (style->r0 << 16) | (style->g0 << 8) | style->b0);
+	mix_two_colors(primary_data, found_data,
+		found_x * found_y,
+		red, green, blue,
 		ags_8_to_16(style->r1, (float)(user_gamma / sRGB_gamma)),
 		ags_8_to_16(style->g1, (float)(user_gamma / sRGB_gamma)),
 		ags_8_to_16(style->b1, (float)(user_gamma / sRGB_gamma))
 	);
 	/* We have a buffer with photons */
-	if (drv->get_empty_bitmap(&(neww->bitmap)))
+	if (drv->get_empty_bitmap(&neww->bitmap))
 		goto skip_dither;
 	if (dither_letters)
-		dither(primary_data, &(neww->bitmap));
+		dither(primary_data, &neww->bitmap);
 	else
-		(*round_fn)(primary_data,&(neww->bitmap));
+		(*round_fn)(primary_data, &neww->bitmap);
 	skip_dither:
 	free(primary_data);
-	drv->register_bitmap(&(neww->bitmap));
+	drv->register_bitmap(&neww->bitmap);
 
-	free(found->bitmap.data);
-	free(found);
+	free(found_data);
 
-	bytes_consumed=neww->bitmap.x*neww->bitmap.y*(drv->depth&7);
+	bytes_consumed = neww->bitmap.x * neww->bitmap.y * (drv->depth & 7);
 	/* Number of bytes per pixel in passed bitmaps */
-	bytes_consumed+=(int)sizeof(*neww);
-	bytes_consumed+=(int)sizeof(struct lru_entry);
-	lru_insert(&font_cache, neww, &(letter->color_list),
-		bytes_consumed);
+	bytes_consumed += (int)sizeof(*neww);
+	bytes_consumed += (int)sizeof(struct lru_entry);
+	lru_insert(&font_cache, neww, &letter->color_list, bytes_consumed);
 	return neww;
 }
 
@@ -1601,7 +1596,7 @@ static int destroy_font_cache_bottom(void)
 	bottom=lru_get_bottom(&font_cache);
 	if (!bottom) return 0;
 	if (bottom == locked_color_entry) return 0;
-	drv->unregister_bitmap(&(bottom->bitmap));
+	drv->unregister_bitmap(&bottom->bitmap);
 	free(bottom);
 	lru_destroy_bottom(&font_cache);
 	return 1;
@@ -1675,49 +1670,41 @@ static void get_underline_pos(int height, int *top, int *bottom)
 /* *width will be advanced by the width of the text */
 void g_print_text(struct graphics_device *device, int x, int y, struct style *style, unsigned char *text, int *width)
 {
-	int original_flags, top_underline, bottom_underline, original_width,
-		my_width;
+	int original_flags, top_underline, bottom_underline, original_width, my_width;
 	struct rect saved_clip;
 
-	if (y+style->height<=device->clip.y1||y>=device->clip.y2) goto o;
-	if (style->flags){
+	if (y + style->height <= device->clip.y1 || y >= device->clip.y2)
+		goto o;
+	if (style->flags) {
 		/* Underline */
-		if (!width){
-		       width=&my_width;
-		       *width=0;
+		if (!width) {
+			width = &my_width;
+			*width = 0;
 		}
-		original_flags=style->flags;
-		original_width=*width;
-		style->flags=0;
+		original_flags = style->flags;
+		original_width = *width;
+		style->flags = 0;
 		get_underline_pos(style->height, &top_underline, &bottom_underline);
-		restrict_clip_area(device, &saved_clip, 0, 0, device->size.x2, y+
-			top_underline);
+		restrict_clip_area(device, &saved_clip, 0, 0, device->size.x2, y + top_underline);
 		g_print_text(device, x, y, style, text, width);
 		set_clip_area(device, &saved_clip);
-		if (bottom_underline-top_underline==1){
+		if (bottom_underline - top_underline == 1) {
 			/* Line */
-			drv->draw_hline(device, x, y+top_underline,
-				safe_add(x,*width)-original_width,
-				style->underline_color);
-		}else{
+			drv->draw_hline(device, x, y + top_underline, safe_add(x, *width) - original_width, style->underline_color);
+		} else {
 			/* Area */
-			drv->fill_area(device, x, y+top_underline,
-					safe_add(x,*width)-original_width,
-					y+bottom_underline,
-					style->underline_color);
+			drv->fill_area(device, x, y + top_underline, safe_add(x, *width) - original_width, y + bottom_underline, style->underline_color);
 		}
-		if (bottom_underline<style->height){
+		if (bottom_underline < style->height) {
 			/* Do the bottom half only if the underline is above
 			 * the bottom of the letters.
 			 */
-			*width=original_width;
-			restrict_clip_area(device, &saved_clip, 0,
-				y+bottom_underline, device->size.x2,
-				device->size.y2);
+			*width = original_width;
+			restrict_clip_area(device, &saved_clip, 0, y + bottom_underline, device->size.x2, device->size.y2);
 			g_print_text(device, x, y, style, text, width);
 			set_clip_area(device, &saved_clip);
 		}
-		style->flags=original_flags;
+		style->flags = original_flags;
 		return;
 	}
 	while (*text) {
@@ -1743,18 +1730,20 @@ void g_print_text(struct graphics_device *device, int x, int y, struct style *st
 		if (u==0x82)u=' ';
 #endif
 		/* stare Mikulasovo patchovani, musim to opravit    -- Brain */
-		if (!u || u == 0xad) continue;
+		if (!u || u == 0xad)
+			continue;
 		if (u == 0x01 || u == 0xa0) u = ' ';
-		p=print_letter(device,x,y,style, u);
+		p = print_letter(device, x, y, style, u);
 		x += p;
 		if (width) {
 			*width = safe_add(*width, p);
 			continue;
 		}
-		if (x>=device->clip.x2) return;
+		if (x>=device->clip.x2)
+			return;
 	}
 	return;
-	o:
+ o:
 	if (width) {
 		int qw = g_text_width(style, text);
 		*width = safe_add(*width, qw);
@@ -1874,6 +1863,16 @@ void update_aspect(void)
 {
 	aspect=(int)(65536*bfu_aspect+0.5);
 	destroy_font_cache();
+}
+
+void flush_bitmaps(int flush_font, int flush_images, int redraw_all)
+{
+	if (flush_font)
+		destroy_font_cache();
+	if (flush_images)
+		gamma_stamp++;
+	if (redraw_all)
+		cls_redraw_all_terminals();
 }
 
 int fontcache_info(int type)
@@ -2082,7 +2081,7 @@ struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int fla
 	if ((unsigned)n_fonts > INT_MAX / sizeof(*st->table)) overalloc();
 	st->table = xmalloc(sizeof(*st->table)*(n_fonts-1));
 	if(fill_style_table(st->table, font))
-		load_metric(&(st->mono_space), &(st->mono_height),' ',st->table);
+		load_metric(&st->mono_space, &st->mono_height, ' ', st->table);
 	else
 		st->mono_space=-1;
 	return st;
@@ -2103,8 +2102,10 @@ void g_free_style(struct style *st)
 
 tcount gamma_stamp = 1; /* stamp counter for gamma changes */
 
-long gamma_cache_color;
-int gamma_cache_rgb = -2;
+long gamma_cache_color_1;
+int gamma_cache_rgb_1;
+long gamma_cache_color_2;
+int gamma_cache_rgb_2;
 
 /* IEC 61966-2-1
  * Input gamma: sRGB space (directly from HTML, i. e. unrounded)
@@ -2113,32 +2114,32 @@ int gamma_cache_rgb = -2;
  * We assume unsigned short holds at least 16 bits. */
 long real_dip_get_color_sRGB(int rgb)
 {
-	unsigned short r,g,b;
-	int new_rgb;
+	unsigned short r, g, b;
+	int hacked_rgb, new_rgb;
 
-	rgb = hack_rgb(rgb);
+	hacked_rgb = hack_rgb(rgb);
 
-	round_color_sRGB_to_48(&r,&g,&b,rgb);
-	r = ags_16_to_8(r, (float)(1 / display_red_gamma));
-	g = ags_16_to_8(g, (float)(1 / display_green_gamma));
-	b = ags_16_to_8(b, (float)(1 / display_blue_gamma));
-	new_rgb=b|(g<<8)|(r<<16);
-	gamma_cache_rgb = rgb;
+	round_color_sRGB_to_48(&r, &g, &b, hacked_rgb);
+	r = ags_16_to_8(r, (float)(1 / (float)(display_red_gamma)));
+	g = ags_16_to_8(g, (float)(1 / (float)(display_green_gamma)));
+	b = ags_16_to_8(b, (float)(1 / (float)(display_blue_gamma)));
+	new_rgb = b | (g << 8) | (r << 16);
+
 	/* The get_color takes values with gamma of display_*_gamma */
-	return gamma_cache_color = drv->get_color(new_rgb);
+	return gamma_cache_color_1 = drv->get_color(new_rgb);
 }
 
 void get_links_icon(char **data, int *width, int *height, int *skip, int pad)
 {
 	struct bitmap b;
 
-	b.x=48;
-	b.y=48;
-	*width=b.x;
-	*height=b.y;
-	b.skip=b.x*(drv->depth&7);
+	b.x = 48;
+	b.y = 48;
+	*width = b.x;
+	*height = b.y;
+	b.skip = b.x * (drv->depth & 7);
 	while (b.skip % pad) b.skip++;
-	*skip=b.skip;
+	*skip = b.skip;
 	b.data = *data = xmalloc(b.skip * b.y);
 }
 

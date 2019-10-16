@@ -458,7 +458,7 @@ static const struct color_spec color_specs[] = {
 int decode_color(unsigned char *str, struct rgb *col)
 {
 	unsigned long ch;
-	unsigned char *end;
+	char *end;
 	if (*str != '#') {
 		const struct color_spec *cs;
 		for (cs = color_specs; cs < endof(color_specs); cs++)
@@ -470,7 +470,7 @@ int decode_color(unsigned char *str, struct rgb *col)
 		str++;
 	}
 	if (strlen(cast_const_char str) == 6) {
-		ch = strtoul(cast_const_char str, (char **)(void *)&end, 16);
+		ch = strtoul(cast_const_char str, &end, 16);
 		if (!*end && ch < 0x1000000) {
 found:
 			memset(col, 0, sizeof(struct rgb));
@@ -481,7 +481,7 @@ found:
 		}
 	}
 	if (strlen(cast_const_char str) == 3) {
-		ch = strtoul(cast_const_char str, (char **)(void *)&end, 16);
+		ch = strtoul(cast_const_char str, &end, 16);
 		if (!*end && ch < 0x1000) {
 			memset(col, 0, sizeof(struct rgb));
 			col->r = ((unsigned)ch / 0x100) * 0x11;
@@ -613,7 +613,7 @@ static int put_chars_conv(unsigned char *c, int l)
 		if (c[pp] != '&') {
 			struct conv_table *t;
 			int i;
-			if (pp + 3 <= l && c[pp] == 0xef && c[pp + 1] == 0xbb && c[pp + 2] == 0xbf && !d_opt->real_cp) {
+			if (l - pp >= 3 && c[pp] == 0xef && c[pp + 1] == 0xbb && c[pp + 2] == 0xbf && !d_opt->real_cp) {
 				pp += 3;
 				continue;
 			}
@@ -633,7 +633,7 @@ static int put_chars_conv(unsigned char *c, int l)
 		} else {
 			int i = pp + 1;
 			if (d_opt->plain & 1) goto put_c;
-			while (i < l && c[i] != ';' && c[i] != '&' && c[i] > ' ') i++;
+			while (i < l && !is_entity_terminator(c[i])) i++;
 			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1))) goto put_c;
 			pp = i + (i < l && c[i] == ';');
 		}
@@ -756,8 +756,8 @@ int get_num(unsigned char *a, unsigned char *n)
 {
 	unsigned char *al;
 	if ((al = get_attr_val(a, n))) {
-		unsigned char *end;
-		unsigned long s = strtoul(cast_const_char al, (char **)(void *)&end, 10);
+		char *end;
+		unsigned long s = strtoul(cast_const_char al, &end, 10);
 		if (!*al || *end || s > 10000) s = -1;
 		free(al);
 		return (int)s;
@@ -937,10 +937,16 @@ static void html_a(unsigned char *a)
 static void html_a_special(unsigned char *a, unsigned char *next, unsigned char *eof)
 {
 	unsigned char *t;
+	if (!format_.link) return;
 	while (next < eof && WHITECHAR(*next)) next++;
-	if (next > eof - 4) return;
-	if (!(next[0] == '<' && next[1] == '/' && upcase(next[2]) == 'A' && next[3] == '>')) return;
-	if (!has_attr(a, cast_uchar "href") || !format_.link) return;
+	if (eof - next >= 4 && next[0] == '<' && next[1] == '/' && upcase(next[2]) == 'A' && next[3] == '>')
+		goto ok;
+	if (strstr(cast_const_char format_.link, "/raw/"))      /* gitlab hack */
+		goto ok;
+	return;
+
+ ok:
+	if (!has_attr(a, cast_uchar "href")) return;
 	t = get_attr_val(a, cast_uchar "title");
 	if (!t) return;
 	put_chrs(t, (int)strlen(cast_const_char t));
@@ -969,7 +975,7 @@ static void html_font(unsigned char *a)
 		int p = 0;
 		unsigned long s;
 		unsigned char *nn = al;
-		unsigned char *end;
+		char *end;
 		if (*al == '+') {
 			p = 1;
 			nn++;
@@ -978,7 +984,7 @@ static void html_font(unsigned char *a)
 			p = -1;
 			nn++;
 		}
-		s = strtoul(cast_const_char nn, (char **)(void *)&end, 10);
+		s = strtoul(cast_const_char nn, &end, 10);
 		if (*nn && !*end) {
 			if (s > 7) s = 7;
 			if (!p) format_.fontsize = (int)s;
@@ -1032,12 +1038,16 @@ static void html_img(unsigned char *a)
 	|| (s = get_url_val_img(a, cast_uchar "data-original"))
 	|| (s = get_url_val_img(a, cast_uchar "data-small"))
 	|| (s = get_url_val_img(a, cast_uchar "data-lazy"))
+	|| (s = get_url_val_img(a, cast_uchar "data-lazy-src"))
 	|| (s = get_url_val_img(a, cast_uchar "src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-source"))
 	|| (s = get_url_val_img(a, cast_uchar "dynsrc"))
 	|| (s = get_url_val_img(a, cast_uchar "data"))
 	|| (s = get_url_val_img(a, cast_uchar "content"))
 	|| (s = get_url_val(a, cast_uchar "src"))) {
+		 if (!s[0]) goto skip_img;
 		 format_.image = join_urls(format_.href_base, s);
+ skip_img:
 		 orig_link = s;
 	}
 	if (!F || !d_opt->display_images) {
@@ -1673,7 +1683,7 @@ static void find_form_for_input(unsigned char *i)
 	se:
 	while (s < i && *s != '<') sp:s++;
 	if (s >= i) goto end_parse;
-	if (s + 2 <= eofff && (s[1] == '!' || s[1] == '?')) {
+	if (eofff - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 		s = skip_comment(s, i);
 		goto se;
 	}
@@ -1947,7 +1957,7 @@ static void html_option(unsigned char *a)
 		r = p;
 		while (r < eoff && WHITECHAR(*r)) r++;
 		if (r >= eoff) goto x;
-		if (r - 2 <= eoff && (r[1] == '!' || r[1] == '?')) {
+		if (eoff - r >= 2 && (r[1] == '!' || r[1] == '?')) {
 			p = skip_comment(r, eoff);
 			goto rrrr;
 		}
@@ -2191,7 +2201,7 @@ static int do_html_select(unsigned char *attr, unsigned char *html, unsigned cha
 		}
 		add_bytes_to_str(&vlbl, &vlbl_l, s, l);
 	}
-	if (html + 2 <= eof && (html[1] == '!' || html[1] == '?')) {
+	if (eof - html >= 2 && (html[1] == '!' || html[1] == '?')) {
 		html = skip_comment(html, eof);
 		goto se;
 	}
@@ -2481,6 +2491,7 @@ static void html_frame(unsigned char *a)
 static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int *olp)
 {
 	unsigned char *aa;
+	char *end;
 	int q, qq, i, d, nn;
 	unsigned long n;
 	int *oo, *o;
@@ -2489,7 +2500,8 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 	o = NULL;
 	new_ch:
 	while (WHITECHAR(*a)) a++;
-	n = strtoul(cast_const_char a, (char **)(void *)&a, 10);
+	n = strtoul(cast_const_char a, &end, 10);
+	a = cast_uchar end;
 	if (n > 10000) n = 10000;
 	q = (int)n;
 	if (*a == '%') q = q * ww / 100;
@@ -2661,7 +2673,11 @@ static void html_meta(unsigned char *a)
 		if (!strcmp(cast_const_char prop, "og:image")) {
 			unsigned char *host = get_host_name(format_.href_base);
 			if (host) {
-				if (strstr(cast_const_char host, "instagram."))
+				if (strstr(cast_const_char host, "flickr.")
+				|| strstr(cast_const_char host, "instagram.")
+				|| strstr(cast_const_char host, "mastadon.")
+				|| strstr(cast_const_char host, "pinterest.")
+				|| strstr(cast_const_char host, "twitter."))
 					html_img(a);
 				free(host);
 			}
@@ -2838,11 +2854,11 @@ static struct element_info elements[] = {
 
 unsigned char *skip_comment(unsigned char *html, unsigned char *eof)
 {
-	int comm = html + 4 <= eof && html[2] == '-' && html[3] == '-';
+	int comm = eof - html >= 4 && html[2] == '-' && html[3] == '-';
 	html += comm ? 4 : 2;
 	while (html < eof) {
 		if (!comm && html[0] == '>') return html + 1;
-		if (comm && html + 2 <= eof && html[0] == '-' && html[1] == '-') {
+		if (comm && eof - html >= 2 && html[0] == '-' && html[1] == '-') {
 			html += 2;
 			while (html < eof && (*html == '-' || *html == '!')) html++;
 			while (html < eof && WHITECHAR(*html)) html++;
@@ -2886,9 +2902,13 @@ static int qd(unsigned char *html, unsigned char *eof, int *len)
 		return -1;
 	}
 	if (html[0] != '&' || d_opt->plain & 1) return html[0];
-	if (html + 1 >= eof) return -1;
+	if (eof - html >= 5 && !memcmp(html + 1, "Tab;", 4)) {
+		*len = 5;
+		return 9;
+	}
+	if (eof - html <= 1) return -1;
 	if (html[1] != '#') return -1;
-	for (l = 2; l < 10 && html + l < eof; l++) if (html[l] == ';') {
+	for (l = 2; l < 10 && eof - html > l; l++) if (html[l] == ';') {
 		int n = get_entity_number(html + 2, l - 2);
 		if (n >= 0) {
 			*len = l + 1;
@@ -2941,7 +2961,7 @@ do {					\
 			}
 			putsp = 0;*/
 			while (h < eof && WHITECHAR(*h)) h++;
-			if (h + 1 < eof && h[0] == '<' && h[1] == '/') {
+			if (eof - h > 1 && h[0] == '<' && h[1] == '/') {
 				if (!parse_element(h, eof, &name, &namelen, &attr, &end)) {
 					put_chrs(lt, (int)(html - lt));
 					lt = html = h;
@@ -2981,7 +3001,7 @@ do {					\
 				put_chrs(lt, (int)(html - lt));
 				next_break:
 				html += l;
-				if (q == 13 && html < eof - 1 && qd(html, eof, &l) == 10) html += l;
+				if (q == 13 && eof - html > 1 && qd(html, eof, &l) == 10) html += l;
 				ln_break(1);
 				if (html >= eof) goto set_lt;
 				q = qd(html, eof, &l);
@@ -2996,12 +3016,12 @@ do {					\
 			int xl;
 			put_chrs(lt, (int)(html - lt));
 			xl = 1;
-			while (xl < 240 && html + xl + 1 < eof && html[xl + 1] < ' ' && html[xl + 1] != 9 && html[xl + 1] != 10 && html[xl + 1] != 13) xl++;
+			while (xl < 240 && eof - html > xl + 1 && html[xl + 1] < ' ' && html[xl + 1] != 9 && html[xl + 1] != 10 && html[xl + 1] != 13) xl++;
 			put_chrs(cast_uchar "................................................................................................................................................................................................................................................", xl);
 			html += xl;
 			goto set_lt;
 		}
-		if (html + 2 <= eof && html[0] == '<' && (html[1] == '!' || html[1] == '?') && !(d_opt->plain & 1) && html_top.invisible != INVISIBLE_STYLE) {
+		if (eof - html >= 2 && html[0] == '<' && (html[1] == '!' || html[1] == '?') && !(d_opt->plain & 1) && html_top.invisible != INVISIBLE_STYLE) {
 			/*if (putsp == 1) goto put_sp;
 			putsp = 0;*/
 			put_chrs(lt, (int)(html - lt));
@@ -3224,7 +3244,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		free(*menu);
 		return -1;
 	}
-	if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
+	if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 		s = skip_comment(s, eof);
 		goto se;
 	}
@@ -3249,7 +3269,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		free(*menu);
 		return -1;
 	}
-	if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
+	if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 		s = skip_comment(s, eof);
 		goto se2;
 	}
@@ -3270,7 +3290,7 @@ int get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof, uns
 		}
 		add_bytes_to_str(&label, &lblen, s, ss - s);
 		s = ss;
-		if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
+		if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 			s = skip_comment(s, eof);
 			goto se3;
 		}
@@ -3417,7 +3437,7 @@ void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 	se:
 	while (s < eof && *s != '<') sp:s++;
 	if (s >= eof) return;
-	if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
+	if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 		s = skip_comment(s, eof);
 		goto se;
 	}
@@ -3447,7 +3467,7 @@ void scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 		while (s < eof && *s != '<') xsp:s++;
 		add_bytes_to_str(title, &tlen, s1, s - s1);
 		if (s >= eof) goto se;
-		if (s + 2 <= eof && (s[1] == '!' || s[1] == '?')) {
+		if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 			s = skip_comment(s, eof);
 			goto xse;
 		}

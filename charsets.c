@@ -335,7 +335,7 @@ decode:
 		} else {
 			i = pp + 1;
 			if (!dopt || dopt->plain) goto put_c;
-			while (i < l && c[i] != ';' && c[i] != '&' && c[i] > ' ') i++;
+			while (i < l && !is_entity_terminator(c[i])) i++;
 			if (!(e = get_entity_string(&c[pp + 1], i - pp - 1)))
 				goto put_c;
 			pp = i + (i < l && c[i] == ';');

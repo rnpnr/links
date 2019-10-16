@@ -290,6 +290,8 @@ static inline int cmpbeg(const unsigned char *str, const unsigned char *b)
 typedef unsigned long long uttime;
 typedef unsigned long long tcount;
 
+extern int page_size;
+
 struct terminal;
 
 struct open_in_new {
@@ -301,11 +303,11 @@ struct open_in_new {
 void close_fork_tty(void);
 int is_screen(void);
 int is_xterm(void);
-int get_terminal_size(int, int *, int *);
-void handle_terminal_resize(int, void (*)(void));
-void unhandle_terminal_resize(int);
+void get_terminal_size(int *, int *);
+void handle_terminal_resize(void (*)(int, int), int *x, int *y);
+void unhandle_terminal_resize(void);
 void set_nonblock(int);
-int c_pipe(int *);
+int c_pipe(int [2]);
 int c_dup(int oh);
 int c_socket(int, int, int);
 int c_accept(int, struct sockaddr *, socklen_t *);
@@ -322,13 +324,14 @@ int clipboard_support(struct terminal *);
 void set_window_title(unsigned char *);
 unsigned char *get_window_title(void);
 int is_safe_in_shell(unsigned char);
-unsigned char *escape_path(unsigned char *);
+unsigned char *escape_path(char *);
 void check_shell_security(unsigned char **);
 void check_filename(unsigned char **);
 int check_shell_url(unsigned char *);
 void do_signal(int sig, void (*handler)(int));
 uttime get_time(void);
 uttime get_absolute_time(void);
+void init_page_size(void);
 void ignore_signals(void);
 int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);
@@ -493,8 +496,6 @@ struct fragment {
 	list_entry_last
 	unsigned char data[1];
 };
-
-extern int page_size;
 
 struct connection;
 
@@ -715,7 +716,7 @@ void load_url(unsigned char *, unsigned char *, struct status *, int, int, int, 
 void change_connection(struct status *, struct status *, int);
 void detach_connection(struct status *, off_t, int, int);
 void abort_all_connections(void);
-void abort_background_connections(void);
+int abort_background_connections(void);
 int is_entry_used(struct cache_entry *);
 void clear_connection_timeout(struct connection *);
 void set_connection_timeout(struct connection *);
@@ -733,6 +734,7 @@ void free_blacklist(void);
 #define BL_IGNORE_CERTIFICATE	0x040
 #define BL_IGNORE_DOWNGRADE	0x080
 #define BL_IGNORE_CIPHER	0x100
+#define BL_AVOID_INSECURE	0x200
 
 /* suffix.c */
 
@@ -939,6 +941,7 @@ void file_func(struct connection *);
 #define KBD_FORWARD	-0x14b
 #define KBD_RELOAD	-0x14c
 #define KBD_BOOKMARKS	-0x14d
+#define KBD_SELECT	-0x14e
 
 #define KBD_ESCAPE_MENU(x)	((x) <= KBD_F1 && (x) > KBD_CTRL_C)
 
@@ -955,12 +958,6 @@ void free_all_itrms(void);
 void dispatch_special(unsigned char *);
 void kbd_ctrl_c(void);
 int is_blocked(void);
-
-struct os2_key {
-	int x, y;
-};
-
-extern struct os2_key os2xtd[256];
 
 struct itrm;
 
@@ -1091,6 +1088,7 @@ struct graphics_driver {
 	void (*flush)(struct graphics_device *dev);
 
 	void (*set_palette)(void);
+	unsigned short *(*get_real_colors)(void);
 
 	void (*set_title)(struct graphics_device *dev, unsigned char *title);
 		/* set window title. title is in utf-8 encoding -- you should recode it to device charset */
@@ -1285,7 +1283,7 @@ struct style {
 };
 
 struct font_cache_entry {
-	unsigned char r0,g0,b0,r1,g1,b1;
+	unsigned char r0, g0, b0, r1, g1, b1;
 	struct bitmap bitmap;
 	int mono_space, mono_height; /* if the letter was rendered for a
 	monospace font, then size of the space. Otherwise, mono_space
@@ -1334,6 +1332,7 @@ void mix_one_color_24(unsigned char *restrict dest, int length,
 void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 	int ox, int oy);
 void update_aspect(void);
+void flush_bitmaps(int flush_font, int flush_images, int redraw_all);
 
 struct g_object;
 
@@ -1361,15 +1360,18 @@ struct style *g_clone_style(struct style *);
 
 extern tcount gamma_stamp;
 
-extern long gamma_cache_color;
-extern int gamma_cache_rgb;
+extern long gamma_cache_color_1;
+extern int gamma_cache_rgb_1;
+extern long gamma_cache_color_2;
+extern int gamma_cache_rgb_2;
 
-extern long real_dip_get_color_sRGB(int rgb);
+long real_dip_get_color_sRGB(int rgb);
 
 static inline long dip_get_color_sRGB(int rgb)
 {
-	if (rgb == gamma_cache_rgb) return gamma_cache_color;
-	else return real_dip_get_color_sRGB(rgb);
+	if (rgb == gamma_cache_rgb_1) return gamma_cache_color_1;
+	if (rgb == gamma_cache_rgb_2) return gamma_cache_color_2;
+	return real_dip_get_color_sRGB(rgb);
 }
 
 void init_dip(void);
@@ -1385,7 +1387,7 @@ void my_png_free(png_structp png_ptr, void *ptr);
 extern int slow_fpu;	/* -1 --- don't know, 0 --- no, 1 --- yes */
 
 /* Dithering functions (for blocks of pixels being dithered into bitmaps) */
-void dither (unsigned short *in, struct bitmap *out);
+void dither(unsigned short *in, struct bitmap *out);
 int *dither_start(unsigned short *in, struct bitmap *out);
 void dither_restart(unsigned short *in, struct bitmap *out, int *dregs);
 extern void (*round_fn)(unsigned short *restrict in, struct bitmap *out);
@@ -1615,7 +1617,7 @@ extern int terminal_pipe[2];
 extern int retval;
 
 extern const char *argv0;
-extern unsigned char **g_argv;
+extern char **g_argv;
 extern int g_argc;
 
 void sig_tstp(void *t);
@@ -1676,8 +1678,8 @@ void detach_object_connection(struct object_request *, off_t);
 
 extern int decompressed_cache_size;
 
-int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, unsigned char **end, int *errp);
-int get_file(struct object_request *o, unsigned char **start, unsigned char **end);
+int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, size_t *len, int *errp);
+int get_file(struct object_request *o, unsigned char **start, size_t *len);
 void free_decompressed_data(struct cache_entry *e);
 void add_compress_methods(unsigned char **s, int *l);
 
@@ -2470,8 +2472,6 @@ struct session {
 
 struct dialog_data;
 
-int get_file(struct object_request *o, unsigned char **start, unsigned char **end);
-
 int f_is_finished(struct f_data *f);
 unsigned long formatted_info(int);
 void init_fcache(void);
@@ -2486,6 +2486,7 @@ unsigned char *decode_url(unsigned char *);
 struct session *get_download_ses(struct download *);
 unsigned char *subst_file(unsigned char *, unsigned char *, int);
 int are_there_downloads(void);
+unsigned char get_session_attribute(struct session *, int);
 unsigned char *translate_download_file(unsigned char *);
 void free_strerror_buf(void);
 int get_error_from_errno(int errn);
@@ -2802,6 +2803,7 @@ struct conv_table {
 };
 
 struct conv_table *get_translation_table(const int, const int);
+static inline int is_entity_terminator(unsigned char c) { return c <= ' ' || c == ';' || c == '&' || c == '/' || c == '?'; }
 int get_entity_number(unsigned char *st, int l);
 unsigned char *get_entity_string(unsigned char *, int);
 unsigned char *convert_string(struct conv_table *, unsigned char *, int, struct document_options *);
@@ -3421,7 +3423,7 @@ extern unsigned char ggr_display[MAX_STR_LEN];
 
 extern unsigned char default_target[MAX_STR_LEN];
 
-unsigned char *parse_options(int, unsigned char *[]);
+unsigned char *parse_options(int, char *[]);
 void init_home(void);
 unsigned char *read_config_file(unsigned char *);
 int write_to_config_file(unsigned char *, unsigned char *, int);

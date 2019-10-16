@@ -297,20 +297,21 @@ after_inflateend:
 	return 0;
 }
 
-int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, unsigned char **end, int *errp)
+int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, size_t *len, int *errp)
 {
 	unsigned char *enc;
 	struct fragment *fr;
 	int e;
 	if (errp)
 		*errp = 0;
-	*start = *end = NULL;
+	*start = NULL;
+	*len = 0;
 	if (!ce)
 		return 1;
 	if (ce->decompressed) {
 return_decompressed:
 		*start = ce->decompressed;
-		*end = ce->decompressed + ce->decompressed_len;
+		*len = ce->decompressed_len;
 		return 0;
 	}
 	enc = get_content_encoding(ce->head, ce->url, 0);
@@ -344,18 +345,19 @@ uncompressed:
 	if (fr->offset || !fr->length)
 		return 1;
 	*start = fr->data;
-	*end = fr->data + fr->length;
+	*len = fr->length;
 	return 0;
 }
 
-int get_file(struct object_request *o, unsigned char **start, unsigned char **end)
+int get_file(struct object_request *o, unsigned char **start, size_t *len)
 {
 	struct terminal *term;
-	*start = *end = NULL;
+	*start = NULL;
+	*len = 0;
 	if (!o)
 		return 1;
 	term = find_terminal(o->term);
-	return get_file_by_term(term, o->ce, start, end, NULL);
+	return get_file_by_term(term, o->ce, start, len, NULL);
 }
 
 void free_decompressed_data(struct cache_entry *e)

@@ -400,7 +400,7 @@ static void add_user_agent(unsigned char **hdr, int *l)
 {
 	add_to_str(hdr, l, cast_uchar "User-Agent: ");
 	if (SCRUB_HEADERS)
-		add_to_str(hdr, l, cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0\r\n");
+		add_to_str(hdr, l, cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0\r\n");
 	else if (!(*http_options.header.fake_useragent)) {
 		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
 		add_to_str(hdr, l, system_name);
@@ -720,11 +720,11 @@ next_chunk:
 		} else if (info->chunk_remaining == -1) {
 			int l;
 			if ((l = is_line_in_buffer(rb))) {
-				unsigned char *de = NULL;
+				char *end;
 				long n = 0;
 				if (l != -1)
-					n = strtol((char *)rb->data, (char **)(void *)&de, 16);
-				if (l == -1 || n < 0 || n >= INT_MAX || de == rb->data) {
+					n = strtol(cast_const_char rb->data, &end, 16);
+				if (l == -1 || n < 0 || n >= INT_MAX || cast_uchar end == rb->data) {
 					setcstate(c, S_HTTP_ERROR);
 					abort_connection(c);
 					return;

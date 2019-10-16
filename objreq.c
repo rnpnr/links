@@ -195,7 +195,7 @@ struct cert_dialog {
 
 static void cert_action(struct object_request *rq, int yes)
 {
-	if (yes) {
+	if (yes > 0) {
 		rq->hold = 0;
 		change_connection(&rq->stat, NULL, PRI_CANCEL);
 		load_url(rq->url, rq->prev_url, &rq->stat, rq->pri, NC_CACHE, 0, 0, 0);
@@ -212,7 +212,16 @@ static void cert_forall(struct cert_dialog *cs, int yes)
 {
 	struct object_request *rq = NULL;
 	struct list_head *lrq;
-	if (yes) add_blacklist_entry(cs->host, cs->bl);
+	if (yes > 0) {
+		add_blacklist_entry(cs->host, cs->bl);
+		del_blacklist_entry(cs->host, BL_AVOID_INSECURE);
+	}
+	if (yes < 0) {
+		add_blacklist_entry(cs->host, BL_AVOID_INSECURE);
+		del_blacklist_entry(cs->host, BL_IGNORE_CERTIFICATE);
+		del_blacklist_entry(cs->host, BL_IGNORE_DOWNGRADE);
+		del_blacklist_entry(cs->host, BL_IGNORE_CIPHER);
+	}
 	foreach(struct object_request, rq, lrq, requests) if (rq->term == cs->term && rq->hold == HOLD_CERT && rq->stat.state == cs->state) {
 		unsigned char *host = get_host_name(rq->url);
 		if (!strcmp(cast_const_char host, cast_const_char cs->host)) cert_action(rq, yes);
@@ -230,6 +239,11 @@ static void cert_no(void *data)
 	cert_forall((struct cert_dialog *)data, 0);
 }
 
+static void cert_never(void *data)
+{
+	cert_forall((struct cert_dialog *)data, -1);
+}
+
 static int cert_compare(void *data1, void *data2)
 {
 	struct cert_dialog *cs1 = (struct cert_dialog *)data1;
@@ -245,6 +259,10 @@ static int cert_window(struct object_request *rq)
 	struct memory_list *ml;
 	if (!(term = find_terminal(rq->term))) return -1;
 	h = get_host_name(rq->url);
+	if (get_blacklist_flags(h) & BL_AVOID_INSECURE) {
+		free(h);
+		return -1;
+	}
 	cs = xmalloc(sizeof(struct cert_dialog));
 	cs->term = rq->term;
 	cs->host = h;
@@ -271,7 +289,7 @@ static int cert_window(struct object_request *rq)
 	msg_box(term, ml,
 		title,
 		AL_CENTER, TEXT_(T_THE_SERVER_), host, text, MSG_BOX_END,
-		(void *)cs, 2, TEXT_(T_NO), cert_no, B_ESC, TEXT_(T_YES), cert_yes, B_ENTER);
+		(void *)cs, 3, TEXT_(T_NO), cert_no, B_ESC, TEXT_(T_YES), cert_yes, B_ENTER, TEXT_(T_NEVER), cert_never, 0);
 	return 0;
 }
 

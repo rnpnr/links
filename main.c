@@ -28,7 +28,7 @@ static void unhandle_basic_signals(struct terminal *);
 static int init_b = 0;
 int g_argc;
 const char *argv0;
-unsigned char **g_argv;
+char **g_argv;
 
 void
 die(const char *errstr, ...)
@@ -491,12 +491,13 @@ int
 main(int argc, char *argv[])
 {
 	g_argc = argc;
-	g_argv = (unsigned char **)argv;
+	g_argv = argv;
 	argv0 = argv[0];
 
 	if (pledge("stdio rpath wpath cpath inet dns tty unix", NULL) < 0)
 		die("pledge: %s\n", strerror(errno));
 
+	init_page_size();
 	select_loop(init);
 	terminate_all_subsystems();
 

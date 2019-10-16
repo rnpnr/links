@@ -1370,7 +1370,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			list_find_next(&rd, - ld->search_direction);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x==KBD_UP)
+		if (ev->x == KBD_UP)
 		{
 			if (ld->current_pos==ld->list) goto kbd_up_redraw_exit;  /* already on the top */
 			ld->current_pos=prev_in_tree(ld,ld->current_pos);
@@ -1386,7 +1386,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			draw_to_window(dlg->win,redraw_list_line,&rd);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x=='i'||ev->x=='*'||ev->x=='8'||ev->x==KBD_INS)
+		if (ev->x == 'i' || ev->x == '*' || ev->x == '8' || ev->x == KBD_INS || ev->x == KBD_SELECT)
 		{
 			if (ld->current_pos!=ld->list)ld->current_pos->type^=4;
 			rd.n=-1;
@@ -1406,7 +1406,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			draw_to_window(dlg->win,redraw_list_line,&rd);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x==KBD_DOWN)
+		if (ev->x == KBD_DOWN)
 		{
 			if (next_in_tree(ld,ld->current_pos)==ld->list) goto kbd_down_redraw_exit;  /* already at the bottom */
 			ld->current_pos=next_in_tree(ld,ld->current_pos);
@@ -1422,7 +1422,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			draw_to_window(dlg->win,redraw_list_line,&rd);
 			return EVENT_PROCESSED;
 		}
-		if (ev->x==KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL))
+		if (ev->x == KBD_HOME || (upcase(ev->x) == 'A' && ev->y & KBD_CTRL))
 		{
 			if (ld->current_pos==ld->list) goto kbd_home_redraw_exit;  /* already on the top */
 			ld->win_offset=ld->list;
@@ -1434,7 +1434,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			draw_to_window(dlg->win,redraw_list_line,&rd);	/* set cursor */
 			return EVENT_PROCESSED;
 		}
-		if (ev->x==KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL))
+		if (ev->x == KBD_END || (upcase(ev->x) == 'E' && ev->y & KBD_CTRL))
 		{
 			int a;
 
@@ -1450,7 +1450,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			draw_to_window(dlg->win,redraw_list_line,&rd);	/* set cursor */
 			return EVENT_PROCESSED;
 		}
-		if (ev->x==KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL))
+		if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL))
 		{
 			int a;
 
@@ -1467,7 +1467,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			draw_to_window(dlg->win,redraw_list_line,&rd);	/* set cursor */
 			return EVENT_PROCESSED;
 		}
-		if (ev->x==KBD_PAGE_DOWN || (upcase(ev->x) == 'F' && ev->y & KBD_CTRL))
+		if (ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F' && ev->y & KBD_CTRL))
 		{
 			int a;
 			struct list*p=ld->win_offset;

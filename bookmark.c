@@ -545,7 +545,7 @@ static void load_bookmarks(struct session *ses)
 		if (p >= end)
 			break;
 		s = p;
-		if (p + 2 <= end && (p[1] == '!' || p[1]== '?')) {
+		if (end - p >= 2 && (p[1] == '!' || p[1]== '?')) {
 			p = skip_comment(p,end);
 			continue;
 		}

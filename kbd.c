@@ -77,7 +77,7 @@ retry:
 	EINTRLOOP(l, (int)write(itrm->sock_out, itrm->ev_queue, to_write));
 	if (l <= 0) {
 		if (to_write > 1) {
-			to_write >>= 2;
+			to_write >>= 1;
 			goto retry;
 		}
 		itrm_error(itrm);
@@ -144,11 +144,9 @@ static void send_term_sequence(int h, int flags)
 		hard_write(h, term_seq_x_mouse, (int)strlen(cast_const_char term_seq_x_mouse));
 }
 
-static void resize_terminal(void)
+static void resize_terminal(int x, int y)
 {
 	struct links_event ev = { EV_RESIZE, 0, 0, 0 };
-	int x, y;
-	if (get_terminal_size(ditrm->std_out, &x, &y)) return;
 	ev.x = x;
 	ev.y = y;
 	queue_event(ditrm, (unsigned char *)&ev, sizeof(struct links_event));
@@ -281,15 +279,10 @@ static void setcooked(int ctl)
 
 void handle_trm(int sock_out, void *init_string, int init_len)
 {
-	int x, y;
 	struct itrm *itrm;
-	struct links_event ev = { EV_INIT, 80, 24, 0 };
+	struct links_event ev = { EV_INIT, 0, 0, 0 };
 	unsigned char *ts;
 	int xwin, def_charset;
-	if (get_terminal_size(0, &x, &y)) {
-		error("ERROR: could not get terminal size");
-		return;
-	}
 	itrm = xmalloc(sizeof(struct itrm));
 	itrm->queue_event = queue_event;
 	itrm->free_trm = free_trm;
@@ -306,9 +299,7 @@ void handle_trm(int sock_out, void *init_string, int init_len)
 	itrm->eqlen = 0;
 	setraw(itrm->ctl_in, 1);
 	set_handlers(0, in_kbd, NULL, itrm);
-	ev.x = x;
-	ev.y = y;
-	handle_terminal_resize(0, resize_terminal);
+	handle_terminal_resize(resize_terminal, &ev.x, &ev.y);
 	queue_event(itrm, (unsigned char *)&ev, sizeof(struct links_event));
 	xwin = is_xterm() * ENV_XWIN + is_screen() * ENV_SCREEN;
 	itrm->flags = 0;
@@ -347,15 +338,16 @@ void handle_trm(int sock_out, void *init_string, int init_len)
 int unblock_itrm(int fd)
 {
 	struct itrm *itrm = ditrm;
+	int x, y;
 	if (!itrm) return -1;
 	if (setraw(itrm->ctl_in, 0)) return -1;
 	if (itrm->blocked != fd + 1) return -2;
 	itrm->blocked = 0;
 	send_init_sequence(itrm->std_out, itrm->flags);
 	set_handlers(itrm->std_in, in_kbd, NULL, itrm);
-	handle_terminal_resize(itrm->ctl_in, resize_terminal);
+	handle_terminal_resize(resize_terminal, &x, &y);
 	itrm->mouse_h = NULL;
-	resize_terminal();
+	resize_terminal(x, y);
 	return 0;
 }
 
@@ -365,7 +357,7 @@ void block_itrm(int fd)
 	if (!itrm) return;
 	if (itrm->blocked) return;
 	itrm->blocked = fd + 1;
-	unhandle_terminal_resize(itrm->ctl_in);
+	unhandle_terminal_resize();
 	itrm->mouse_h = NULL;
 	send_term_sequence(itrm->std_out, itrm->flags);
 	setcooked(itrm->ctl_in);
@@ -378,7 +370,7 @@ static void free_trm(struct itrm *itrm)
 	set_window_title(itrm->orig_title);
 	free(itrm->orig_title);
 	itrm->orig_title = NULL;
-	unhandle_terminal_resize(itrm->ctl_in);
+	unhandle_terminal_resize();
 	send_term_sequence(itrm->std_out, itrm->flags);
 	setcooked(itrm->ctl_in);
 	set_handlers(itrm->std_in, NULL, NULL, NULL);
@@ -392,12 +384,22 @@ static void free_trm(struct itrm *itrm)
 	if (itrm == ditrm) ditrm = NULL;
 }
 
+static void refresh_terminal_size(void)
+{
+	int new_x, new_y;
+	if (!ditrm->blocked) {
+		unhandle_terminal_resize();
+		handle_terminal_resize(resize_terminal, &new_x, &new_y);
+		resize_terminal(new_x, new_y);
+	}
+}
+
 static void resize_terminal_x(unsigned char *text)
 {
 	unsigned char *p;
 	if (!(p = cast_uchar strchr(cast_const_char text, ','))) return;
 	*p++ = 0;
-	resize_terminal();
+	refresh_terminal_size();
 }
 
 void dispatch_special(unsigned char *text)
@@ -443,8 +445,13 @@ static void kbd_timeout(void *itrm_)
 		internal("timeout on empty queue");
 		return;
 	}
+	if (itrm->kqueue[0] != 27) {
+		len = 1;
+		goto skip_esc;
+	}
 	itrm->queue_event(itrm, (unsigned char *)&ev, sizeof(struct links_event));
 	if (get_esc_code(itrm->kqueue, itrm->qlen, &code, &num, &len)) len = 1;
+ skip_esc:
 	itrm->qlen -= len;
 	memmove(itrm->kqueue, itrm->kqueue + len, itrm->qlen);
 	while (process_queue(itrm))
@@ -465,298 +472,6 @@ static int get_esc_code(unsigned char *str, int len, unsigned char *code, int *n
 	}
 	return -1;
 }
-
-/*
-struct os2_key {
-	int x, y;
-};
-*/
-
-struct os2_key os2xtd[256] = {
-/* 0 */
-{0,0},
-{0,0},
-{' ',KBD_CTRL},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{KBD_BS,KBD_ALT},
-{0,0},
-/* 16 */
-{'Q',KBD_ALT},
-{'W',KBD_ALT},
-{'E',KBD_ALT},
-{'R',KBD_ALT},
-{'T',KBD_ALT},
-{'Y',KBD_ALT},
-{'U',KBD_ALT},
-{'I',KBD_ALT},
-/* 24 */
-{'O',KBD_ALT},
-{'P',KBD_ALT},
-{'[',KBD_ALT},
-{']',KBD_ALT},
-{KBD_ENTER,KBD_ALT},
-{0,0},
-{'A',KBD_ALT},
-{'S',KBD_ALT},
-/* 32 */
-{'D',KBD_ALT},
-{'F',KBD_ALT},
-{'G',KBD_ALT},
-{'H',KBD_ALT},
-{'J',KBD_ALT},
-{'K',KBD_ALT},
-{'L',KBD_ALT},
-{';',KBD_ALT},
-/* 40 */
-{'\'',KBD_ALT},
-{'`',KBD_ALT},
-{0,0},
-{'\\',KBD_ALT},
-{'Z',KBD_ALT},
-{'X',KBD_ALT},
-{'C',KBD_ALT},
-{'V',KBD_ALT},
-/* 48 */
-{'B',KBD_ALT},
-{'N',KBD_ALT},
-{'M',KBD_ALT},
-{',',KBD_ALT},
-{'.',KBD_ALT},
-{'/',KBD_ALT},
-{0,0},
-{'*',KBD_ALT},
-/* 56 */
-{0,0},
-{' ',KBD_ALT},
-{0,0},
-{KBD_F1,0},
-{KBD_F2,0},
-{KBD_F3,0},
-{KBD_F4,0},
-{KBD_F5,0},
-/* 64 */
-{KBD_F6,0},
-{KBD_F7,0},
-{KBD_F8,0},
-{KBD_F9,0},
-{KBD_F10,0},
-{0,0},
-{0,0},
-{KBD_HOME,0},
-/* 72 */
-{KBD_UP,0},
-{KBD_PAGE_UP,0},
-{'-',KBD_ALT},
-{KBD_LEFT,0},
-{'5',0},
-{KBD_RIGHT,0},
-{'+',KBD_ALT},
-{KBD_END,0},
-/* 80 */
-{KBD_DOWN,0},
-{KBD_PAGE_DOWN,0},
-{KBD_INS,0},
-{KBD_DEL,0},
-{KBD_F1,KBD_SHIFT},
-{KBD_F2,KBD_SHIFT},
-{KBD_F3,KBD_SHIFT},
-{KBD_F4,KBD_SHIFT},
-/* 88 */
-{KBD_F5,KBD_SHIFT},
-{KBD_F6,KBD_SHIFT},
-{KBD_F7,KBD_SHIFT},
-{KBD_F8,KBD_SHIFT},
-{KBD_F9,KBD_SHIFT},
-{KBD_F10,KBD_SHIFT},
-{KBD_F1,KBD_CTRL},
-{KBD_F2,KBD_CTRL},
-/* 96 */
-{KBD_F3,KBD_CTRL},
-{KBD_F4,KBD_CTRL},
-{KBD_F5,KBD_CTRL},
-{KBD_F6,KBD_CTRL},
-{KBD_F7,KBD_CTRL},
-{KBD_F8,KBD_CTRL},
-{KBD_F9,KBD_CTRL},
-{KBD_F10,KBD_CTRL},
-/* 104 */
-{KBD_F1,KBD_ALT},
-{KBD_F2,KBD_ALT},
-{KBD_F3,KBD_ALT},
-{KBD_F4,KBD_ALT},
-{KBD_F5,KBD_ALT},
-{KBD_F6,KBD_ALT},
-{KBD_F7,KBD_ALT},
-{KBD_F8,KBD_ALT},
-/* 112 */
-{KBD_F9,KBD_ALT},
-{KBD_F10,KBD_ALT},
-{0,0},
-{KBD_LEFT,KBD_CTRL},
-{KBD_RIGHT,KBD_CTRL},
-{KBD_END,KBD_CTRL},
-{KBD_PAGE_DOWN,KBD_CTRL},
-{KBD_HOME,KBD_CTRL},
-/* 120 */
-{'1',KBD_ALT},
-{'2',KBD_ALT},
-{'3',KBD_ALT},
-{'4',KBD_ALT},
-{'5',KBD_ALT},
-{'6',KBD_ALT},
-{'7',KBD_ALT},
-{'8',KBD_ALT},
-/* 128 */
-{'9',KBD_ALT},
-{'0',KBD_ALT},
-{'-',KBD_ALT},
-{'=',KBD_ALT},
-{KBD_PAGE_UP,KBD_CTRL},
-{KBD_F11,0},
-{KBD_F12,0},
-{KBD_F11,KBD_SHIFT},
-/* 136 */
-{KBD_F12,KBD_SHIFT},
-{KBD_F11,KBD_CTRL},
-{KBD_F12,KBD_CTRL},
-{KBD_F11,KBD_ALT},
-{KBD_F12,KBD_ALT},
-{KBD_UP,KBD_CTRL},
-{'-',KBD_CTRL},
-{'5',KBD_CTRL},
-/* 144 */
-{'+',KBD_CTRL},
-{KBD_DOWN,KBD_CTRL},
-{KBD_INS,KBD_CTRL},
-{KBD_DEL,KBD_CTRL},
-{KBD_TAB,KBD_CTRL},
-{0,0},
-{0,0},
-{KBD_HOME,KBD_ALT},
-/* 152 */
-{KBD_UP,KBD_ALT},
-{KBD_PAGE_UP,KBD_ALT},
-{0,0},
-{KBD_LEFT,KBD_ALT},
-{0,0},
-{KBD_RIGHT,KBD_ALT},
-{0,0},
-{KBD_END,KBD_ALT},
-/* 160 */
-{KBD_DOWN,KBD_ALT},
-{KBD_PAGE_DOWN,KBD_ALT},
-{KBD_INS,KBD_ALT},
-{KBD_DEL,KBD_ALT},
-{0,0},
-{KBD_TAB,KBD_ALT},
-{KBD_ENTER,KBD_ALT},
-{0,0},
-/* 168 */
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-/* 176 */
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-/* 192 */
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-/* 208 */
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-/* 224 */
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-/* 240 */
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-{0,0},
-/* 256 */
-};
 
 static int xterm_button = -1;
 
@@ -858,7 +573,7 @@ static int process_queue(struct itrm *itrm)
 					case 201: itrm->flags &= ~BRACKETED_PASTE; break;
 					} break;
 				case 'R':
-					resize_terminal();
+					refresh_terminal_size();
 					break;
 				case 'M':
 				case '<':
@@ -967,11 +682,7 @@ static int process_queue(struct itrm *itrm)
 		}
 		goto l1;
 	} else if (itrm->kqueue[0] == 0) {
-		if (itrm->qlen < 2) goto ret;
-		if (!(ev.x = os2xtd[itrm->kqueue[1]].x)) ev.x = -1;
-		ev.y = os2xtd[itrm->kqueue[1]].y;
-		el = 2;
-		/*printf("%02x - %02x %02x\n", (int)itrm->kqueue[1], ev.x, ev.y);*/
+		el = 1;
 		goto l1;
 	}
 	el = 1;

@@ -599,7 +599,8 @@ static void put_chars(void *p_, unsigned char *c, int l)
 	if (!l) return;
 	if (p->cx < par_format.leftmargin) p->cx = par_format.leftmargin;
 	if (c[0] != ' ' || (c[1] && c[1] != ' ')) {
-		last_tag_for_newline = &p->data->tags;
+		if (p->data)
+			last_tag_for_newline = &p->data->tags;
 	}
 	if (!d_opt->cp && !(format_.attr & AT_GRAPHICS)) {
 		int pl;

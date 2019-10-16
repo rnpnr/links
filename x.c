@@ -66,14 +66,13 @@
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xlocale.h>
+#include <X11/Xproto.h>
 #include <X11/Xutil.h>
 
 #define X_BORDER_WIDTH 4
 #define X_HASH_TABLE_SIZE 64
 
 #define X_MAX_CLIPBOARD_SIZE	(15*1024*1024)
-
-#define XPIXMAPP(a) ((struct x_pixmapa*)(a))
 
 static int x_default_window_width;
 static int x_default_window_height;
@@ -84,8 +83,11 @@ static void x_convert_to_216(char *data, int x, int y, int skip);
 
 static void selection_request(XEvent *event);
 
-static int x_fd;    /* x socket */
 static Display *x_display = NULL;   /* display */
+static Visual *x_default_visual;
+static XVisualInfo vinfo;
+
+static int x_fd;    /* x socket */
 static unsigned char *x_display_string = NULL;
 static int x_screen;   /* screen */
 static int x_display_height, x_display_width;   /* screen dimensions */
@@ -94,10 +96,15 @@ static int x_depth, x_bitmap_bpp;   /* bits per pixel and bytes per pixel */
 static int x_bitmap_scanline_pad; /* bitmap scanline_padding in bytes */
 static int x_bitmap_bit_order;
 
+static XColor *static_color_map = NULL;
 static unsigned char x_have_palette;
 static unsigned char x_use_static_color_table;
 static unsigned char *static_color_table = NULL;
-static XColor *static_color_map = NULL;
+struct {
+	unsigned char failure;
+	unsigned char extra_allocated;
+	unsigned short alloc_count;
+} *static_color_struct = NULL;
 
 #define X_STATIC_COLORS                (x_depth < 8 ? 8 : 216)
 #define X_STATIC_CODE          (x_depth < 8 ? 801 : 833)
@@ -107,30 +114,34 @@ static int fake_window_initialized = 0;
 static GC x_normal_gc = 0, x_copy_gc = 0, x_drawbitmap_gc = 0, x_scroll_gc = 0;
 static long x_normal_gc_color;
 static struct rect x_scroll_gc_rect;
-static Colormap x_colormap;
+static Colormap x_default_colormap, x_colormap;
 static Atom x_delete_window_atom, x_wm_protocols_atom, x_sel_atom, x_targets_atom, x_utf8_string_atom;
-static Visual *x_default_visual;
 static Pixmap x_icon = 0;
 
 static XIM xim = NULL;
 
 extern struct graphics_driver x_driver;
 
-static unsigned char *x_driver_param=NULL;
-static int n_wins;	/* number of windows */
+static unsigned char *x_driver_param = NULL;
+static int n_wins = 0; /* number of windows */
 
+static struct list_head bitmaps = { &bitmaps, &bitmaps };
 
-#define X_TYPE_PIXMAP 1
-#define X_TYPE_IMAGE 2
+#define XPIXMAPP(a) ((struct x_pixmapa *)(a))
 
-struct x_pixmapa
-{
+#define X_TYPE_NOTHING 0
+#define X_TYPE_PIXMAP  1
+#define X_TYPE_IMAGE   2
+
+struct x_pixmapa {
 	unsigned char type;
 	union
 	{
 		XImage *image;
-		Pixmap *pixmap;
-	}data;
+		Pixmap pixmap;
+	} data;
+	list_entry_1st
+	list_entry_last
 };
 
 
@@ -166,8 +177,8 @@ static void x_wait_for_event(void)
 
 static void x_process_events(void *data);
 
-static unsigned char flush_in_progress=0;
-static unsigned char process_events_in_progress=0;
+static unsigned char flush_in_progress = 0;
+static unsigned char process_events_in_progress = 0;
 
 static inline void X_SCHEDULE_PROCESS_EVENTS(void)
 {
@@ -183,7 +194,7 @@ static void x_do_flush(void *ignore)
 	 * tipne Xy, tak se nic nedeje, maximalne se zavola XFlush na blbej
 	 * display, ale Xy se nepodelaj */
 
-	flush_in_progress=0;
+	flush_in_progress = 0;
 	XFlush(x_display);
 	X_SCHEDULE_PROCESS_EVENTS();
 }
@@ -196,20 +207,91 @@ static inline void X_FLUSH(void)
 	}
 }
 
+static void x_pixmap_failed(void *ignore);
+
+static int (*original_error_handler)(Display *, XErrorEvent *) = NULL;
+static unsigned char pixmap_mode = 0;
+
+static int pixmap_handler(Display *d, XErrorEvent *e)
+{
+	if (pixmap_mode == 2) {
+		if (e->request_code == X_CreatePixmap) {
+			pixmap_mode = 1;
+			register_bottom_half(x_pixmap_failed, NULL);
+			return 0;
+		}
+	}
+	if (pixmap_mode == 1) {
+		if (e->request_code == X_CreatePixmap
+		|| e->request_code == X_PutImage
+		|| e->request_code == X_CopyArea
+		|| e->request_code == X_FreePixmap) {
+			return 0;
+		}
+	}
+	return original_error_handler(d, e);
+}
+
+static void x_pixmap_failed(void *no_reinit)
+{
+	struct x_pixmapa *p;
+	struct list_head *lp;
+
+	foreach(struct x_pixmapa, p, lp, bitmaps) {
+		if (p->type == X_TYPE_PIXMAP) {
+			XFreePixmap(x_display, p->data.pixmap);
+			p->type = X_TYPE_NOTHING;
+		}
+	}
+
+	XSync(x_display, False);
+	X_SCHEDULE_PROCESS_EVENTS();
+
+	XSetErrorHandler(original_error_handler);
+	original_error_handler = NULL;
+	pixmap_mode = 0;
+
+	if (!no_reinit)
+		flush_bitmaps(1, 1, 1);
+}
+
+static void setup_pixmap_handler(void)
+{
+	original_error_handler = XSetErrorHandler(pixmap_handler);
+	pixmap_mode = 2;
+}
+
+static void undo_pixmap_handler(void)
+{
+	if (pixmap_mode == 2) {
+		XSetErrorHandler(original_error_handler);
+		original_error_handler = NULL;
+		pixmap_mode = 0;
+	}
+	if (pixmap_mode == 1) {
+		x_pixmap_failed(NULL);
+	}
+	unregister_bottom_half(x_pixmap_failed, NULL);
+}
+
 static int (*old_error_handler)(Display *, XErrorEvent *) = NULL;
-static int failure_happened;
+static unsigned char failure_happened;
+static unsigned char test_request_code;
 
 static int failure_handler(Display *d, XErrorEvent *e)
 {
+	if (e->request_code != test_request_code)
+		return old_error_handler(d, e);
 	failure_happened = 1;
 	return 0;
 }
 
-static void x_prepare_for_failure(void)
+static void x_prepare_for_failure(unsigned char code)
 {
 	if (old_error_handler)
 		internal("x_prepare_for_failure: double call");
 	failure_happened = 0;
+	test_request_code = code;
 	old_error_handler = XSetErrorHandler(failure_handler);
 }
 
@@ -231,76 +313,270 @@ static void x_clip_number(int *n,int l,int h)
 		*n = h;
 }
 
-static void x_set_palette(void)
+static const unsigned char alloc_sequence_216[216] = { 0, 215, 30, 185, 5, 35, 180, 210, 86, 203, 23, 98, 192, 119, 126, 43, 173, 12, 74, 140, 188, 161, 27, 54, 95, 204, 17, 114, 198, 11, 107, 113, 60, 65, 68, 81, 102, 108, 120, 132, 146, 164, 20, 89, 92, 158, 170, 191, 6, 37, 40, 46, 49, 52, 57, 123, 129, 135, 151, 154, 175, 178, 195, 207, 24, 71, 77, 78, 101, 143, 149, 167, 2, 8, 14, 18, 29, 32, 59, 62, 66, 72, 83, 84, 90, 96, 104, 110, 116, 125, 131, 137, 138, 144, 156, 162, 168, 182, 186, 197, 200, 209, 212, 1, 3, 4, 7, 9, 10, 13, 15, 16, 19, 21, 22, 25, 26, 28, 31, 33, 34, 36, 38, 39, 41, 42, 44, 45, 47, 48, 50, 51, 53, 55, 56, 58, 61, 63, 64, 67, 69, 70, 73, 75, 76, 79, 80, 82, 85, 87, 88, 91, 93, 94, 97, 99, 100, 103, 105, 106, 109, 111, 112, 115, 117, 118, 121, 122, 124, 127, 128, 130, 133, 134, 136, 139, 141, 142, 145, 147, 148, 150, 152, 153, 155, 157, 159, 160, 163, 165, 166, 169, 171, 172, 174, 176, 177, 179, 181, 183, 184, 187, 189, 190, 193, 194, 196, 199, 201, 202, 205, 206, 208, 211, 213, 214 };
+
+static void x_fill_color_table(XColor colors[256], unsigned q)
 {
 	unsigned int a;
+	unsigned rgb[3];
 	unsigned int limit = 1U << x_depth;
 
-	if (x_use_static_color_table)
-		XStoreColors(x_display, x_colormap, static_color_map, (int)limit);
-	else {
-		XColor colors[256];
-		for (a = 0; a < limit; a++) {
-			unsigned rgb[3];
-			q_palette(limit, a, 65535, rgb);
-			colors[a].red = rgb[0];
-			colors[a].green = rgb[1];
-			colors[a].blue = rgb[2];
-			colors[a].pixel = a;
-			colors[a].flags = DoRed | DoGreen | DoBlue;
-		}
-		XStoreColors(x_display, x_colormap, colors, (int)limit);
+	for (a = 0; a < limit; a++) {
+		q_palette(q, a, 65535, rgb);
+		colors[a].red = rgb[0];
+		colors[a].green = rgb[1];
+		colors[a].blue = rgb[2];
+		colors[a].pixel = a;
+		colors[a].flags = DoRed | DoGreen | DoBlue;
 	}
-
-	X_FLUSH();
 }
 
-static unsigned char get_nearest_color(unsigned rgb[3])
+static double rgb_distance_with_border(int r1, int g1, int b1, int r2, int g2, int b2)
+{
+	double distance = rgb_distance(r1, g1, b1, r2, g2, b2);
+	if (!r1)
+		distance += r2 * 4294967296.;
+	if (!g1)
+		distance += g2 * 4294967296.;
+	if (!b1)
+		distance += b2 * 4294967296.;
+	if (r1 == 0xffff)
+		distance += (0xffff - r2) * 4294967296.;
+	if (g1 == 0xffff)
+		distance += (0xffff - g2) * 4294967296.;
+	if (b1 == 0xffff)
+		distance += (0xffff - b2) * 4294967296.;
+	return distance;
+}
+
+static int get_nearest_color(unsigned rgb[3])
 {
 	int j;
-	double best_distance = 0;
+	double distance, best_distance = 0;
 	int best = -1;
 	for (j = 0; j < 1 << x_depth; j++) {
-		double distance;
-		if ((static_color_map[j].flags & (DoRed | DoGreen | DoBlue)) != (DoRed | DoGreen | DoBlue))
+		if (static_color_struct[j].failure)
 			continue;
-		distance = rgb_distance(rgb[0], rgb[1], rgb[2], static_color_map[j].red, static_color_map[j].green, static_color_map[j].blue);
+		distance = rgb_distance_with_border(rgb[0], rgb[1], rgb[2], static_color_map[j].red, static_color_map[j].green, static_color_map[j].blue);
 		if (best < 0 || distance < best_distance) {
 			best = j;
 			best_distance = distance;
 		}
 	}
-	return (unsigned char)best;
+	return best;
+}
+
+static int swap_color(int c, XColor *xc, int test_count, double *distance, unsigned rgb[3])
+{
+	unsigned long old_px, new_px;
+	double new_distance;
+
+	/*
+	 * The manual page on XAllocColor says that it returns the closest
+	 * color.
+	 * In reality, it fails if it can't allocate the color.
+	 *
+	 * In case there were some other implementations that return the
+	 * closest color, we check the distance after allocation and we fail if
+	 * the distance would be increased.
+	 */
+	if (!XAllocColor(x_display, x_default_colormap, xc))
+		return -1;
+	new_px = xc->pixel;
+	new_distance = rgb_distance(xc->red, xc->green, xc->blue, rgb[0], rgb[1], rgb[2]);
+	if (new_px >= 256
+	|| (test_count && (static_color_struct[new_px].alloc_count || static_color_struct[new_px].extra_allocated))
+	|| new_distance > *distance) {
+		XFreeColors(x_display, x_default_colormap, &xc->pixel, 1, 0);
+		return -1;
+	}
+
+	old_px = static_color_table[c];
+	static_color_struct[old_px].alloc_count--;
+	XFreeColors(x_display, x_default_colormap, &old_px, 1, 0);
+
+	static_color_map[new_px] = *xc;
+	static_color_struct[new_px].alloc_count++;
+	static_color_struct[new_px].failure = 0;
+	static_color_struct[new_px].extra_allocated = 1;
+	static_color_table[c] = new_px;
+	*distance = new_distance;
+
+	return 0;
 }
 
 static unsigned char *x_query_palette(void)
 {
+	unsigned rgb[3];
 	int i;
 	int some_valid = 0;
-	if (x_depth > 8)
-		return stracpy(cast_uchar "Static color supported for up to 8-bit depth\n");
-	if ((int)sizeof(XColor) > INT_MAX >> x_depth) overalloc();
-	static_color_map = mem_calloc(sizeof(XColor) << x_depth);
-	for (i = 0; i < 1 << x_depth; i++) {
+	int do_alloc = vinfo.class == PseudoColor;
+ retry:
+	if (sizeof(XColor) > INT_MAX >> x_depth) overalloc();
+	if (sizeof(*static_color_struct) > INT_MAX >> x_depth) overalloc();
+	if (!static_color_map)
+		static_color_map = xmalloc(sizeof(XColor) << x_depth);
+	if (!static_color_struct)
+		static_color_struct = xmalloc(sizeof(*static_color_struct) << x_depth);
+
+	memset(static_color_map, 0, sizeof(XColor) << x_depth);
+	memset(static_color_struct, 0, sizeof(*static_color_struct) << x_depth);
+	for (i = 0; i < 1 << x_depth; i++)
 		static_color_map[i].pixel = i;
-		x_prepare_for_failure();
-		XQueryColor(x_display, XDefaultColormap(x_display, x_screen), &static_color_map[i]);
-		if (!x_test_for_failure() && (static_color_map[i].flags & (DoRed | DoGreen | DoBlue)) == (DoRed | DoGreen | DoBlue))
-			some_valid = 1;
-		else
-			memset(&static_color_map[i], 0, sizeof(XColor));
+	x_prepare_for_failure(X_QueryColors);
+	XQueryColors(x_display, x_default_colormap, static_color_map, 1 << x_depth);
+	if (!x_test_for_failure()) {
+		for (i = 0; i < 1 << x_depth; i++) {
+			if ((static_color_map[i].flags & (DoRed | DoGreen | DoBlue)) == (DoRed | DoGreen | DoBlue))
+				some_valid = 1;
+			else
+				static_color_struct[i].failure = 1;
+		}
 	}
-	if (!some_valid)
-		return stracpy(cast_uchar "Could not query static colormap\n");
-	static_color_table = mem_calloc(256);
+
+	if (!some_valid) {
+		memset(static_color_map, 0, sizeof(XColor) << x_depth);
+		memset(static_color_struct, 0, sizeof(*static_color_struct) << x_depth);
+		for (i = 0; i < 1 << x_depth; i++) {
+			static_color_map[i].pixel = i;
+			x_prepare_for_failure(X_QueryColors);
+			XQueryColor(x_display, x_default_colormap, &static_color_map[i]);
+			if (!x_test_for_failure() && (static_color_map[i].flags & (DoRed | DoGreen | DoBlue)) == (DoRed | DoGreen | DoBlue))
+				some_valid = 1;
+			else
+				static_color_struct[i].failure = 1;
+		}
+	}
+
+	if (!some_valid) {
+		if (vinfo.class == StaticColor) {
+			return stracpy(cast_uchar "Could not query static colormap.\n");
+		} else {
+			x_fill_color_table(static_color_map, X_STATIC_COLORS);
+			do_alloc = 0;
+		}
+	}
+	if (!static_color_table)
+		static_color_table = xmalloc(256);
+	memset(static_color_table, 0, 256);
 	for (i = 0; i < X_STATIC_COLORS; i++) {
-		unsigned int rgb[3];
-		q_palette(X_STATIC_COLORS, i, 65535, rgb);
-		static_color_table[i] = get_nearest_color(rgb);
+		int idx = X_STATIC_COLORS == 216 ? alloc_sequence_216[i] : i;
+		int c;
+		q_palette(X_STATIC_COLORS, idx, 65535, rgb);
+ another_nearest:
+		c = get_nearest_color(rgb);
+		if (c < 0) {
+			do_alloc = 0;
+			goto retry;
+		}
+		if (do_alloc) {
+			XColor xc;
+			memset(&xc, 0, sizeof xc);
+			xc.red = static_color_map[c].red;
+			xc.green = static_color_map[c].green;
+			xc.blue = static_color_map[c].blue;
+			xc.flags = DoRed | DoGreen | DoBlue;
+			if (!XAllocColor(x_display, x_default_colormap, &xc)) {
+				if (0) {
+ allocated_invalid:
+					XFreeColors(x_display, x_default_colormap, &xc.pixel, 1, 0);
+				}
+				static_color_struct[c].failure = 1;
+				goto another_nearest;
+			} else {
+				if (xc.pixel >= 256)
+					goto allocated_invalid;
+				c = xc.pixel;
+				static_color_map[c] = xc;
+				static_color_struct[c].alloc_count++;
+			}
+		}
+		static_color_table[idx] = c;
 	}
+	if (do_alloc) {
+		double distances[256];
+		double max_dist;
+		int c;
+		for (i = 0; i < X_STATIC_COLORS; i++) {
+			unsigned char q = static_color_table[i];
+			q_palette(X_STATIC_COLORS, i, 65535, rgb);
+			distances[i] = rgb_distance(static_color_map[q].red, static_color_map[q].green, static_color_map[q].blue, rgb[0], rgb[1], rgb[2]);
+		}
+ try_alloc_another:
+		max_dist = 0;
+		c = -1;
+		for (i = 0; i < X_STATIC_COLORS; i++) {
+			int idx = X_STATIC_COLORS == 216 ? alloc_sequence_216[i] : i;
+			if (distances[idx] > max_dist) {
+				max_dist = distances[idx];
+				c = idx;
+			}
+		}
+		if (c >= 0) {
+			XColor xc;
+			memset(&xc, 0, sizeof xc);
+			q_palette(X_STATIC_COLORS, c, 65535, rgb);
+			xc.red = rgb[0];
+			xc.green = rgb[1];
+			xc.blue = rgb[2];
+			xc.flags = DoRed | DoGreen | DoBlue;
+			if (swap_color(c, &xc, 1, &distances[c], rgb))
+				goto no_more_alloc;
+
+			for (i = 0; i < X_STATIC_COLORS; i++) {
+				double d1, d2;
+				unsigned char cidx = static_color_table[i];
+				q_palette(X_STATIC_COLORS, i, 65535, rgb);
+				d1 = rgb_distance_with_border(rgb[0], rgb[1], rgb[2], static_color_map[cidx].red, static_color_map[cidx].green, static_color_map[cidx].blue);
+				d2 = rgb_distance_with_border(rgb[0], rgb[1], rgb[2], xc.red, xc.green, xc.blue);
+				if (d2 < d1) {
+					if (distances[i] < rgb_distance(xc.red, xc.green, xc.blue, rgb[0], rgb[1], rgb[2]))
+						continue;
+					if (swap_color(i, &xc, 0, &distances[i], rgb))
+						goto no_more_alloc;
+				}
+			}
+
+			goto try_alloc_another;
+		}
+	}
+ no_more_alloc:
 	return NULL;
 }
 
+static void x_free_colors(void) {
+	unsigned long pixels[256];
+	int n_pixels = 0;
+	int i;
+	if (!static_color_struct)
+		return;
+	for (i = 0; i < 1 << x_depth; i++) {
+		while (static_color_struct[i].alloc_count) {
+			static_color_struct[i].alloc_count--;
+			pixels[n_pixels++] = i;
+		}
+	}
+	if (n_pixels)
+		XFreeColors(x_display, x_default_colormap, pixels, n_pixels, 0);
+}
+
+static void x_set_palette(void)
+{
+	unsigned limit = 1U << x_depth;
+
+	x_free_colors();
+
+	if (x_use_static_color_table) {
+		x_query_palette();
+		XStoreColors(x_display, x_colormap, static_color_map, (int)limit);
+	} else {
+		XColor colors[256];
+		x_fill_color_table(colors, limit);
+		XStoreColors(x_display, x_colormap, colors, (int)limit);
+	}
+
+	X_FLUSH();
+}
 
 static inline int trans_key(unsigned char *str, int table)
 {
@@ -317,41 +593,41 @@ static inline int trans_key(unsigned char *str, int table)
 
 /* translates X keys to links representation */
 /* return value: 1=valid key, 0=nothing */
-static int x_translate_key(struct graphics_device *dev, XKeyEvent *e,int *key,int *flag)
+static int x_translate_key(struct graphics_device *dev, XKeyEvent *e, int *key, int *flag)
 {
 	KeySym ks = 0;
 	static XComposeStatus comp = { NULL, 0 };
-	static unsigned char str[16];
+	static char str[16];
 #define str_size	((int)(sizeof(str) - 1))
 	int table = 0;
 	int len;
 
 	if (get_window_info(dev)->xic) {
 		Status status;
-		len = Xutf8LookupString(get_window_info(dev)->xic, e, cast_char str, str_size, &ks, &status);
+		len = Xutf8LookupString(get_window_info(dev)->xic, e, str, str_size, &ks, &status);
 		table = 0;
 		/*fprintf(stderr, "len: %d, ks %ld, status %d\n", len, ks, status);*/
 	} else
-		len = XLookupString(e,cast_char str,str_size,&ks,&comp);
+		len = XLookupString(e, str, str_size, &ks, &comp);
 
-	str[len>str_size?str_size:len]=0;
+	str[len > str_size ? str_size : len] = 0;
 	if (!len) {
-		str[0] = (unsigned char)ks;
+		str[0] = (char)ks;
 		str[1] = 0;
 	}
-	*flag=0;
-	*key=0;
+	*flag = 0;
+	*key = 0;
 
 	/* alt, control, shift ... */
-	if (e->state&ShiftMask)*flag|=KBD_SHIFT;
-	if (e->state&ControlMask)*flag|=KBD_CTRL;
-	if (e->state&Mod1Mask)*flag|=KBD_ALT;
+	if (e->state & ShiftMask) *flag |= KBD_SHIFT;
+	if (e->state & ControlMask) *flag |= KBD_CTRL;
+	if (e->state & Mod1Mask) *flag |= KBD_ALT;
 
 	/* alt-f4 */
-	if (((*flag)&KBD_ALT)&&(ks==XK_F4)){*key=KBD_CTRL_C;*flag=0;return 1;}
+	if (*flag & KBD_ALT && ks == XK_F4) { *key = KBD_CTRL_C; *flag = 0; return 1; }
 
 	/* ctrl-c */
-	if (((*flag)&KBD_CTRL)&&(ks==XK_c||ks==XK_C)){*key=KBD_CTRL_C;*flag=0;return 1;}
+	if (*flag & KBD_CTRL && (ks == XK_c || ks == XK_C)) {*key = KBD_CTRL_C; *flag = 0; return 1; }
 
 	if (ks == NoSymbol) { return 0;
 	} else if (ks == XK_Return) { *key = KBD_ENTER;
@@ -465,6 +741,9 @@ static int x_translate_key(struct graphics_device *dev, XKeyEvent *e,int *key,in
 	} else if (ks == XK_KP_7) { *key = '7';
 	} else if (ks == XK_KP_8) { *key = '8';
 	} else if (ks == XK_KP_9) { *key = '9';
+#ifdef XK_Select
+	} else if (ks == XK_Select) { *key = KBD_SELECT;
+#endif
 #ifdef XK_Undo
 	} else if (ks == XK_Undo) { *key = KBD_UNDO;
 #endif
@@ -500,9 +779,11 @@ static int x_translate_key(struct graphics_device *dev, XKeyEvent *e,int *key,in
 			if (!casestrcmp(str, cast_uchar "XF86Back")) { *key = KBD_BACK; return 1; }
 			if (!casestrcmp(str, cast_uchar "XF86Open")) { *key = KBD_OPEN; return 1; }
 			if (!casestrcmp(str, cast_uchar "XF86OpenURL")) { *key = KBD_OPEN; return 1; }
+			if (!casestrcmp(str, cast_uchar "apLineDel")) { *key = KBD_DEL; return 1; }
 		}
 		return 0;
-	} else { *key = ((*flag)&KBD_CTRL)?(int)ks&255:trans_key(str,table);
+	} else {
+		*key = *flag & KBD_CTRL ? (int)ks & 255 : trans_key(cast_uchar str, table);
 	}
 	return 1;
 }
@@ -536,11 +817,14 @@ static void x_free_hash_table(void)
 
 	x_clear_clipboard();
 
+	x_free_colors();
+
 	free(static_color_table);
 	free(static_color_map);
+	free(static_color_struct);
 	static_color_table = NULL;
 	static_color_map = NULL;
-
+	static_color_struct = NULL;
 
 	if (x_display) {
 		if (x_icon) {
@@ -579,6 +863,13 @@ static void x_free_hash_table(void)
 	free(x_display_string);
 	x_driver_param = NULL;
 	x_display_string = NULL;
+
+	undo_pixmap_handler();
+
+	process_events_in_progress = 0;
+	flush_in_progress = 0;
+	unregister_bottom_half(x_process_events, NULL);
+	unregister_bottom_half(x_do_flush, NULL);
 }
 
 /* returns graphics device structure which belonging to the window */
@@ -684,7 +975,7 @@ static void x_process_events(void *data)
 	while (XPending(x_display) || replay_event)
 	{
 		if (replay_event) replay_event = 0;
-		else XNextEvent(x_display,&event);
+		else XNextEvent(x_display, &event);
 		if (last_was_mouse&&(event.type==ButtonPress||event.type==ButtonRelease))  /* this is end of mouse move block --- call mouse handler */
 		{
 			int a,b;
@@ -781,7 +1072,7 @@ static void x_process_events(void *data)
 			dev = x_find_gd(event.xkey.window);
 			if (!dev)
 				break;
-			if (x_translate_key(dev, (XKeyEvent*)(&event), &k, &f))
+			if (x_translate_key(dev, (XKeyEvent *)&event, &k, &f))
 				dev->keyboard_handler(dev, k, f);
 		}
 			break;
@@ -910,12 +1201,9 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 	XGCValues gcv;
 	XSetWindowAttributes win_attr;
-	XVisualInfo vinfo;
 	int misordered = -1;
 
 	x_init_hash_table();
-
-	n_wins = 0;
 
 #if defined(LC_CTYPE)
 	setlocale(LC_CTYPE, "");
@@ -936,7 +1224,13 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 */
 	x_display_string = stracpy(display ? display : cast_uchar "");
 
-	x_display = XOpenDisplay((char *)display);
+	if (display) {
+		char *xx_display = strndup((char *)display, strlen(cast_const_char display) + 1);
+		x_display = XOpenDisplay(xx_display);
+		free(xx_display);
+	} else {
+		x_display = XOpenDisplay(NULL);
+	}
 	if (!x_display) {
 		err = init_str();
 		l = 0;
@@ -953,6 +1247,7 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 	x_display_height = DisplayHeight(x_display, x_screen);
 	x_display_width = DisplayWidth(x_display, x_screen);
 	x_root_window = RootWindow(x_display, x_screen);
+	x_default_colormap = XDefaultColormap(x_display, x_screen);
 
 	x_default_window_width = x_display_width;
 	if (x_default_window_width >= 100)
@@ -965,22 +1260,25 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 
 	if (param && *param) {
 		unsigned char *e;
+		char *end_c;
 		unsigned long w, h;
 
 		x_driver_param = stracpy(param);
 
 		if (*x_driver_param < '0' || *x_driver_param > '9') {
 invalid_param:
-			err = stracpy(cast_uchar "Invalid parameter\n");
+			err = stracpy(cast_uchar "Invalid parameter.\n");
 			goto ret_err;
 		}
-		w = strtoul((char *)x_driver_param, (char **)&e, 10);
+		w = strtoul(cast_const_char x_driver_param, &end_c, 10);
+		e = cast_uchar end_c;
 		if (upcase(*e) != 'X')
 			goto invalid_param;
 		e++;
 		if (*e < '0' || *e > '9')
 			goto invalid_param;
-		h = strtoul((char *)e, (char **)&e, 10);
+		h = strtoul(cast_const_char e, &end_c, 10);
+		e = cast_uchar end_c;
 		if (*e)
 			goto invalid_param;
 		if (w && h && w <= 30000 && h <= 30000) {
@@ -1088,14 +1386,17 @@ invalid_param:
 	x_driver.flags &= ~GD_SWITCH_PALETTE;
 	x_have_palette = 0;
 	x_use_static_color_table = 0;
-	if (vinfo.class == StaticColor || vinfo.class == PseudoColor) {
+	if (vinfo.class == StaticColor) {
+		if (x_depth > 8)
+			return stracpy(cast_uchar "Static color supported for up to 8-bit depth.\n");
 		if ((err = x_query_palette()))
 			goto ret_err;
 		x_use_static_color_table = 1;
 	}
 	if (vinfo.class == PseudoColor) {
-		if (x_driver.param->palette_mode)
-			x_use_static_color_table = 0;
+		if (x_depth > 8)
+			return stracpy(cast_uchar "Static color supported for up to 8-bit depth.\n");
+		x_use_static_color_table = !x_driver.param->palette_mode;
 		x_have_palette = 1;
 		x_colormap = XCreateColormap(x_display, x_root_window, x_default_visual, AllocAll);
 		x_set_palette();
@@ -1137,7 +1438,7 @@ invalid_param:
 	if (x_have_palette)
 		win_attr.colormap = x_colormap;
 	else
-		win_attr.colormap = XDefaultColormap(x_display, x_screen);
+		win_attr.colormap = x_default_colormap;
 
 	fake_window = XCreateWindow(x_display, x_root_window, 0, 0, 10, 10, 0,
 				x_depth, CopyFromParent, x_default_visual,
@@ -1200,7 +1501,7 @@ invalid_param:
 		xim = XOpenIM(x_display, NULL, NULL, NULL);
 #if defined(LC_CTYPE)
 		if (!xim) {
-			l = cast_uchar setlocale(LC_CTYPE, "en_US.UTF-8");
+			if (!l) l = cast_uchar setlocale(LC_CTYPE, "en_US.UTF-8");
 			xim = XOpenIM(x_display, NULL, NULL, NULL);
 		}
 #endif
@@ -1220,6 +1521,9 @@ invalid_param:
 
 	x_fd = XConnectionNumber(x_display);
 	set_handlers(x_fd, x_process_events, NULL, NULL);
+
+	setup_pixmap_handler();
+
 	XSync(x_display, False);
 	X_SCHEDULE_PROCESS_EVENTS();
 	return NULL;
@@ -1251,7 +1555,7 @@ static struct graphics_device *x_init_device(void)
 	XWMHints wm_hints;
 	XClassHint class_hints;
 	XTextProperty windowName;
-	unsigned char *links_name = cast_uchar "Links";
+	char *links_name = "Links";
 	XSetWindowAttributes win_attr;
 	struct window_info *wi;
 
@@ -1267,30 +1571,53 @@ static struct graphics_device *x_init_device(void)
 	if (x_have_palette)
 		win_attr.colormap = x_colormap;
 	else
-		win_attr.colormap = XDefaultColormap(x_display, x_screen);
+		win_attr.colormap = x_default_colormap;
 	win_attr.border_pixel = x_black_pixel;
 
+	x_prepare_for_failure(X_CreateWindow);
 	wi->window = XCreateWindow(x_display, x_root_window, dev->size.x1,
 				dev->size.y1, dev->size.x2, dev->size.y2,
 				X_BORDER_WIDTH, x_depth, InputOutput,
 				x_default_visual, CWColormap | CWBorderPixel,
 				&win_attr);
+	if (x_test_for_failure()) {
+		x_prepare_for_failure(X_DestroyWindow);
+		XDestroyWindow(x_display, wi->window);
+		x_test_for_failure();
+		free(dev);
+		free(wi);
+		return NULL;
+	}
 	if (!x_icon) {
 		XImage *img;
 		char *data;
+		char *xx_data;
 		int w, h, skip;
 
 		get_links_icon(&data, &w, &h, &skip, x_bitmap_scanline_pad);
 		x_convert_to_216(data, w, h, skip);
 
+		xx_data = strndup(data, h * skip);
+		free(data);
+
 		img = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
-			data, w, h, x_bitmap_scanline_pad << 3, skip);
+			xx_data, w, h, x_bitmap_scanline_pad << 3, skip);
 		if (!img) {
 			x_icon = 0;
+			free(xx_data);
 			goto nic_nebude_bobankove;
 		}
-		img->data = data;
+		XSync(x_display, False);
+		X_SCHEDULE_PROCESS_EVENTS();
+		x_prepare_for_failure(X_CreatePixmap);
+		img->data = xx_data;
 		x_icon = XCreatePixmap(x_display, wi->window, w, h, x_depth);
+		if (x_test_for_failure()) {
+			x_prepare_for_failure(X_FreePixmap);
+			XFreePixmap(x_display, x_icon);
+			x_test_for_failure();
+			x_icon = 0;
+		}
 		if (!x_icon) {
 			XDestroyImage(img);
 			x_icon = 0;
@@ -1310,12 +1637,12 @@ nic_nebude_bobankove:;
 	}
 
 	XSetWMHints(x_display, wi->window, &wm_hints);
-	class_hints.res_name = (char *)links_name;
-	class_hints.res_class = (char *)links_name;
+	class_hints.res_name = links_name;
+	class_hints.res_class = links_name;
 	XSetClassHint(x_display, wi->window, &class_hints);
-	XStringListToTextProperty((char **)(void *)&links_name, 1, &windowName);
+	XStringListToTextProperty(&links_name, 1, &windowName);
 	XSetWMName(x_display, wi->window, &windowName);
-	XStoreName(x_display, wi->window, (char *)links_name);
+	XStoreName(x_display, wi->window, links_name);
 	XSetWMIconName(x_display, wi->window, &windowName);
 	XFree(windowName.value);
 
@@ -1387,6 +1714,36 @@ static void x_update_palette(void)
 	x_set_palette();
 }
 
+static unsigned short *x_get_real_colors(void)
+{
+	int perfect = 1;
+	int i;
+	unsigned short *v;
+	if (!x_use_static_color_table)
+		return NULL;
+	v = mem_calloc(256 * 3 * sizeof(unsigned short));
+	for (i = 0; i < X_STATIC_COLORS; i++) {
+		unsigned idx = static_color_table[i];
+		v[i * 3 + 0] = static_color_map[idx].red;
+		v[i * 3 + 1] = static_color_map[idx].green;
+		v[i * 3 + 2] = static_color_map[idx].blue;
+		if (perfect) {
+			unsigned rgb[256];
+			q_palette(X_STATIC_COLORS, i, 65535, rgb);
+			if (static_color_map[idx].red != rgb[0]
+			|| static_color_map[idx].green != rgb[1]
+			|| static_color_map[idx].blue != rgb[2]) {
+				perfect = 0;
+			}
+		}
+	}
+	if (perfect) {
+		free(v);
+		return NULL;
+	}
+	return v;
+}
+
 static void x_translate_colors(unsigned char *data, int x, int y, int skip)
 {
 	int i, j;
@@ -1422,7 +1779,7 @@ static void x_convert_to_216(char *data, int x, int y, int skip)
 			} else {
 				unsigned rgb[3];
 				q_palette(256, a, 65535, rgb);
-				result = get_nearest_color(rgb);
+				result = (unsigned char)get_nearest_color(rgb);
 				color_table[a] = result;
 			}
 			data[i] = result;
@@ -1433,12 +1790,21 @@ static void x_convert_to_216(char *data, int x, int y, int skip)
 
 static int x_get_empty_bitmap(struct bitmap *bmp)
 {
+	struct x_pixmapa *p;
 	int pad;
+	p = xmalloc(sizeof(struct x_pixmapa));
+	p->type = X_TYPE_NOTHING;
+	add_to_list(bitmaps, p);
+	bmp->data = NULL;
+	bmp->flags = p;
+	if (bmp->x > (INT_MAX - x_bitmap_scanline_pad) / x_bitmap_bpp)
+		return -1;
 	pad = x_bitmap_scanline_pad - ((bmp->x * x_bitmap_bpp) % x_bitmap_scanline_pad);
 	if (pad == x_bitmap_scanline_pad)
 		pad = 0;
 	bmp->skip = bmp->x * x_bitmap_bpp + pad;
-	bmp->flags = NULL;
+	if (bmp->skip * bmp->y > INT_MAX)
+		return -1;
 	bmp->data = xmalloc(bmp->skip * bmp->y);
 	return 0;
 }
@@ -1447,27 +1813,22 @@ static void x_register_bitmap(struct bitmap *bmp)
 {
 	struct x_pixmapa *p;
 	XImage *image;
-	Pixmap *pixmap = NULL;
+	Pixmap pixmap = 0;
 	int can_create_pixmap;
 
-	X_FLUSH();
 	if (!bmp->data || !bmp->x || !bmp->y)
 		goto cant_create;
 
 	x_translate_colors(bmp->data, bmp->x, bmp->y, bmp->skip);
 
-	/* alloc struct x_bitmapa */
-	p = xmalloc(sizeof(struct x_pixmapa));
-
 	/* alloc XImage in client's memory */
  retry:
 	image = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
-			bmp->data, bmp->x, bmp->y, x_bitmap_scanline_pad << 3,
+			(char *)bmp->data, bmp->x, bmp->y, x_bitmap_scanline_pad << 3,
 			bmp->skip);
 	if (!image) {
 		if (out_of_memory())
 			goto retry;
-		free(p);
 		goto cant_create;
 	}
 
@@ -1479,26 +1840,26 @@ static void x_register_bitmap(struct bitmap *bmp)
 		goto no_pixmap;
 	}
 
-	x_prepare_for_failure();
-	pixmap = xmalloc(sizeof(Pixmap));
-	*pixmap = XCreatePixmap(x_display, fake_window, bmp->x, bmp->y, x_depth);
-	if (x_test_for_failure()) {
-		if (*pixmap) {
-			x_prepare_for_failure();
-			XFreePixmap(x_display, *pixmap);
+	if (!pixmap_mode) x_prepare_for_failure(X_CreatePixmap);
+	pixmap = XCreatePixmap(x_display, fake_window, bmp->x, bmp->y, x_depth);
+	if (!pixmap_mode && x_test_for_failure()) {
+		if (pixmap) {
+			x_prepare_for_failure(X_FreePixmap);
+			XFreePixmap(x_display, pixmap);
 			x_test_for_failure();
-			*pixmap = 0;
+			pixmap = 0;
 		}
 	}
-	if (!*pixmap) {
-		free(pixmap);
+	if (!pixmap) {
 		can_create_pixmap = 0;
 	}
 
  no_pixmap:
 
+	p = XPIXMAPP(bmp->flags);
+
 	if (can_create_pixmap) {
-		XPutImage(x_display, *pixmap, x_copy_gc, image, 0, 0, 0, 0,
+		XPutImage(x_display, pixmap, x_copy_gc, image, 0, 0, 0, 0,
 			bmp->x, bmp->y);
 		XDestroyImage(image);
 		p->type = X_TYPE_PIXMAP;
@@ -1507,34 +1868,36 @@ static void x_register_bitmap(struct bitmap *bmp)
 		p->type = X_TYPE_IMAGE;
 		p->data.image = image;
 	}
-	bmp->flags = p;
 	bmp->data = NULL;
 	return;
 
  cant_create:
 	free(bmp->data);
 	bmp->data = NULL;
-	bmp->flags=NULL;
 	return;
 }
 
 
 static void x_unregister_bitmap(struct bitmap *bmp)
 {
-	if (!bmp->flags)
-		return;
+	struct x_pixmapa *p = XPIXMAPP(bmp->flags);
 
-	switch(XPIXMAPP(bmp->flags)->type) {
+	switch (p->type) {
+	case X_TYPE_NOTHING:
+		break;
+
 	case X_TYPE_PIXMAP:
-		XFreePixmap(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap));
-		free(XPIXMAPP(bmp->flags)->data.pixmap);
+		XFreePixmap(x_display, p->data.pixmap);   /* free XPixmap from server's memory */
 		break;
 
 	case X_TYPE_IMAGE:
-		XDestroyImage(XPIXMAPP(bmp->flags)->data.image);
+		XDestroyImage(p->data.image);  /* free XImage from client's memory */
 		break;
+	default:
+		internal("invalid pixmap type %d", (int)p->type);
 	}
-	free(bmp->flags);  /* struct x_pixmap */
+	del_from_list(p);
+	free(p);
 }
 
 static long x_get_color(int rgb)
@@ -1603,9 +1966,8 @@ static void x_draw_vline(struct graphics_device *dev, int x, int y1, int y2, lon
 
 static void x_draw_bitmap(struct graphics_device *dev, struct bitmap *bmp, int x, int y)
 {
+	struct x_pixmapa *p;
 	int bmp_off_x, bmp_off_y, bmp_size_x, bmp_size_y;
-	if (!bmp->flags)
-		return;
 
 	CLIP_DRAW_BITMAP
 
@@ -1628,18 +1990,25 @@ static void x_draw_bitmap(struct graphics_device *dev, struct bitmap *bmp, int x
 	if (y + bmp_size_y > dev->clip.y2)
 		bmp_size_y = dev->clip.y2 - y;
 
-	switch(XPIXMAPP(bmp->flags)->type) {
+	p = XPIXMAPP(bmp->flags);
+
+	switch (p->type) {
+	case X_TYPE_NOTHING:
+		break;
+
 	case X_TYPE_PIXMAP:
-		XCopyArea(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
-			get_window_info(dev)->window, x_drawbitmap_gc, bmp_off_x,
-			bmp_off_y, bmp_size_x, bmp_size_y, x, y);
+		XCopyArea(x_display, p->data.pixmap,
+			get_window_info(dev)->window, x_drawbitmap_gc,
+			bmp_off_x, bmp_off_y, bmp_size_x, bmp_size_y, x, y);
 		break;
 
 	case X_TYPE_IMAGE:
 		XPutImage(x_display, get_window_info(dev)->window,
-			x_drawbitmap_gc, XPIXMAPP(bmp->flags)->data.image,
+			x_drawbitmap_gc, p->data.image,
 			bmp_off_x, bmp_off_y, x, y, bmp_size_x, bmp_size_y);
 		break;
+	default:
+		internal("invalid pixmap type %d", (int)p->type);
 	}
 	X_FLUSH();
 }
@@ -1647,16 +2016,16 @@ static void x_draw_bitmap(struct graphics_device *dev, struct bitmap *bmp, int x
 
 static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 {
-	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
+	struct x_pixmapa *p = XPIXMAPP(bmp->flags);
 	XImage *image;
 	void *x_data;
-
-	if (!p)
-		return NULL;
 
 	bmp->data = NULL;
 
 	switch (p->type) {
+	case X_TYPE_NOTHING:
+		return NULL;
+
 	case X_TYPE_PIXMAP:
 		x_data = xmalloc(bmp->skip * lines);
 		image = XCreateImage(x_display, x_default_visual, x_depth,
@@ -1672,37 +2041,34 @@ static void *x_prepare_strip(struct bitmap *bmp, int top, int lines)
 	case X_TYPE_IMAGE:
 		return p->data.image->data + (bmp->skip * top);
 	}
-	internal("Unknown pixmap type found in x_prepare_strip. SOMETHING IS REALLY STRANGE!!!!\n");
+	internal("invalid pixmap type %d", (int)p->type);
 	return NULL;
 }
 
 static void x_commit_strip(struct bitmap *bmp, int top, int lines)
 {
-	struct x_pixmapa *p = (struct x_pixmapa *)bmp->flags;
-
-	if (!p)
-		return;
+	struct x_pixmapa *p = XPIXMAPP(bmp->flags);
 
 	bmp->data = NULL;
 
 	switch (p->type) {
-	/* send image to pixmap in xserver */
+	case X_TYPE_NOTHING:
+		return;
 	case X_TYPE_PIXMAP:
 		if (!bmp->data)
 			return;
 		x_translate_colors((unsigned char *)((XImage*)bmp->data)->data,
 			bmp->x, lines, bmp->skip);
-		XPutImage(x_display, *(XPIXMAPP(bmp->flags)->data.pixmap),
-			x_copy_gc, (XImage*)bmp->data, 0, 0, 0, top, bmp->x,
-			lines);
+		XPutImage(x_display, p->data.pixmap,
+			x_copy_gc, (XImage *)bmp->data, 0, 0, 0, top, bmp->x, lines);
 		XDestroyImage((XImage *)bmp->data);
 		return;
 	case X_TYPE_IMAGE:
-		x_translate_colors((unsigned char *)p->data.image->data
-				+ (bmp->skip * top), bmp->x, lines, bmp->skip);
+		x_translate_colors((unsigned char *)p->data.image->data + (bmp->skip * top), bmp->x, lines, bmp->skip);
 		/* everything has been done by user */
 		return;
 	}
+	internal("invalid pixmap type %d", (int)p->type);
 }
 
 static int x_scroll(struct graphics_device *dev, struct rect_set **set, int scx, int scy)
@@ -1790,6 +2156,7 @@ static void x_flush(struct graphics_device *dev)
 static void x_set_window_title(struct graphics_device *dev, unsigned char *title)
 {
 	unsigned char *t;
+	char *xx_str;
 	XTextProperty windowName;
 	Status ret;
 
@@ -1798,18 +2165,21 @@ static void x_set_window_title(struct graphics_device *dev, unsigned char *title
 	t = convert(0, 0, title, NULL);
 	clr_white(t);
 
+	xx_str = strndup((char *)t, strlen(cast_const_char t) + 1);
+	free(t);
+
 	if (XSupportsLocale()) {
-		ret = XmbTextListToTextProperty(x_display, (char**)(&t),
+		ret = XmbTextListToTextProperty(x_display, &xx_str,
 					1, XStdICCTextStyle, &windowName);
 #ifdef X_HAVE_UTF8_STRING
 		if (ret > 0) {
 			XFree(windowName.value);
 			ret = XmbTextListToTextProperty(x_display,
-						(char**)(&t), 1,
+						&xx_str, 1,
 						XUTF8StringStyle, &windowName);
 			if (ret < 0)
 				ret = XmbTextListToTextProperty(x_display,
-							(char**)(&t),
+							&xx_str,
 							1, XStdICCTextStyle,
 							&windowName);
 		}
@@ -1818,13 +2188,13 @@ static void x_set_window_title(struct graphics_device *dev, unsigned char *title
 			goto retry_print_ascii;
 	} else {
  retry_print_ascii:
-		ret = XStringListToTextProperty((char**)(&t), 1, &windowName);
+		ret = XStringListToTextProperty(&xx_str, 1, &windowName);
 		if (!ret) {
-			free(t);
+			free(xx_str);
 			return;
 		}
 	}
-	free(t);
+	free(xx_str);
 	XSetWMName(x_display, get_window_info(dev)->window, &windowName);
 	XSetWMIconName(x_display, get_window_info(dev)->window, &windowName);
 	XFree(windowName.value);
@@ -1850,6 +2220,7 @@ static void selection_request(XEvent *event)
 	XSelectionRequestEvent *req;
 	XSelectionEvent sel;
 	size_t l;
+	unsigned char *xx_str;
 
 	req = &(event->xselectionrequest);
 	sel.type = SelectionNotify;
@@ -1872,16 +2243,20 @@ static void selection_request(XEvent *event)
 		l = strlen(cast_const_char str);
 		if (l > X_MAX_CLIPBOARD_SIZE)
 			l = X_MAX_CLIPBOARD_SIZE;
+		xx_str = (unsigned char *)strndup((char *)str, l);
 		XChangeProperty(x_display, sel.requestor, sel.property,
-			XA_STRING, 8, PropModeReplace, str, l);
+			XA_STRING, 8, PropModeReplace, xx_str, l);
 		free(str);
+		free(xx_str);
 	} else if (req->target == x_utf8_string_atom) {
 		l = x_my_clipboard ? strlen((char *)x_my_clipboard) : 0;
 		if (l > X_MAX_CLIPBOARD_SIZE)
 			l = X_MAX_CLIPBOARD_SIZE;
+		xx_str = (unsigned char *)strndup((char *)x_my_clipboard, l);
 		XChangeProperty(x_display, sel.requestor, sel.property,
-			x_utf8_string_atom, 8, PropModeReplace, x_my_clipboard,
+			x_utf8_string_atom, 8, PropModeReplace, xx_str,
 			l);
+		free(xx_str);
 	} else if (req->target == x_targets_atom) {
 		unsigned tgt_atoms[3];
 		tgt_atoms[0] = (unsigned)x_targets_atom;
@@ -2049,6 +2424,7 @@ struct graphics_driver x_driver = {
 	NULL,
 	x_flush,
 	x_update_palette,
+	x_get_real_colors,
 	x_set_window_title,
 	x_exec,
 	x_set_clipboard_text,

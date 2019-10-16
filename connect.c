@@ -139,8 +139,9 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	b->l.target_port = port;
 	strcpy(b->host, cast_const_char host);
 	c->newconn = b;
-	if (c->last_lookup_state.addr.n) {
+	if (c->last_lookup_state.addr_index < c->last_lookup_state.addr.n) {
 		b->l.addr = c->last_lookup_state.addr;
+		b->l.addr_index = c->last_lookup_state.addr_index;
 		b->l.dont_try_more_servers = 1;
 		dns_found(c, 0);
 		as = 0;

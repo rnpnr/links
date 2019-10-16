@@ -1660,8 +1660,8 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 /* gid and gnum are 100 times greater than boundaries (e.g. if gid==1 boundary is 0.01) */
 int check_float(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-	unsigned char *end;
-	double d = strtod(cast_const_char di->cdata, (char **)(void *)&end);
+	char *end;
+	double d = strtod(cast_const_char di->cdata, &end);
 	if (!*di->cdata || *end
 	|| di->cdata[strspn(cast_const_char di->cdata, "0123456789.")]
 	|| *di->cdata == (unsigned char)'.') {
@@ -1682,8 +1682,8 @@ int check_float(struct dialog_data *dlg, struct dialog_item_data *di)
 
 int check_number(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-	unsigned char *end;
-	long l = strtol(cast_const_char di->cdata, (char **)(void *)&end, 10);
+	char *end;
+	long l = strtol(cast_const_char di->cdata, &end, 10);
 	if (!*di->cdata || *end) {
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
 			TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1,
@@ -1701,8 +1701,8 @@ int check_number(struct dialog_data *dlg, struct dialog_item_data *di)
 
 int check_hex_number(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-	unsigned char *end;
-	long l = strtol(cast_const_char di->cdata, (char **)(void *)&end, 16);
+	char *end;
+	long l = strtol(cast_const_char di->cdata, &end, 16);
 	if (!*di->cdata || *end) {
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_NUMBER), AL_CENTER,
 			TEXT_(T_NUMBER_EXPECTED), MSG_BOX_END, NULL, 1,

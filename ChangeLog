@@ -1,3 +1,102 @@
+=== RELEASE 2.18 ===
+
+Sat Jan 12 20:39:51 CET 2019 mikulas:
+
+	Compile links with graphics support on OpenVMS
+
+Sun Nov 25 17:27:29 CET 2018 mikulas:
+
+	Automatically enable tor mode when the socks port is 9050
+
+Sun Nov 25 17:01:20 CET 2018 mikulas:
+
+	When we are in tor mode, invert the colors on the top line and bottom
+	line, so that the user can immediatelly see it
+
+Sat Nov 17 21:54:09 CET 2018 mikulas:
+
+	Fix an incorrect shift in write_ev_queue that could cause spurious error
+	if the socket for interprocess communication fills up.
+	This bug was introduced in Links 2.15.
+
+Sat Nov 17 21:27:03 CET 2018 mikulas:
+
+	Fix 'runtime error: member access within null pointer' sanitizer warning
+
+Sat Nov 17 21:16:29 CET 2018 mikulas:
+
+	Add a menu entry to save and load a clipboard
+
+Sun Oct 28 19:58:49 CET 2018 mikulas:
+
+	Don't synchronize with the Xserver on every pixmap load
+	It improves performance on remote connections
+
+Thu Oct 25 01:36:35 CEST 2018 mikulas:
+
+	Fix a bug that in the "Network options" dialog box, the value in the
+	field "Timeout when trying multiple addresses" incorrectly set the value
+	"Timeout when unrestartable".
+
+Mon Oct 15 21:46:23 CEST 2018 mikulas:
+
+	Fix a possible integer overflow in decoder_memory_expand
+
+Fri Oct 12 22:44:38 CEST 2018 mikulas:
+
+	Work around a bug on OpenVMS where allocations larger than 0x77fffff0
+	are treated as if they had 16 bytes
+
+Fri Oct 12 01:19:14 CEST 2018 mikulas:
+
+	Fix possible pointer arithmetics bugs if the operating system allocated
+	memory few bytes below the limit 0xffffffff or 0xffffffffffffffff
+
+Tue Oct  9 22:30:01 CEST 2018 mikulas:
+
+	Add a button to never accept invalid certificate for a given server
+
+Tue Oct  2 01:28:44 CEST 2018 mikulas:
+
+	Fix incorrect strings -html-t-text-color, -html-t-link-color,
+	-html-t-background-color, -html-t-ignore-document-color in the manual
+	page and help (reported by Oliver Schode <oliver.schode@online.de>)
+
+Tue Oct  2 00:54:24 CEST 2018 mikulas:
+
+	Windows 7 has a bug (or feature) that corrupts the screen when using the
+	unaccelerated video driver - when a thread draws into window's device context
+	and the user simultaneously drags the window, the device context coordinates
+	may not be updated. Subsequent draws are done with incorrect coordinates.
+
+	In order to work around this bug, we detect that a drawing operation
+	possibly raced with window moving. If it did, we allocate a new DC (the
+	old one is corrupted) and start a timer that asks the main thread to
+	redraw the whole window using the new DC.
+
+Sun Sep 23 22:02:09 CEST 2018 mikulas:
+
+	Add ascii replacement of Romanian S and T with comma
+	Fix replacement of c with cedilla and a/i with grave accent a/o/u with
+	diaeresis
+
+Sun Sep 23 16:31:17 cet 2018 mikulas:
+
+	Use static linking in the released binaries on OS/2 because the DLL
+	names may clash with other programs
+
+Sun Sep 23 00:07:29 cet 2018 mikulas:
+
+	On OS/2, use AF_OS2 for interprocess communication because the loopback
+	network device may not be properly configured.
+	Fall back to 127.0.0.1 only if AF_OS2 in not installed.
+
+Sat Sep 22 14:18:19 CEST 2018 mikulas:
+
+	Fixed a bug when IPv6 control connection to a ftp server fails and IPv4
+	control connection succeeds, links would incorrectly try to make the
+	data connection using IPv6 (this bug was introduced in Links 2.15).
+
 === RELEASE 2.17 ===
 
 Fri Sep  7 00:04:41 CEST 2018 mikulas:

@@ -192,8 +192,6 @@ void detach_cache_entry(struct cache_entry *e)
 
 #define sf(x) e->data_size += (x), cache_size += (int)(x)
 
-int page_size = 4096;
-
 #define C_ALIGN(x) ((((x) + sizeof(struct fragment)) | (page_size - 1)) - sizeof(struct fragment))
 
 int add_fragment(struct cache_entry *e, off_t offset, const unsigned char *data, off_t length)
@@ -541,9 +539,5 @@ ret:
 
 void init_cache(void)
 {
-	int getpg;
-	EINTRLOOP(getpg, sysconf(_SC_PAGESIZE));
-	if (getpg > 0 && getpg < 0x10000 && !(getpg & (getpg - 1)))
-		page_size = getpg;
 	register_cache_upcall(shrink_file_cache, 0, cast_uchar "file");
 }

@@ -25,6 +25,20 @@ int are_there_downloads(void)
 }
 
 struct list_head sessions = {&sessions, &sessions};
+unsigned char get_session_attribute(struct session *ses, int reverse)
+{
+	if (!ses->term->spec->col) {
+		if (!reverse)
+			return COLOR_TITLE;
+		else
+			return COLOR_STATUS;
+	} else {
+		if (!reverse)
+			return get_attribute(ses->ds.t_text_color, ses->ds.t_background_color);
+		else
+			return get_attribute(ses->ds.t_background_color, ses->ds.t_text_color);
+	}
+}
 
 struct s_msg_dsc {
 	int n;
@@ -273,15 +287,14 @@ static void x_print_screen_status(struct terminal *term, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	if (!F) {
-		unsigned char color = get_attribute(ses->ds.t_text_color, ses->ds.t_background_color);
-		if (!term->spec->col) color = COLOR_TITLE;
+		unsigned char color = get_session_attribute(ses, proxies.only_proxies);
 		fill_area(term, 0, term->y - 1, term->x, 1, ' ', color);
 		if (ses->st) print_text(term, 0, term->y - 1, (int)strlen(cast_const_char ses->st), ses->st, COLOR_STATUS);
 #ifdef G
 	} else {
 		int l = 0;
 		if (ses->st) g_print_text(term->dev, 0, term->y - G_BFU_FONT_SIZE, bfu_style_wb_mono, ses->st, &l);
-		drv->fill_area(term->dev, l, term->y - G_BFU_FONT_SIZE, term->x, term->y, bfu_bg_color);
+		drv->fill_area(term->dev, l, term->y - G_BFU_FONT_SIZE, term->x, term->y, !proxies.only_proxies ? bfu_bg_color : bfu_fg_color);
 #endif
 	}
 }
@@ -290,7 +303,8 @@ static void x_print_screen_title(struct terminal *term, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	unsigned char *m;
-	unsigned char color = get_attribute(ses->ds.t_text_color, ses->ds.t_background_color);
+	unsigned char color = get_session_attribute(ses, proxies.only_proxies);
+	if (!term->spec->col) color = COLOR_TITLE;
 	fill_area(term, 0, 0, term->x, 1, ' ', color);
 	if ((m = print_current_title(ses))) {
 		int p = term->x - 1 - strlen((char *)m);
@@ -304,9 +318,6 @@ static void print_only_screen_status(struct session *ses)
 {
 #ifdef G
 	if (F) {
-		/*debug("%s - %s", ses->st_old, ses->st);
-		debug("clip: %d.%d , %d.%d", ses->term->dev->clip.x1, ses->term->dev->clip.y1, ses->term->dev->clip.x2, ses->term->dev->clip.y2);
-		debug("size: %d.%d , %d.%d", ses->term->dev->size.x1, ses->term->dev->size.y1, ses->term->dev->size.x2, ses->term->dev->size.y2);*/
 		if (ses->st_old) {
 			if (ses->st && !strcmp(cast_const_char ses->st, cast_const_char ses->st_old)) return;
 			free(ses->st_old);
@@ -961,12 +972,13 @@ have_frag:
 	if (stat->state < 0) {
 		if (down->decompress) {
 			struct session *ses = get_download_ses(down);
-			unsigned char *start, *end;
+			unsigned char *start;
+			size_t len;
 			int err;
-			get_file_by_term(ses ? ses->term : NULL, ce, &start, &end, &err);
+			get_file_by_term(ses ? ses->term : NULL, ce, &start, &len, &err);
 			if (err) goto det_abt;
-			while (down->last_pos < end - start) {
-				if (download_write(down, start + down->last_pos, end - start - down->last_pos)) goto det_abt;
+			while (down->last_pos < len) {
+				if (download_write(down, start + down->last_pos, len - down->last_pos)) goto det_abt;
 			}
 		}
 		if (stat->state != S__OK) {
@@ -1274,14 +1286,16 @@ static struct f_data *format_html(struct f_data_c *fd, struct object_request *rq
 	f->time_to_get = -get_time();
 	clone_object(rq, &f->rq);
 	if (f->rq->ce) {
-		unsigned char *start; unsigned char *end;
+		unsigned char *start;
+		size_t len;
 		int stl = -1;
 		struct additional_file *af = NULL;
 		struct list_head *laf;
 
 		if (fd->af) foreach(struct additional_file, af, laf, fd->af->af) if (af->need_reparse > 0) af->need_reparse = 0;
 
-		get_file(rq, &start, &end);
+		get_file(rq, &start, &len);
+		if (len > INT_MAX) len = INT_MAX;
 		f->uncacheable = 1;
 		if (opt->plain == 2) {
 			start = init_str();
@@ -1289,9 +1303,9 @@ static struct f_data *format_html(struct f_data_c *fd, struct object_request *rq
 			add_to_str(&start, &stl, cast_uchar "<img src=\"");
 			add_to_str(&start, &stl, f->rq->ce->url);
 			add_to_str(&start, &stl, cast_uchar "\">");
-			end = start + stl;
+			len = stl;
 		}
-		really_format_html(f->rq->ce, start, end, f, fd->ses ? fd != fd->ses->screen : 0);
+		really_format_html(f->rq->ce, start, start + len, f, fd->ses ? fd != fd->ses->screen : 0);
 		if (stl != -1)
 			free(start);
 		f->use_tag = f->rq->ce->count;
@@ -1884,7 +1898,23 @@ int f_data_c_allow_flags(struct f_data_c *fd)
 	return 0;
 }
 
-static int plain_type(struct session *ses, struct object_request *rq, unsigned char **p)
+static int is_forced_download(struct object_request *rq)
+{
+	struct cache_entry *ce;
+	unsigned char *cd;
+	char *s;
+
+	if (!rq || !(ce = rq->ce))
+		return 0;
+	if ((cd = parse_http_header(ce->head, cast_uchar "Content-Disposition", NULL))) {
+		if ((s = strchr(cast_const_char cd, ';'))) *s = 0;
+		free(cd);
+		return !casestrcmp(cd, cast_uchar "attachment");
+	}
+	return 0;
+}
+
+static int plain_type(struct object_request *rq, unsigned char **p)
 {
 	struct cache_entry *ce;
 	unsigned char *ct;
@@ -1938,7 +1968,7 @@ void fd_loaded(struct object_request *rq, void *fd_)
 	}
 	if (fd->parsed_done && f_need_reparse(fd->f_data)) fd->parsed_done = 0;
 	if (fd->vs->plain == -1 && rq->state != O_WAITING) {
-		fd->vs->plain = plain_type(fd->ses, fd->rq, NULL);
+		fd->vs->plain = plain_type(fd->rq, NULL);
 	}
 	if (fd->rq->state < 0 && (f_is_finished(fd->f_data) || !fd->f_data)) {
 		if (!fd->parsed_done) {
@@ -2162,7 +2192,8 @@ static void ses_go_forward(struct session *ses, int plain, int refresh)
 	fd->rq->upcall = fd_loaded;
 	fd->rq->data = fd;
 	fd->rq->upcall(fd->rq, fd);
-	draw_formatted(ses);
+	if (!list_empty(ses->screen->subframes))
+		draw_formatted(ses);
 }
 
 static void ses_go_backward(struct session *ses)
@@ -2321,11 +2352,14 @@ static int ses_abort_1st_state_loading(struct session *ses)
 
 static void tp_display(void *ses_)
 {
+	int plain = 1;
 	struct session *ses = (struct session *)ses_;
+	if (plain_type(ses->tq, NULL) == 2)
+		plain = 2;
 	ses_abort_1st_state_loading(ses);
 	ses->rq = ses->tq;
 	ses->tq = NULL;
-	ses_go_forward(ses, 1, 0);
+	ses_go_forward(ses, plain, 0);
 }
 
 static int direct_download_possible(struct object_request *rq, struct assoc *a)
@@ -2486,9 +2520,10 @@ static void ses_go_to_2nd_state(struct session *ses)
 	struct assoc *a;
 	int n;
 	unsigned char *ct = NULL;
-	int r = plain_type(ses, ses->rq, &ct);
-	if (r == 0 || r == 1 || r == 2 || r == 3) goto go;
-	if (!(a = get_type_assoc(ses->term, ct, &n)) && strlen(cast_const_char ct) >= 4 && !casecmp(ct, cast_uchar "text", 4)) {
+	int r = plain_type(ses->rq, &ct);
+	int force_download = is_forced_download(ses->rq);
+	if (!force_download && (r == 0 || r == 1 || r == 2)) goto go;
+	if (!(a = get_type_assoc(ses->term, ct, &n)) && strlen(cast_const_char ct) >= 4 && !casecmp(ct, cast_uchar "text", 4) && !force_download) {
 		r = 1;
 		goto go;
 	}
@@ -2644,15 +2679,17 @@ static void freeml_void(void *ml_)
 
 static void ses_imgmap(struct session *ses)
 {
-	unsigned char *start, *end;
+	unsigned char *start;
+	size_t len;
 	struct memory_list *ml;
 	struct menu_item *menu;
 	struct f_data_c *fd;
 	if (ses->rq->state != O_OK && ses->rq->state != O_INCOMPLETE) return;
 	if (!(fd = current_frame(ses)) || !fd->f_data) return;
-	if (get_file(ses->rq, &start, &end)) return;
+	if (get_file(ses->rq, &start, &len)) return;
+	if (len > INT_MAX) len = INT_MAX;
 	d_opt = &fd->f_data->opt;
-	if (get_image_map(ses->rq->ce->head, start, end, ses->goto_position, &menu, &ml, ses->imgmap_href_base, ses->imgmap_target_base, term_charset(ses->term), ses->ds.assume_cp, ses->ds.hard_assume, 0)) {
+	if (get_image_map(ses->rq->ce->head, start, start + len, ses->goto_position, &menu, &ml, ses->imgmap_href_base, ses->imgmap_target_base, term_charset(ses->term), ses->ds.assume_cp, ses->ds.hard_assume, 0)) {
 		ses_abort_1st_state_loading(ses);
 		return;
 	}

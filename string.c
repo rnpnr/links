@@ -147,10 +147,11 @@ void add_knum_to_str(unsigned char **s, int *l, off_t n)
 
 long strtolx(unsigned char *c, unsigned char **end)
 {
+	char *end_c;
 	long l;
-	if (c[0] == '0' && upcase(c[1]) == 'X' && c[2]) l = strtol(cast_const_char(c + 2), (char **)(void *)end, 16);
-	else l = strtol(cast_const_char c, (char **)(void *)end, 10);
-	if (!*end) return l;
+	if (c[0] == '0' && upcase(c[1]) == 'X' && c[2]) l = strtol(cast_const_char(c + 2), &end_c, 16);
+	else l = strtol(cast_const_char c, &end_c, 10);
+	*end = cast_uchar end_c;
 	if (upcase(**end) == 'K') {
 		(*end)++;
 		if (l < -INT_MAX / 1024) return -INT_MAX;

@@ -6,6 +6,8 @@
 #include "links.h"
 
 
+static struct history file_history = { 0, { &file_history.items, &file_history.items } };
+
 static unsigned char * const version_texts[] = {
 	TEXT_(T_LINKS_VERSION),
 	TEXT_(T_OPERATING_SYSTEM_VERSION),
@@ -913,7 +915,7 @@ static void refresh_connections(void *xxx)
 	max_tries = atoi(cast_const_char max_t_str);
 	receive_timeout = atoi(cast_const_char time_str);
 	unrestartable_receive_timeout = atoi(cast_const_char unrtime_str);
-	unrestartable_receive_timeout = atoi(cast_const_char addrtime_str);
+	timeout_multiple_addresses = atoi(cast_const_char addrtime_str);
 	refresh_network(xxx);
 }
 
@@ -1291,7 +1293,8 @@ static int check_noproxy_list(struct dialog_data *dlg, struct dialog_item_data *
 
 static int proxy_ok_dialog(struct dialog_data *dlg, struct dialog_item_data *di)
 {
-	int charset = term_charset(dlg->win->term);
+	struct terminal *term = dlg->win->term;
+	int charset = term_charset(term);
 	int op = proxies.only_proxies;
 	int r = ok_dialog(dlg, di);
 	if (r) return r;
@@ -1299,6 +1302,25 @@ static int proxy_ok_dialog(struct dialog_data *dlg, struct dialog_item_data *di)
 	save_proxy(charset, proxies.https_proxy, https_proxy);
 	save_proxy(charset, proxies.socks_proxy, socks_proxy);
 	save_noproxy_list(charset, proxies.no_proxy, no_proxy);
+
+	if (!proxies.only_proxies) {
+		/* parsing duplicated in make_connection */
+		long lp;
+		char *end;
+		unsigned char *p = cast_uchar strchr(cast_const_char proxies.socks_proxy, '@');
+		if (!p) p = proxies.socks_proxy;
+		else p++;
+		p = cast_uchar strchr(cast_const_char p, ':');
+		if (p) {
+			p++;
+			lp = strtol(cast_const_char p, &end, 10);
+			if (!*end && lp == 9050) {
+				proxies.only_proxies = 1;
+				msg_box(term, NULL, TEXT_(T_PROXIES), AL_LEFT, TEXT_(T_TOR_MODE_ENABLED), MSG_BOX_END, NULL, 1, TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
+			}
+		}
+	}
+
 	if (op != proxies.only_proxies) {
 		data_cleanup();
 	}
@@ -2917,9 +2939,6 @@ free_h_ret:
 		);
 	}
 }
-
-
-static struct history file_history = { 0, { &file_history.items, &file_history.items } };
 
 
 static void query_file_cancel(void *d_, unsigned char *s_)

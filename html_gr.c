@@ -487,13 +487,13 @@ int is_in_area(struct map_area *a, int x, int y)
 	case SHAPE_POLY:
 		over = 0;
 		if (a->ncoords >= 4)
-			for (i = 0; i + 1 < a->ncoords; i += 2) {
+			for (i = 0; a->ncoords - i > 1; i += 2) {
 				int x1, x2, y1, y2;
 				x1 = a->coords[i];
 				y1 = a->coords[i + 1];
 				x2 = a->coords[0];
 				y2 = a->coords[1];
-				if (i + 3 < a->ncoords) {
+				if (a->ncoords - i > 3) {
 					x2 = a->coords[i + 2];
 					y2 = a->coords[i + 3];
 				}
@@ -551,12 +551,14 @@ static void do_image(struct g_part *p, struct image_description *im)
 			struct memory_list *ml;
 			struct menu_item *menu;
 			struct cache_entry *ce = af->rq->ce;
-			unsigned char *start, *end;
+			unsigned char *start;
+			size_t len;
 			int i;
 			struct image_map *map;
-			if (get_file(af->rq, &start, &end)
-			|| (start == end)
-			|| get_image_map(ce->head, start, end, tag, &menu, &ml, format_.href_base, format_.target_base, 0, 0, 0, 1))
+			if (get_file(af->rq, &start, &len) || (!len))
+				goto ft;
+			if (len > INT_MAX) len = INT_MAX;
+			if (get_image_map(ce->head, start, start + len, tag, &menu, &ml, format_.href_base, format_.target_base, 0, 0, 0, 1))
 				goto ft;
 			map = xmalloc(sizeof(struct image_map));
 			map->n_areas = 0;

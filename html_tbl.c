@@ -65,11 +65,11 @@ static void get_c_width(unsigned char *attr, int *w, int sh)
 	unsigned char *al;
 	if ((al = get_attr_val(attr, cast_uchar "width"))) {
 		if (*al && al[strlen(cast_const_char al) - 1] == '*') {
-			unsigned char *en;
+			char *end;
 			unsigned long n;
 			al[strlen(cast_const_char al) - 1] = 0;
-			n = strtoul(cast_const_char al, (char **)(void *)&en, 10);
-			if (n < 10000 && !*en) *w = W_REL - (int)n;
+			n = strtoul(cast_const_char al, &end, 10);
+			if (n < 10000 && !*end) *w = W_REL - (int)n;
 		} else {
 			int p = get_width(attr, cast_uchar "width", sh);
 			if (p >= 0) *w = p;
@@ -374,7 +374,7 @@ unsigned char *skip_element(unsigned char *html, unsigned char *eof, unsigned ch
 	int namelen;
 	r:
 	while (html < eof && (*html != '<')) rr:html++;
-	if (html + 2 <= eof && (html[1] == '!' || html[1] == '?')) {
+	if (eof - html >= 2 && (html[1] == '!' || html[1] == '?')) {
 		html = skip_comment(html, eof);
 		goto r;
 	}
@@ -438,7 +438,7 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 		if (lbhp) (*bad_html)[*bhp-1].e = html;
 		goto scan_done;
 	}
-	if (html + 2 <= eof && (html[1] == '!' || html[1] == '?')) {
+	if (eof - html >= 2 && (html[1] == '!' || html[1] == '?')) {
 		html = skip_comment(html, eof);
 		goto se;
 	}
