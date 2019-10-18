@@ -169,7 +169,7 @@ void g_text_draw(struct f_data_c *fd, struct g_object *t_, int x, int y)
 				return;
 			case FC_TEXT:
 			case FC_PASSWORD:
-			case FC_FILE:
+			case FC_FILE_UPLOAD:
 				if ((size_t)fs->vpos > strlen(cast_const_char fs->string)) fs->vpos = (int)strlen(cast_const_char fs->string);
 				sl = strlen(cast_const_char fs->string);
 				td = textptr_diff(fs->string + fs->state, fs->string + fs->vpos, fd->f_data->opt.cp);
@@ -1376,7 +1376,7 @@ void draw_title(struct f_data_c *f)
 	}
 	w = g_text_width(bfu_style_bw, title);
 	z = 0;
-	g_print_text(dev, 0, 0, !proxies.only_proxies ? bfu_style_bw : bfu_style_wb, cast_uchar G_LEFT_ARROW, &z);
+	g_print_text(dev, 0, 0, !proxies.only_proxies ? bfu_style_bw : bfu_style_wb, cast_uchar " " G_LEFT_ARROW " ", &z);
 	f->ses->back_size = z;
 	b = (dev->size.x2 - w) - 16;
 	if (b < z) b = z;

@@ -285,7 +285,7 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_RESOURCES), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, select_info(CI_FILES));
-	add_to_str(&a, &l, cast_uchar " ");
+	add_chr_to_str(&a, &l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_HANDLES), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, select_info(CI_TIMERS));
@@ -461,7 +461,7 @@ static void add_history_menu_entry(struct terminal *term, struct menu_item **mi,
 {
 	unsigned char *url;
 	if (!*mi)
-		*mi = new_menu(3);
+		*mi = new_menu(MENU_FREE_ITEMS | MENU_FREE_TEXT);
 	url = display_url(term, l->url, 1);
 	add_to_menu(mi, url, cast_uchar "", cast_uchar "", go_backwards,
 		(void *)(long)l->location_id, 0, *n);
@@ -503,7 +503,7 @@ static void downloads_menu(struct terminal *term, void *ddd, void *ses_)
 	int n = 0;
 	foreachback(struct download, d, ld, downloads) {
 		unsigned char *f, *ff;
-		if (!mi) mi = new_menu(7);
+		if (!mi) mi = new_menu(MENU_FREE_ITEMS | MENU_FREE_TEXT | MENU_FREE_RTEXT);
 		f = !d->prog ? d->orig_file : d->url;
 		for (ff = f; *ff; ff++)
 			if ((dir_sep(ff[0])
@@ -643,6 +643,8 @@ static void reinit_video(void)
 
 	/* Redraw all terminals */
 	cls_redraw_all_terminals();
+
+	shrink_format_cache(SH_FREE_ALL);
 }
 
 #define video_msg_0	TEXT_(T_VIDEO_OPTIONS_TEXT)
@@ -714,11 +716,11 @@ static void videoopt_fn(struct dialog_data *dlg)
 	if (w < 1) w = 1;
 	rw = 0;
 	dlg_format_text(dlg, NULL, video_msg_0, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	did = dlg->items;
 	dlg_format_group(dlg, NULL, video_msg_1, did, array_elements(video_msg_1), 0, &y, w, &rw);
 	did += array_elements(video_msg_1);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_2), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_2);
 	did += array_elements(video_msg_2);
 	if (video_option_select_palette) {
@@ -733,7 +735,7 @@ static void videoopt_fn(struct dialog_data *dlg)
 		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_scrolling), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_scrolling);
 		did += array_elements(video_msg_scrolling);
 	}
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_buttons(dlg, NULL, did, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
@@ -742,11 +744,11 @@ static void videoopt_fn(struct dialog_data *dlg)
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
 	dlg_format_text(dlg, term, video_msg_0, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(2, G_BFU_FONT_SIZE);
+	y += LL;
 	did = dlg->items;
 	dlg_format_group(dlg, term, video_msg_1, did, array_elements(video_msg_1), dlg->x + DIALOG_LB, &y, w, NULL);
 	did += array_elements(video_msg_1);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_2), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_2);
 	did += array_elements(video_msg_2);
 	if (video_option_select_palette) {
@@ -1088,10 +1090,10 @@ static void proxy_fn(struct dialog_data *dlg)
 	rw = 0;
 	for (i = 0; i < N_N; i++) {
 		dlg_format_text_and_field(dlg, NULL, proxy_msg[i], &dlg->items[i], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += gf_val(1, G_BFU_FONT_SIZE * 1);
+		y += LL;
 	}
 	dlg_format_group(dlg, NULL, proxy_msg + N_N, dlg->items + N_N, dlg->n - 2 - N_N, 0, &y, w, &rw);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 2, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
@@ -1456,28 +1458,28 @@ static void ssl_options_fn(struct dialog_data *dlg)
 	if (w < 5) w = 5;
 	rw = 0;
 	dlg_format_checkboxes(dlg, NULL, dlg->items, dlg->n - 5, 0, &y, w, &rw, dlg->dlg->udata);
-	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_text_and_field(dlg, NULL, ssl_labels[dlg->n - 5], dlg->items + dlg->n - 5, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, NULL, ssl_labels[dlg->n - 4], dlg->items + dlg->n - 4, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, NULL, ssl_labels[dlg->n - 3], dlg->items + dlg->n - 3, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 2, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = rw + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
 	center_dlg(dlg);
 	draw_dlg(dlg);
-	y = dlg->y + DIALOG_TB + gf_val(1, G_BFU_FONT_SIZE);
+	y = dlg->y + DIALOG_TB + LL;
 	dlg_format_checkboxes(dlg, term, dlg->items, dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, dlg->dlg->udata);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_text_and_field(dlg, term, ssl_labels[dlg->n - 5], dlg->items + dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, term, ssl_labels[dlg->n - 4], dlg->items + dlg->n - 4, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, term, ssl_labels[dlg->n - 3], dlg->items + dlg->n - 3, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_buttons(dlg, term, dlg->items + dlg->n - 2, 2, dlg->x + DIALOG_LB, &y, w, &rw, AL_CENTER);
 }
 
@@ -1567,28 +1569,28 @@ static void httpheadopt_fn(struct dialog_data *dlg)
 	if (w < 5) w = 5;
 	rw = 0;
 	dlg_format_checkboxes(dlg, NULL, dlg->items, dlg->n - 5, 0, &y, w, &rw, dlg->dlg->udata);
-	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_text_and_field(dlg, NULL, http_header_labels[dlg->n - 5], dlg->items + dlg->n - 5, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, NULL, http_header_labels[dlg->n - 4], dlg->items + dlg->n - 4, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, NULL, http_header_labels[dlg->n - 3], dlg->items + dlg->n - 3, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, 1 * G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 2, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = rw + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
 	center_dlg(dlg);
 	draw_dlg(dlg);
-	y = dlg->y + DIALOG_TB + gf_val(1, G_BFU_FONT_SIZE);
+	y = dlg->y + DIALOG_TB + LL;
 	dlg_format_checkboxes(dlg, term, dlg->items, dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, dlg->dlg->udata);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_text_and_field(dlg, term, http_header_labels[dlg->n - 5], dlg->items + dlg->n - 5, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, term, http_header_labels[dlg->n - 4], dlg->items + dlg->n - 4, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE * 1);
+	y += LL;
 	dlg_format_text_and_field(dlg, term, http_header_labels[dlg->n - 3], dlg->items + dlg->n - 3, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y += LL;
 	dlg_format_buttons(dlg, term, dlg->items + dlg->n - 2, 2, dlg->x + DIALOG_LB, &y, w, &rw, AL_CENTER);
 }
 
@@ -2036,7 +2038,7 @@ static void select_color(struct terminal *term, int n, int *ptr)
 {
 	int i;
 	struct menu_item *mi;
-	mi = new_menu(1);
+	mi = new_menu(MENU_FREE_ITEMS);
 	for (i = 0; i < n; i++) {
 		add_to_menu(&mi, TEXT_(T_COLOR_0 + i), cast_uchar "", cast_uchar "", set_val, (void *)(unsigned long)i, 0, i);
 	}
@@ -2235,20 +2237,19 @@ static void miscopt_fn(struct dialog_data *dlg)
 	if (F)
 	{
 		dlg_format_group(dlg, NULL, labels, dlg->items,1,dlg->x + DIALOG_LB, &y, w, &rw);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 		dlg_format_text(dlg, NULL, labels[1], dlg->x + DIALOG_LB, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 		dlg_format_group(dlg, NULL, labels+2, dlg->items+1,5,dlg->x + DIALOG_LB, &y, w, &rw);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 	}
 #endif
-	if (bmk)
-	{
+	if (bmk) {
 		dlg_format_text_and_field(dlg, NULL, labels[F?7:0], dlg->items + dlg->n - 4 - a - bmk, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 	}
 	if (bmk) {
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 		dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 3 - a - bmk, 1, 0, &y, w, &rw, AL_LEFT);
 	}
 	if (a) dlg_format_buttons(dlg, NULL, dlg->items + dlg->n - 3 - bmk, 1, 0, &y, w, &rw, AL_LEFT);
@@ -2261,30 +2262,28 @@ static void miscopt_fn(struct dialog_data *dlg)
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
 #ifdef G
-	if (F)
-	{
-		y += gf_val(1, G_BFU_FONT_SIZE);
+	if (F) {
+		y += LL;
 		dlg_format_group(dlg, term, labels, dlg->items,1,dlg->x + DIALOG_LB, &y, w, NULL);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 		dlg_format_text(dlg, term, labels[1], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 		dlg_format_group(dlg, term, labels+2, dlg->items+1,5,dlg->x + DIALOG_LB, &y, w, NULL);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 	} else
 #endif
 	{
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 	}
-	if (bmk)
-	{
+	if (bmk) {
 		dlg_format_text_and_field(dlg, term, labels[F?7:0], dlg->items + dlg->n - 4 - a - bmk, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 		dlg_format_buttons(dlg, term, dlg->items + dlg->n - 3 - a - bmk, 1, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 	}
 	if (a) dlg_format_buttons(dlg, term, dlg->items + dlg->n - 3 - bmk, 1, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 	if (bmk) {
 		dlg_format_checkboxes(dlg, term, dlg->items + dlg->n - 3, 1, dlg->x + DIALOG_LB, &y, w, NULL, miscopt_checkbox_labels);
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y += LL;
 	}
 	dlg_format_buttons(dlg, term, dlg->items+dlg->n-2, 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
@@ -2462,7 +2461,7 @@ static const struct menu_item file_menu211_clipb[] = {
 #endif
 
 static const struct menu_item file_menu22[] = {
-	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1} ,
+	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1},
 	{ TEXT_(T_KILL_BACKGROUND_CONNECTIONS), cast_uchar "", TEXT_(T_HK_KILL_BACKGROUND_CONNECTIONS), menu_kill_background_connections, NULL, 0, 1 },
 	{ TEXT_(T_KILL_ALL_CONNECTIONS), cast_uchar "", TEXT_(T_HK_KILL_ALL_CONNECTIONS), menu_kill_all_connections, NULL, 0, 1 },
 	{ TEXT_(T_FLUSH_ALL_CACHES), cast_uchar "", TEXT_(T_HK_FLUSH_ALL_CACHES), flush_caches, NULL, 0, 1 },

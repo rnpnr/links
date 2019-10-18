@@ -202,6 +202,7 @@ int get_keepalive_socket(struct connection *c, int *protocol_data)
 	c->sock1 = cc;
 	if (max_tries == 1)
 		c->tries = -1;
+	c->keepalive = 1;
 	return 0;
 }
 
@@ -522,6 +523,7 @@ static void run_connection(struct connection *c)
 	}
 	hc->conn++;
 	active_connections++;
+	c->keepalive = 0;
 	c->running = 1;
 	func(c);
 }
@@ -1013,6 +1015,16 @@ void set_connection_timeout(struct connection *c)
 {
 	clear_connection_timeout(c);
 	c->timer = install_timer(get_timeout_value(c), connection_timeout_1, c);
+}
+
+void set_connection_timeout_keepal(struct connection *c)
+{
+	if (c->keepalive && !c->unrestartable) {
+		clear_connection_timeout(c);
+		c->timer = install_timer(timeout_multiple_addresses * 1000, connection_timeout, c);
+		return;
+	}
+	set_connection_timeout(c);
 }
 
 void abort_all_connections(void)

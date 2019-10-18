@@ -95,8 +95,10 @@
 #define G_DIALOG_BUTTON_L		"[ "
 #define G_DIALOG_BUTTON_R		" ]"
 
-#define G_LEFT_ARROW			" \342\206\220 "
-#define MENU_SUBMENU			(!F ? cast_uchar ">" : cast_uchar "\342\206\222")
+#define G_LEFT_ARROW			"\342\206\220"
+#define G_RIGHT_ARROW			"\342\206\222"
+#define MENU_SUBMENU			(!F ? cast_uchar ">" : cast_uchar G_RIGHT_ARROW)
+#define CERT_RIGHT_ARROW		(!F ? cast_uchar " -> " : cast_uchar " " G_RIGHT_ARROW " ")
 
 #define G_SCROLL_BAR_WIDTH		12
 #define G_SCROLL_BAR_MIN_SIZE		20
@@ -141,7 +143,7 @@
 #define HTML_DEFAULT_TEXTAREA_WIDTH	40
 #define HTML_DEFAULT_TEXTAREA_HEIGHT	7
 
-#define MAX_INPUT_URL_LEN		4096
+#define MAX_INPUT_URL_LEN		65536
 
 #define SPD_DISP_TIME			200
 #define CURRENT_SPD_SEC			(10000 / SPD_DISP_TIME)
@@ -155,6 +157,6 @@
  * (draw_bfu_element function in listedit.c)
  * BFU_ELEMENT_WIDTH is a size of one bfu element (doesn't depend on graphical/text mode)
  */
-#define BFU_GRX_WIDTH                 (G_BFU_FONT_SIZE>>1)
-#define BFU_ELEMENT_WIDTH             (gf_val(5,5*BFU_GRX_WIDTH))
-#define BFU_GRX_HEIGHT                        G_BFU_FONT_SIZE
+#define BFU_GRX_WIDTH		(G_BFU_FONT_SIZE >> 1)
+#define BFU_ELEMENT_WIDTH	(gf_val(5, 5 * BFU_GRX_WIDTH))
+#define BFU_GRX_HEIGHT		G_BFU_FONT_SIZE

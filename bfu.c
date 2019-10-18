@@ -537,7 +537,7 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 					struct mainmenu *m2 = w1->data;
 					if (F && !f && ev->x >= m2->xl1 && ev->x < m2->xl2 && ev->y >= m2->yl1 && ev->y < m2->yl2) goto bbb;
 #endif
-					if (ev->y < gf_val(1, G_BFU_FONT_SIZE)) goto del;
+					if (ev->y < LL) goto del;
 					break;
 				}
 				if (w1->handler != menu_func) break;
@@ -618,14 +618,14 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			scroll_menu(menu, -1);
 		} else if (ev->x == KBD_PAGE_UP || (upcase(ev->x) == 'B'
 		&& ev->y & KBD_CTRL)) {
-			if ((menu->selected -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) < -1) menu->selected = -1;
-			if ((menu->view -= menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) < 0) menu->view = 0;
+			if ((menu->selected -= menu->yw / LL - 3) < -1) menu->selected = -1;
+			if ((menu->view -= menu->yw / LL - 2) < 0) menu->view = 0;
 			scroll_menu(menu, -1);
 		}
 		else if (ev->x == KBD_PAGE_DOWN || (upcase(ev->x) == 'F'
 		&& ev->y & KBD_CTRL)) {
-			if ((menu->selected += menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 3) > menu->ni) menu->selected = menu->ni;
-			if ((menu->view += menu->yw / gf_val(1, G_BFU_FONT_SIZE) - 2) >= menu->ni - menu->yw + 2) menu->view = menu->ni - menu->yw + 2;
+			if ((menu->selected += menu->yw / LL - 3) > menu->ni) menu->selected = menu->ni;
+			if ((menu->view += menu->yw / LL - 2) >= menu->ni - menu->yw + 2) menu->view = menu->ni - menu->yw + 2;
 			scroll_menu(menu, 1);
 		}
 		else if (ev->x > ' ') {
@@ -664,14 +664,15 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 		if (menu->items->free_i) {
 			int i;
 			for (i = 0; i < menu->ni; i++) {
-				if (menu->items[i].free_i & 2)
+				if (menu->items[i].free_i & MENU_FREE_TEXT)
 					free(menu->items[i].text);
-				if (menu->items[i].free_i & 4)
+				if (menu->items[i].free_i & MENU_FREE_RTEXT)
 					free(menu->items[i].rtext);
-				if (menu->items[i].free_i & 8)
+				if (menu->items[i].free_i & MENU_FREE_HOTKEY)
 					free(menu->items[i].hotkey);
 			}
-			free(menu->items);
+			if (menu->items->free_i & MENU_FREE_ITEMS)
+				free(menu->items);
 		}
 		if (menu->free_function)
 			register_bottom_half(menu->free_function,
@@ -806,7 +807,7 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 		draw_to_window(win, display_mainmenu, menu);
 		break;
 	case EV_MOUSE:
-		in_menu = ev->x >= 0 && ev->x < win->term->x && ev->y >= 0 && ev->y < gf_val(1, G_BFU_FONT_SIZE);
+		in_menu = ev->x >= 0 && ev->x < win->term->x && ev->y >= 0 && ev->y < LL;
 		if ((ev->b & BM_ACT) == B_MOVE) break;
 		if ((ev->b & BM_BUTT) == B_FOURTH) {
 			if ((ev->b & BM_ACT) == B_DOWN) goto go_left;
@@ -1339,7 +1340,7 @@ static void do_tab_compl(struct terminal *term, struct list_head *history, struc
 			items[n].rtext = cast_uchar "";
 			items[n].data = hi;
 			items[n].in_m = 0;
-			items[n].free_i = 3;
+			items[n].free_i = MENU_FREE_ITEMS | MENU_FREE_TEXT;
 			if (n == INT_MAX) overalloc();
 			n++;
 		} else
@@ -2169,7 +2170,7 @@ void dlg_format_buttons(struct dialog_data *dlg, struct terminal *term, struct d
 				p += (butt[i].l = txtlen(dlg->win->term, get_text_translation(butt[i].item->text, dlg->win->term)) + gf_val(4, txtlen(dlg->win->term, cast_uchar(G_DIALOG_BUTTON_L G_DIALOG_BUTTON_R)))) + gf_val(2, G_DIALOG_BUTTON_SPACE);
 			}
 		}
-		*y += gf_val(2, G_BFU_FONT_SIZE * 2);
+		*y += 2 * LL;
 		i1 = i2;
 	}
 }
@@ -2276,7 +2277,7 @@ void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned c
 		wx += sl;
 		if (nx && nx + wx > w) {
 			nx = 0;
-			(*y) += gf_val(2, G_BFU_FONT_SIZE * 2);
+			(*y) += 2 * LL;
 		}
 		if (term) {
 			if (!F) print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, strlen((char *)get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
@@ -2297,10 +2298,8 @@ void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned c
 		texts++;
 		item++;
 	}
-	(*y) += gf_val(1, G_BFU_FONT_SIZE);
+	(*y) += LL;
 }
-
-#define LL gf_val(1, G_BFU_FONT_SIZE)
 
 void checkbox_list_fn(struct dialog_data *dlg)
 {

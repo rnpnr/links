@@ -240,7 +240,7 @@ static void http_send_header(struct connection *c)
 
 	proxy = is_proxy_url(c->url);
 	host = remove_proxy_prefix(c->url);
-	set_connection_timeout(c);
+	set_connection_timeout_keepal(c);
 	info = mem_calloc(sizeof(struct http_connection_info));
 	c->info = info;
 	info->https_forward = !c->ssl && proxy && host && !casecmp(host, cast_uchar "https://", 8);
@@ -998,6 +998,8 @@ again:
 	if (c->ssl) {
 		free(e->ssl_info);
 		e->ssl_info = get_cipher_string(c->ssl);
+		free(e->ssl_authority);
+		e->ssl_authority = stracpy(c->ssl->ca);
 	}
 	free(e->redirect);
 	e->redirect = NULL;
@@ -1145,7 +1147,7 @@ again:
 static void http_get_header(struct connection *c)
 {
 	struct read_buffer *rb;
-	set_connection_timeout(c);
+	set_connection_timeout_keepal(c);
 	if (!(rb = alloc_read_buffer()))
 		return;
 	rb->close = 1;

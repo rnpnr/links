@@ -72,7 +72,7 @@ static void write_ev_queue(void *itrm_)
 	struct itrm *itrm = (struct itrm *)itrm_;
 	int l, to_write;
 	if (!itrm->eqlen) internal("event queue empty");
-	to_write = itrm->eqlen > 128 ? 128 : itrm->eqlen;
+	to_write = itrm->eqlen;
 retry:
 	EINTRLOOP(l, (int)write(itrm->sock_out, itrm->ev_queue, to_write));
 	if (l <= 0) {

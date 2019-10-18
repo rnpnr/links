@@ -1216,6 +1216,10 @@ static unsigned char *display_url_or_host(struct terminal *term, unsigned char *
 		url_enc = idn_encode_url(url_conv2, 0);
 	else
 		url_enc = idn_encode_host(url_conv2, (int)strlen((char *)url_conv2), separator, 0);
+	if (!url_enc) {
+		url_enc = stracpy(url_conv2);
+		is_idn = 1;
+	}
 	free(url_conv2);
 	if (!strcmp((char *)url_enc, (char *)url)) {
 		if (is_idn && warn_idn) {

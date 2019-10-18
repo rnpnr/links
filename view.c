@@ -664,7 +664,7 @@ static void init_ctrl(struct form_control *form, struct form_state *fs)
 			fs->state = (int)strlen(cast_const_char form->default_value);
 			fs->vpos = 0;
 			break;
-		case FC_FILE:
+		case FC_FILE_UPLOAD:
 			fs->string = stracpy(cast_uchar "");
 			fs->state = 0;
 			fs->vpos = 0;
@@ -735,7 +735,7 @@ static void draw_form_entry(struct terminal *t, struct f_data_c *f, struct link 
 
 		case FC_TEXT:
 		case FC_PASSWORD:
-		case FC_FILE:
+		case FC_FILE_UPLOAD:
 			if ((size_t)fs->vpos > strlen(cast_const_char fs->string)) fs->vpos = (int)strlen(cast_const_char fs->string);
 			sl = strlen((char *)fs->string);
 			td = textptr_diff(fs->string + fs->state, fs->string + fs->vpos, f->f_data->opt.cp);
@@ -1093,6 +1093,7 @@ int dump_to_file(struct f_data *fd, int h)
 	int x, y;
 	unsigned char *buf;
 	int bptr = 0;
+	int retval;
 	buf = xmalloc(D_BUF);
 	for (y = 0; y < fd->y; y++) for (x = 0; x <= fd->data[y].l; x++) {
 		unsigned c;
@@ -1109,20 +1110,23 @@ int dump_to_file(struct f_data *fd, int h)
 		} else
 			buf[bptr++] = (unsigned char)c;
 		if (bptr >= D_BUF - 7) {
-			if (hard_write(h, buf, bptr) != bptr) goto fail;
+			if ((retval = hard_write(h, buf, bptr)) != bptr) {
+				free(buf);
+				goto fail;
+			}
 			bptr = 0;
 		}
 	}
-	if (hard_write(h, buf, bptr) != bptr) {
-		fail:
+	if ((retval = hard_write(h, buf, bptr)) != bptr) {
 		free(buf);
-		return -1;
+		goto fail;
 	}
 	free(buf);
 	if (fd->opt.num_links && fd->nlinks) {
 		static const unsigned char head[] = "\nLinks:\n";
 		int i;
-		if ((int)hard_write(h, head, (int)strlen(cast_const_char head)) != (int)strlen(cast_const_char head)) return -1;
+		if ((retval = hard_write(h, head, (int)strlen(cast_const_char head))) != (int)strlen(cast_const_char head))
+			goto fail;
 		for (i = 0; i < fd->nlinks; i++) {
 			struct link *lnk = &fd->links[i];
 			unsigned char *s = init_str();
@@ -1150,7 +1154,7 @@ int dump_to_file(struct f_data *fd, int h)
 				else if (fc->type == FC_SELECT) add_to_str(&s, &l, cast_uchar "Select field");
 				else if (fc->type == FC_TEXT) add_to_str(&s, &l, cast_uchar "Text field");
 				else if (fc->type == FC_TEXTAREA) add_to_str(&s, &l, cast_uchar "Text area");
-				else if (fc->type == FC_FILE) add_to_str(&s, &l, cast_uchar "File upload");
+				else if (fc->type == FC_FILE_UPLOAD) add_to_str(&s, &l, cast_uchar "File upload");
 				else if (fc->type == FC_PASSWORD) add_to_str(&s, &l, cast_uchar "Password field");
 				else goto unknown;
 				if (fc->name && fc->name[0]) {
@@ -1166,14 +1170,20 @@ int dump_to_file(struct f_data *fd, int h)
 			}
 			unknown:
 			add_to_str(&s, &l, cast_uchar "\n");
-			if (hard_write(h, s, l) != l) {
+			if ((retval = hard_write(h, s, l)) != l) {
 				free(s);
-				return -1;
+				goto fail;
 			}
 			free(s);
 		}
 	}
 	return 0;
+
+ fail:
+	if (retval < 0)
+		return get_error_from_errno(errno);
+	else
+		return S_CANT_WRITE;
 }
 
 static int in_viewx(struct f_data_c *f, struct link *l)
@@ -1450,7 +1460,7 @@ static void get_succesful_controls(struct f_data_c *f, struct form_control *fc, 
 			switch (form->type) {
 				case FC_TEXT:
 				case FC_PASSWORD:
-				case FC_FILE:
+				case FC_FILE_UPLOAD:
 					sub->value = stracpy(fs->string);
 					break;
 				case FC_TEXTAREA:
@@ -1603,7 +1613,7 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 		add_to_str(data, len, cast_uchar "\r\nContent-Disposition: form-data; name=\"");
 		add_to_str(data, len, sv->name);
 		add_to_str(data, len, cast_uchar "\"");
-		if (sv->type == FC_FILE) {
+		if (sv->type == FC_FILE_UPLOAD) {
 			add_to_str(data, len, cast_uchar "; filename=\"");
 			add_to_str(data, len, strip_file_name(sv->value));
 				/* It sends bad data if the file name contains ", but
@@ -1623,7 +1633,7 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 			}
 		}
 		add_to_str(data, len, cast_uchar "\r\n\r\n");
-		if (sv->type != FC_FILE) {
+		if (sv->type != FC_FILE_UPLOAD) {
 			if (sv->type == FC_TEXT || sv->type == FC_PASSWORD || sv->type == FC_TEXTAREA)
 				p = convert(cp_from, cp_to, sv->value, NULL);
 			else p = stracpy(sv->value);
@@ -2606,7 +2616,7 @@ static void goto_link_number(void *ses_, unsigned char *num)
 static int find_pos_in_link(struct f_data_c *fd, struct link *l, struct links_event *ev, int *xx, int *yy)
 {
 	int a;
-	int minx ,miny;
+	int minx, miny;
 	int found = 0;
 
 	if (!l->n) return 1;
@@ -3252,7 +3262,7 @@ void open_in_new_window(struct terminal *term, void *fn_, void *ses_)
 		free(oin);
 		return;
 	}
-	mi = new_menu(1);
+	mi = new_menu(MENU_FREE_ITEMS);
 	for (oi = oin; oi->text; oi++) add_to_menu(&mi, oi->text, cast_uchar "", oi->hk, fn, (void *)oi->open_window_fn, 0, -1);
 	free(oin);
 	do_menu(term, mi, ses);
@@ -3342,14 +3352,14 @@ void save_as(struct terminal *term, void *xxx, void *ses_)
 
 static void save_formatted(struct session *ses, unsigned char *file, int mode)
 {
-	int h;
-	int rs;
+	int h, rs, err;
 	struct f_data_c *f;
 	int download_mode = mode == DOWNLOAD_DEFAULT ? CDF_EXCL : 0;
 	if (!(f = current_frame(ses)) || !f->f_data) return;
 	if ((h = create_download_file(ses, ses->term->cwd, file, download_mode, 0)) < 0) return;
-	if (dump_to_file(f->f_data, h))
-		msg_box(ses->term, NULL, TEXT_(T_SAVE_ERROR), AL_CENTER, TEXT_(T_ERROR_WRITING_TO_FILE), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	if ((err = dump_to_file(f->f_data, h))) {
+		msg_box(ses->term, NULL, TEXT_(T_SAVE_ERROR), AL_CENTER, TEXT_(T_ERROR_WRITING_TO_FILE), cast_uchar ": ", get_err_msg(err), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	}
 	EINTRLOOP(rs, close(h));
 }
 
@@ -3369,7 +3379,7 @@ void link_menu(struct terminal *term, void *xxx, void *ses_)
 	struct menu_item *mi;
 	free(ses->wtd_target);
 	ses->wtd_target = NULL;
-	mi = new_menu(1);
+	mi = new_menu(MENU_FREE_ITEMS);
 	link = get_current_link(f);
 	if (!link) goto no_l;
 	if (link->type == L_LINK && link->where) {
@@ -3533,7 +3543,7 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 		else if (l->form->type == FC_SELECT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SELECT_FIELD), term));
 		else if (l->form->type == FC_TEXT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_FIELD), term));
 		else if (l->form->type == FC_TEXTAREA) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_AREA), term));
-		else if (l->form->type == FC_FILE) add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
+		else if (l->form->type == FC_FILE_UPLOAD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
 		else if (l->form->type == FC_PASSWORD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_PASSWORD_FIELD), term));
 		else {
 			free(m);
@@ -3673,7 +3683,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 		else if (l->form->type == FC_SELECT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SELECT_FIELD), term));
 		else if (l->form->type == FC_TEXT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_FIELD), term));
 		else if (l->form->type == FC_TEXTAREA) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_AREA), term));
-		else if (l->form->type == FC_FILE) add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
+		else if (l->form->type == FC_FILE_UPLOAD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
 		else if (l->form->type == FC_PASSWORD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_PASSWORD_FIELD), term));
 		else {
 			free(m);
@@ -3824,6 +3834,15 @@ void loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			add_to_str(&s, &l, get_text_translation(TEXT_(T_SSL_CIPHER), term));
 			add_to_str(&s, &l, cast_uchar ": ");
 			add_to_str(&s, &l, ce->ssl_info);
+		}
+		if (ce->ssl_authority) {
+			add_to_str(&s, &l, cast_uchar "\n");
+			if (strstr(cast_const_char ce->ssl_authority, cast_const_char CERT_RIGHT_ARROW))
+				add_to_str(&s, &l, get_text_translation(TEXT_(T_CERTIFICATE_AUTHORITIES), term));
+			else
+				add_to_str(&s, &l, get_text_translation(TEXT_(T_CERTIFICATE_AUTHORITY), term));
+			add_to_str(&s, &l, cast_uchar ": ");
+			add_to_str(&s, &l, ce->ssl_authority);
 		}
 		ce->refcount--;
 	}

@@ -484,6 +484,7 @@ struct cache_entry {
 	size_t decompressed_len;
 	unsigned char *ip_address;
 	unsigned char *ssl_info;
+	unsigned char *ssl_authority;
 	list_entry_last
 	unsigned char url[1];
 };
@@ -523,6 +524,7 @@ typedef struct {
 	tcount bytes_written;
 	int session_set;
 	int session_retrieved;
+	unsigned char *ca;
 } links_ssl;
 
 #define PRI_MAIN	0
@@ -563,6 +565,7 @@ struct connection {
 	void *dnsquery;
 	pid_t pid;
 	int tries;
+	int keepalive;
 	tcount netcfg_stamp;
 	struct list_head statuss;
 	void *info;
@@ -626,7 +629,6 @@ extern struct list_head keepalive_connections;
 
 #define S__OK			(-2000000000)
 #define S_INTERRUPTED		(-2000000001)
-#define S_EXCEPT		(-2000000002)
 #define S_INTERNAL		(-2000000003)
 #define S_OUT_OF_MEM		(-2000000004)
 #define S_NO_DNS		(-2000000005)
@@ -720,6 +722,7 @@ int abort_background_connections(void);
 int is_entry_used(struct cache_entry *);
 void clear_connection_timeout(struct connection *);
 void set_connection_timeout(struct connection *);
+void set_connection_timeout_keepal(struct connection *);
 void add_blacklist_entry(unsigned char *, int);
 void del_blacklist_entry(unsigned char *, int);
 int get_blacklist_flags(unsigned char *);
@@ -1249,7 +1252,7 @@ struct letter {
 	int code; /* Unicode code of the character */
 	short xsize; /* x size of the PNG image */
 	short ysize; /* y size of the PNG image */
-	struct lru_entry* color_list;
+	struct lru_entry *color_list;
 };
 
 struct font {
@@ -1728,7 +1731,7 @@ struct form {
 
 #define FC_TEXT		1
 #define FC_PASSWORD	2
-#define FC_FILE		3
+#define FC_FILE_UPLOAD	3
 #define FC_TEXTAREA	4
 #define FC_CHECKBOX	5
 #define FC_RADIO	6
@@ -1893,7 +1896,7 @@ struct document_options {
 	int display_images;
 	int image_scale;
 	int porn_enable;
-	double bfu_aspect; /* 0.1 to 10.0, 1.0 default. >1 makes circle wider */
+	tcount gamma_stamp;
 	int real_cp;	/* codepage of document. Does not really belong here. Must not be compared. Used only in get_attr_val */
 };
 
@@ -2474,6 +2477,7 @@ struct dialog_data;
 
 int f_is_finished(struct f_data *f);
 unsigned long formatted_info(int);
+int shrink_format_cache(int u);
 void init_fcache(void);
 void html_interpret_recursive(struct f_data_c *);
 void fd_loaded(struct object_request *, void *);
@@ -2553,6 +2557,8 @@ void shutdown_bfu(void);
 #define DIALOG_LB	gf_val(DIALOG_LEFT_BORDER + DIALOG_LEFT_INNER_BORDER + 1, G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1 + G_DIALOG_LEFT_INNER_BORDER)
 #define DIALOG_TB	gf_val(DIALOG_TOP_BORDER + DIALOG_TOP_INNER_BORDER + 1, G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 + G_DIALOG_TOP_INNER_BORDER)
 
+#define LL		gf_val(1, G_BFU_FONT_SIZE)
+
 extern unsigned char m_bar;
 
 #define M_BAR	(&m_bar)
@@ -2566,6 +2572,14 @@ struct menu_item {
 	int in_m;
 	int free_i;
 };
+
+#define MENU_FREE_ITEMS		1
+#define MENU_FREE_TEXT		2
+#define MENU_FREE_RTEXT		4
+#define MENU_FREE_HOTKEY	8
+#define MENU_FONT_LIST		32
+#define MENU_FONT_LIST_BOLD	64
+#define MENU_FONT_LIST_MONO	128
 
 struct menu {
 	int selected;

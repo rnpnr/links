@@ -109,6 +109,9 @@ struct {
 #define X_STATIC_COLORS                (x_depth < 8 ? 8 : 216)
 #define X_STATIC_CODE          (x_depth < 8 ? 801 : 833)
 
+static unsigned short *color_map_16bit = NULL;
+static unsigned *color_map_24bit = NULL;
+
 static Window x_root_window, fake_window;
 static int fake_window_initialized = 0;
 static GC x_normal_gc = 0, x_copy_gc = 0, x_drawbitmap_gc = 0, x_scroll_gc = 0;
@@ -399,7 +402,7 @@ static int swap_color(int c, XColor *xc, int test_count, double *distance, unsig
 	static_color_struct[new_px].alloc_count++;
 	static_color_struct[new_px].failure = 0;
 	static_color_struct[new_px].extra_allocated = 1;
-	static_color_table[c] = new_px;
+	static_color_table[c] = (unsigned char)new_px;
 	*distance = new_distance;
 
 	return 0;
@@ -486,12 +489,12 @@ static unsigned char *x_query_palette(void)
 			} else {
 				if (xc.pixel >= 256)
 					goto allocated_invalid;
-				c = xc.pixel;
+				c = (unsigned char)xc.pixel;
 				static_color_map[c] = xc;
 				static_color_struct[c].alloc_count++;
 			}
 		}
-		static_color_table[idx] = c;
+		static_color_table[idx] = (unsigned char)c;
 	}
 	if (do_alloc) {
 		double distances[256];
@@ -576,6 +579,115 @@ static void x_set_palette(void)
 	}
 
 	X_FLUSH();
+}
+
+static void mask_to_bitfield(unsigned long mask, int bitfield[8])
+{
+	int i;
+	int bit = 0;
+	for (i = sizeof(unsigned long) * 8 - 1; i >= 0; i--) {
+		if (mask & 1UL << i) {
+			bitfield[bit++] = i;
+			if (bit >= 8)
+				return;
+		}
+	}
+	while (bit < 8)
+		bitfield[bit++] = -1;
+}
+
+static unsigned long apply_bitfield(int bitfield[8], int bits, unsigned int value)
+{
+	unsigned long result = 0;
+	int bf_index = 0;
+	while (bits-- && bf_index < 8) {
+		if (value & 1 << bits) {
+			if (bitfield[bf_index] >= 0)
+				result |= 1UL << bitfield[bf_index];
+		}
+		bf_index++;
+	}
+	return result;
+}
+
+static int create_16bit_mapping(unsigned long red_mask, unsigned long green_mask, unsigned long blue_mask)
+{
+	int i;
+	int red_bitfield[8];
+	int green_bitfield[8];
+	int blue_bitfield[8];
+
+	if ((red_mask | green_mask | blue_mask) >= 0x10000)
+		return 0;
+	if (!red_mask || !green_mask || !blue_mask)
+		return 0;
+
+	mask_to_bitfield(red_mask, red_bitfield);
+	mask_to_bitfield(green_mask, green_bitfield);
+	mask_to_bitfield(blue_mask, blue_bitfield);
+
+	color_map_16bit = mem_calloc(256 * 2 * sizeof(unsigned short));
+	for (i = 0; i < 256; i++) {
+		unsigned int g, b;
+		unsigned short ag, ab, result;
+
+		g = i >> 5;
+		b = i & 31;
+
+		ag = (unsigned short)apply_bitfield(green_bitfield, x_depth - 10, g);
+		ab = (unsigned short)apply_bitfield(blue_bitfield, 5, b);
+
+		result = ag | ab;
+
+		color_map_16bit[i + (x_bitmap_bit_order == MSBFirst) * 256] = (unsigned short)result;
+	}
+	for (i = 0; i < (x_depth == 15 ? 128 : 256); i++) {
+		unsigned int r, g;
+		unsigned short ar, ag, result;
+
+		r = i >> (x_depth - 13);
+		g = (i << (x_depth - 13)) & ((1 << (x_depth - 10)) - 1);
+
+		ar = (unsigned short)apply_bitfield(red_bitfield, 5, r);
+		ag = (unsigned short)apply_bitfield(green_bitfield, x_depth - 10, g);
+
+		result = ar | ag;
+
+		color_map_16bit[i + (x_bitmap_bit_order == LSBFirst) * 256] = (unsigned short)result;
+	}
+
+	return 1;
+}
+
+static void create_24bit_component_mapping(unsigned long mask, unsigned int *ptr)
+{
+	int i;
+	int bitfield[8];
+
+	mask_to_bitfield(mask, bitfield);
+
+	for (i = 0; i < 256; i++) {
+		unsigned int result = (unsigned int)apply_bitfield(bitfield, 8, i);
+		if (x_bitmap_bit_order == MSBFirst && x_bitmap_bpp == 4)
+			result = (result >> 24) | ((result & 0xff0000) >> 8) | ((result & 0xff00) << 8) | ((result & 0xff) << 24);
+		ptr[i] = result;
+	}
+}
+
+static int create_24bit_mapping(unsigned long red_mask, unsigned long green_mask, unsigned long blue_mask)
+{
+	if ((red_mask | green_mask | blue_mask) > 0xFFFFFFFFUL)
+		return 0;
+	if (!red_mask || !green_mask || !blue_mask)
+		return 0;
+
+	color_map_24bit = xmalloc(256 * 3 * sizeof(unsigned int));
+
+	create_24bit_component_mapping(blue_mask, color_map_24bit);
+	create_24bit_component_mapping(green_mask, color_map_24bit + 256);
+	create_24bit_component_mapping(red_mask, color_map_24bit + 256 * 2);
+
+	return 1;
 }
 
 static inline int trans_key(unsigned char *str, int table)
@@ -822,9 +934,13 @@ static void x_free_hash_table(void)
 	free(static_color_table);
 	free(static_color_map);
 	free(static_color_struct);
+	free(color_map_16bit);
+	free(color_map_24bit);
 	static_color_table = NULL;
 	static_color_map = NULL;
 	static_color_struct = NULL;
+	color_map_16bit = NULL;
+	color_map_24bit = NULL;
 
 	if (x_display) {
 		if (x_icon) {
@@ -1235,10 +1351,13 @@ static unsigned char *x_init_driver(unsigned char *param, unsigned char *display
 		err = init_str();
 		l = 0;
 
-		add_to_str(&err, &l, cast_uchar "Can't open display \"");
-		add_to_str(&err, &l, display ? display : (unsigned char *)"(null)");
-		add_to_str(&err, &l, cast_uchar "\"\n");
-		x_free_hash_table();
+		if (display) {
+			add_to_str(&err, &l, cast_uchar "Can't open display \"");
+			add_to_str(&err, &l, display);
+			add_to_str(&err, &l, cast_uchar "\"\n");
+		} else {
+			add_to_str(&err, &l, cast_uchar "Can't open default display\n");
+		}
 		goto ret_err;
 	}
 
@@ -1311,7 +1430,7 @@ invalid_param:
 					pfm = XListPixmapFormats(x_display, &n);
 					for (i = 0; i < n; i++)
 						if (pfm[i].depth == x_depth) {
-							x_bitmap_bpp = pfm[i].bits_per_pixel < 8 ? 1 : ((pfm[i].bits_per_pixel) >> 3);
+							x_bitmap_bpp = pfm[i].bits_per_pixel < 8 ? 1 : pfm[i].bits_per_pixel >> 3;
 							x_bitmap_scanline_pad = pfm[i].scanline_pad >> 3;
 							XFree(pfm);
 							goto bytes_per_pixel_found;
@@ -1326,8 +1445,7 @@ invalid_param:
 					case 8:
 						if (x_bitmap_bpp != 1)
 							break;
-						if (vinfo.red_mask >= vinfo.green_mask
-						&& vinfo.green_mask>=vinfo.blue_mask) {
+						if (vinfo.class == StaticColor || vinfo.class == PseudoColor) {
 							misordered = 0;
 							goto visual_found;
 						}
@@ -1337,16 +1455,21 @@ invalid_param:
 					case 16:
 						if (x_bitmap_bpp != 2)
 							break;
-						if (x_bitmap_bit_order == MSBFirst
-						&& vinfo.red_mask > vinfo.green_mask
-						&& vinfo.green_mask > vinfo.blue_mask) {
-							misordered = 256;
+						if (x_depth == 16
+						&& vinfo.red_mask == 0xf800
+						&& vinfo.green_mask == 0x7e0
+						&& vinfo.blue_mask == 0x1f) {
+							misordered = x_bitmap_bit_order == MSBFirst ? 256 : 0;
 							goto visual_found;
 						}
-						if (x_bitmap_bit_order == MSBFirst)
-							break;
-						if (vinfo.red_mask > vinfo.green_mask
-						&& vinfo.green_mask > vinfo.blue_mask) {
+						if (x_depth == 15
+						&& vinfo.red_mask == 0x7c00
+						&& vinfo.green_mask == 0x3e0
+						&& vinfo.blue_mask == 0x1f) {
+							misordered = x_bitmap_bit_order == MSBFirst ? 256 : 0;
+							goto visual_found;
+						}
+						if (create_16bit_mapping(vinfo.red_mask, vinfo.green_mask, vinfo.blue_mask)) {
 							misordered = 0;
 							goto visual_found;
 						}
@@ -1356,19 +1479,13 @@ invalid_param:
 						if (x_bitmap_bpp != 3
 						&& x_bitmap_bpp != 4)
 							break;
-						if (vinfo.red_mask < vinfo.green_mask
-						&& vinfo.green_mask < vinfo.blue_mask) {
-							misordered = 256;
+						if (vinfo.red_mask == 0xff0000
+						&& vinfo.green_mask == 0xff00
+						&& vinfo.blue_mask == 0xff) {
+							misordered = x_bitmap_bpp == 4 && x_bitmap_bit_order == MSBFirst ? 512 : 0;
 							goto visual_found;
 						}
-						if (x_bitmap_bit_order == MSBFirst
-						&& vinfo.red_mask > vinfo.green_mask
-						&& vinfo.green_mask > vinfo.blue_mask) {
-							misordered = 512;
-							goto visual_found;
-						}
-						if (vinfo.red_mask > vinfo.green_mask
-						&&vinfo.green_mask > vinfo.blue_mask) {
+						if (create_24bit_mapping(vinfo.red_mask, vinfo.green_mask, vinfo.blue_mask)) {
 							misordered = 0;
 							goto visual_found;
 						}
@@ -1409,8 +1526,6 @@ invalid_param:
 	x_driver.depth |= misordered;
 
 	/* check if depth is sane */
-	if (x_driver.depth == 707)
-		x_driver.depth = 195;
 	if (x_use_static_color_table)
 		x_driver.depth = X_STATIC_CODE;
 	x_get_color_function = get_color_fn(x_driver.depth);
@@ -1747,12 +1862,58 @@ static unsigned short *x_get_real_colors(void)
 static void x_translate_colors(unsigned char *data, int x, int y, int skip)
 {
 	int i, j;
-	if (!x_use_static_color_table)
+
+	if (color_map_16bit) {
+		for (j = 0; j < y; j++) {
+			for (i = 0; i < x; i++) {
+				unsigned short s = color_map_16bit[data[2*i]] |
+						color_map_16bit[data[2*i + 1] + 256];
+				data[2*i] = (unsigned char)s;
+				data[2*i + 1] = (unsigned char)(s >> 8);
+			}
+			data += skip;
+		}
 		return;
-	for (j = 0; j < y; j++) {
-		for (i = 0; i < x; i++)
-			data[i] = static_color_table[data[i]];
-		data += skip;
+	}
+
+	if (color_map_24bit && x_bitmap_bpp == 3) {
+		for (j = 0; j < y; j++) {
+			for (i = 0; i < x; i++) {
+				unsigned int s = color_map_24bit[data[3*i]] |
+						color_map_24bit[data[3*i + 1] + 256] |
+						color_map_24bit[data[3*i + 2] + 256 * 2];
+				data[3*i] = (unsigned char)s;
+				data[3*i + 1] = (unsigned char)(s >> 8);
+				data[3*i + 2] = (unsigned char)(s >> 16);
+			}
+			data += skip;
+		}
+		return;
+	}
+
+	if (color_map_24bit && x_bitmap_bpp == 4) {
+		for (j = 0; j < y; j++) {
+			for (i = 0; i < x; i++) {
+				unsigned int s = color_map_24bit[data[4*i]] |
+						color_map_24bit[data[4*i + 1] + 256] |
+						color_map_24bit[data[4*i + 2] + 256 * 2];
+				data[4*i] = (unsigned char)s;
+				data[4*i + 1] = (unsigned char)(s >> 8);
+				data[4*i + 2] = (unsigned char)(s >> 16);
+				data[4*i + 3] = (unsigned char)(s >> 24);
+			}
+			data += skip;
+		}
+		return;
+	}
+
+	if (x_use_static_color_table) {
+		for (j = 0; j < y; j++) {
+			for (i = 0; i < x; i++)
+				data[i] = static_color_table[data[i]];
+			data += skip;
+		}
+		return;
 	}
 }
 
@@ -1907,18 +2068,22 @@ static long x_get_color(int rgb)
 
 	block = x_get_color_function(rgb);
 	b = (unsigned char *)&block;
+
+	x_translate_colors(b, 1, 1, 0);
+
 	/*fprintf(stderr, "bitmap bpp %d\n", x_bitmap_bpp);*/
 	switch (x_bitmap_bpp) {
 	case 1:
-		if (x_use_static_color_table)
-			return static_color_table[b[0]];
 		return b[0];
 	case 2:
 		if (x_bitmap_bit_order == LSBFirst)
 			return (unsigned)b[0] | ((unsigned)b[1] << 8);
 		return (unsigned)b[1] | ((unsigned)b[0] << 8);
 	case 3:
-		return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16);
+		if (x_bitmap_bit_order == LSBFirst)
+			return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16);
+		else
+			return (unsigned)b[2] | ((unsigned)b[1] << 8) | ((unsigned)b[0] << 16);
 	default:
 		if (x_bitmap_bit_order == LSBFirst)
 			return (unsigned)b[0] | ((unsigned)b[1] << 8) | ((unsigned)b[2] << 16) | ((unsigned)b[3] << 24);

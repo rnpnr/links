@@ -288,6 +288,7 @@ static void end_dump(struct object_request *r, void *p)
 	} else if (ce) {
 		struct document_options o;
 		struct f_data_c *fd;
+		int err;
 		fd = create_f_data_c(NULL, NULL);
 		memset(&o, 0, sizeof(struct document_options));
 		o.xp = 0;
@@ -304,7 +305,10 @@ static void end_dump(struct object_request *r, void *p)
 			o.assume_cp = 0;
 		}
 		if (!(fd->f_data = cached_format_html(fd, r, r->url, &o, NULL, 0))) goto term_1;
-		dump_to_file(fd->f_data, 1);
+		if ((err = dump_to_file(fd->f_data, 1))) {
+			fprintf(stderr, "Error writing to stdout: %s.\n", get_err_msg(err));
+			retval = RET_ERROR;
+		}
 		term_1:
 		reinit_f_data_c(fd);
 		free(fd);

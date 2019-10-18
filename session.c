@@ -60,7 +60,6 @@ static const struct s_msg_dsc msg_dsc[] = {
 
 	{S__OK,			TEXT_(T_OK)},
 	{S_INTERRUPTED,		TEXT_(T_INTERRUPTED)},
-	{S_EXCEPT,		TEXT_(T_SOCKET_EXCEPTION)},
 	{S_INTERNAL,		TEXT_(T_INTERNAL_ERROR)},
 	{S_OUT_OF_MEM,		TEXT_(T_OUT_OF_MEMORY)},
 	{S_NO_DNS,		TEXT_(T_HOST_NOT_FOUND)},
@@ -111,6 +110,7 @@ static const struct s_msg_dsc msg_dsc[] = {
 	{S_WAIT_REDIR,		TEXT_(T_WAITING_FOR_REDIRECT_CONFIRMATION)},
 	{0,			NULL}
 };
+
 struct strerror_val {
 	list_entry_1st
 #ifdef REORDER_LIST_ENTRIES
@@ -150,7 +150,9 @@ unsigned char *get_err_msg(int state)
 	if ((e = cast_uchar strerror(-state)) && *e) goto have_error;
 	goto unk;
 have_error:
-	foreach(struct strerror_val, s, ls, strerror_buf) if (!strcmp(cast_const_char s->msg, cast_const_char e)) return s->msg;
+	foreach(struct strerror_val, s, ls, strerror_buf) if (!strcmp(cast_const_char s->msg, cast_const_char e)) {
+		return s->msg;
+	}
 	sl = strlen(cast_const_char e);
 	if (sl > INT_MAX - sizeof(struct strerror_val)) overalloc();
 	s = xmalloc(sizeof(struct strerror_val) + sl);
@@ -211,27 +213,25 @@ static unsigned char *get_stat_msg(struct status *stat, struct terminal *term)
 		unsigned char *m = init_str();
 		int l = 0;
 		add_to_str(&m, &l, get_text_translation(TEXT_(T_RECEIVED), term));
-		add_to_str(&m, &l, cast_uchar " ");
+		add_chr_to_str(&m, &l, ' ');
 		add_xnum_to_str(&m, &l, stat->prg->pos);
 		if (stat->prg->size >= 0) {
-			add_to_str(&m, &l, cast_uchar " ");
-			add_to_str(&m, &l, get_text_translation(TEXT_(T_OF),
-				term));
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_OF), term));
+			add_chr_to_str(&m, &l, ' ');
 			add_xnum_to_str(&m, &l, stat->prg->size);
 		}
 		add_to_str(&m, &l, cast_uchar ", ");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
-			add_to_str(&m, &l, get_text_translation(TEXT_(T_AVG),
-				term));
-			add_to_str(&m, &l, cast_uchar " ");
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_AVG), term));
+			add_chr_to_str(&m, &l, ' ');
 		}
 		add_xnum_to_str(&m, &l, stat->prg->loaded * 10 / (stat->prg->elapsed / 100));
 		add_to_str(&m, &l, cast_uchar "/s");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
 			add_to_str(&m, &l, cast_uchar ", ");
 			add_to_str(&m, &l, get_text_translation(TEXT_(T_CUR), term));
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
 			add_xnum_to_str(&m, &l, stat->prg->cur_loaded / (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
 			add_to_str(&m, &l, cast_uchar "/s");
 		}
@@ -587,37 +587,38 @@ void download_window_function(struct dialog_data *dlg)
 		m = init_str();
 		t = 1;
 		add_to_str(&m, &l, get_text_translation(TEXT_(T_RECEIVED), term));
-		add_to_str(&m, &l, cast_uchar " ");
+		add_chr_to_str(&m, &l, ' ');
 		add_xnum_to_str(&m, &l, stat->prg->pos);
 		if (stat->prg->size >= 0) {
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
 			add_to_str(&m, &l, get_text_translation(TEXT_(T_OF),term));
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
 			add_xnum_to_str(&m, &l, stat->prg->size);
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
 		}
 		add_to_str(&m, &l, cast_uchar "\n");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
 			add_to_str(&m, &l, get_text_translation(TEXT_(T_AVERAGE_SPEED), term));
-		else add_to_str(&m, &l, get_text_translation(TEXT_(T_SPEED), term));
-		add_to_str(&m, &l, cast_uchar " ");
-		add_xnum_to_str(&m, &l, (longlong)stat->prg->loaded * 10 / (stat->prg->elapsed / 100));
+		else
+			add_to_str(&m, &l, get_text_translation(TEXT_(T_SPEED), term));
+		add_chr_to_str(&m, &l, ' ');
+		add_xnum_to_str(&m, &l, (long long)stat->prg->loaded * 10 / (stat->prg->elapsed / 100));
 		add_to_str(&m, &l, cast_uchar "/s");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
 			add_to_str(&m, &l, cast_uchar ", ");
 			add_to_str(&m, &l, get_text_translation(TEXT_(T_CURRENT_SPEED), term));
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
 			add_xnum_to_str(&m, &l, stat->prg->cur_loaded / (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
 			add_to_str(&m, &l, cast_uchar "/s");
 		}
 		add_to_str(&m, &l, cast_uchar "\n");
 		add_to_str(&m, &l, get_text_translation(TEXT_(T_ELAPSED_TIME), term));
-		add_to_str(&m, &l, cast_uchar " ");
+		add_chr_to_str(&m, &l, ' ');
 		add_time_to_str(&m, &l, stat->prg->elapsed / 1000);
 		if (stat->prg->size >= 0 && stat->prg->loaded > 0) {
 			add_to_str(&m, &l, cast_uchar ", ");
 			add_to_str(&m, &l, get_text_translation(TEXT_(T_ESTIMATED_TIME), term));
-			add_to_str(&m, &l, cast_uchar " ");
+			add_chr_to_str(&m, &l, ' ');
 			/*add_time_to_str(&m, &l, stat->prg->elapsed / 1000 * stat->prg->size / stat->prg->loaded * 1000 - stat->prg->elapsed);*/
 			/*add_time_to_str(&m, &l, (stat->prg->size - stat->prg->pos) / ((longlong)stat->prg->loaded * 10 / (stat->prg->elapsed / 100)));*/
 			add_time_to_str(&m, &l, (uttime)((stat->prg->size - stat->prg->pos) / ((double)stat->prg->loaded * 1000 / stat->prg->elapsed)));
@@ -854,10 +855,11 @@ time_t parse_http_date(unsigned char *date)	/* this functions is bad !!! */
 
 static void download_file_error(struct download *down, int err)
 {
-	if (get_download_ses(down)) {
+	struct session *ses = get_download_ses(down);
+	if (ses) {
 		unsigned char *emsg = stracpy(err ? cast_uchar strerror(err) : cast_uchar "Zero returned");
 		unsigned char *msg = stracpy(down->file);
-		msg_box(get_download_ses(down)->term, getml(msg, emsg, NULL), TEXT_(T_DOWNLOAD_ERROR), AL_CENTER, TEXT_(T_COULD_NOT_WRITE_TO_FILE), cast_uchar " ", msg, cast_uchar ": ", emsg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+		msg_box(ses->term, getml(msg, emsg, NULL), TEXT_(T_DOWNLOAD_ERROR), AL_CENTER, TEXT_(T_COULD_NOT_WRITE_TO_FILE), cast_uchar " ", msg, cast_uchar ": ", emsg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 	}
 }
 
@@ -1415,7 +1417,7 @@ static void detach_f_data(struct f_data **ff)
 	}
 }
 
-static int shrink_format_cache(int u)
+int shrink_format_cache(int u)
 {
 	static int sc = 0;
 	int scc;
@@ -1639,9 +1641,9 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 		o.assume_cp = fd->parent->f_data->cp;
 	}
 #ifdef G
-	o.bfu_aspect=bfu_aspect;
+	o.gamma_stamp = gamma_stamp;
 #else
-	o.bfu_aspect=0;
+	o.gamma_stamp = 0;
 #endif
 	o.plain = fd->vs->plain;
 	if (o.plain == 1 && !o.break_long_lines) {

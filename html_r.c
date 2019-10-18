@@ -727,7 +727,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 				snzprint(s + 1, 62, p->link_num);
 				strcat(cast_char s, "]");
 			} else {
-				if (ff && (ff->type == FC_TEXT || ff->type == FC_PASSWORD || ff->type == FC_FILE || ff->type == FC_TEXTAREA)) {
+				if (ff && (ff->type == FC_TEXT || ff->type == FC_PASSWORD || ff->type == FC_FILE_UPLOAD || ff->type == FC_TEXTAREA)) {
 					strcpy(cast_char s, ">");
 				} else if (ff && (ff->type == FC_CHECKBOX || ff->type == FC_RADIO || ff->type == FC_SELECT)) {
 					strcpy(cast_char s, "");
@@ -757,7 +757,7 @@ static void put_chars(void *p_, unsigned char *c, int l)
 			link->where = stracpy(last_link);
 			link->target = stracpy(last_target);
 		} else {
-			link->type = last_form->type == FC_TEXT || last_form->type == FC_PASSWORD || last_form->type == FC_FILE ? L_FIELD : last_form->type == FC_TEXTAREA ? L_AREA : last_form->type == FC_CHECKBOX || last_form->type == FC_RADIO ? L_CHECKBOX : last_form->type == FC_SELECT ? L_SELECT : L_BUTTON;
+			link->type = last_form->type == FC_TEXT || last_form->type == FC_PASSWORD || last_form->type == FC_FILE_UPLOAD ? L_FIELD : last_form->type == FC_TEXTAREA ? L_AREA : last_form->type == FC_CHECKBOX || last_form->type == FC_RADIO ? L_CHECKBOX : last_form->type == FC_SELECT ? L_SELECT : L_BUTTON;
 			link->form = last_form;
 			link->target = stracpy(last_form->target);
 		}
@@ -1268,10 +1268,6 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 
 int compare_opt(struct document_options *o1, struct document_options *o2)
 {
-#ifdef G
-	double kdo_si_hraje_nezlobi____a_nebo_to_je_PerM=o1->bfu_aspect-o2->bfu_aspect;
-#endif
-
 	if (o1->xw == o2->xw &&
 	    o1->yw == o2->yw &&
 	    o1->xp == o2->xp &&
@@ -1295,13 +1291,10 @@ int compare_opt(struct document_options *o1, struct document_options *o2)
 	    o1->display_images == o2->display_images &&
 	    o1->image_scale == o2->image_scale &&
 	    o1->porn_enable == o2->porn_enable &&
+	    o1->gamma_stamp == o2->gamma_stamp &&
 	    !memcmp(&o1->default_fg, &o2->default_fg, sizeof(struct rgb)) &&
 	    !memcmp(&o1->default_bg, &o2->default_bg, sizeof(struct rgb)) &&
 	    !memcmp(&o1->default_link, &o2->default_link, sizeof(struct rgb)) &&
-#ifdef G
-	    kdo_si_hraje_nezlobi____a_nebo_to_je_PerM<=0.000001 &&
-	    kdo_si_hraje_nezlobi____a_nebo_to_je_PerM>=-0.000001 &&
-#endif
 	    ((o1->framename && o2->framename && !casestrcmp(o1->framename, o2->framename)) || (!o1->framename && !o2->framename))) return 0;
 	return 1;
 }

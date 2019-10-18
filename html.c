@@ -1824,7 +1824,7 @@ static void html_input(unsigned char *a)
 	else if (!casestrcmp(al, cast_uchar "radio")) fc->type = FC_RADIO;
 	else if (!casestrcmp(al, cast_uchar "submit")) fc->type = FC_SUBMIT;
 	else if (!casestrcmp(al, cast_uchar "reset")) fc->type = FC_RESET;
-	else if (!casestrcmp(al, cast_uchar "file")) fc->type = FC_FILE;
+	else if (!casestrcmp(al, cast_uchar "file")) fc->type = FC_FILE_UPLOAD;
 	else if (!casestrcmp(al, cast_uchar "hidden")) fc->type = FC_HIDDEN;
 	else if (!casestrcmp(al, cast_uchar "image")) fc->type = FC_IMAGE;
 	else if (!casestrcmp(al, cast_uchar "button")) fc->type = FC_BUTTON;
@@ -1841,9 +1841,9 @@ static void html_input(unsigned char *a)
 	fc->target = stracpy(form.target);
 	fc->name = get_attr_val(a, cast_uchar "name");
 	if (fc->type == FC_TEXT || fc->type == FC_PASSWORD) fc->default_value = get_attr_val(a, cast_uchar "value");
-	else if (fc->type != FC_FILE) fc->default_value = get_exact_attr_val(a, cast_uchar "value");
+	else if (fc->type != FC_FILE_UPLOAD) fc->default_value = get_exact_attr_val(a, cast_uchar "value");
 	if (fc->type == FC_CHECKBOX && !fc->default_value) fc->default_value = stracpy(cast_uchar "on");
-	if ((size = get_num(a, cast_uchar "size")) <= 0) size = HTML_DEFAULT_INPUT_SIZE;
+	if ((size = get_num(a, cast_uchar "size")) <= 1) size = HTML_DEFAULT_INPUT_SIZE;
 	size++;
 	if (size > HTML_MINIMAL_TEXTAREA_WIDTH) {
 		set_max_textarea_width(&size);
@@ -1867,7 +1867,7 @@ static void html_input(unsigned char *a)
 	switch (fc->type) {
 		case FC_TEXT:
 		case FC_PASSWORD:
-		case FC_FILE:
+		case FC_FILE_UPLOAD:
 			format_.attr |= AT_BOLD | AT_FIXED;
 			format_.fontsize = 3;
 			for (i = 0; i < fc->size; i++) put_chrs(cast_uchar "_", 1);
@@ -2674,6 +2674,7 @@ static void html_meta(unsigned char *a)
 			unsigned char *host = get_host_name(format_.href_base);
 			if (host) {
 				if (strstr(cast_const_char host, "flickr.")
+				|| strstr(cast_const_char host, "imgur.")
 				|| strstr(cast_const_char host, "instagram.")
 				|| strstr(cast_const_char host, "mastadon.")
 				|| strstr(cast_const_char host, "pinterest.")

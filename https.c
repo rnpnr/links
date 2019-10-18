@@ -73,6 +73,7 @@ links_ssl *getSSL(void)
 	ssl->bytes_read = ssl->bytes_written = 0;
 	ssl->session_set = 0;
 	ssl->session_retrieved = 0;
+	ssl->ca = NULL;
 	return ssl;
 }
 
@@ -83,6 +84,7 @@ void freeSSL(links_ssl *ssl)
 
 	SSL_shutdown(ssl->ssl);
 	SSL_free(ssl->ssl);
+	free(ssl->ca);
 	free(ssl);
 }
 
@@ -114,10 +116,44 @@ static int verify_ssl_host_name(X509 *server_cert, char *host)
 	return v == 1 ? 0 : S_INVALID_CERTIFICATE;
 }
 
+static unsigned char *extract_field(unsigned char *str, char *field)
+{
+	size_t len;
+	char *f = strstr(cast_const_char str, field);
+	if (!f)
+		return NULL;
+	f += strlen(field);
+	len = strcspn(f, "/");
+	return memacpy(f, len);
+}
+
+static unsigned char *extract_ca(unsigned char *str)
+{
+	unsigned char *c, *o;
+	c = extract_field(str, "/C=");
+	o = extract_field(str, "/O=");
+	if (!o)
+		o = extract_field(str, "/CN=");
+	if (!o) {
+		free(c);
+		c = NULL;
+		o = stracpy(str);
+	}
+	if (c) {
+		add_to_strn(&o, cast_uchar ", ");
+		add_to_strn(&o, c);
+		free(c);
+	}
+	return o;
+}
+
 int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 {
 	X509 *server_cert;
 	int ret;
+
+	free(ssl->ca);
+	ssl->ca = NULL;
 
 	if (SSL_get_verify_result(ssl->ssl) != X509_V_OK)
 		return S_INVALID_CERTIFICATE;
@@ -127,6 +163,41 @@ int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 		return S_INVALID_CERTIFICATE;
 
 	ret = verify_ssl_host_name(server_cert, (char *)host);
+	if (!ret) {
+		STACK_OF(X509) *certs = SSL_get_peer_cert_chain(ssl->ssl);
+		if (certs) {
+			int num = sk_X509_num(certs);
+			int i;
+			unsigned char *last_ca = NULL;
+			unsigned char *cas = init_str();
+			int casl = 0;
+			for (i = num - 1; i >= 0; i--) {
+				unsigned char space[3072];
+				unsigned char *n;
+				X509 *cert = sk_X509_value(certs, i);
+				X509_NAME *name;
+				name = X509_get_issuer_name(cert);
+				n = cast_uchar X509_NAME_oneline(name, cast_char space, 3072);
+				if (n) {
+					unsigned char *ca = extract_ca(n);
+					if (!last_ca || strcmp(cast_const_char ca, cast_const_char last_ca)) {
+						if (casl)
+							add_to_str(&cas, &casl, CERT_RIGHT_ARROW);
+						add_to_str(&cas, &casl, ca);
+						free(last_ca);
+						last_ca = ca;
+					} else {
+						free(ca);
+					}
+				}
+			}
+			free(last_ca);
+			if (casl)
+				ssl->ca = cas;
+			else
+				free(cas);
+		}
+	}
 	X509_free(server_cert);
 	return ret;
 }

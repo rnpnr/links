@@ -449,6 +449,7 @@ void delete_cache_entry(struct cache_entry *e)
 	free(e->redirect);
 	free(e->ip_address);
 	free(e->ssl_info);
+	free(e->ssl_authority);
 	free(e);
 }
 

@@ -121,15 +121,15 @@ static unsigned char *make_html_font_name(int attr)
 
 static struct style *get_style_by_ta(struct text_attrib *ta)
 {
-	int fg_r,fg_g,fg_b; /* sRGB 0-255 values */
+	int fg_r, fg_g, fg_b; /* sRGB 0-255 values */
 	int fs = get_real_font_size(ta->fontsize);
-	struct style*stl;
+	struct style *stl;
 	unsigned char *fontname;
 
 	fg_r=ta->fg.r;
 	fg_g=ta->fg.g;
 	fg_b=ta->fg.b;
-	separate_fg_bg(&fg_r,&fg_g,&fg_b,ta->bg.r,ta->bg.g,ta->bg.b);
+	separate_fg_bg(&fg_r, &fg_g, &fg_b, ta->bg.r, ta->bg.g, ta->bg.b);
 	stl = g_get_style((fg_r << 16) + (fg_g << 8) + fg_b, (ta->bg.r << 16) +
 			(ta->bg.g << 8) + ta->bg.b, fs,
 			fontname=make_html_font_name(ta->attr),
@@ -945,7 +945,7 @@ static void g_put_chars(void *p_, unsigned char *s, int l)
 			link->where = stracpy(last_link);
 			link->target = stracpy(last_target);
 		} else {
-			link->type = last_form->type == FC_TEXT || last_form->type == FC_PASSWORD || last_form->type == FC_FILE ? L_FIELD : last_form->type == FC_TEXTAREA ? L_AREA : last_form->type == FC_CHECKBOX || last_form->type == FC_RADIO ? L_CHECKBOX : last_form->type == FC_SELECT ? L_SELECT : L_BUTTON;
+			link->type = last_form->type == FC_TEXT || last_form->type == FC_PASSWORD || last_form->type == FC_FILE_UPLOAD ? L_FIELD : last_form->type == FC_TEXTAREA ? L_AREA : last_form->type == FC_CHECKBOX || last_form->type == FC_RADIO ? L_CHECKBOX : last_form->type == FC_SELECT ? L_SELECT : L_BUTTON;
 			link->form = last_form;
 			link->target = stracpy(last_form->target);
 		}

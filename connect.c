@@ -760,7 +760,10 @@ static void write_select(void *c_)
 		abort_connection(c);
 		return;
 	}
-	set_connection_timeout(c);
+	if (wb->pos)
+		set_connection_timeout(c);
+	else
+		set_connection_timeout_keepal(c);
 
 	if (c->ssl) {
 		set_handlers(wb->sock, NULL, write_select, c);
