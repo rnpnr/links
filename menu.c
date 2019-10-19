@@ -520,8 +520,6 @@ static void downloads_menu(struct terminal *term, void *ddd, void *ses_)
 	else do_menu(term, mi, ses);
 }
 
-#define have_windows_menu	0
-
 static void menu_doc_info(struct terminal *term, void *ddd, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
@@ -2496,7 +2494,7 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 		memcpy(e, file_menu12, sizeof(file_menu12));
 		e += sizeof(file_menu12) / sizeof(struct menu_item);
 	}
-	if (!have_windows_menu && (o = can_open_in_new(term))) {
+	if ((o = can_open_in_new(term))) {
 		e->text = TEXT_(T_NEW_WINDOW);
 		e->rtext = o - 1 ? cast_uchar ">" : cast_uchar "";
 		e->hotkey = TEXT_(T_HK_NEW_WINDOW);
