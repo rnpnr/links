@@ -116,18 +116,18 @@ static int verify_ssl_host_name(X509 *server_cert, char *host)
 	return v == 1 ? 0 : S_INVALID_CERTIFICATE;
 }
 
-static unsigned char *extract_field(unsigned char *str, char *field)
+static unsigned char *extract_field(const char *str, const char *field)
 {
 	size_t len;
-	char *f = strstr(cast_const_char str, field);
+	char *f = strstr(str, field);
 	if (!f)
 		return NULL;
 	f += strlen(field);
 	len = strcspn(f, "/");
-	return memacpy(f, len);
+	return memacpy(cast_uchar f, len);
 }
 
-static unsigned char *extract_ca(unsigned char *str)
+static char *extract_ca(const char *str)
 {
 	unsigned char *c, *o;
 	c = extract_field(str, "/C=");
@@ -137,14 +137,14 @@ static unsigned char *extract_ca(unsigned char *str)
 	if (!o) {
 		free(c);
 		c = NULL;
-		o = stracpy(str);
+		o = stracpy(cast_uchar str);
 	}
 	if (c) {
 		add_to_strn(&o, cast_uchar ", ");
 		add_to_strn(&o, c);
 		free(c);
 	}
-	return o;
+	return (char *)o;
 }
 
 int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
@@ -168,22 +168,22 @@ int verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 		if (certs) {
 			int num = sk_X509_num(certs);
 			int i;
-			unsigned char *last_ca = NULL;
+			char *last_ca = NULL;
 			unsigned char *cas = init_str();
 			int casl = 0;
 			for (i = num - 1; i >= 0; i--) {
-				unsigned char space[3072];
-				unsigned char *n;
+				char space[3072];
+				char *n;
 				X509 *cert = sk_X509_value(certs, i);
 				X509_NAME *name;
 				name = X509_get_issuer_name(cert);
-				n = cast_uchar X509_NAME_oneline(name, cast_char space, 3072);
+				n = X509_NAME_oneline(name, space, sizeof(space));
 				if (n) {
-					unsigned char *ca = extract_ca(n);
-					if (!last_ca || strcmp(cast_const_char ca, cast_const_char last_ca)) {
+					char *ca = extract_ca(n);
+					if (!last_ca || strcmp(ca, last_ca)) {
 						if (casl)
 							add_to_str(&cas, &casl, CERT_RIGHT_ARROW);
-						add_to_str(&cas, &casl, ca);
+						add_to_str(&cas, &casl, cast_uchar ca);
 						free(last_ca);
 						last_ca = ca;
 					} else {
