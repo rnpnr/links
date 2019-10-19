@@ -66,9 +66,11 @@
 #define cast_char	(char *)
 #define cast_uchar	(unsigned char *)
 
-#define RET_OK		0
-#define RET_ERROR	1
-#define RET_SYNTAX	2
+enum ret {
+	RET_OK,
+	RET_ERROR,
+	RET_SYNTAX
+};
 
 #define EINTRLOOPX(ret_, call_, x_)			\
 do {							\
@@ -211,14 +213,16 @@ static inline int list_size(struct list_head *l)
 #define WHITECHAR(x) ((x) == 9 || (x) == 10 || (x) == 12 || (x) == 13 || (x) == ' ')
 #define U(x) ((x) == '"' || (x) == '\'')
 
-#define CI_BYTES	1
-#define CI_FILES	2
-#define CI_LOCKED	3
-#define CI_LOADING	4
-#define CI_TIMERS	5
-#define CI_TRANSFER	6
-#define CI_CONNECTING	7
-#define CI_KEEP		8
+enum ci {
+	CI_BYTES = 1,
+	CI_FILES,
+	CI_LOCKED,
+	CI_LOADING,
+	CI_TIMERS,
+	CI_TRANSFER,
+	CI_CONNECTING,
+	CI_KEEP
+};
 
 /* string.c */
 
@@ -347,9 +351,11 @@ void os_detach_console(void);
 
 /* memory.c */
 
-#define SH_CHECK_QUOTA		0
-#define SH_FREE_SOMETHING	1
-#define SH_FREE_ALL		2
+enum mem_sh {
+	SH_CHECK_QUOTA,
+	SH_FREE_SOMETHING,
+	SH_FREE_ALL
+};
 
 #define ST_SOMETHING_FREED	1
 #define ST_CACHE_EMPTY		2
@@ -527,14 +533,16 @@ typedef struct {
 	unsigned char *ca;
 } links_ssl;
 
-#define PRI_MAIN	0
-#define PRI_DOWNLOAD	0
-#define PRI_FRAME	1
-#define PRI_NEED_IMG	2
-#define PRI_IMG		3
-#define PRI_PRELOAD	4
-#define PRI_CANCEL	5
-#define N_PRI		6
+enum pri {
+	PRI_MAIN,
+	PRI_DOWNLOAD,
+	PRI_FRAME,
+	PRI_NEED_IMG,
+	PRI_IMG,
+	PRI_PRELOAD,
+	PRI_CANCEL,
+	N_PRI
+};
 
 struct remaining_info {
 	int valid;
@@ -609,23 +617,27 @@ struct k_conn {
 
 extern struct list_head keepalive_connections;
 
-#define NC_ALWAYS_CACHE	0
-#define NC_CACHE	1
-#define NC_IF_MOD	2
-#define NC_RELOAD	3
-#define NC_PR_NO_CACHE	4
+enum nc {
+	NC_ALWAYS_CACHE,
+	NC_CACHE,
+	NC_IF_MOD,
+	NC_RELOAD,
+	NC_PR_NO_CACHE
+};
 
-#define S_WAIT		0
-#define S_DNS		1
-#define S_CONN		2
-#define S_CONN_ANOTHER	3
-#define S_SOCKS_NEG	4
-#define S_SSL_NEG	5
-#define S_SENT		6
-#define S_LOGIN		7
-#define S_GETH		8
-#define S_PROC		9
-#define S_TRANS		10
+enum ses {
+	S_WAIT,
+	S_DNS,
+	S_CONN,
+	S_CONN_ANOTHER,
+	S_SOCKS_NEG,
+	S_SSL_NEG,
+	S_SENT,
+	S_LOGIN,
+	S_GETH,
+	S_PROC,
+	S_TRANS
+};
 
 #define S__OK			(-2000000000)
 #define S_INTERRUPTED		(-2000000001)
@@ -728,16 +740,18 @@ void del_blacklist_entry(unsigned char *, int);
 int get_blacklist_flags(unsigned char *);
 void free_blacklist(void);
 
-#define BL_HTTP10		0x001
-#define BL_NO_ACCEPT_LANGUAGE	0x002
-#define BL_NO_CHARSET		0x004
-#define BL_NO_RANGE		0x008
-#define BL_NO_COMPRESSION	0x010
-#define BL_NO_BZIP2		0x020
-#define BL_IGNORE_CERTIFICATE	0x040
-#define BL_IGNORE_DOWNGRADE	0x080
-#define BL_IGNORE_CIPHER	0x100
-#define BL_AVOID_INSECURE	0x200
+enum bl {
+	BL_HTTP10 = 0x001,
+	BL_NO_ACCEPT_LANGUAGE,
+	BL_NO_CHARSET,
+	BL_NO_RANGE,
+	BL_NO_COMPRESSION,
+	BL_NO_BZIP2,
+	BL_IGNORE_CERTIFICATE,
+	BL_IGNORE_DOWNGRADE,
+	BL_IGNORE_CIPHER,
+	BL_AVOID_INSECURE
+};
 
 /* suffix.c */
 
@@ -1427,18 +1441,22 @@ struct links_event {
 	long b;
 };
 
-#define EV_INIT		0
-#define EV_KBD		1
-#define EV_MOUSE	2
-#define EV_REDRAW	3
-#define EV_RESIZE	4
-#define EV_ABORT	5
+enum ev {
+	EV_INIT,
+	EV_KBD,
+	EV_MOUSE,
+	EV_REDRAW,
+	EV_RESIZE,
+	EV_ABORT
+};
 
-#define EVH_NOT_PROCESSED		0
-#define EVH_LINK_KEYDOWN_PROCESSED	1
-#define EVH_LINK_KEYPRESS_PROCESSED	2
-#define EVH_DOCUMENT_KEYDOWN_PROCESSED	3
-#define EVH_DOCUMENT_KEYPRESS_PROCESSED	4
+enum evh {
+	EVH_NOT_PROCESSED,
+	EVH_LINK_KEYDOWN_PROCESSED,
+	EVH_LINK_KEYPRESS_PROCESSED,
+	EVH_DOCUMENT_KEYDOWN_PROCESSED,
+	EVH_DOCUMENT_KEYPRESS_PROCESSED
+};
 
 struct window {
 	list_entry_1st
@@ -1725,22 +1743,26 @@ struct form {
 	int num;
 };
 
-#define FM_GET		0
-#define FM_POST		1
-#define FM_POST_MP	2
+enum fm {
+	FM_GET,
+	FM_POST,
+	FM_POST_MP
+};
 
-#define FC_TEXT		1
-#define FC_PASSWORD	2
-#define FC_FILE_UPLOAD	3
-#define FC_TEXTAREA	4
-#define FC_CHECKBOX	5
-#define FC_RADIO	6
-#define FC_SELECT	7
-#define FC_SUBMIT	8
-#define FC_IMAGE	9
-#define FC_RESET	10
-#define FC_HIDDEN	11
-#define FC_BUTTON	12
+enum fc {
+	FC_TEXT	= 1,
+	FC_PASSWORD,
+	FC_FILE_UPLOAD,
+	FC_TEXTAREA,
+	FC_CHECKBOX,
+	FC_RADIO,
+	FC_SELECT,
+	FC_SUBMIT,
+	FC_IMAGE,
+	FC_RESET,
+	FC_HIDDEN,
+	FC_BUTTON
+};
 
 struct menu_item;
 
@@ -1821,12 +1843,14 @@ struct link {
 #endif
 };
 
-#define L_LINK		0
-#define L_BUTTON	1
-#define L_CHECKBOX	2
-#define L_SELECT	3
-#define L_FIELD		4
-#define L_AREA		5
+enum l_link {
+	L_LINK,
+	L_BUTTON,
+	L_CHECKBOX,
+	L_SELECT,
+	L_FIELD,
+	L_AREA
+};
 
 struct link_bg {
 	int x, y;
@@ -1983,10 +2007,12 @@ struct f_data;
 
 #ifdef G
 
-#define SHAPE_DEFAULT	0
-#define SHAPE_RECT	1
-#define SHAPE_CIRCLE	2
-#define SHAPE_POLY	3
+enum shape {
+	SHAPE_DEFAULT,
+	SHAPE_RECT,
+	SHAPE_CIRCLE,
+	SHAPE_POLY
+};
 
 struct map_area {
 	int shape;
@@ -2385,11 +2411,13 @@ struct location {
 	list_entry_last
 };
 
-#define WTD_NO		0
-#define WTD_FORWARD	1
-#define WTD_IMGMAP	2
-#define WTD_RELOAD	3
-#define WTD_BACK	4
+enum wtd {
+	WTD_NO,
+	WTD_FORWARD,
+	WTD_IMGMAP,
+	WTD_RELOAD,
+	WTD_BACK
+};
 
 #define cur_loc(x)	list_struct((x)->history.next, struct location)
 
@@ -2573,13 +2601,15 @@ struct menu_item {
 	int free_i;
 };
 
-#define MENU_FREE_ITEMS		1
-#define MENU_FREE_TEXT		2
-#define MENU_FREE_RTEXT		4
-#define MENU_FREE_HOTKEY	8
-#define MENU_FONT_LIST		32
-#define MENU_FONT_LIST_BOLD	64
-#define MENU_FONT_LIST_MONO	128
+enum menu_items {
+	MENU_FREE_ITEMS		= 1,
+	MENU_FREE_TEXT		= 2,
+	MENU_FREE_RTEXT		= 4,
+	MENU_FREE_HOTKEY	= 8,
+	MENU_FONT_LIST		= 16,
+	MENU_FONT_LIST_BOLD	= 32,
+	MENU_FONT_LIST_MONO	= 64
+};
 
 struct menu {
 	int selected;
@@ -2628,14 +2658,18 @@ struct history {
 
 #define free_history(h)		free_list(struct history_item, (h).items)
 
-#define D_END		0
-#define D_CHECKBOX	1
-#define D_FIELD		2
-#define D_FIELD_PASS	3
-#define D_BUTTON	4
+enum dlog {
+	D_END,
+	D_CHECKBOX,
+	D_FIELD,
+	D_FIELD_PASS,
+	D_BUTTON
+};
 
-#define B_ENTER		1
-#define B_ESC		2
+enum bfu {
+	B_ENTER = 1,
+	B_ESC
+};
 
 struct dialog_item_data;
 
@@ -2667,8 +2701,10 @@ struct dialog_item_data {
 	unsigned char *cdata;
 };
 
-#define	EVENT_PROCESSED		0
-#define EVENT_NOT_PROCESSED	1
+enum even {
+	EVENT_PROCESSED,
+	EVENT_NOT_PROCESSED
+};
 
 struct dialog {
 	unsigned char *title;
@@ -3121,27 +3157,30 @@ void init_grview(void);
 
 /* html.c */
 
-#define AT_BOLD		1
-#define AT_ITALIC	2
-#define AT_UNDERLINE	4
-#define AT_FIXED	8
-#define AT_GRAPHICS	16
-#define AT_INVERT	32
+enum html_attr {
+	AT_BOLD		= 1,
+	AT_ITALIC	= 2,
+	AT_UNDERLINE	= 4,
+	AT_FIXED	= 8,
+	AT_GRAPHICS	= 16,
+	AT_INVERT	= 32
+};
 
-#define AL_LEFT		0
-#define AL_CENTER	1
-#define AL_RIGHT	2
-#define AL_BLOCK	3
-#define AL_NO		4
-#define AL_NO_BREAKABLE	5
-#define AL_BOTTOM	6
-#define AL_MIDDLE	7
-#define AL_TOP		8
+enum html_al {
+	AL_LEFT,
+	AL_CENTER,
+	AL_RIGHT,
+	AL_BLOCK,
+	AL_NO,
+	AL_NO_BREAKABLE,
+	AL_BOTTOM,
+	AL_MIDDLE,
+	AL_TOP,
 
-#define AL_MASK		0x1f
-
-#define AL_NOBRLEXP	0x20
-#define AL_MONO		0x40
+	AL_MASK,
+	AL_NOBRLEXP,
+	AL_MONO
+};
 
 struct text_attrib_beginning {
 	int attr;
@@ -3169,16 +3208,21 @@ struct text_attrib {
 	int select_disabled;
 };
 
-#define P_NUMBER	1
-#define P_alpha		2
-#define P_ALPHA		3
-#define P_roman		4
-#define P_ROMAN		5
-#define P_STAR		1
-#define P_O		2
-#define P_PLUS		3
-#define P_LISTMASK	7
-#define P_COMPACT	8
+enum par_t {
+	P_NUMBER = 1,
+	P_alpha,
+	P_ALPHA,
+	P_roman,
+	P_ROMAN
+};
+
+enum par_s {
+	P_STAR = 1,
+	P_O,
+	P_PLUS,
+	P_LISTMASK,
+	P_COMPACT
+};
 
 struct par_attrib {
 	int align;
@@ -3260,18 +3304,20 @@ void scan_http_equiv(unsigned char *, unsigned char *, unsigned char **, int *, 
 
 int decode_color(unsigned char *, struct rgb *);
 
-#define SP_TAG		0
-#define SP_CONTROL	1
-#define SP_TABLE	2
-#define SP_USED		3
-#define SP_FRAMESET	4
-#define SP_FRAME	5
-#define SP_SCRIPT	6
-#define SP_IMAGE	7
-#define SP_NOWRAP	8
-#define SP_REFRESH	9
-#define SP_SET_BASE	10
-#define SP_HR		11
+enum sp {
+	SP_TAG,
+	SP_CONTROL,
+	SP_TABLE,
+	SP_USED,
+	SP_FRAMESET,
+	SP_FRAME,
+	SP_SCRIPT,
+	SP_IMAGE,
+	SP_NOWRAP,
+	SP_REFRESH,
+	SP_SET_BASE,
+	SP_HR
+};
 
 struct frameset_param {
 	struct frameset_desc *parent;
@@ -3279,9 +3325,11 @@ struct frameset_param {
 	int *xw, *yw;
 };
 
-#define SCROLLING_NO	0
-#define SCROLLING_YES	1
-#define SCROLLING_AUTO	2
+enum scroll {
+	SCROLLING_NO,
+	SCROLLING_YES,
+	SCROLLING_AUTO
+};
 
 struct frame_param {
 	struct frameset_desc *parent;
@@ -3506,11 +3554,13 @@ struct ipv6_options {
 	int addr_preference;
 };
 
-#define ADDR_PREFERENCE_DEFAULT		0
-#define ADDR_PREFERENCE_IPV4		1
-#define ADDR_PREFERENCE_IPV6		2
-#define ADDR_PREFERENCE_IPV4_ONLY	3
-#define ADDR_PREFERENCE_IPV6_ONLY	4
+enum addr {
+	ADDR_PREFERENCE_DEFAULT,
+	ADDR_PREFERENCE_IPV4,
+	ADDR_PREFERENCE_IPV6,
+	ADDR_PREFERENCE_IPV4_ONLY,
+	ADDR_PREFERENCE_IPV6_ONLY
+};
 
 extern struct ipv6_options ipv6_options;
 
@@ -3525,9 +3575,11 @@ struct proxies {
 
 extern struct proxies proxies;
 
-#define SSL_ACCEPT_INVALID_CERTIFICATE	0
-#define SSL_WARN_ON_INVALID_CERTIFICATE	1
-#define SSL_REJECT_INVALID_CERTIFICATE	2
+enum ssl_cert {
+	SSL_ACCEPT_INVALID_CERTIFICATE,
+	SSL_WARN_ON_INVALID_CERTIFICATE,
+	SSL_REJECT_INVALID_CERTIFICATE
+};
 
 struct ssl_options {
 	int certificates;
@@ -3583,8 +3635,10 @@ char *regexp_replace(char *, char *, char *);
 
 /* listedit.c */
 
-#define TITLE_EDIT 0
-#define TITLE_ADD 1
+enum title {
+	TITLE_EDIT,
+	TITLE_ADD
+};
 
 struct list {
 	list_entry_1st
