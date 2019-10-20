@@ -639,54 +639,55 @@ enum ses {
 	S_TRANS
 };
 
-#define S__OK			(-2000000000)
-#define S_INTERRUPTED		(-2000000001)
-#define S_INTERNAL		(-2000000003)
-#define S_OUT_OF_MEM		(-2000000004)
-#define S_NO_DNS		(-2000000005)
-#define S_NO_PROXY_DNS		(-2000000006)
-#define S_CANT_WRITE		(-2000000007)
-#define S_CANT_READ		(-2000000008)
-#define S_MODIFIED		(-2000000009)
-#define S_BAD_URL		(-2000000010)
-#define S_BAD_PROXY		(-2000000011)
-#define S_TIMEOUT		(-2000000012)
-#define S_RESTART		(-2000000013)
-#define S_STATE			(-2000000014)
-#define S_CYCLIC_REDIRECT	(-2000000015)
-#define S_LARGE_FILE		(-2000000016)
-#define S_SMB_NOT_ALLOWED	(-2000000018)
-#define S_FILE_NOT_ALLOWED	(-2000000019)
-#define S_NO_PROXY		(-2000000020)
+enum ses_sig {
+	S__OK = -2000000000,
+	S_INTERRUPTED,
+	S_INTERNAL,
+	S_OUT_OF_MEM,
+	S_NO_DNS,
+	S_NO_PROXY_DNS,
+	S_CANT_WRITE,
+	S_CANT_READ,
+	S_MODIFIED,
+	S_BAD_URL,
+	S_BAD_PROXY,
+	S_TIMEOUT,
+	S_RESTART,
+	S_STATE,
+	S_CYCLIC_REDIRECT,
+	S_LARGE_FILE,
+	S_SMB_NOT_ALLOWED,
+	S_FILE_NOT_ALLOWED,
+	S_NO_PROXY,
 
-#define S_HTTP_ERROR		(-2000000100)
-#define S_HTTP_100		(-2000000101)
-#define S_HTTP_204		(-2000000102)
-#define S_HTTPS_FWD_ERROR	(-2000000103)
-#define S_INVALID_CERTIFICATE	(-2000000104)
-#define S_DOWNGRADED_METHOD	(-2000000105)
-#define S_INSECURE_CIPHER	(-2000000106)
+	S_HTTP_ERROR = -2000000100,
+	S_HTTP_100,
+	S_HTTP_204,
+	S_HTTPS_FWD_ERROR,
+	S_INVALID_CERTIFICATE,
+	S_DOWNGRADED_METHOD,
+	S_INSECURE_CIPHER,
 
-#define S_FILE_TYPE		(-2000000200)
-#define S_FILE_ERROR		(-2000000201)
+	S_FILE_TYPE = -2000000200,
+	S_FILE_ERROR,
 
-#define S_SSL_ERROR		(-2000000400)
-#define S_NO_SSL		(-2000000401)
+	S_SSL_ERROR = -2000000400,
+	S_NO_SSL,
 
-#define S_BAD_SOCKS_VERSION	(-2000000500)
-#define S_SOCKS_REJECTED	(-2000000501)
-#define S_SOCKS_NO_IDENTD	(-2000000502)
-#define S_SOCKS_BAD_USERID	(-2000000503)
-#define S_SOCKS_UNKNOWN_ERROR	(-2000000504)
+	S_BAD_SOCKS_VERSION = -2000000500,
+	S_SOCKS_REJECTED,
+	S_SOCKS_NO_IDENTD,
+	S_SOCKS_BAD_USERID,
+	S_SOCKS_UNKNOWN_ERROR,
 
-#define S_NO_SMB_CLIENT		(-2000000600)
+	S_NO_SMB_CLIENT = -2000000600,
 
-#define S_WAIT_REDIR		(-2000000700)
+	S_WAIT_REDIR = -2000000700,
 
-#define S_UNKNOWN_ERROR		(-2000000800)
+	S_UNKNOWN_ERROR	= -2000000800,
 
-#define S_MAX			(-2000000900)
-
+	S_MAX = -2000000900
+};
 
 struct status {
 	list_entry_1st
@@ -884,21 +885,24 @@ void file_func(struct connection *);
 
 /* kbd.c */
 
-#define BM_BUTT		15
-#define B_LEFT		0
-#define B_MIDDLE	1
-#define B_RIGHT		2
-#define B_FOURTH	3
-#define B_FIFTH		4
-#define B_SIXTH		5
-#define B_WHEELUP	8
-#define B_WHEELDOWN	9
-#define B_WHEELUP1	10
-#define B_WHEELDOWN1	11
-#define B_WHEELLEFT	12
-#define B_WHEELRIGHT	13
-#define B_WHEELLEFT1	14
-#define B_WHEELRIGHT1	15
+enum bm {
+	B_LEFT,
+	B_MIDDLE,
+	B_RIGHT,
+	B_FOURTH,
+	B_FIFTH,
+	B_SIXTH,
+	B_WHEELUP,
+	B_WHEELDOWN,
+	B_WHEELUP1,
+	B_WHEELDOWN1,
+	B_WHEELLEFT,
+	B_WHEELRIGHT,
+	B_WHEELLEFT1,
+	B_WHEELRIGHT1
+};
+#define BM_BUTT	B_WHEELRIGHT1
+
 #define BM_IS_WHEEL(b)	((b) & 8)
 
 #define BM_ACT		48
@@ -907,61 +911,63 @@ void file_func(struct connection *);
 #define B_DRAG		32
 #define B_MOVE		48
 
-#define KBD_ENTER	-0x100
-#define KBD_BS		-0x101
-#define KBD_TAB		-0x102
-#define KBD_ESC		-0x103
-#define KBD_LEFT	-0x104
-#define KBD_RIGHT	-0x105
-#define KBD_UP		-0x106
-#define KBD_DOWN	-0x107
-#define KBD_INS		-0x108
-#define KBD_DEL		-0x109
-#define KBD_HOME	-0x10a
-#define KBD_END		-0x10b
-#define KBD_PAGE_UP	-0x10c
-#define KBD_PAGE_DOWN	-0x10d
-#define KBD_MENU	-0x10e
-#define KBD_STOP	-0x10f
+enum kbd {
+	KBD_SHIFT	= (0 << 1),
+	KBD_CTRL	= (0 << 2),
+	KBD_ALT		= (0 << 3),
+	KBD_PASTING	= (0 << 4),
 
-#define KBD_F1		-0x120
-#define KBD_F2		-0x121
-#define KBD_F3		-0x122
-#define KBD_F4		-0x123
-#define KBD_F5		-0x124
-#define KBD_F6		-0x125
-#define KBD_F7		-0x126
-#define KBD_F8		-0x127
-#define KBD_F9		-0x128
-#define KBD_F10		-0x129
-#define KBD_F11		-0x12a
-#define KBD_F12		-0x12b
+	KBD_ENTER = -0x100,
+	KBD_BS,
+	KBD_TAB,
+	KBD_ESC,
+	KBD_LEFT,
+	KBD_RIGHT,
+	KBD_UP,
+	KBD_DOWN,
+	KBD_INS,
+	KBD_DEL,
+	KBD_HOME,
+	KBD_END,
+	KBD_PAGE_UP,
+	KBD_PAGE_DOWN,
+	KBD_MENU,
+	KBD_STOP,
 
-#define KBD_UNDO	-0x140
-#define KBD_REDO	-0x141
-#define KBD_FIND	-0x142
-#define KBD_HELP	-0x143
-#define KBD_COPY	-0x144
-#define KBD_PASTE	-0x145
-#define KBD_CUT		-0x146
-#define KBD_PROPS	-0x147
-#define KBD_FRONT	-0x148
-#define KBD_OPEN	-0x149
-#define KBD_BACK	-0x14a
-#define KBD_FORWARD	-0x14b
-#define KBD_RELOAD	-0x14c
-#define KBD_BOOKMARKS	-0x14d
-#define KBD_SELECT	-0x14e
+	KBD_F1 = -0x120,
+	KBD_F2,
+	KBD_F3,
+	KBD_F4,
+	KBD_F5,
+	KBD_F6,
+	KBD_F7,
+	KBD_F8,
+	KBD_F9,
+	KBD_F10,
+	KBD_F11,
+	KBD_F12,
+
+	KBD_UNDO = -0x140,
+	KBD_REDO,
+	KBD_FIND,
+	KBD_HELP,
+	KBD_COPY,
+	KBD_PASTE,
+	KBD_CUT,
+	KBD_PROPS,
+	KBD_FRONT,
+	KBD_OPEN,
+	KBD_BACK,
+	KBD_FORWARD,
+	KBD_RELOAD,
+	KBD_BOOKMARKS,
+	KBD_SELECT,
+
+	KBD_CTRL_C = -0x200,
+	KBD_CLOSE
+};
 
 #define KBD_ESCAPE_MENU(x)	((x) <= KBD_F1 && (x) > KBD_CTRL_C)
-
-#define KBD_CTRL_C	-0x200
-#define KBD_CLOSE	-0x201
-
-#define KBD_SHIFT	1
-#define KBD_CTRL	2
-#define KBD_ALT		4
-#define KBD_PASTING	8
 
 void handle_trm(int, void *, int);
 void free_all_itrms(void);
@@ -3209,7 +3215,7 @@ enum par_s {
 	P_STAR = 1,
 	P_O,
 	P_PLUS,
-	P_LISTMASK,
+	P_LISTMASK = 7,
 	P_COMPACT
 };
 
