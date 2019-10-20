@@ -106,13 +106,13 @@ void init_bfu(void)
 	if (!F) return;
 	bfu_bg_color = dip_get_color_sRGB(G_BFU_BG_COLOR);
 	bfu_fg_color = dip_get_color_sRGB(G_BFU_FG_COLOR);
-	bfu_style_wb = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, cast_uchar G_BFU_DEFAULT_FONT, 0);
-	bfu_style_wb_b = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, cast_uchar G_BFU_DEFAULT_FONT, 0);
-	bfu_style_bw = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, cast_uchar G_BFU_DEFAULT_FONT, 0);
-	bfu_style_bw_u = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, cast_uchar G_BFU_DEFAULT_FONT, FF_UNDERLINE);
-	bfu_style_bw_mono = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, cast_uchar "monospaced", 0);
-	bfu_style_wb_mono = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, cast_uchar "monospaced", 0);
-	bfu_style_wb_mono_u = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, cast_uchar "monospaced", FF_UNDERLINE);
+	bfu_style_wb = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, 0);
+	bfu_style_wb_b = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, 0);
+	bfu_style_bw = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, 0);
+	bfu_style_bw_u = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, FF_UNDERLINE);
+	bfu_style_bw_mono = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, FF_MONOSPACED);
+	bfu_style_wb_mono = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, FF_MONOSPACED);
+	bfu_style_wb_mono_u = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, FF_UNDERLINE | FF_MONOSPACED);
 }
 
 #define G_DIALOG_FIELD_WIDTH g_char_width(bfu_style_wb_mono, ' ')
@@ -262,7 +262,21 @@ static void count_menu_size(struct terminal *term, struct menu *menu)
 	int mx = gf_val(4, 2 * (G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER));
 	int my;
 	for (my = 0; my < menu->ni; my++) {
-		int s = txtlen(term, get_text_translation(menu->items[my].text, term)) + txtlen(term, get_text_translation(get_rtext(menu->items[my].rtext), term)) + gf_val(MENU_HOTKEY_SPACE, G_MENU_HOTKEY_SPACE) * (get_text_translation(get_rtext(menu->items[my].rtext), term)[0] != 0) + gf_val(4, 2 * (G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER));
+		int s;
+#ifdef G
+	if (menu->items[my].free_i & MENU_FONT_LIST)  {
+		struct style *st = g_get_style_font(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE,
+			(menu->items[my].free_i & MENU_FONT_LIST_BOLD ? FF_BOLD : 0) |
+			(menu->items[my].free_i & MENU_FONT_LIST_MONO ? FF_MONOSPACED : 0),
+			menu->items[my].data);
+		s = g_text_width(st, menu->items[my].text);
+		g_free_style(st);
+	} else
+#endif
+	{
+		s = txtlen(term, get_text_translation(menu->items[my].text, term)) + txtlen(term, get_text_translation(get_rtext(menu->items[my].rtext), term)) + gf_val(MENU_HOTKEY_SPACE, G_MENU_HOTKEY_SPACE) * (get_text_translation(get_rtext(menu->items[my].rtext), term)[0] != 0);
+	}
+		s += gf_val(4, 2 * (G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER));
 		if (s > mx) mx = s;
 	}
 	my = gf_val(my, my * G_BFU_FONT_SIZE);
@@ -428,15 +442,38 @@ static void display_menu_item_gfx(struct terminal *term, struct menu *menu, int 
 			y, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER,
 			y + G_BFU_FONT_SIZE);
 		if (it == menu->selected) {
+			struct style *style_wb;
+			if (menu->items[it].free_i & MENU_FONT_LIST) {
+				style_wb = g_get_style_font(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE,
+					(menu->items[it].free_i & MENU_FONT_LIST_BOLD ? FF_BOLD : 0) |
+					(menu->items[it].free_i & MENU_FONT_LIST_MONO ? FF_MONOSPACED : 0),
+					menu->items[it].data);
+			} else {
+				style_wb = bfu_style_wb;
+			}
 			p = menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER;
-			g_print_text(dev, p, y, bfu_style_wb, menu->hktxt1[it], &p);
-			g_print_text(dev, p, y, bfu_style_wb, menu->hktxt2[it], &p);
-			g_print_text(dev, p, y, bfu_style_wb, menu->hktxt3[it], &p);
+			g_print_text(dev, p, y, style_wb, menu->hktxt1[it], &p);
+			g_print_text(dev, p, y, style_wb, menu->hktxt2[it], &p);
+			if (menu->items[it].free_i & MENU_FONT_LIST) {
+				g_free_style(style_wb);
+			}
 		} else {
+			struct style *style_bw, *style_bw_u;
+			if (menu->items[it].free_i & MENU_FONT_LIST) {
+				style_bw = style_bw_u = g_get_style_font(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE,
+					(menu->items[it].free_i & MENU_FONT_LIST_BOLD ? FF_BOLD : 0) |
+					(menu->items[it].free_i & MENU_FONT_LIST_MONO ? FF_MONOSPACED : 0),
+					menu->items[it].data);
+			} else {
+				style_bw = bfu_style_bw;
+				style_bw_u = bfu_style_bw_u;
+			}
 			p = menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER;
-			g_print_text(dev, p, y, bfu_style_bw, menu->hktxt1[it], &p);
-			g_print_text(dev, p, y, bfu_style_bw_u, menu->hktxt2[it], &p);
-			g_print_text(dev, p, y, bfu_style_bw, menu->hktxt3[it], &p);
+			g_print_text(dev, p, y, style_bw, menu->hktxt1[it], &p);
+			g_print_text(dev, p, y, style_bw_u, menu->hktxt2[it], &p);
+			g_print_text(dev, p, y, style_bw, menu->hktxt3[it], &p);
+			if (menu->items[it].free_i & MENU_FONT_LIST)
+				g_free_style(style_bw);
 		}
 		if (!*rtext) {
 			set_clip_area(dev, &r);

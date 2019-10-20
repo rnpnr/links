@@ -1267,44 +1267,49 @@ unsigned short ags_16_to_16(unsigned short input, float gamma)
 	return retval;
 }
 
+#define FONT_NORMAL	1
+#define FONT_BOLD	2
+#define FONT_MONOSPACED	3
+
 /* Returns a pointer to a structure describing the letter found or NULL
  * if the letter is not found. Tries all possibilities in the style table
  * before returning NULL.
  */
-static struct letter *find_stored_letter(int *style_table, int letter_number)
+static struct letter *find_stored_letter(struct style *style, int letter_number)
 {
-	int first, last, half, diff, font_index, font_number;
-
-	for (font_index=n_fonts-1;font_index;font_index--)
-	{
-		font_number=*style_table++;
-
-		first=font_table[font_number].begin;
-		last=font_table[font_number].length+first-1;
-
-		while(first<=last){
-			half=(first+last)>>1;
-			diff=letter_data[half].code-letter_number;
-			if (diff>=0){
-				if (diff==0){
-					return letter_data+half;
-				}else{
-					/* Value in table is bigger */
-					last=half-1;
-				}
-			}else{
-				/* Value in the table is smaller */
-				first=half+1;
-			}
+	int tries[3];
+	int try;
+	if (style->flags & FF_MONOSPACED) {
+		tries[0] = FONT_MONOSPACED;
+		if (style->flags & FF_BOLD) {
+			tries[1] = FONT_BOLD;
+			tries[2] = FONT_NORMAL;
+		} else {
+			tries[1] = FONT_NORMAL;
+			tries[2] = FONT_BOLD;
+		}
+	} else {
+		if (style->flags & FF_BOLD) {
+			tries[0] = FONT_BOLD;
+			tries[1] = FONT_NORMAL;
+			tries[2] = FONT_MONOSPACED;
+		} else {
+			tries[0] = FONT_NORMAL;
+			tries[1] = FONT_MONOSPACED;
+			tries[2] = FONT_BOLD;
 		}
 	}
-
-	/* 0 is system font, 0 is blotch char. This must be present
-	 * or we segfault :) */
-#ifdef REPORT_UNKNOWN
-	fprintf(stderr,"letter 0x%04x not found\n",letter_number);
-#endif /* #ifdef REPORT_UNKNOWN */
-	return letter_data+font_table[0].begin;
+	for (try = 0; try < 3; try++) {
+		struct font *font = &font_table[tries[try]];
+		int start = font->begin;
+		int result;
+#define EQ(v, key)	(letter_data[start + v].code == key)
+#define AB(v, key)	(letter_data[start + v].code > key)
+		BIN_SEARCH(font->length, EQ, AB, letter_number, result);
+		if (result >= 0)
+			return letter_data + start + result;
+	}
+	return letter_data + font_table[0].begin;
 }
 
 struct read_work {
@@ -1342,17 +1347,17 @@ static void my_png_error(png_structp a, png_const_charp error_string)
 /* Loads width and height of the PNG (nothing is scaled). Style table is
  * already incremented.
  */
-static void load_metric(int *x, int *y, int char_number, int *style_table)
+static void load_metric(struct style *style, int char_number, int *x, int *y)
 {
 	struct letter *l;
 
-	l=find_stored_letter(style_table,char_number);
-	if (!l){
-		*x=0;
-		*y=0;
-	}else{
-		*x=l->xsize;
-		*y=l->ysize;
+	l = find_stored_letter(style, char_number);
+	if (!l) {
+		*x = 0;
+		*y = 0;
+	} else {
+		*x = l->xsize;
+		*y = l->ysize;
 	}
 	return;
 }
@@ -1531,7 +1536,7 @@ static struct font_cache_entry *locked_color_entry = NULL;
 
 /* Adds required entry into font_cache and returns pointer to the entry.
  */
-static struct font_cache_entry *supply_color_cache_entry(struct style *style, struct letter *letter)
+static struct font_cache_entry *supply_color_cache_entry(struct style *style, struct letter *letter, int char_number)
 {
 	int found_x, found_y;
 	unsigned char *found_data;
@@ -1543,7 +1548,7 @@ static struct font_cache_entry *supply_color_cache_entry(struct style *style, st
 	found_y = style->height;
 	load_scaled_char(&found_data, &found_x, found_y, letter->begin, letter->length, style);
 
-	neww = xmalloc(sizeof(*neww));
+	neww = xmalloc(sizeof(struct font_cache_entry));
 	locked_color_entry = neww;
 	neww->bitmap.x = found_x;
 	neww->bitmap.y = found_y;
@@ -1553,6 +1558,8 @@ static struct font_cache_entry *supply_color_cache_entry(struct style *style, st
 	neww->r1 = style->r1;
 	neww->g1 = style->g1;
 	neww->b1 = style->b1;
+	neww->flags = style->flags;
+	neww->char_number = char_number;
 	neww->mono_space = style->mono_space;
 	neww->mono_height = style->mono_height;
 
@@ -1587,13 +1594,14 @@ static struct font_cache_entry *supply_color_cache_entry(struct style *style, st
 	bytes_consumed += (int)sizeof(*neww);
 	bytes_consumed += (int)sizeof(struct lru_entry);
 	lru_insert(&font_cache, neww, &letter->color_list, bytes_consumed);
+
 	return neww;
 }
 
 static int destroy_font_cache_bottom(void)
 {
 	struct font_cache_entry *bottom;
-	bottom=lru_get_bottom(&font_cache);
+	bottom = lru_get_bottom(&font_cache);
 	if (!bottom) return 0;
 	if (bottom == locked_color_entry) return 0;
 	drv->unregister_bitmap(&bottom->bitmap);
@@ -1620,28 +1628,32 @@ static int prune_font_cache(void)
 /* Prints a letter to the specified position and
  * returns the width of the printed letter */
 static inline int print_letter(struct graphics_device *device, int x, int y, struct style *style, int char_number)
-
 {
 	int xw;
 	struct font_cache_entry *found;
 	struct font_cache_entry templat;
 	struct letter *letter;
 
-	/* Find a suitable letter */
-	letter = find_stored_letter(style->table, char_number);
 	templat.r0 = style->r0;
 	templat.r1 = style->r1;
 	templat.g0 = style->g0;
 	templat.g1 = style->g1;
 	templat.b0 = style->b0;
 	templat.b1 = style->b1;
-	templat.bitmap.y = style->height;
+	templat.flags = style->flags;
+	templat.char_number = char_number;
 	templat.mono_space = style->mono_space;
 	templat.mono_height = style->mono_height;
-
+	templat.bitmap.y = style->height;
+	/* Find a suitable letter */
+	letter = find_stored_letter(style, char_number);
 	found = lru_lookup(&font_cache, &templat, &letter->color_list);
-	if (!found) found = supply_color_cache_entry(style, letter);
-	else locked_color_entry = found;
+
+	if (!found) {
+		found = supply_color_cache_entry(style, letter, char_number);
+	} else {
+		locked_color_entry = found;
+	}
 	drv->draw_bitmap(device, &found->bitmap, x, y);
 	xw = found->bitmap.x;
 	if (locked_color_entry != found) internal("bad letter lock");
@@ -1670,12 +1682,13 @@ static void get_underline_pos(int height, int *top, int *bottom)
 /* *width will be advanced by the width of the text */
 void g_print_text(struct graphics_device *device, int x, int y, struct style *style, unsigned char *text, int *width)
 {
-	int original_flags, top_underline, bottom_underline, original_width, my_width;
+	int top_underline, bottom_underline, original_width, my_width;
+	unsigned char original_flags;
 	struct rect saved_clip;
 
 	if (y + style->height <= device->clip.y1 || y >= device->clip.y2)
 		goto o;
-	if (style->flags) {
+	if (style->flags & FF_UNDERLINE) {
 		/* Underline */
 		if (!width) {
 			width = &my_width;
@@ -1683,7 +1696,7 @@ void g_print_text(struct graphics_device *device, int x, int y, struct style *st
 		}
 		original_flags = style->flags;
 		original_width = *width;
-		style->flags = 0;
+		style->flags &= ~FF_UNDERLINE;
 		get_underline_pos(style->height, &top_underline, &bottom_underline);
 		restrict_clip_area(device, &saved_clip, 0, 0, device->size.x2, y + top_underline);
 		g_print_text(device, x, y, style, text, width);
@@ -1762,11 +1775,13 @@ static int compare_font_entries(void *entry, void *templat)
 	if (e1->r1 != e2->r1) return 1;
 	if (e1->g1 != e2->g1) return 1;
 	if (e1->b1 != e2->b1) return 1;
-	if (e1->bitmap.y != e2->bitmap.y) return 1;
+	if (e1->flags != e2->flags) return 1;
+	if (e1->char_number != e2->char_number) return 1;
 	if (e1->mono_space != e2->mono_space) return 1;
 	if (e1->mono_space >= 0) {
 		if (e1->mono_height != e2->mono_height) return 1;
 	}
+	if (e1->bitmap.y != e2->bitmap.y) return 1;
 	return 0;
 }
 
@@ -1800,7 +1815,7 @@ static inline int g_get_width(struct style *style, unsigned charcode)
 	if (style->mono_space>=0){
 		x=style->mono_space;
 		y=style->mono_height;
-	}else load_metric(&x,&y,charcode,style->table);
+	} else load_metric(style, charcode, &x, &y);
 	if (!(x&&y)) width=0;
 	else width=compute_width(x,y,style->height);
 	return width;
@@ -1914,128 +1929,25 @@ void init_dip(void)
 	register_cache_upcall(shrink_font_cache, MF_GPI, cast_uchar "fontcache");
 }
 
-static void recode_font_name(unsigned char **name)
-{
-	int dashes=0;
-	unsigned char *p;
-
-	if (!strcmp(cast_const_char *name,"monospaced")) *name=cast_uchar "courier-medium-roman-serif-mono";
-	if (!strcmp(cast_const_char *name,"monospace")) *name=cast_uchar "courier-medium-roman-serif-mono";
-	else if (!strcmp(cast_const_char *name,"")) *name=cast_uchar "century_school-medium-roman-serif-vari";
-	p=*name;
-	while(*p){
-		if (*p=='-')dashes++;
-		p++;
-	}
-	if (dashes!=4) *name=cast_uchar "century_school-medium-roman-serif-vari";
-}
-
-/* Compares single=a multi=b-c-a as matching.
- * 0 matches
- * 1 doesn't match
- */
-static int compare_family(unsigned char *single, unsigned char *multi)
-{
-	unsigned char *p,*r;
-	int single_length=(int)strlen(cast_const_char single);
-
-	r=multi;
-	while(1){
-		p=r;
-		while (*r&&*r!='-')r++;
-		if ((r-p==single_length)&&!strncmp(cast_const_char single,cast_const_char p,r-p)) return 0;
-		if (!*r) break;
-		r++;
-	}
-	return 1;
-}
-
-/* Input name must contain exactly 4 dashes, otherwise the
- * result is undefined (parsing into weight, slant, adstyl, spacing
- * will result deterministically random results).
- * Returns 1 if the font is monospaced or 0 if not.
- */
-static int fill_style_table(int * table, unsigned char *name)
-{
-	unsigned char *p;
-	unsigned char *family, *weight, *slant, *adstyl, *spacing;
-	int pass,result,f;
-	int masks[6]={0x1f,0x1f,0xf,0x7,0x3,0x1};
-	int xors[6]={0,0x10,0x8,0x4,0x2,0x1};
-	/* Top bit of the values belongs to family, bottom to spacing */
-	int monospaced;
-
-	/* Parse the name */
-	recode_font_name(&name);
-	family=stracpy(name);
-	p=family;
-	while(*p&&*p!='-') p++;
-	*p=0;
-	p++;
-	weight=p;
-	while(*p&&*p!='-') p++;
-	*p=0;
-	p++;
-	slant=p;
-	while(*p&&*p!='-') p++;
-	*p=0;
-	p++;
-	adstyl=p;
-	while(*p&&*p!='-') p++;
-	*p=0;
-	p++;
-	spacing=p;
-	monospaced=!strcmp(cast_const_char spacing,"mono");
-
-	for (pass=0;pass<6;pass++){
-		for (f=1;f<n_fonts;f++){
-			/* Font 0 must not be int style_table */
-			result=compare_family(family,font_table[f].family);
-			result<<=1;
-			result|=!!strcmp(cast_const_char weight,cast_const_char font_table[f].weight);
-			result<<=1;
-			result|=!!strcmp(cast_const_char slant,cast_const_char font_table[f].slant);
-			result<<=1;
-			result|=!!strcmp(cast_const_char adstyl,cast_const_char font_table[f].adstyl);
-			result<<=1;
-			result|=!!strcmp(cast_const_char spacing,cast_const_char font_table[f].spacing);
-			result^=xors[pass];
-			result&=masks[pass];
-			if (!result) /* Fot complies */
-				*table++=f;
-		}
-	}
-	free(family);
-	return monospaced;
-}
-
 struct style *g_invert_style(struct style *old)
 {
-	int length;
-
 	struct style *st;
 	st = xmalloc(sizeof(struct style));
-	st->refcount=1;
-	st->r0=old->r1;
-	st->g0=old->g1;
-	st->b0=old->b1;
-	st->r1=old->r0;
-	st->g1=old->g0;
-	st->b1=old->b0;
-	st->height=old->height;
-	st->flags=old->flags;
-	if (st->flags)
-	{
+	st->refcount = 1;
+	st->r0 = old->r1;
+	st->g0 = old->g1;
+	st->b0 = old->b1;
+	st->r1 = old->r0;
+	st->g1 = old->g0;
+	st->b1 = old->b0;
+	st->height = old->height;
+	st->flags = old->flags;
+	if (st->flags & FF_UNDERLINE) {
 		/* We have to get a foreground color for underlining */
-		st->underline_color=dip_get_color_sRGB(
-			(st->r1<<16)|(st->g1<<8)|(st->b1));
+		st->underline_color = dip_get_color_sRGB((st->r1 << 16) | (st->g1 << 8) | (st->b1));
 	}
-	if ((unsigned)n_fonts > INT_MAX / sizeof(*st->table)) overalloc();
-	length=(int)sizeof(*st->table)*(n_fonts-1);
-	st->table = xmalloc(length);
-	memcpy(st->table,old->table,length);
-	st->mono_space=old->mono_space;
-	st->mono_height=old->mono_height;
+	st->mono_space = old->mono_space;
+	st->mono_height = old->mono_height;
 	return st;
 }
 
@@ -2055,14 +1967,13 @@ int hack_rgb(int rgb)
 }
 
 /* Never returns NULL. */
-struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int flags)
+struct style *g_get_style_font(int fg, int bg, int size, int fflags, unsigned char *font)
 {
 	struct style *st;
 
 	bg = hack_rgb(bg);
 
 	st = xmalloc(sizeof(struct style));
-	/* strcpy(st->font, font); */
 	st->refcount = 1;
 	st->r0 = bg >> 16;
 	st->g0 = (bg >> 8) & 255;
@@ -2070,21 +1981,24 @@ struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int fla
 	st->r1 = fg >> 16;
 	st->g1 = (fg >> 8) & 255;
 	st->b1 = fg & 255;
-	if (size<=0) size=1;
+	if (size <= 0) size = 1;
 	st->height = size;
-	st->flags=flags&FF_UNDERLINE;
-	if (st->flags)
-	{
+	st->flags = (unsigned char)fflags;
+	if (fflags & FF_UNDERLINE) {
 		/* We have to get a foreground color for underlining */
-		st->underline_color=dip_get_color_sRGB(fg);
+		st->underline_color = dip_get_color_sRGB(fg);
 	}
-	if ((unsigned)n_fonts > INT_MAX / sizeof(*st->table)) overalloc();
-	st->table = xmalloc(sizeof(*st->table)*(n_fonts-1));
-	if(fill_style_table(st->table, font))
-		load_metric(&st->mono_space, &st->mono_height, ' ', st->table);
+	if (fflags & FF_MONOSPACED)
+		load_metric(st, ' ', &st->mono_space, &st->mono_height);
 	else
-		st->mono_space=-1;
+		st->mono_space = -1;
+
 	return st;
+}
+
+struct style *g_get_style(int fg, int bg, int size, int fflags)
+{
+	return g_get_style_font(fg, bg, size, fflags, NULL);
 }
 
 struct style *g_clone_style(struct style *st)
@@ -2096,7 +2010,6 @@ struct style *g_clone_style(struct style *st)
 void g_free_style(struct style *st)
 {
 	if (--st->refcount) return;
-	free(st->table);
 	free(st);
 }
 

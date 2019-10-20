@@ -1263,11 +1263,6 @@ struct letter {
 };
 
 struct font {
-	unsigned char *family;
-	unsigned char *weight;
-	unsigned char *slant;
-	unsigned char *adstyl;
-	unsigned char *spacing;
 	int begin; /* Begin in the letter stream */
 	int length; /* Length in the letter stream */
 };
@@ -1278,12 +1273,9 @@ struct style {
 	/* ?0 are background, ?1 foreground.
 	 * These are unrounded 8-bit sRGB space
 	 */
+	unsigned char flags; /* non-zero means underline */
 	int height;
-	int flags; /* non-zero means underline */
 	long underline_color; /* Valid only if flags are nonzero */
-	int *table; /* First is refcount, then n_fonts entries. Total
-		     * size is n_fonts+1 integers.
-		     */
 	int mono_space; /* -1 if the font is not monospaced
 			 * width of the space otherwise
 			 */
@@ -1294,10 +1286,12 @@ struct style {
 
 struct font_cache_entry {
 	unsigned char r0, g0, b0, r1, g1, b1;
-	struct bitmap bitmap;
+	unsigned char flags;
+	int char_number;
 	int mono_space, mono_height; /* if the letter was rendered for a
 	monospace font, then size of the space. Otherwise, mono_space
 	is -1 and mono_height is undefined. */
+	struct bitmap bitmap;
 };
 
 
@@ -1361,9 +1355,15 @@ int g_wrap_text(struct wrap_struct *);
 
 int hack_rgb(int rgb);
 
-#define FF_UNDERLINE	1
+#define FF_BOLD		1
+#define FF_MONOSPACED	2
+#define FF_ITALIC	4
+#define FF_UNDERLINE	8
 
-struct style *g_get_style(int fg, int bg, int size, unsigned char *font, int fflags);
+#define FF_SHAPES	4
+
+struct style *g_get_style_font(int fg, int bg, int size, int fflags, unsigned char *font);
+struct style *g_get_style(int fg, int bg, int size, int fflags);
 struct style *g_invert_style(struct style *);
 void g_free_style(struct style *style0);
 struct style *g_clone_style(struct style *);
@@ -2967,10 +2967,6 @@ void set_textarea(struct session *, struct f_data_c *, int);
 #ifdef G
 extern struct letter letter_data[];
 extern struct font font_table[];
-extern int n_fonts; /* Number of fonts. font number 0 is system_font (it's
-		     * images are in system_font/ directory) and is used
-		     * for special purpose.
-		     */
 #endif
 
 /* gif.c */

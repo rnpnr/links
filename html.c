@@ -1794,7 +1794,7 @@ static void set_max_textarea_width(int *w)
 		}
 #ifdef G
 	} else {
-		struct style *st = g_get_style(0, 0, d_opt->font_size, cast_uchar(G_HTML_DEFAULT_FAMILY "-medium-roman-serif-mono"), 0);
+		struct style *st = g_get_style(0, 0, d_opt->font_size, FF_MONOSPACED);
 		int uw = g_char_width(st, '_');
 		g_free_style(st);
 		if (uw && *w > limit / uw) {

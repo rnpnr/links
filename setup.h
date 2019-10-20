@@ -58,7 +58,6 @@
 #define COLOR_TITLE			COL(007)
 #define COLOR_STATUS			COL(070)
 
-#define G_BFU_DEFAULT_FONT		"century-medium-roman-serif-vari"
 #define G_BFU_DEFAULT_FONT_SIZE		16
 #define G_DEFAULT_BFU_FG_COLOR		0x000000
 #define G_DEFAULT_BFU_BG_COLOR		0xe0e0e0

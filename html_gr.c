@@ -106,35 +106,26 @@ static void separate_fg_bg(int *fgr, int *fgg, int *fgb
 	}
 }
 
-static unsigned char *make_html_font_name(int attr)
-{
-	unsigned char *str;
-	int len = 0;
-
-	str = init_str();
-	add_to_str(&str, &len, cast_uchar G_HTML_DEFAULT_FAMILY);
-	add_to_str(&str, &len, attr & AT_BOLD ? cast_uchar "-bold" : cast_uchar "-medium");
-	add_to_str(&str, &len, attr & AT_ITALIC ? cast_uchar "-italic-serif" : cast_uchar "-roman-serif");
-	add_to_str(&str, &len, attr & AT_FIXED ? cast_uchar "-mono" : cast_uchar "-vari");
-	return str;
-}
-
 static struct style *get_style_by_ta(struct text_attrib *ta)
 {
 	int fg_r, fg_g, fg_b; /* sRGB 0-255 values */
 	int fs = get_real_font_size(ta->fontsize);
 	struct style *stl;
-	unsigned char *fontname;
+	unsigned int fflags;
 
-	fg_r=ta->fg.r;
-	fg_g=ta->fg.g;
-	fg_b=ta->fg.b;
+	fg_r = ta->fg.r;
+	fg_g = ta->fg.g;
+	fg_b = ta->fg.b;
 	separate_fg_bg(&fg_r, &fg_g, &fg_b, ta->bg.r, ta->bg.g, ta->bg.b);
+
+	fflags = 0;
+	if (ta->attr & AT_UNDERLINE) fflags |= FF_UNDERLINE;
+	if (ta->attr & AT_BOLD) fflags |= FF_BOLD;
+	if (ta->attr & AT_ITALIC) fflags |= FF_ITALIC;
+	if (ta->attr & AT_FIXED) fflags |= FF_MONOSPACED;
+
 	stl = g_get_style((fg_r << 16) + (fg_g << 8) + fg_b, (ta->bg.r << 16) +
-			(ta->bg.g << 8) + ta->bg.b, fs,
-			fontname=make_html_font_name(ta->attr),
-			ta->attr & AT_UNDERLINE ? FF_UNDERLINE : 0);
-	free(fontname);
+			(ta->bg.g << 8) + ta->bg.b, fs, fflags);
 	return stl;
 }
 
