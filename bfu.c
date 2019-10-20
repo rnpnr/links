@@ -554,8 +554,7 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 		break;
 	case EV_MOUSE:
 		if ((ev->b & BM_ACT) == B_MOVE) break;
-		if ((ev->b & BM_BUTT) == B_FOURTH
-		|| (ev->b & BM_BUTT) == B_FIFTH) {
+		if ((ev->b & BM_BUTT) == B_FIFTH) {
 			if ((ev->b & BM_ACT) == B_DOWN) goto go_lr;
 			break;
 		}
@@ -846,10 +845,6 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 	case EV_MOUSE:
 		in_menu = ev->x >= 0 && ev->x < win->term->x && ev->y >= 0 && ev->y < LL;
 		if ((ev->b & BM_ACT) == B_MOVE) break;
-		if ((ev->b & BM_BUTT) == B_FOURTH) {
-			if ((ev->b & BM_ACT) == B_DOWN) goto go_left;
-			break;
-		}
 		if ((ev->b & BM_BUTT) == B_FIFTH) {
 			if ((ev->b & BM_ACT) == B_DOWN) goto go_right;
 			break;
@@ -887,7 +882,6 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 			select_mainmenu(win->term, menu);
 			break;
 		} else if (ev->x == KBD_LEFT) {
- go_left:
 			if (!menu->selected--) menu->selected = menu->ni - 1;
 			s = 1;
 			if (fwd) s = 2;
@@ -1452,10 +1446,6 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 		break;
 	case EV_MOUSE:
 		if ((ev->b & BM_ACT) == B_MOVE) break;
-		if ((ev->b & BM_BUTT) == B_FOURTH) {
-			if ((ev->b & BM_ACT) == B_DOWN) goto go_prev;
-			break;
-		}
 		if ((ev->b & BM_BUTT) == B_FIFTH) {
 			if ((ev->b & BM_ACT) == B_DOWN) goto go_next;
 			break;
@@ -1675,7 +1665,6 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 		}
 		if (((ev->x == KBD_TAB && ev->y) || ev->x == KBD_UP
 		|| ev->x == KBD_LEFT) && dlg->n > 1) {
- go_prev:
 			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
 			if ((--dlg->selected) < 0) dlg->selected = dlg->n - 1;
 			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 1);

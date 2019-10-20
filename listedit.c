@@ -1502,38 +1502,6 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 		break;
 
 		case EV_MOUSE:
-		/* toggle select item */
-		if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_RIGHT) {
-			int n,a;
-			struct list *l=ld->win_offset;
-
-			last_mouse_y=ev->y;
-
-			if (
-				(ev->y)<(dlg->y+DIALOG_TB)||
-				(ev->y)>=(dlg->y+DIALOG_TB+gf_val(ld->n_items,G_BFU_FONT_SIZE*(ld->n_items)))||
-				(ev->x)<(dlg->x+DIALOG_LB)||
-				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB-(F?sirka_scrollovadla:0))
-			)break;  /* out of the dialog */
-
-			n=(ev->y-dlg->y-DIALOG_TB)/gf_val(1,G_BFU_FONT_SIZE);
-			for (a=0;a<n;a++)
-			{
-				struct list *l1;
-				l1=next_in_tree(ld,l);  /* current item under the mouse pointer */
-				if (l1==ld->list)goto break2;
-				else l=l1;
-			}
-			/*a=ld->type?((l->depth)>=0?(l->depth)+1:0):(l->depth>=0);*/
-
-			l->type^=4;
-			ld->current_pos=l;
-			ld->win_pos=n;
-			rd.n=0;
-			draw_to_window(dlg->win,redraw_list,&rd);
-			draw_to_window(dlg->win,redraw_list_line,&rd);	/* set cursor */
-			return EVENT_PROCESSED;
-		}
 		/* click on item */
 		if (((ev->b & BM_ACT) == B_DOWN || (ev->b & BM_ACT) == B_DRAG) && (ev->b & BM_BUTT) == B_LEFT) {
 			int n,a;
@@ -1674,7 +1642,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 
 		}
 		/* mouse wheel */
-		if ((ev->b & BM_ACT) == B_MOVE && ((ev->b & BM_BUTT) == B_WHEELUP || (ev->b & BM_BUTT) == B_WHEELDOWN || (ev->b & BM_BUTT) == B_WHEELDOWN1 || (ev->b & BM_BUTT) == B_WHEELUP1)) {
+		if ((ev->b & BM_BUTT) == B_WHEELDOWN1 || (ev->b & BM_BUTT) == B_WHEELUP1) {
 			int button=(int)ev->b&BM_BUTT;
 			last_mouse_y=ev->y;
 
@@ -1709,7 +1677,6 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 			return EVENT_PROCESSED;
 
 		}
-		break2:
 		break;
 
 		case EV_INIT:
