@@ -38,20 +38,9 @@
 
 - fix command-line flag handling
 
-- remove if (x) free(x), it only guards against free(NULL) which is a no-op
-
 - remove DUMMY from http[,s].c and connect.c, changing to NULL breaks https
   sites
 
-- remove get_links_icon() in dip.c
-
 - remove remaining terminal margin modifying code
-
-- name member in dnsentry and dnsquery structures was never a string yet it is
-  being (mis)used as one. there are a number of places where this results in
-  use of out of bounds memory. these NEED to be fixed, its amazing the code
-  ever worked at all
-  - not necessarily correct, however the code should be simplified to be
-    more understandable.
 
 - add the most interesting options to usage();
