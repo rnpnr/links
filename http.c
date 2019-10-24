@@ -345,8 +345,6 @@ added_connect:
 		add_accept(&hdr, &l);
 		add_accept_encoding(&hdr, &l, host, c);
 		add_accept_charset(&hdr, &l, info);
-		/* Always add DNT */
-		add_to_str(&hdr, &l, cast_uchar "DNT: 1\r\n");
 		add_connection(&hdr, &l, http10, proxy, !info->send_close);
 		add_upgrade(&hdr, &l);
 		add_if_modified(&hdr, &l, c);
