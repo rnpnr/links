@@ -2101,7 +2101,6 @@ struct g_object_tag {
 
 #define IM_PNG 0
 #define IM_GIF 1
-#define IM_XBM 2
 
 #ifdef HAVE_JPEG
 #define IM_JPG 3
@@ -2982,9 +2981,6 @@ void gif_destroy_decoder(struct cached_image *);
 void gif_start(struct cached_image *goi);
 void gif_restart(unsigned char *data, int length);
 
-void xbm_start(struct cached_image *goi);
-void xbm_restart(struct cached_image *goi, unsigned char *data, int length);
-
 #endif
 
 /* png.c */
@@ -3622,10 +3618,6 @@ extern unsigned char bookmarks_file[MAX_STR_LEN];
 extern int save_history;
 
 extern struct document_setup dds;
-
-/* regexp.c */
-
-char *regexp_replace(char *, char *, char *);
 
 /* listedit.c */
 
