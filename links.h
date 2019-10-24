@@ -1391,7 +1391,6 @@ static inline long dip_get_color_sRGB(int rgb)
 }
 
 void init_dip(void);
-void get_links_icon(char **data, int *width, int *height, int *skip, int pad);
 
 #ifdef PNG_USER_MEM_SUPPORTED
 void *my_png_alloc(png_structp png_ptr, png_size_t size);

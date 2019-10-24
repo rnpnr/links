@@ -49,11 +49,6 @@
  * Ve funkci scroll tedy pribude argument struct rect_set **.
  */
 
-
-/* Data od XImage se alokujou pomoci malloc. get_links_icon musi alokovat taky
- * pomoci malloc.
- */
-
 /* Pozor: po kazdem XSync nebo XFlush se musi dat
  * X_SCHEDULE_PROCESS_EVENTS
  * jinak to bude cekat na filedescriptoru, i kdyz to ma eventy uz ve fronte.
@@ -79,7 +74,6 @@ static int x_default_window_height;
 
 static long (*x_get_color_function)(int);
 static void x_translate_colors(unsigned char *data, int x, int y, int skip);
-static void x_convert_to_216(char *data, int x, int y, int skip);
 
 static void selection_request(XEvent *event);
 
@@ -119,7 +113,6 @@ static long x_normal_gc_color;
 static struct rect x_scroll_gc_rect;
 static Colormap x_default_colormap, x_colormap;
 static Atom x_delete_window_atom, x_wm_protocols_atom, x_sel_atom, x_targets_atom, x_utf8_string_atom;
-static Pixmap x_icon = 0;
 
 static XIM xim = NULL;
 
@@ -943,10 +936,6 @@ static void x_free_hash_table(void)
 	color_map_24bit = NULL;
 
 	if (x_display) {
-		if (x_icon) {
-			XFreePixmap(x_display, x_icon);
-			x_icon = 0;
-		}
 		if (fake_window_initialized) {
 			XDestroyWindow(x_display, fake_window);
 			fake_window_initialized = 0;
@@ -1703,53 +1692,9 @@ static struct graphics_device *x_init_device(void)
 		free(wi);
 		return NULL;
 	}
-	if (!x_icon) {
-		XImage *img;
-		char *data;
-		char *xx_data;
-		int w, h, skip;
-
-		get_links_icon(&data, &w, &h, &skip, x_bitmap_scanline_pad);
-		x_convert_to_216(data, w, h, skip);
-
-		xx_data = strndup(data, h * skip);
-		free(data);
-
-		img = XCreateImage(x_display, x_default_visual, x_depth, ZPixmap, 0,
-			xx_data, w, h, x_bitmap_scanline_pad << 3, skip);
-		if (!img) {
-			x_icon = 0;
-			free(xx_data);
-			goto nic_nebude_bobankove;
-		}
-		XSync(x_display, False);
-		X_SCHEDULE_PROCESS_EVENTS();
-		x_prepare_for_failure(X_CreatePixmap);
-		img->data = xx_data;
-		x_icon = XCreatePixmap(x_display, wi->window, w, h, x_depth);
-		if (x_test_for_failure()) {
-			x_prepare_for_failure(X_FreePixmap);
-			XFreePixmap(x_display, x_icon);
-			x_test_for_failure();
-			x_icon = 0;
-		}
-		if (!x_icon) {
-			XDestroyImage(img);
-			x_icon = 0;
-			goto nic_nebude_bobankove;
-		}
-
-		XPutImage(x_display, x_icon, x_copy_gc, img, 0, 0, 0, 0, w, h);
-		XDestroyImage(img);
-nic_nebude_bobankove:;
-	}
 
 	wm_hints.flags = InputHint;
 	wm_hints.input = True;
-	if (x_icon) {
-		wm_hints.flags = InputHint | IconPixmapHint;
-		wm_hints.icon_pixmap = x_icon;
-	}
 
 	XSetWMHints(x_display, wi->window, &wm_hints);
 	class_hints.res_name = links_name;
@@ -1914,38 +1859,6 @@ static void x_translate_colors(unsigned char *data, int x, int y, int skip)
 			data += skip;
 		}
 		return;
-	}
-}
-
-static void x_convert_to_216(char *data, int x, int y, int skip)
-{
-	unsigned char color_table[256];
-	int i, j;
-
-	if (!static_color_table)
-		return;
-	if (x_use_static_color_table) {
-		x_translate_colors((unsigned char *)data, x, y, skip);
-		return;
-	}
-
-	memset(color_table, 255, sizeof color_table);
-
-	for (j = 0; j < y; j++) {
-		for (i = 0; i < x; i++) {
-			unsigned char a = (unsigned char)data[i];
-			unsigned char result;
-			if (color_table[a] != 255) {
-				result = color_table[a];
-			} else {
-				unsigned rgb[3];
-				q_palette(256, a, 65535, rgb);
-				result = (unsigned char)get_nearest_color(rgb);
-				color_table[a] = result;
-			}
-			data[i] = result;
-		}
-		data += skip;
 	}
 }
 
