@@ -161,15 +161,6 @@ static void os_cfmakeraw(struct termios *t)
 #if defined(NO_CTRL_Z) && defined(VSUSP)
 	t->c_cc[VSUSP] = 0;
 #endif
-	/*fprintf(stderr, "\n");
-	fprintf(stderr, "%08x %08x %08x\n", t->c_iflag, t->c_oflag, t->c_lflag);
-	{
-		int i;
-		for (i = 0; i < array_elements(t->c_cc); i++) {
-			fprintf(stderr, "%d - %d\n", i, t->c_cc[i]);
-		}
-	}
-	portable_sleep(10000);*/
 }
 
 static int ttcgetattr(int fd, struct termios *t)
@@ -265,7 +256,6 @@ static int setraw(int ctl, int save)
 #endif
 	t.c_oflag |= OPOST;
 	if (ttcsetattr(ctl, TCSANOW, &t)) {
-		/*fprintf(stderr, "setattr result %s\n", strerror(errno));*/
 		return -1;
 	}
 	return 0;
@@ -414,18 +404,6 @@ void dispatch_special(unsigned char *text)
 	}
 }
 
-#define RD(xx)							\
-do {								\
-	unsigned char cc;					\
-	if (p < c) cc = buf[p++];				\
-	else if ((hard_read(itrm->sock_in, &cc, 1)) <= 0) {	\
-		free(path);					\
-		free(delet);					\
-		goto fr;					\
-	}							\
-	xx = cc;						\
-} while (0)
-
 static int process_queue(struct itrm *);
 static int get_esc_code(unsigned char *, int, unsigned char *, int *, int *);
 
@@ -480,15 +458,6 @@ static int process_queue(struct itrm *itrm)
 	struct links_event ev = { EV_KBD, -1, 0, 0 };
 	int el = 0;
 	if (!itrm->qlen) goto end;
-	/*{
-		int i;
-		fprintf(stderr, "queue:");
-		for (i = 0; i < itrm->qlen; i++) {
-			fprintf(stderr, " %d", itrm->kqueue[i]);
-			if (itrm->kqueue[i] >= 32) fprintf(stderr, "[%c]", itrm->kqueue[i]);
-		}
-		fprintf(stderr, ".\n");
-	}*/
 	if (itrm->kqueue[0] == '\033') {
 		if (itrm->qlen < 2) goto ret;
 		if (itrm->kqueue[1] == '[' || itrm->kqueue[1] == 'O') {
@@ -578,12 +547,12 @@ static int process_queue(struct itrm *itrm)
 				case 'M':
 				case '<':
 					if (c == 'M' && v == 5) {
-						if (xterm_button == -1) xterm_button = 0; /* */
+						if (xterm_button == -1) xterm_button = 0;
 						if (itrm->qlen - el < 5) goto ret;
 						ev.x = (unsigned char)(itrm->kqueue[el+1]) - ' ' - 1 + ((int)((unsigned char)(itrm->kqueue[el+2]) - ' ' - 1) << 7);
-						if ( ev.x & (1 << 13)) ev.x = 0; /* ev.x |= ~0 << 14; */
+						if ( ev.x & (1 << 13)) ev.x = 0;
 						ev.y = (unsigned char)(itrm->kqueue[el+3]) - ' ' - 1 + ((int)((unsigned char)(itrm->kqueue[el+4]) - ' ' - 1) << 7);
-						if ( ev.y & (1 << 13)) ev.y = 0; /* ev.y |= ~0 << 14; */
+						if ( ev.y & (1 << 13)) ev.y = 0;
 						switch ((itrm->kqueue[el] - ' ') ^ xterm_button) { /* Every event changhes only one bit */
 						    case TW_BUTT_LEFT:   ev.b = B_LEFT | ( (xterm_button & TW_BUTT_LEFT) ? B_UP : B_DOWN ); break;
 						    case TW_BUTT_MIDDLE: ev.b = B_MIDDLE | ( (xterm_button & TW_BUTT_MIDDLE) ? B_UP : B_DOWN ); break;
@@ -652,15 +621,6 @@ static int process_queue(struct itrm *itrm)
 						ev.x = x;
 						ev.y = y;
 					}
-					/*{
-						int a;
-						for (a = 0; a < el; a++) {
-							fprintf(stderr, " %02x", itrm->kqueue[a]);
-							if (itrm->kqueue[a] >= ' ') fprintf(stderr, "(%c)", itrm->kqueue[a]);
-						}
-						fprintf(stderr, "\n");
-						fprintf(stderr, "%ld %ld %ld\n", ev.x, ev.y, ev.b);
-					}*/
 					ev.ev = EV_MOUSE;
 					break;
 			}
@@ -688,15 +648,10 @@ static int process_queue(struct itrm *itrm)
 	el = 1;
 	ev.x = itrm->kqueue[0];
 	l2:
-	/*if (ev.x == 1) ev.x = KBD_HOME;
-	if (ev.x == 2) ev.x = KBD_PAGE_UP;
-	if (ev.x == 4) ev.x = KBD_DEL;
-	if (ev.x == 5) ev.x = KBD_END;
-	if (ev.x == 6) ev.x = KBD_PAGE_DOWN;*/
 	if (ev.x == 3) ev.x = KBD_CTRL_C;
 	if (ev.x == 8) ev.x = KBD_BS;
 	if (ev.x == 9) ev.x = KBD_TAB;
-	if (ev.x == 10) ev.x = KBD_ENTER /*, ev.y = KBD_CTRL*/;
+	if (ev.x == 10) ev.x = KBD_ENTER;
 	if (ev.x == 13) ev.x = KBD_ENTER;
 	if (ev.x == 127) ev.x = KBD_BS;
 	if (ev.x >= 0 && ev.x < ' ') {
