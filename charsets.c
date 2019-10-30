@@ -121,8 +121,6 @@ static struct conv_table *get_translation_table_to_utf_8(int from)
 {
 	int i;
 	static int lfr = -1;
-	if (from == -1)
-		return NULL;
 	if (from == lfr)
 		return utf_table;
 	lfr = from;

@@ -346,14 +346,7 @@ e:
 int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
 {
 	struct dnsquery *q;
-	retry:
-	q = (struct dnsquery *)malloc(sizeof(struct dnsquery) + strlen(cast_const_char name));
-	if (!q) {
-		if (out_of_memory())
-			goto retry;
-		fn(data, 1);
-		return 0;
-	}
+	q = xmalloc(sizeof(struct dnsquery) + strlen(cast_const_char name));
 	q->fn = fn;
 	q->data = data;
 	q->s = (struct dnsquery **)qp;
