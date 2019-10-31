@@ -5,6 +5,11 @@
  * Does the configuration file.
  */
 
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "links.h"
 
 unsigned char system_name[MAX_STR_LEN];
@@ -30,13 +35,6 @@ static void get_system_name(void)
 		}
 	}
 	strcpy(cast_char system_name, SYSTEM_NAME);
-}
-
-static void do_exit(int x)
-{
-	/* avoid compiler warnings about unreachable code */
-	static volatile int zero = 0;
-	if (!zero) exit(x);
 }
 
 struct option {
@@ -295,7 +293,7 @@ try_new_count:
 	return get_error_from_errno(err);
 }
 
-static unsigned char *get_home(int *n)
+static unsigned char *get_home(void)
 {
 	struct stat st;
 	int rs;
@@ -303,15 +301,13 @@ static unsigned char *get_home(int *n)
 	unsigned char *home_links;
 	unsigned char *config_dir;
 
-	EINTRLOOP(rs, stat(".", &st));
-	if (rs && (home = cast_uchar getenv("HOME")))
-		EINTRLOOP(rs, chdir(cast_const_char home));
-	home = NULL;
+	if (stat(".", &st))
+		die("stat: %s: %s\n", ".", strerror(errno));
 
 	config_dir = stracpy(cast_uchar getenv("CONFIG_DIR"));
 
-	if (n) *n = 1;
-	if (!home) home = stracpy(cast_uchar getenv("HOME"));
+	first_use = 1;
+	home = stracpy(cast_uchar getenv("HOME"));
 	if (!home) {
 		int i;
 		home = (unsigned char *)argv0;
@@ -375,7 +371,7 @@ static unsigned char *get_home(int *n)
 	return NULL;
 
 	home_ok:
-	if (n) *n = 0;
+	first_use = 0;
 	if ((st.st_mode & 07777) != 0700) {
 		home_creat:
 		EINTRLOOP(rs, chmod(cast_const_char home_links, 0700));
@@ -389,7 +385,7 @@ static unsigned char *get_home(int *n)
 void init_home(void)
 {
 	get_system_name();
-	links_home = get_home(&first_use);
+	links_home = get_home();
 	if (!links_home) {
 		fprintf(stderr, "Unable to find or create links config directory. Please check, that you have $HOME variable set correctly and that you have write permission to your home directory.\n\007");
 		portable_sleep(3000);
@@ -893,27 +889,22 @@ static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *a
 	free(h2);
 	do_real_lookup(h3, ipv6_options.addr_preference, &addr);
 	free(h3);
-	if (!addr.n) {
-		fprintf(stderr, "error: host not found\n");
-		do_exit(RET_ERROR);
-		return NULL;
-	}
+	if (!addr.n)
+		die("error: host not found\n");
 	for (i = 0; i < addr.n; i++) {
 		unsigned char *a;
 		if ((a = print_address(&addr.a[i])))
 			printf("%s\n", a);
 	}
 	fflush(stdout);
-	do_exit(RET_OK);
-	return NULL;
+	exit(RET_OK);
 }
 
 static unsigned char *version_cmd(struct option *o, unsigned char ***argv, int *argc)
 {
 	printf("Links " VERSION "\n");
 	fflush(stdout);
-	do_exit(RET_OK);
-	return NULL;
+	exit(RET_OK);
 }
 
 static unsigned char *set_cmd(struct option *o, unsigned char ***argv, int *argc)
