@@ -4,6 +4,7 @@
  */
 
 #include "links.h"
+#include <wctype.h>
 
 struct codepage_desc {
 	const char *name;
@@ -13,7 +14,6 @@ struct codepage_desc {
 #include "codepage.inc"
 #include "entity.inc"
 #include "upcase.inc"
-#include "locase.inc"
 
 static const unsigned char strings[256][2] = {
 	"\000", "\001", "\002", "\003", "\004", "\005", "\006", "\007",
@@ -391,16 +391,9 @@ unsigned char *get_cp_mime_name(int index)
 	return (unsigned char *)codepages[index].aliases[0];
 }
 
-#define LO_EQUAL(a, b) unicode_locase[a].o == (b)
-#define LO_ABOVE(a, b) unicode_locase[a].o > (b)
-
 unsigned uni_locase(unsigned ch)
 {
-	int res;
-	BIN_SEARCH(array_elements(unicode_locase), LO_EQUAL, LO_ABOVE, ch, res);
-	if (res == -1)
-		return ch;
-	return unicode_locase[res].n;
+	return towlower(ch);
 }
 
 #define UP_EQUAL(a, b) unicode_upcase[a].o == (b)
@@ -408,15 +401,7 @@ unsigned uni_locase(unsigned ch)
 
 unsigned charset_upcase(unsigned ch, int cp)
 {
-	unsigned u;
-	int res;
-	if (ch < 0x80)
-		return upcase(ch);
-	u = cp2u(ch, cp);
-	BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, u, res);
-	if (res == -1)
-		return ch;
-	return unicode_upcase[res].n;
+	return towupper(ch);
 }
 
 void charset_upcase_string(unsigned char **chp, int cp)
@@ -431,14 +416,12 @@ unsigned char *unicode_upcase_string(unsigned char *ch)
 {
 	unsigned char *r = init_str();
 	unsigned int c;
-	int res, rl = 0;
+	int rl = 0;
 	for (;;) {
 		GET_UTF_8(ch, c);
 		if (!c)
 			break;
-		BIN_SEARCH(array_elements(unicode_upcase), UP_EQUAL, UP_ABOVE, c, res);
-		if (res != -1)
-			c = unicode_upcase[res].n;
+		c = towupper(c);
 		add_to_str(&r, &rl, encode_utf_8(c));
 	}
 	return r;
