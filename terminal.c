@@ -542,7 +542,6 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	term->spec = &gfx_term;
 	safe_strncpy(term->cwd, cwd, MAX_CWD_LEN);
 	gfx_term.character_set = 0;
-	if (gfx_term.character_set == -1) gfx_term.character_set = 0;
 	init_list(term->windows);
 	term->handle_to_close = -1;
 	win = mem_calloc(sizeof (struct window));

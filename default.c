@@ -636,7 +636,6 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 {
 	struct term_spec *ts;
 	unsigned char *w;
-	int i;
 	if (!(w = get_token(&c))) goto err;
 	ts = new_term_spec(w);
 	free(w);
@@ -655,11 +654,7 @@ static unsigned char *term_rd(struct option *o, unsigned char *c)
 	ts->block_cursor = !!((w[0] - '0') & 4);
 	free(w);
 	if (!(w = get_token(&c))) goto err;
-	if (!casestrcmp(w, cast_uchar "default"))
-		i = -1;
-	else
-		i = 0;
-	ts->character_set = i;
+	ts->character_set = 0;
 	free(w);
 	ts->left_margin = 0;
 	ts->right_margin = 0;
@@ -676,7 +671,6 @@ static unsigned char *term2_rd(struct option *o, unsigned char *c)
 {
 	struct term_spec *ts;
 	unsigned char *w;
-	int i;
 	if (!(w = get_token(&c))) goto err;
 	ts = new_term_spec(w);
 	free(w);
@@ -697,11 +691,7 @@ static unsigned char *term2_rd(struct option *o, unsigned char *c)
 	ts->col = w[0] - '0';
 	free(w);
 	if (!(w = get_token(&c))) goto err;
-	if (!casestrcmp(w, cast_uchar "default"))
-		i = -1;
-	else
-		i = 0;
-	ts->character_set = i;
+	ts->character_set = 0;
 	free(w);
 	return NULL;
 	err_f:
@@ -724,8 +714,7 @@ static void term_wr(struct option *o, unsigned char **s, int *l)
 		add_chr_to_str(s, l, ' ');
 		add_num_to_str(s, l, !!ts->col + !!ts->restrict_852 * 2 + !!ts->block_cursor * 4);
 		add_chr_to_str(s, l, ' ');
-		if (ts->character_set == -1) add_to_str(s, l, cast_uchar "default");
-		else add_to_str(s, l, get_cp_mime_name(ts->character_set));
+		add_to_str(s, l, get_cp_mime_name(ts->character_set));
 		if (ts->left_margin || ts->right_margin || ts->top_margin || ts->bottom_margin) {
 			add_chr_to_str(s, l, ' ');
 			add_num_to_str(s, l, ts->left_margin);
