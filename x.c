@@ -683,16 +683,11 @@ static int create_24bit_mapping(unsigned long red_mask, unsigned long green_mask
 	return 1;
 }
 
-static inline int trans_key(unsigned char *str, int table)
+static inline int trans_key(unsigned char *str)
 {
-	if (!table) {
-		int a;
-		GET_UTF_8(str,a);
-		return a;
-	}
-	if (*str < 128)
-		return *str;
-	return cp2u(*str,table);
+	int a;
+	GET_UTF_8(str, a);
+	return a;
 }
 
 
@@ -704,14 +699,11 @@ static int x_translate_key(struct graphics_device *dev, XKeyEvent *e, int *key, 
 	static XComposeStatus comp = { NULL, 0 };
 	static char str[16];
 #define str_size	((int)(sizeof(str) - 1))
-	int table = 0;
 	int len;
 
 	if (get_window_info(dev)->xic) {
 		Status status;
 		len = Xutf8LookupString(get_window_info(dev)->xic, e, str, str_size, &ks, &status);
-		table = 0;
-		/*fprintf(stderr, "len: %d, ks %ld, status %d\n", len, ks, status);*/
 	} else
 		len = XLookupString(e, str, str_size, &ks, &comp);
 
@@ -888,7 +880,7 @@ static int x_translate_key(struct graphics_device *dev, XKeyEvent *e, int *key, 
 		}
 		return 0;
 	} else {
-		*key = *flag & KBD_CTRL ? (int)ks & 255 : trans_key(cast_uchar str, table);
+		*key = *flag & KBD_CTRL ? (int)ks & 255 : trans_key(cast_uchar str);
 	}
 	return 1;
 }
