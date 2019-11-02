@@ -2115,8 +2115,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 	if (!fs->string) return 0;
 	if (ev->ev == EV_KBD) {
 		if (!(ev->y & (KBD_CTRL | KBD_ALT)) && ev->x >= ' ') {
-			if (cp2u(ev->x, term_charset(ses->term)) == -1)
-				goto done;
 			set_br_pos(f, l);
 			if (!form->ro && strlen((char *)fs->string) < form->maxlength) {
 				unsigned char *v;

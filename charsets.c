@@ -57,15 +57,6 @@ unsigned char *u2cp(int u)
 	return encode_utf_8(u);
 }
 
-int cp2u(unsigned ch, int from)
-{
-	if (!from)
-		return ch;
-	if (from < 0 || ch < 0x80)
-		return ch;
-	return -1;
-}
-
 static unsigned char utf_buffer[7];
 
 unsigned char *encode_utf_8(int u)

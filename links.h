@@ -2855,7 +2855,6 @@ unsigned char *get_cp_mime_name(int);
 void free_conv_table(void);
 unsigned char *encode_utf_8(int);
 unsigned char *u2cp(int u);
-int cp2u(unsigned, int);
 
 unsigned uni_locase(unsigned);
 unsigned charset_upcase(unsigned, int);

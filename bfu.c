@@ -1516,8 +1516,6 @@ void dialog_func(struct window *win, struct links_event *ev, int fwd)
 			if (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
 				unsigned char *u;
 				unsigned char p[2] = { 0, 0 };
-				if (cp2u(ev->x, term_charset(term)) == -1)
-					break;
 				if (!is_utf_8(term)) {
 					p[0] = (unsigned char)ev->x;
 					u = p;

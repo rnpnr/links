@@ -224,11 +224,8 @@ static unsigned char *get_url_val(unsigned char *e, unsigned char *name)
 	need_convert:
 	c = init_str();
 	l = 0;
-	for (p = a; *p; p++) {
-		int u = cp2u(*p, d_opt->real_cp);
-		unsigned char *us = encode_utf_8(u);
-		add_to_str(&c, &l, us);
-	}
+	for (p = a; *p; p++)
+		add_to_str(&c, &l, encode_utf_8(*p));
 	free(a);
 	return c;
 }
