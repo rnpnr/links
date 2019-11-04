@@ -50,8 +50,6 @@ static const unsigned char strings[256][2] = {
 	"\370", "\371", "\372", "\373", "\374", "\375", "\376", "\377",
 };
 
-static const unsigned char no_str[] = "*";
-
 unsigned char *u2cp(int u)
 {
 	return encode_utf_8(u);
@@ -126,20 +124,11 @@ static struct conv_table *get_translation_table_to_utf_8(int from)
 		utf_table_init = 0;
 	} else
 		free_utf_table();
-	if (!from) {
-		for (i = 128; i < 256; i += 4) {
-			utf_table[i].u.str = stracpy(strings[i]);
-			utf_table[i + 1].u.str = stracpy(strings[i + 1]);
-			utf_table[i + 2].u.str = stracpy(strings[i + 2]);
-			utf_table[i + 3].u.str = stracpy(strings[i + 3]);
-		}
-		return utf_table;
-	}
 	for (i = 128; i < 256; i += 4) {
-		utf_table[i].u.str = stracpy(no_str);
-		utf_table[i + 1].u.str = stracpy(no_str);
-		utf_table[i + 2].u.str = stracpy(no_str);
-		utf_table[i + 3].u.str = stracpy(no_str);
+		utf_table[i].u.str = stracpy(strings[i]);
+		utf_table[i + 1].u.str = stracpy(strings[i + 1]);
+		utf_table[i + 2].u.str = stracpy(strings[i + 2]);
+		utf_table[i + 3].u.str = stracpy(strings[i + 3]);
 	}
 	return utf_table;
 }

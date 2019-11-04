@@ -89,8 +89,8 @@ static void alloc_term_screen(struct terminal *term)
 		term->x = 1;
 	if (term->y < 0)
 		term->y = 1;
-	if ((term->x && (unsigned)term->x * (unsigned)term->y / (unsigned)term->x != (unsigned)term->y)
-	|| (unsigned)term->x * (unsigned)term->y > INT_MAX / sizeof(*term->screen))
+	if ((term->x && term->x * term->y / term->x != term->y)
+	|| term->x * term->y > INT_MAX / sizeof(*term->screen))
 		overalloc();
 	s = xrealloc(term->screen, term->x * term->y * sizeof(*term->screen));
 	t = xrealloc(term->last_screen,
@@ -1117,21 +1117,21 @@ void set_cursor(struct terminal *term, int x, int y, int altx, int alty)
 	term->cy = y;
 }
 
-void exec_thread(void *path_, int p)
+static void exec_thread(void *path_, int p)
 {
-	unsigned char *path = (unsigned char *)path_;
+	char *path = path_;
 	int rs;
 	if (path[0] == 2)
 		EINTRLOOP(rs, setpgid(0, 0));
 	exe(path + 1, path[0]);
-	if (path[1 + strlen(cast_const_char(path + 1)) + 1])
-		EINTRLOOP(rs, unlink(cast_const_char(path + 1 + strlen(cast_const_char(path + 1)) + 1)));
+	if (path[1 + strlen(path + 1) + 1])
+		EINTRLOOP(rs, unlink(path + 1 + strlen(path + 1) + 1));
 }
 
-void close_handle(void *p)
+static void close_handle(void *p)
 {
-	int h = (int)(long)p;
-	close_socket(&h);
+	int *h = p;
+	close_socket(h);
 }
 
 static void unblock_terminal(void *term_)

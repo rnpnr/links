@@ -2430,14 +2430,14 @@ static void addchr(char *str, size_t *l, char c)
 	s[*l] = 0;
 }
 
-static int x_exec(unsigned char *command, int fg)
+static int x_exec(char *command, int fg)
 {
 	char *pattern, *final;
 	size_t i, j, l;
 	int retval;
 
 	if (!fg) {
-		retval = system(cast_const_char command);
+		retval = system(command);
 		return retval;
 	}
 
@@ -2458,8 +2458,8 @@ static int x_exec(unsigned char *command, int fg)
 	l = 0;
 	for (i = 0; pattern[i]; i++) {
 		if (pattern[i] == '%')
-			for (j = 0; j < strlen((char *)command); j++)
-				addchr(final, &l, (char)command[j]);
+			for (j = 0; j < strlen(command); j++)
+				addchr(final, &l, command[j]);
 		else
 			addchr(final, &l, pattern[i]);
 	}

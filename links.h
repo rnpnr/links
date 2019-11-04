@@ -340,7 +340,7 @@ void ignore_signals(void);
 int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);
 unsigned char *os_fixup_external_program(unsigned char *);
-int exe(unsigned char *, int);
+int exe(char *, int);
 int can_open_os_shell(int);
 unsigned char *links_xterm(void);
 struct open_in_new *get_open_in_new(int);
@@ -1105,7 +1105,7 @@ struct graphics_driver {
 		/* set window title. title is in utf-8 encoding -- you should recode it to device charset */
 		/* if device doesn't support titles (svgalib, framebuffer), this should be NULL, not empty function ! */
 
-	int (*exec)(unsigned char *command, int flag);
+	int (*exec)(char *command, int flag);
 		/* -if !NULL executes command on this graphics device,
 		   -if NULL links uses generic (console) command executing
 		    functions
@@ -1598,8 +1598,6 @@ void set_cursor(struct terminal *, int, int, int, int);
 void destroy_all_terminals(void);
 void block_itrm(int);
 int unblock_itrm(int);
-void exec_thread(void *, int);
-void close_handle(void *);
 
 #define TERM_FN_TITLE	1
 #define TERM_FN_RESIZE	2

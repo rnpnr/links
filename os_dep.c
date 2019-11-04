@@ -347,7 +347,7 @@ unsigned char *os_fixup_external_program(unsigned char *prog)
 }
 
 /* UNIX */
-int exe(unsigned char *path, int fg)
+int exe(char *path, int fg)
 {
 #ifdef SIGCHLD
 	do_signal(SIGCHLD, SIG_DFL);
@@ -368,7 +368,7 @@ int exe(unsigned char *path, int fg)
 #ifdef G
 	if (F && drv->exec) return drv->exec(path, fg);
 #endif
-	return system(cast_const_char path);
+	return system(path);
 }
 
 /* clipboard -> links */
