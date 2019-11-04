@@ -408,12 +408,9 @@ void free_term_specs(void)
 }
 
 static struct term_spec dumb_term = { init_list_1st(NULL) "", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, init_list_last(NULL) };
-static struct term_spec cygwin_term = { init_list_1st(NULL) "", 2, 1, 1, 0, 1, 0, 0, 0, 0, 0, init_list_last(NULL) };
 
 static struct term_spec *default_term_spec(unsigned char *term)
 {
-	if (!casestrcmp(term, cast_uchar "cygwin"))
-		return &cygwin_term;
 	return &dumb_term;
 }
 
@@ -935,10 +932,6 @@ void destroy_terminal(void *term_)
 #endif
 	while (!list_empty(term->windows)) {
 		delete_window(list_struct(term->windows.next, struct window));
-	}
-	if (!F && !casestrcmp(term->term, cast_uchar "cygwin")) {
-		clear_terminal(term);
-		redraw_screen(term);
 	}
 	del_from_list(term);
 	close_socket(&term->blocked);
