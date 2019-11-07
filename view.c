@@ -130,7 +130,8 @@ void sort_links(struct f_data *f)
 {
 	int i;
 	if (F) return;
-	if (f->nlinks) qsort(f->links, f->nlinks, sizeof(struct link), (int (*)(const void *, const void *))comp_links);
+	if (f->nlinks)
+		qsort(f->links, f->nlinks, sizeof(struct link), comp_links);
 	if ((unsigned)f->y > INT_MAX / sizeof(struct link *)) overalloc();
 	f->lines1 = mem_calloc(f->y * sizeof(struct link *));
 	f->lines2 = mem_calloc(f->y * sizeof(struct link *));
@@ -1128,6 +1129,7 @@ int dump_to_file(struct f_data *fd, int h)
 		if ((retval = hard_write(h, head, (int)strlen(cast_const_char head))) != (int)strlen(cast_const_char head))
 			goto fail;
 		for (i = 0; i < fd->nlinks; i++) {
+			struct form_control *fc;
 			struct link *lnk = &fd->links[i];
 			unsigned char *s = init_str();
 			int l = 0;
@@ -1139,7 +1141,7 @@ int dump_to_file(struct f_data *fd, int h)
 				add_to_str(&s, &l, cast_uchar "Image: ");
 				add_to_str(&s, &l, lnk->where_img);
 			} else if (lnk->type == L_BUTTON) {
-				struct form_control *fc = lnk->form;
+				fc = lnk->form;
 				if (fc->type == FC_RESET) add_to_str(&s, &l, cast_uchar "Reset form");
 				else if (fc->type == FC_BUTTON || !fc->action) add_to_str(&s, &l, cast_uchar "Button");
 				else {
@@ -1148,15 +1150,32 @@ int dump_to_file(struct f_data *fd, int h)
 					add_to_str(&s, &l, fc->action);
 				}
 			} else if (lnk->type == L_CHECKBOX || lnk->type == L_SELECT || lnk->type == L_FIELD || lnk->type == L_AREA) {
-				struct form_control *fc = lnk->form;
-				if (fc->type == FC_RADIO) add_to_str(&s, &l, cast_uchar "Radio button");
-				else if (fc->type == FC_CHECKBOX) add_to_str(&s, &l, cast_uchar "Checkbox");
-				else if (fc->type == FC_SELECT) add_to_str(&s, &l, cast_uchar "Select field");
-				else if (fc->type == FC_TEXT) add_to_str(&s, &l, cast_uchar "Text field");
-				else if (fc->type == FC_TEXTAREA) add_to_str(&s, &l, cast_uchar "Text area");
-				else if (fc->type == FC_FILE_UPLOAD) add_to_str(&s, &l, cast_uchar "File upload");
-				else if (fc->type == FC_PASSWORD) add_to_str(&s, &l, cast_uchar "Password field");
-				else goto unknown;
+				fc = lnk->form;
+				switch (fc->type) {
+				case FC_RADIO:
+					add_to_str(&s, &l, cast_uchar "Radio button");
+					break;
+				case FC_CHECKBOX:
+					add_to_str(&s, &l, cast_uchar "Checkbox");
+					break;
+				case FC_SELECT:
+					add_to_str(&s, &l, cast_uchar "Select field");
+					break;
+				case FC_TEXT:
+					add_to_str(&s, &l, cast_uchar "Text field");
+					break;
+				case FC_TEXTAREA:
+					add_to_str(&s, &l, cast_uchar "Text area");
+					break;
+				case FC_FILE_UPLOAD:
+					add_to_str(&s, &l, cast_uchar "File upload");
+					break;
+				case FC_PASSWORD:
+					add_to_str(&s, &l, cast_uchar "Password field");
+					break;
+				default:
+					goto unknown;
+				}
 				if (fc->name && fc->name[0]) {
 					add_to_str(&s, &l, cast_uchar ", Name ");
 					add_to_str(&s, &l, fc->name);
@@ -1224,10 +1243,11 @@ static int next_in_view(struct f_data_c *f, int p, int d, int (*fn)(struct f_dat
 	int yl = f->vs->view_pos + f->yw;
 	if (yl > f->f_data->y) yl = f->f_data->y;
 	for (y = f->vs->view_pos < 0 ? 0 : f->vs->view_pos; y < yl; y++) {
-		if (f->f_data->lines1[y] && f->f_data->lines1[y] - f->f_data->links < p1) p1 = (int)(f->f_data->lines1[y] - f->f_data->links);
-		if (f->f_data->lines2[y] && f->f_data->lines2[y] - f->f_data->links > p2) p2 = (int)(f->f_data->lines2[y] - f->f_data->links);
+		if (f->f_data->lines1[y] && f->f_data->lines1[y] - f->f_data->links < p1)
+			p1 = (int)(f->f_data->lines1[y] - f->f_data->links);
+		if (f->f_data->lines2[y] && f->f_data->lines2[y] - f->f_data->links > p2)
+			p2 = (int)(f->f_data->lines2[y] - f->f_data->links);
 	}
-	/*while (p >= 0 && p < f->f_data->nlinks) {*/
 	while (p >= p1 && p <= p2) {
 		if (fn(f, &f->f_data->links[p])) {
 			f->vs->current_link = p;
@@ -1254,7 +1274,6 @@ static void set_pos_x(struct f_data_c *f, struct link *l)
 		}
 	}
 	if (xl == INT_MAX) return;
-	/*if ((f->vs->view_posx = xm - f->xw) > xl) f->vs->view_posx = xl;*/
 	if (f->vs->view_posx + f->xw < xm) f->vs->view_posx = xm - f->xw;
 	if (f->vs->view_posx > xl) f->vs->view_posx = xl;
 	f->vs->orig_view_posx = f->vs->view_posx;
@@ -1269,7 +1288,8 @@ static void set_pos_y(struct f_data_c *f, struct link *l)
 		if (l->pos[i].y >= ym) ym = l->pos[i].y + 1;
 		if (l->pos[i].y < yl) yl = l->pos[i].y;
 	}
-	if ((f->vs->view_pos = (ym + yl) / 2 - f->yw / 2) > f->f_data->y - f->yw) f->vs->view_pos = f->f_data->y - f->yw;
+	if ((f->vs->view_pos = (ym + yl) / 2 - f->yw / 2) > f->f_data->y - f->yw)
+		f->vs->view_pos = f->f_data->y - f->yw;
 	if (f->vs->view_pos < 0) f->vs->view_pos = 0;
 	f->vs->orig_view_pos = f->vs->view_pos;
 }
@@ -1291,7 +1311,8 @@ static void find_link(struct f_data_c *f, int p, int s)
 	if (y < 0 || y >= f->f_data->y) goto nolink;
 	link = NULL;
 	do {
-		if (line[y] && (!link || (p > 0 ? line[y] < link : line[y] > link))) link = line[y];
+		if (line[y] && (!link || (p > 0 ? line[y] < link : line[y] > link)))
+			link = line[y];
 		y += p;
 	} while (!(y < 0 || y < f->vs->view_pos || y >= f->vs->view_pos + f->yw || y >= f->f_data->y));
 	if (!link) goto nolink;
@@ -1432,8 +1453,6 @@ static unsigned char *encode_textarea(unsigned char *t)
 
 static int compare_submitted(struct submitted_value *sub1, struct submitted_value *sub2)
 {
-	/*int c = (sub1->type == FC_IMAGE) - (sub2->type == FC_IMAGE);
-	if (c) return c;*/
 	return sub1->position - sub2->position;
 }
 
@@ -1458,39 +1477,36 @@ static void get_succesful_controls(struct f_data_c *f, struct form_control *fc, 
 			sub->type = form->type;
 			sub->name = stracpy(form->name);
 			switch (form->type) {
-				case FC_TEXT:
-				case FC_PASSWORD:
-				case FC_FILE_UPLOAD:
-					sub->value = stracpy(fs->string);
-					break;
-				case FC_TEXTAREA:
-					sub->value = encode_textarea(fs->string);
-					break;
-				case FC_CHECKBOX:
-				case FC_RADIO:
-				case FC_SUBMIT:
-				case FC_HIDDEN:
+			case FC_TEXT:
+			case FC_PASSWORD:
+			case FC_FILE_UPLOAD:
+				sub->value = stracpy(fs->string);
+				break;
+			case FC_TEXTAREA:
+				sub->value = encode_textarea(fs->string);
+				break;
+			case FC_CHECKBOX:
+			case FC_RADIO:
+			case FC_SUBMIT:
+			case FC_HIDDEN:
+				sub->value = encode_textarea(form->default_value);
+				break;
+			case FC_SELECT:
+				fixup_select_state(form, fs);
+				sub->value = encode_textarea(fs->string);
+				break;
+			case FC_IMAGE:
+				if (fi == -1) {
 					sub->value = encode_textarea(form->default_value);
 					break;
-				case FC_SELECT:
-					fixup_select_state(form, fs);
-					sub->value = encode_textarea(fs->string);
-					break;
-				case FC_IMAGE:
-					if (fi == -1) {
-						sub->value = encode_textarea(form->default_value);
-						break;
-					}
-					add_to_strn(&sub->name, fi ? cast_uchar ".x" : cast_uchar ".y");
-					/*sub->value = stracpy("0");*/
-					sub->value = init_str();
-					svl = 0;
-					add_num_to_str(&sub->value, &svl, fi ? ismap_x : ismap_y);
-					break;
-				default:
-					internal("bad form control type");
-					free(sub);
-					continue;
+				}
+				add_to_strn(&sub->name, fi ? cast_uchar ".x" : cast_uchar ".y");
+				sub->value = init_str();
+				svl = 0;
+				add_num_to_str(&sub->value, &svl, fi ? ismap_x : ismap_y);
+				break;
+			default:
+				internal("bad form control type");
 			}
 			sub->position = form->form_num + form->ctrl_num;
 			add_to_list(*subm, sub);
@@ -2009,9 +2025,6 @@ void selected_item(struct terminal *term, void *pitem, void *ses_)
 	draw_to_window(ses->win, draw_doc, f);
 	change_screen_status(ses);
 	print_screen_status(ses);
-	/*if (!has_form_submit(f->f_data, l->form)) {
-		goto_form(ses, f, l->form, l->target);
-	}*/
 }
 
 int get_current_state(struct session *ses)
@@ -2094,10 +2107,6 @@ static int textarea_adjust_viewport(struct f_data_c *fd, struct link *l)
 	return r;
 }
 
-static void set_br_pos(struct f_data_c *fd, struct link *l)
-{
-}
-
 int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct links_event *ev)
 {
 	struct form_control *form = l->form;
@@ -2115,7 +2124,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 	if (!fs->string) return 0;
 	if (ev->ev == EV_KBD) {
 		if (!(ev->y & (KBD_CTRL | KBD_ALT)) && ev->x >= ' ') {
-			set_br_pos(f, l);
 			if (!form->ro && strlen((char *)fs->string) < form->maxlength) {
 				unsigned char *v;
 				unsigned char a_[2];
@@ -2227,10 +2235,8 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 				f->vs->brl_in_field = 0;
 			}
 		} else if ((ev->x == KBD_INS && ev->y & KBD_CTRL) || (upcase(ev->x) == 'B' && ev->y & KBD_CTRL) || ev->x == KBD_COPY) {
-			set_br_pos(f, l);
 			set_clipboard_text(ses->term, fs->string);
 		} else if ((ev->x == KBD_DEL && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'X' && ev->y & KBD_CTRL) || ev->x == KBD_CUT) {
-			set_br_pos(f, l);
 			set_clipboard_text(ses->term, fs->string);
 			if (!form->ro) {
 				free_format_text_cache_entry(fs);
@@ -2239,7 +2245,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			fs->state = 0;
 		} else if ((ev->x == KBD_INS && ev->y & KBD_SHIFT) || (upcase(ev->x) == 'V' && ev->y & KBD_CTRL) || ev->x == KBD_PASTE) {
 			unsigned char *clipboard;
-			set_br_pos(f, l);
 			clipboard = get_clipboard_text(ses->term);
 			if (!clipboard) goto done;
 			if (form->type != FC_TEXTAREA) {
@@ -2260,7 +2265,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 		} else if (ev->x == KBD_ENTER)
 			r = 0;
 		else if (ev->x == KBD_BS) {
-			set_br_pos(f, l);
 			if (!form->ro && fs->state) {
 				int ll = 1;
 				free_format_text_cache_entry(fs);
@@ -2276,7 +2280,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			int ll = 1;
 			if (!F && ev->x == KBD_DEL && !f->last_captured)
 				return 0;
-			set_br_pos(f, l);
 			if (!f->f_data->opt.cp) {
 				unsigned char *p = fs->string+ fs->state;
 				FWD_UTF_8(p);
@@ -2288,7 +2291,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			}
 		} else if (upcase(ev->x) == 'U' && ev->y & KBD_CTRL) {
 			unsigned char *a;
-			set_br_pos(f, l);
 			a = memacpy(fs->string, fs->state);
 			set_clipboard_text(ses->term, a);
 			free(a);
@@ -2298,7 +2300,6 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			}
 			fs->state = 0;
 		} else if (upcase(ev->x) == 'K' && ev->y & KBD_CTRL) {
-			set_br_pos(f, l);
 			if (!form->ro) {
 				if (form->type == FC_TEXTAREA) {
 					ftce = format_text(f, form, fs);
@@ -2765,10 +2766,8 @@ static int send_to_frame(struct session *ses, struct links_event *ev)
 	int r;
 	struct f_data_c *fd;
 	fd = current_frame(ses);
-	if (!fd) {
-		/*internal("document not formatted");*/
+	if (!fd)
 		return 0;
-	}
 
 	if (!F) r = frame_ev(ses, fd, ev);
 #ifdef G
@@ -2781,8 +2780,6 @@ static int send_to_frame(struct session *ses, struct links_event *ev)
 		print_screen_status(ses);
 	}
 	if (r == 3) draw_fd_nrd(fd);
-	if (!F && fd->vs) {
-	}
 	return r;
 }
 
@@ -2823,7 +2820,6 @@ void next_frame(struct session *ses, int p)
 #ifdef G
 	if (F && (fd = current_frame(ses)) && fd->vs && fd->f_data) {
 		if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
-			/*fd->vs->g_display_link = 1;*/
 			if (fd->vs->g_display_link && (fd->f_data->links[fd->vs->current_link].type == L_FIELD || fd->f_data->links[fd->vs->current_link].type == L_AREA)) {
 				if ((fd->f_data->locked_on = fd->f_data->links[fd->vs->current_link].obj)) fd->ses->locked_link = 1;
 			}
@@ -2835,10 +2831,8 @@ void next_frame(struct session *ses, int p)
 void do_for_frame(struct session *ses, void (*f)(struct session *, struct f_data_c *, int), int a)
 {
 	struct f_data_c *fd = current_frame(ses);
-	if (!fd) {
-		/*internal("document not formatted");*/
+	if (!fd)
 		return;
-	}
 	f(ses, fd, a);
 	if (!F) {
 		fd->active = 1;
@@ -2955,12 +2949,6 @@ void send_event(struct session *ses, struct links_event *ev)
 			dialog_html_options(ses);
 			goto x;
 		}
-		/*
-		if (upcase(ev->x) == 'A' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
-			if (!anonymous) menu_bookmark_manager(ses->term, NULL, ses);
-			goto x;
-		}
-		*/
 		if ((upcase(ev->x) == 'S' && !(ev->y & (KBD_CTRL | KBD_ALT))) || ev->x == KBD_BOOKMARKS) {
 			if (!anonymous) menu_bookmark_manager(ses->term, NULL, ses);
 			goto x;
@@ -3129,7 +3117,7 @@ static void send_submit(struct terminal *term, void *xxx, void *ses_)
 
 static void send_reset(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	struct form_control *form;
 	struct f_data_c *fd = current_frame(ses);
 	struct link *link = get_current_link(fd);
@@ -3142,7 +3130,7 @@ static void send_reset(struct terminal *term, void *xxx, void *ses_)
 
 static void copy_link_location(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	unsigned char *current_link = print_current_link(ses);
 
 	if (current_link) {
@@ -3154,7 +3142,7 @@ static void copy_link_location(struct terminal *term, void *xxx, void *ses_)
 
 void copy_url_location(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	struct location *current_location;
 	unsigned char *url;
 
@@ -3225,7 +3213,7 @@ static void send_open_in_new_xterm(struct terminal *term, void *open_window_, vo
 static void send_open_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 {
 	int (*open_window)(struct terminal *, unsigned char *, unsigned char *) = *(int (* const *)(struct terminal *, unsigned char *, unsigned char *))open_window_;
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	unsigned char *p = init_str();
 	int pl = 0;
 	unsigned char *path;
@@ -3242,7 +3230,7 @@ void (* const send_open_new_xterm_ptr)(struct terminal *, void *fn_, void *ses_)
 
 void open_in_new_window(struct terminal *term, void *fn_, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	void (*fn)(struct terminal *, void *, void *) = *(void (* const *)(struct terminal *, void *, void *))fn_;
 	struct menu_item *mi;
 	struct open_in_new *oin, *oi;
@@ -3253,7 +3241,8 @@ void open_in_new_window(struct terminal *term, void *fn_, void *ses_)
 		return;
 	}
 	mi = new_menu(MENU_FREE_ITEMS);
-	for (oi = oin; oi->text; oi++) add_to_menu(&mi, oi->text, cast_uchar "", oi->hk, fn, (void *)oi->open_window_fn, 0, -1);
+	for (oi = oin; oi->text; oi++)
+		add_to_menu(&mi, oi->text, cast_uchar "", oi->hk, fn, (void *)oi->open_window_fn, 0, -1);
 	free(oin);
 	do_menu(term, mi, ses);
 }
@@ -3290,7 +3279,7 @@ void save_url(void *ses_, unsigned char *url)
 
 static void send_image(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	unsigned char *u;
 	struct f_data_c *fd = current_frame(ses);
 	struct link *l;
@@ -3304,7 +3293,7 @@ static void send_image(struct terminal *term, void *xxx, void *ses_)
 
 static void send_scale(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	ses->ds.porn_enable ^= 1;
 	html_interpret_recursive(ses->screen);
 	draw_formatted(ses);
@@ -3314,7 +3303,7 @@ static void send_scale(struct terminal *term, void *xxx, void *ses_)
 
 void save_as(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	unsigned char *head;
 	if (list_empty(ses->history)) return;
 	free(ses->dn_url);
@@ -3355,7 +3344,7 @@ static void save_formatted(struct session *ses, unsigned char *file, int mode)
 
 void menu_save_formatted(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	struct f_data_c *f;
 	if (!(f = current_frame(ses)) || !f->f_data) return;
 	query_file(ses, f->rq->url, NULL, save_formatted, NULL, DOWNLOAD_OVERWRITE);
@@ -3363,7 +3352,7 @@ void menu_save_formatted(struct terminal *term, void *xxx, void *ses_)
 
 void link_menu(struct terminal *term, void *xxx, void *ses_)
 {
-	struct session *ses = (struct session *)ses_;
+	struct session *ses = ses_;
 	struct f_data_c *f = current_frame(ses);
 	struct link *link;
 	struct menu_item *mi;
@@ -3464,7 +3453,7 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 	int ll = 0;
 	struct link *l;
 	unsigned char *d;
-	unsigned char *m = NULL /* shut up warning */;
+	unsigned char *m = NULL;
 	if (!fd || !fd->vs || !fd->f_data) return NULL;
 	if (fd->vs->current_link == -1 || fd->vs->current_link >= fd->f_data->nlinks || fd->f_data->frame_desc) return NULL;
 	l = &fd->f_data->links[fd->vs->current_link];
@@ -3528,14 +3517,29 @@ static unsigned char *print_current_linkx(struct f_data_c *fd, struct terminal *
 	if (l->type == L_CHECKBOX || l->type == L_SELECT || l->type == L_FIELD || l->type == L_AREA) {
 		m = init_str();
 		ll = 0;
-		if (l->form->type == FC_RADIO) add_to_str(&m, &ll, get_text_translation(TEXT_(T_RADIO_BUTTON), term));
-		else if (l->form->type == FC_CHECKBOX) add_to_str(&m, &ll, get_text_translation(TEXT_(T_CHECKBOX), term));
-		else if (l->form->type == FC_SELECT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SELECT_FIELD), term));
-		else if (l->form->type == FC_TEXT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_FIELD), term));
-		else if (l->form->type == FC_TEXTAREA) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_AREA), term));
-		else if (l->form->type == FC_FILE_UPLOAD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
-		else if (l->form->type == FC_PASSWORD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_PASSWORD_FIELD), term));
-		else {
+		switch (l->form->type) {
+		case FC_RADIO:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_RADIO_BUTTON), term));
+			break;
+		case FC_CHECKBOX:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_CHECKBOX), term));
+			break;
+		case FC_SELECT:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_SELECT_FIELD), term));
+			break;
+		case FC_TEXT:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_FIELD), term));
+			break;
+		case FC_TEXTAREA:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_AREA), term));
+			break;
+		case FC_FILE_UPLOAD:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
+			break;
+		case FC_PASSWORD:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_PASSWORD_FIELD), term));
+			break;
+		default:
 			free(m);
 			return NULL;
 		}
@@ -3582,7 +3586,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 	int ll = 0;
 	struct link *l;
 	unsigned char *d;
-	unsigned char *m = NULL /* shut up warning */;
+	unsigned char *m = NULL;
 	if (!fd || !fd->vs || !fd->f_data) return NULL;
 	if (fd->vs->current_link == -1 || fd->vs->current_link >= fd->f_data->nlinks || fd->f_data->frame_desc) return NULL;
 	l = &fd->f_data->links[fd->vs->current_link];
@@ -3668,14 +3672,29 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 	if (l->type == L_CHECKBOX || l->type == L_SELECT || l->type == L_FIELD || l->type == L_AREA) {
 		m = init_str();
 		ll = 0;
-		if (l->form->type == FC_RADIO) add_to_str(&m, &ll, get_text_translation(TEXT_(T_RADIO_BUTTON), term));
-		else if (l->form->type == FC_CHECKBOX) add_to_str(&m, &ll, get_text_translation(TEXT_(T_CHECKBOX), term));
-		else if (l->form->type == FC_SELECT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_SELECT_FIELD), term));
-		else if (l->form->type == FC_TEXT) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_FIELD), term));
-		else if (l->form->type == FC_TEXTAREA) add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_AREA), term));
-		else if (l->form->type == FC_FILE_UPLOAD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
-		else if (l->form->type == FC_PASSWORD) add_to_str(&m, &ll, get_text_translation(TEXT_(T_PASSWORD_FIELD), term));
-		else {
+		switch (l->form->type) {
+		case FC_RADIO:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_RADIO_BUTTON), term));
+			break;
+		case FC_CHECKBOX:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_CHECKBOX), term));
+			break;
+		case FC_SELECT:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_SELECT_FIELD), term));
+			break;
+		case FC_TEXT:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_FIELD), term));
+			break;
+		case FC_TEXTAREA:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_TEXT_AREA), term));
+			break;
+		case FC_FILE_UPLOAD:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_FILE_UPLOAD), term));
+			break;
+		case FC_PASSWORD:
+			add_to_str(&m, &ll, get_text_translation(TEXT_(T_PASSWORD_FIELD), term));
+			break;
+		default:
 			free(m);
 			return NULL;
 		}
