@@ -1145,18 +1145,13 @@ static void unblock_terminal(void *term_)
 		/* clear the dirty flag because unblock_itrm queued a resize
 		   event - so avoid double redraw */
 		term->dirty = 0;
-		/*redraw_terminal_cls(term);*/
 	}
 }
 
 #ifdef G
 int have_extra_exec(void)
 {
-#ifdef NO_FG_EXEC
-	return 0;
-#else
 	return F && drv->exec;
-#endif
 }
 #endif
 
@@ -1165,15 +1160,6 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 	int rs;
 	if (path && !*path) return;
 	if (!path) path = cast_uchar "";
-#ifdef NO_FG_EXEC
-	fg = 0;
-#endif
-#ifdef HAVE_EXE_ON_BACKGROUND
-	if (*path) {
-		rs = exe_on_background(path, delet);
-		if (!rs) return;
-	}
-#endif
 	if (term->master) {
 		if (!*path) {
 			if (!F) dispatch_special(delet);
@@ -1209,7 +1195,6 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 				term->blocked = blockh;
 				set_handlers(blockh, unblock_terminal, NULL, term);
 				if (!F) set_handlers(term->fdin, NULL, NULL, term);
-				/*block_itrm(term->fdin);*/
 			} else {
 				set_handlers(blockh, close_handle, NULL, &blockh);
 			}
@@ -1252,12 +1237,6 @@ void set_terminal_title(struct terminal *term, unsigned char *title)
 	if (term->title && !strcmp(cast_const_char title, cast_const_char term->title)) goto ret;
 	free(term->title);
 	term->title = stracpy(title);
-#ifdef SET_WINDOW_TITLE_UTF_8
-	{
-		free(title);
-		title = convert(term_charset(term), 0, term->title, NULL);
-	}
-#endif
 	if (!F) do_terminal_function(term, TERM_FN_TITLE, title);
 #ifdef G
 	else if (drv->set_title) drv->set_title(term->dev, title);
