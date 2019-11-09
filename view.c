@@ -2339,12 +2339,20 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			y = 0;
 		}
 			
-		if ((ev->b & BM_BUTT) == B_WHEELUP1)
+		if ((ev->b & BM_BUTT) == B_WHEELUP)
+			ydiff = form->rows >= 5 ? -5 : -form->rows;
+		else if ((ev->b & BM_BUTT) == B_WHEELUP1)
 			ydiff = -1;
+		else if ((ev->b & BM_BUTT) == B_WHEELDOWN)
+			ydiff = form->rows >= 5 ? 5 : form->rows;
 		else if ((ev->b & BM_BUTT) == B_WHEELDOWN1)
 			ydiff = 1;
+		else if ((ev->b & BM_BUTT) == B_WHEELLEFT)
+			xdiff = form->cols >= 5 ? -5 : -form->cols;
 		else if ((ev->b & BM_BUTT) == B_WHEELLEFT1)
 			xdiff = -1;
+		else if ((ev->b & BM_BUTT) == B_WHEELRIGHT)
+			xdiff = form->cols >= 5 ? 5 : form->cols;
 		else if ((ev->b & BM_BUTT) == B_WHEELRIGHT1)
 			xdiff = 1;
 

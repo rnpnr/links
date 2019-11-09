@@ -1108,10 +1108,18 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				}
 				return 1;
 			}
+			if ((ev->b & BM_BUTT) == B_WHEELUP)
+				return scroll_v(fd, -64);
+			if ((ev->b & BM_BUTT) == B_WHEELDOWN)
+				return scroll_v(fd, 64);
 			if ((ev->b & BM_BUTT) == B_WHEELUP1)
 				return scroll_v(fd, -16);
 			if ((ev->b & BM_BUTT) == B_WHEELDOWN1)
 				return scroll_v(fd, 16);
+			if ((ev->b & BM_BUTT) == B_WHEELLEFT)
+				return scroll_h(fd, -64);
+			if ((ev->b & BM_BUTT) == B_WHEELRIGHT)
+				return scroll_h(fd, 64);
 			if ((ev->b & BM_BUTT) == B_WHEELLEFT1)
 				return scroll_h(fd, -16);
 			if ((ev->b & BM_BUTT) == B_WHEELRIGHT1)
@@ -1148,6 +1156,7 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 			if (fd->hsb && ev_in_rect(ev, 0, fd->yw - G_SCROLL_BAR_WIDTH, fd->xw, fd->yw)) return 0;
 
 			if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_MIDDLE) {
+				scrll:
 				ses->scrolltype = ev->x + fd->vs->view_posx;
 				ses->scrolloff = ev->y + fd->vs->view_pos;
 				ses->scrolling = 2;
@@ -1218,6 +1227,8 @@ int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev)
 				fd->f_data->start_highlight_x = -1;
 				fd->f_data->start_highlight_y = -1;
 			}
+
+			if ((ev->b & BM_ACT) == B_DOWN && (ev->b & BM_BUTT) == B_RIGHT && fd->vs->current_link == -1) goto scrll;
 			break;
 		case EV_KBD:
 			if (ses->locked_link && fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks && (fd->f_data->links[fd->vs->current_link].type == L_FIELD || fd->f_data->links[fd->vs->current_link].type == L_AREA)) {
