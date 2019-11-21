@@ -22,11 +22,13 @@ static struct g_object_image *global_goi;
 struct cached_image *global_cimg;
 int end_callback_hit;
 
-static int is_image_size_sane(int x, int y)
+static int is_image_size_sane(ssize_t x, ssize_t y)
 {
-	unsigned a = (unsigned)x * (unsigned)y * 6;
-	if (y && a / (unsigned)y / 6 != (unsigned)x)
-		return 0;
+	size_t a;
+	if (x < 0 || y < 0) return 0;
+	if (x >= INT_MAX || y >= INT_MAX) return 0;
+	a = x * y * (drv->depth & 7);
+	if (y && a / y / (drv->depth & 7) != x) return 0;
 	return a < INT_MAX;
 }
 
@@ -114,48 +116,50 @@ void img_destruct_cached_image(struct cached_image *cimg)
  * Input may be 0. In this case output=0.
  * If input is >0 the output is also >0.
  */
-static int img_scale_h(unsigned scale, int in){
-	int out;
+static size_t img_scale_h(unsigned scale, ssize_t in)
+{
+	ssize_t out;
 	/* We assume unsigned long holds at least 32 bits */
 	unsigned long pre;
 
 	if (in<=0) return in;
 	pre=((unsigned long)(aspect<65536UL?65536UL:aspect)*scale+128)>>8;
-	out=(int)(((unsigned long)in*pre+12800UL)/25600UL);
+	out = (in * pre + 12800UL) / 25600UL;
 	if (out<1) out=1;
 	return out;
 }
 
-static int img_scale_v(unsigned scale, int in){
-	int out;
+static ssize_t img_scale_v(unsigned scale, ssize_t in)
+{
+	ssize_t out;
 	unsigned long divisor;
 
 	if (in<=0) return in;
 	divisor=(100*(aspect>=65536UL?65536UL:aspect)+128)>>8;
-	out=(int)(((unsigned long)in*(scale*256)+(divisor>>1))/divisor);
+	out = (in * (scale * 256) + (divisor >> 1)) / divisor;
 	if (out<1) out=1;
 	return out;
 }
 
 /* Returns height (pixels) for prescribed width (pixels). Honours aspect. */
-static int width2height(double width_px, double width_mm, double height_mm)
+static ssize_t width2height(double width_px, double width_mm, double height_mm)
 {
-	int height_px;
+	ssize_t height_px;
 
 	if (width_px<=0) return 0;
-	height_px=(int)((height_mm*width_px*65536)/(aspect*width_mm));
+	height_px = (height_mm * width_px * 65536) / (aspect * width_mm);
 	if (height_px<1) height_px=1;
 	return height_px;
 
 }
 
 /* Returns width (pixels) for prescribed height (pixels). Honours aspect. */
-static int height2width(double height_px, double width_mm, double height_mm)
+static ssize_t height2width(double height_px, double width_mm, double height_mm)
 {
-	int width_px;
+	ssize_t width_px;
 
 	if (height_px<=0) return 0;
-	width_px=(int)((width_mm*height_px*aspect)/(65536*height_mm));
+	width_px = (width_mm * height_px * aspect) / (65536 * height_mm);
 	if (width_px<1) width_px=1;
 	return width_px;
 
@@ -256,18 +260,18 @@ int header_dimensions_known(struct cached_image *cimg)
 	if (cimg->strip_optimized){
 		struct bitmap tmpbmp;
 		unsigned short *buf_16;
-		int i;
+		ssize_t i;
 
-		tmpbmp.x=cimg->width;
-		tmpbmp.y=1;
+		tmpbmp.x = cimg->width;
+		tmpbmp.y = 1;
 		/* No buffer, bitmap is valid from the very beginning */
-		cimg->bmp.x=cimg->width;
-		cimg->bmp.y=cimg->height;
+		cimg->bmp.x = cimg->width;
+		cimg->bmp.y = cimg->height;
 		if (drv->get_empty_bitmap(&(cimg->bmp))) {
 			cimg->dregs = NULL;
 			goto skip_img;
 		}
-		if ((unsigned)cimg->width > INT_MAX / sizeof(*buf_16) / 3) overalloc();
+		if (cimg->width > INT_MAX / sizeof(*buf_16) / 3) overalloc();
 		buf_16 = xmalloc(sizeof(*buf_16) * 3 * cimg->width);
 		round_color_sRGB_to_48(&red, &green, &blue
 			, cimg->background_color);
@@ -275,7 +279,8 @@ int header_dimensions_known(struct cached_image *cimg)
 		/* The skip is uninitialized here and is read by dither_start
 		 * but is not used in any malicious way so it doesn't matter
 		 */
-		tmpbmp.data=cimg->bmp.data;
+		tmpbmp.data = cimg->bmp.data;
+		tmpbmp.skip = cimg->bmp.skip;
 		cimg->dregs=dither_images?dither_start(buf_16,&tmpbmp):NULL;
 		tmpbmp.data=(unsigned char *)tmpbmp.data+cimg->bmp.skip;
 		if (cimg->dregs)
@@ -301,9 +306,9 @@ int header_dimensions_known(struct cached_image *cimg)
 	}else {
 		cimg->rows_added=1;
 		cimg->bmp_used=0;
-		if (cimg->width && (unsigned)cimg->width * (unsigned)cimg->height / (unsigned)cimg->width != (unsigned)cimg->height) overalloc();
-		if ((unsigned)cimg->width * (unsigned)cimg->height > (unsigned)INT_MAX / cimg->buffer_bytes_per_pixel) overalloc();
-		cimg->buffer = xmalloc((size_t)cimg->width * (size_t)cimg->height * (size_t)cimg->buffer_bytes_per_pixel);
+		if (cimg->width && cimg->width * cimg->height / cimg->width != cimg->height) overalloc();
+		if (cimg->width * cimg->height > INT_MAX / cimg->buffer_bytes_per_pixel) overalloc();
+		cimg->buffer = xmalloc(cimg->width * cimg->height * cimg->buffer_bytes_per_pixel);
 		if (!cimg->buffer)
 			return 1;
 		if (cimg->buffer_bytes_per_pixel==4
@@ -349,7 +354,7 @@ int header_dimensions_known(struct cached_image *cimg)
 /* Fills "tmp" buffer with the resulting data and does not free the input
  * buffer. May be called only in states 12 and 14 of cimg
  */
-static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *cimg, unsigned char *buffer, int height)
+static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *cimg, unsigned char *buffer, ssize_t height)
 {
 	unsigned short red, green, blue;
 
@@ -431,41 +436,38 @@ static unsigned short *buffer_to_16(unsigned short *tmp, struct cached_image *ci
  * commited.
  * height must be >=1 !!!
  */
-void buffer_to_bitmap_incremental(struct cached_image *cimg
-	,unsigned char *buffer, int height, int yoff, int *dregs, int use_strip)
+void buffer_to_bitmap_incremental(struct cached_image *cimg, unsigned char *buffer, ssize_t height, ssize_t yoff, int *dregs, int use_strip)
 {
 #define max_height 16
 /* max_height must be at least 1 */
 	unsigned short *tmp;
 	struct bitmap tmpbmp;
-	int add1=0, add2;
+	ssize_t add1 = 0, add2;
 
-	if ((unsigned)cimg->width > INT_MAX / max_height / 3 / sizeof(*tmp)) overalloc();
-	tmp = xmalloc(cimg->width*(height<max_height?height:max_height)*3*sizeof(*tmp));
+	if (cimg->width > INT_MAX / max_height / 3 / sizeof(*tmp)) overalloc();
+	tmp = xmalloc(cimg->width * (height < max_height ? height : max_height) * 3 * sizeof(*tmp));
 	/* Prepare a fake bitmap for dithering */
-	tmpbmp.x=cimg->width;
+	tmpbmp.x = cimg->width;
 	if (!use_strip){
 	       tmpbmp.data=(unsigned char *)cimg->bmp.data+cimg->bmp.skip*yoff;
 	       add1=cimg->bmp.skip*max_height;
 	}
 	add2=cimg->buffer_bytes_per_pixel*cimg->width*max_height;
 not_enough:
-	tmpbmp.y=height<max_height?height:max_height;
+	tmpbmp.y = height < max_height ? height : max_height;
 	if (use_strip) {
-		tmpbmp.data=drv->prepare_strip(&(cimg->bmp),yoff,tmpbmp.y);
+		tmpbmp.data = drv->prepare_strip(&cimg->bmp, yoff, tmpbmp.y);
 		if (!tmpbmp.data) goto prepare_failed;
 	}
 	tmpbmp.skip=cimg->bmp.skip;
 	buffer_to_16(tmp, cimg, buffer, tmpbmp.y);
-	if (dregs){
+	if (dregs)
 		dither_restart(tmp, &tmpbmp, dregs);
-	}
-	else {
+	else
 		(*round_fn)(tmp, &tmpbmp);
-	}
 	if (use_strip) {
 		prepare_failed:
-		drv->commit_strip(&(cimg->bmp),yoff,tmpbmp.y);
+		drv->commit_strip(&cimg->bmp, yoff, tmpbmp.y);
 	}
 	height-=tmpbmp.y;
 	if (!height) goto end;
@@ -492,7 +494,8 @@ end:
 static void buffer_to_bitmap(struct cached_image *cimg)
 {
 	unsigned short *tmp = NULL, *tmp1;
-	int ix, iy, ox, oy, gonna_be_smart;
+	ssize_t ix, iy, ox, oy; 
+	int gonna_be_smart;
 	int *dregs;
 
 	if (!cimg->rows_added) return;
@@ -506,10 +509,10 @@ static void buffer_to_bitmap(struct cached_image *cimg)
 	if (ix==ox&&iy==oy) gonna_be_smart=1;
 	else{
 		gonna_be_smart=0;
-		if (ix && (unsigned)ix * (unsigned)iy / (unsigned)ix != (unsigned)iy) overalloc();
-		if ((unsigned)ix * (unsigned)iy > INT_MAX / sizeof(*tmp) / 3) overalloc();
-		tmp = xmalloc(ix*iy*3*sizeof(*tmp));
-		if (tmp) buffer_to_16(tmp,cimg,cimg->buffer,iy);
+		if (ix && ix * iy / ix != iy) overalloc();
+		if (ix * iy > INT_MAX / sizeof(*tmp) / 3) overalloc();
+		tmp = xmalloc(ix * iy * 3 * sizeof(*tmp));
+		if (tmp) buffer_to_16(tmp, cimg, cimg->buffer, iy);
 		if (!cimg->decoder) {
 			free(cimg->buffer);
 			cimg->buffer = NULL;
@@ -523,8 +526,8 @@ static void buffer_to_bitmap(struct cached_image *cimg)
 		}
 	}
 	if (cimg->bmp_used) drv->unregister_bitmap(&cimg->bmp);
-	cimg->bmp.x=ox;
-	cimg->bmp.y=oy;
+	cimg->bmp.x = ox;
+	cimg->bmp.y = oy;
 	if (drv->get_empty_bitmap(&(cimg->bmp))) {
 		if (!gonna_be_smart)
 			free(tmp);
@@ -532,8 +535,8 @@ static void buffer_to_bitmap(struct cached_image *cimg)
 	}
 	if (gonna_be_smart){
 		if (dither_images) {
-			if ((unsigned)cimg->width > INT_MAX / 3 / sizeof(*dregs)) overalloc();
-			dregs = mem_calloc(sizeof(*dregs)*3*cimg->width);
+			if (cimg->width > INT_MAX / 3 / sizeof(*dregs)) overalloc();
+			dregs = mem_calloc(sizeof(*dregs) * 3 * cimg->width);
 		} else {
 			dregs = NULL;
 		}
@@ -783,8 +786,18 @@ static int img_process_download(struct g_object_image *goi, struct f_data_c *fda
 			img_end(cimg);
 		}
 	} else if (!chopped) {
-		if (fdatac && f_is_finished(fdatac->f_data)) {
-			refresh_image(fdatac, &goi->goti.go, 2000);
+		if (fdatac) {
+			if (f_is_finished(fdatac->f_data)) {
+				refresh_image(fdatac, &goi->goti.go, 2000);
+			} else {
+	/*
+	 * Fix a bug - if we have a text file with html and built-in image using
+	 * the data:// url. If we press '\' to toggle the view from text to
+	 * html, the image is not displayed correctly. We need to reset
+	 * fdatac->done to force re-parse.
+	 */
+				fdatac->done = 0;
+			}
 		}
 	}
 	return chopped;

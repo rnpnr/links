@@ -1719,7 +1719,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 		break;
 
 		default:
-		internal("Unknown event received: %d", ev->ev);
+		break;
 
 	}
 	return EVENT_NOT_PROCESSED;

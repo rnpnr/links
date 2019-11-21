@@ -6,7 +6,7 @@
 #include "links.h"
 
 #define OUT_BUF_SIZE		10240
-#define IN_BUF_SIZE		16
+#define IN_BUF_SIZE		64
 
 #define USE_TWIN_MOUSE	1
 #define BRACKETED_PASTE	2
@@ -321,8 +321,8 @@ void handle_trm(int sock_out, void *init_string, int init_len)
 	queue_event(itrm, (unsigned char *)init_string, init_len);
 	itrm->orig_title = get_window_title();
 	set_window_title(cast_uchar "Links");
-	send_init_sequence(1, itrm->flags);
 	itrm->mouse_h = NULL;
+	send_init_sequence(1, itrm->flags);
 }
 
 int unblock_itrm(int fd)
@@ -563,7 +563,8 @@ static int process_queue(struct itrm *itrm)
 						xterm_button = itrm->kqueue[el] - ' ';
 						el += 5;
 					} else {
-						int x = 0, y = 0, b = 0, button;
+						int x = 0, y = 0, b = 0; 
+						int button;
 						unsigned char ch;
 						if (c == 'M') {
 							/* Legacy mouse protocol: \e[Mbxy whereas b, x and y are raw bytes, offset by 32. */
@@ -571,52 +572,69 @@ static int process_queue(struct itrm *itrm)
 							b = itrm->kqueue[el++] - ' ';
 							x = itrm->kqueue[el++] - ' ';
 							y = itrm->kqueue[el++] - ' ';
-						} else /* c == '<' */ {
+						} else if (c == '<') {
 							/* SGR 1006 mouse extension: \e[<b;x;yM where b, x and y are in decimal, no longer offset by 32,
 							   and the trailing letter is 'm' instead of 'M' for mouse release so that the released button is reported. */
+							   int eel;
+							   eel = el;
 							while (1) {
 								if (el == itrm->qlen) goto ret;
+								if (el - eel >= 9) goto l1;
 								ch = itrm->kqueue[el++];
 								if (ch == ';') break;
 								if (ch < '0' || ch > '9') goto l1;
-								b = 10 * b + ch - '0';
+								b = 10 * b + (ch - '0');
 							}
+							eel = el;
 							while (1) {
 								if (el == itrm->qlen) goto ret;
+								if (el - eel >= 9) goto l1;
 								ch = itrm->kqueue[el++];
 								if (ch == ';') break;
 								if (ch < '0' || ch > '9') goto l1;
-								x = 10 * x + ch - '0';
+								x = 10 * x + (ch - '0');
 							}
+							eel = el;
 							while (1) {
 								if (el == itrm->qlen) goto ret;
+								if (el - eel >= 9) goto l1;
 								ch = itrm->kqueue[el++];
 								if (ch == 'M' || ch == 'm') break;
 								if (ch < '0' || ch > '9') goto l1;
-								y = 10 * y + ch - '0';
+								y = 10 * y + (ch - '0');
 							}
-							/* Encode a release event the legacy way. */
-							if (ch == 'm') b |= 3;
+						} else {
+							break;
 						}
 						x--;
 						y--;
 						if (x < 0 || y < 0 || b < 0)
 							break;
-						if ((b & ~0x1f) == 0x00) button = B_DOWN;
-						else if ((b & ~0x1f) == 0x20) button = B_DRAG;
-						else {
-							button = -1;
-							goto skip_button;
+						if (c == 'M' && b == 3) button = B_UP;
+						else if (c == '<' && ch == 'm') button = B_UP;
+						else if ((b & 0x20) == 0x20) button = B_DRAG, b &= ~0x20;
+						else button = B_DOWN;
+						if (b == 0) button |= B_LEFT;
+						else if (b == 1) button |= B_MIDDLE;
+						else if (b == 2) button |= B_RIGHT;
+						else if (b == 3 && xterm_button >= 0) button |= xterm_button;
+						else if (b == 0x40) button |= B_WHEELUP;
+						else if (b == 0x41) button |= B_WHEELDOWN;
+						else if (b == 0x42) button |= B_WHEELLEFT;
+						else if (b == 0x43) button |= B_WHEELRIGHT;
+						else if (b == 0x80) button |= B_FOURTH;
+						else if (b == 0x81) button |= B_FIFTH;
+						else if (b == 0x82) button |= B_SIXTH;
+						else break;
+						if ((b == 0x80 || b == 0x81 || b == 0x82) && (button & BM_ACT) == B_DOWN && xterm_button == (button & BM_BUTT)) {
+							/* xterm has a bug that it reports down events for both click and release */
+							button &= ~BM_ACT;
+							button |= B_UP;
 						}
-						button |= b & 3;
-						if ((b & 3) == 3) {
-							if (xterm_button == -1)
-								xterm_button = B_LEFT;
-							button = B_UP;
-							button |= xterm_button;
-						}
-						xterm_button = button & BM_BUTT;
-						skip_button:
+						if ((button & BM_ACT) == B_DOWN)
+							xterm_button = button & BM_BUTT;
+						if ((button & BM_ACT) == B_UP)
+							xterm_button = -1;
 						ev.b = button;
 						ev.x = x;
 						ev.y = y;

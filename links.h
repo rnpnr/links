@@ -4,7 +4,7 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-#define LINKS_COPYRIGHT "(C) 1999 - 2018 Mikulas Patocka\n(C) 2000 - 2018 Petr Kulhavy, Karel Kulhavy, Martin Pergel"
+#define LINKS_COPYRIGHT "(C) 1999 - 2019 Mikulas Patocka\n(C) 2000 - 2019 Petr Kulhavy, Karel Kulhavy, Martin Pergel"
 
 #include <dirent.h>
 #include <errno.h>
@@ -419,7 +419,6 @@ extern int sh_line;
 void set_handlers_file_line(int, void (*)(void *), void (*)(void *), void *);
 #define set_handlers(a, b, c, d)	(sh_file = (unsigned char *)__FILE__, sh_line = __LINE__, set_handlers_file_line(a, b, c, d))
 void clear_events(int, int);
-extern pid_t signal_pid;
 extern int signal_pipe[2];
 void install_signal_handler(int, void (*)(void *), void *, int);
 void interruptible_signal(int sig, int in);
@@ -697,6 +696,7 @@ struct status {
 	list_entry_last
 };
 
+int is_noproxy_url(unsigned char *url);
 unsigned char *get_proxy_string(unsigned char *url);
 unsigned char *get_proxy(unsigned char *url);
 int is_proxy_url(unsigned char *url);
@@ -1016,7 +1016,7 @@ void *lru_lookup(struct lru *cache, void *templ, struct lru_entry **row);
  */
 struct bitmap {
 	int x, y; /* Dimensions */
-	int skip; /* Byte distance between vertically consecutive pixels */
+	ssize_t skip; /* Byte distance between vertically consecutive pixels */
 	void *data; /* Pointer to room for topleft pixel */
 	void *flags; /* Allocation flags for the driver */
 };
@@ -1047,6 +1047,7 @@ struct graphics_device {
 	void (*resize_handler)(struct graphics_device *dev);
 	void (*keyboard_handler)(struct graphics_device *dev, int key, int flags);
 	void (*mouse_handler)(struct graphics_device *dev, int x, int y, int buttons);
+	void (*extra_handler)(struct graphics_device *dev, int type, unsigned char *string);
 };
 
 struct driver_param;
@@ -1305,37 +1306,36 @@ int g_char_width(struct style *style, unsigned ch);
 unsigned short ags_8_to_16(unsigned char input, float gamma);
 unsigned char ags_16_to_8(unsigned short input, float gamma);
 unsigned short ags_16_to_16(unsigned short input, float gamma);
-void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src, int
-			  lenght, float red_gamma, float green_gamma, float
-			  blue_gamma);
+void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src,
+		size_t length, float red_gamma, float green_gamma, float blue_gamma);
 void make_gamma_table(struct cached_image *cimg);
-void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src
-	,int lenght, unsigned short *restrict gamma_table);
+void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src,
+		size_t length, unsigned short *restrict gamma_table);
 void agx_48_to_48_table(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, unsigned short *restrict table);
+		const unsigned short *restrict src, size_t length, unsigned short *restrict table);
 void agx_48_to_48(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, float red_gamma,
+		const unsigned short *restrict src, size_t length, float red_gamma,
 		float green_gamma, float blue_gamma);
 void agx_and_uc_32_to_48_table(unsigned short *restrict dest,
-		const unsigned char *restrict src, int lenght, unsigned short *restrict table,
+		const unsigned char *restrict src, size_t length, unsigned short *restrict table,
 		unsigned short rb, unsigned short gb, unsigned short bb);
 void agx_and_uc_32_to_48(unsigned short *restrict dest,
-		const unsigned char *restrict src, int lenght, float red_gamma,
+		const unsigned char *restrict src, size_t length, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb, unsigned
 		short gb, unsigned short bb);
 void agx_and_uc_64_to_48_table(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, unsigned short *restrict gamma_table,
+		const unsigned short *restrict src, size_t length, unsigned short *restrict gamma_table,
 		unsigned short rb, unsigned short gb, unsigned short bb);
 void agx_and_uc_64_to_48(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, float red_gamma,
+		const unsigned short *restrict src, size_t length, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb, unsigned
 		short gb, unsigned short bb);
-void mix_one_color_48(unsigned short *restrict dest, int length,
+void mix_one_color_48(unsigned short *restrict dest, size_t length,
 		   unsigned short r, unsigned short g, unsigned short b);
-void mix_one_color_24(unsigned char *restrict dest, int length,
+void mix_one_color_24(unsigned char *restrict dest, size_t length,
 		   unsigned char r, unsigned char g, unsigned char b);
-void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
-	int ox, int oy);
+void scale_color(unsigned short *in, size_t ix, size_t iy, unsigned short **out,
+	size_t ox, size_t oy);
 void update_aspect(void);
 void flush_bitmaps(int flush_font, int flush_images, int redraw_all);
 
@@ -1438,10 +1438,12 @@ enum ev {
 	EV_INIT,
 	EV_KBD,
 	EV_MOUSE,
+	EV_EXTRA,
 	EV_REDRAW,
 	EV_RESIZE,
 	EV_ABORT
 };
+#define EV_EXTRA_OPEN_URL EV_INIT
 
 enum evh {
 	EVH_NOT_PROCESSED,
@@ -1577,9 +1579,6 @@ void flush_terminal(struct terminal *);
 
 void set_window_pos(struct window *, int, int, int, int);
 void t_redraw(struct graphics_device *, struct rect *);
-void t_resize(struct graphics_device *);
-void t_kbd(struct graphics_device *, int, int);
-void t_mouse(struct graphics_device *, int, int, int);
 
 #endif
 
@@ -2108,7 +2107,7 @@ struct cached_image {
 	int background_color; /* nezaokrouhlene pozadi:
 			       * sRGB, (r<<16)+(g<<8)+b */
 	unsigned char *url;
-	int wanted_xw, wanted_yw; /* This is what is written in the alt.
+	ssize_t wanted_xw, wanted_yw; /* This is what is written in the alt.
 				     If some dimension is omitted, then
 				     it's <0. This is what was requested
 				     when the image was created. */
@@ -2118,10 +2117,10 @@ struct cached_image {
 	unsigned aspect; /* What aspect ratio the image is for. But the
 		       PNG aspect is ignored :( */
 
-	int xww, yww; /* This is the resulting dimensions on the screen
+	ssize_t xww, yww; /* This is the resulting dimensions on the screen
 			 measured in screen pixels. */
 
-	int width, height; /* From image header.
+	ssize_t width, height; /* From image header.
 			    * If the buffer is allocated,
 			    * it is always allocated to width*height.
 			    * If the buffer is NULL then width and height
@@ -3018,8 +3017,7 @@ extern struct cached_image *global_cimg;
 int header_dimensions_known(struct cached_image *cimg);
 void img_end(struct cached_image *cimg);
 void compute_background_8(struct cached_image *cimg, unsigned char rgb[3]);
-void buffer_to_bitmap_incremental(struct cached_image *cimg
-	,unsigned char *buffer, int height, int yoff, int *dregs, int use_strip);
+void buffer_to_bitmap_incremental(struct cached_image *cimg, unsigned char *buffer, ssize_t height, ssize_t yoff, int *dregs, int use_strip);
 
 /* Below is external interface provided by img.c */
 struct g_part;

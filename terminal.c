@@ -512,6 +512,12 @@ direct:
 
 #ifdef G
 
+void t_redraw(struct graphics_device *, struct rect *);
+static void t_resize(struct graphics_device *);
+static void t_kbd(struct graphics_device *, int, int);
+static void t_mouse(struct graphics_device *, int, int, int);
+static void t_extra(struct graphics_device *, int, unsigned char *);
+
 static struct term_spec gfx_term = { init_list_1st(NULL) "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, init_list_last(NULL) };
 
 struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links_event *, int), unsigned char *cwd, void *info, int len)
@@ -552,6 +558,7 @@ struct terminal *init_gfx_term(void (*root_window)(struct window *, struct links
 	dev->resize_handler = t_resize;
 	dev->keyboard_handler = t_kbd;
 	dev->mouse_handler = t_mouse;
+	dev->extra_handler = t_extra;
 	{
 		int *ptr;
 		struct links_event ev = { EV_INIT, 0, 0, 0 };
@@ -577,7 +584,7 @@ void t_redraw(struct graphics_device *dev, struct rect *r)
 	register_bottom_half(redraw_windows, term);
 }
 
-void t_resize(struct graphics_device *dev)
+static void t_resize(struct graphics_device *dev)
 {
 	struct terminal *term = dev->user_data;
 	struct window *win = NULL;
@@ -592,7 +599,7 @@ void t_resize(struct graphics_device *dev)
 	set_clip_area(dev, &dev->size);
 }
 
-void t_kbd(struct graphics_device *dev, int key, int flags)
+static void t_kbd(struct graphics_device *dev, int key, int flags)
 {
 	struct terminal *term = dev->user_data;
 	struct links_event ev = { EV_KBD, 0, 0, 0 };
@@ -621,7 +628,7 @@ void t_kbd(struct graphics_device *dev, int key, int flags)
 	}
 }
 
-void t_mouse(struct graphics_device *dev, int x, int y, int b)
+static void t_mouse(struct graphics_device *dev, int x, int y, int b)
 {
 	struct terminal *term = dev->user_data;
 	struct links_event ev = { EV_MOUSE, 0, 0, 0 };
@@ -650,6 +657,20 @@ void t_mouse(struct graphics_device *dev, int x, int y, int b)
 	if (list_empty(term->windows)) return;
 	next = list_struct(term->windows.next, struct window);
 	next->handler(next, &ev, 0);
+}
+
+static void t_extra(struct graphics_device *dev, int type, unsigned char *str)
+{
+	struct terminal *term = dev->user_data;
+	struct links_event ev = { EV_EXTRA, 0, 0, 0 };
+	struct window *prev;
+
+	ev.x = type;
+	ev.b = (long)str;
+
+	if (list_empty(term->windows)) return;
+	prev = list_struct(term->windows.prev, struct window);
+	prev->handler(prev, &ev, 0);
 }
 
 #endif

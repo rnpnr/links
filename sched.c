@@ -295,6 +295,7 @@ static void del_connection(struct connection *c)
 		trim_cache_entry(ce);
 	free(c->url);
 	free(c->prev_url);
+	free(c->ssl);
 	free(c);
 }
 
@@ -322,6 +323,7 @@ void add_keepalive_socket(struct connection *c, uttime timeout, int protocol_dat
 	k->add_time = get_absolute_time();
 	k->protocol_data = protocol_data;
 	k->ssl = c->ssl;
+	c->ssl = NULL;
 	memcpy(&k->last_lookup_state, &c->last_lookup_state, sizeof(struct lookup_state));
 	add_to_list(keepalive_connections, k);
 del:
@@ -448,7 +450,7 @@ static int try_to_suspend_connection(struct connection *c, unsigned char *ho)
 	return -1;
 }
 
-static int is_noproxy_url(unsigned char *url)
+int is_noproxy_url(unsigned char *url)
 {
 	unsigned char *host = get_host_name(url);
 	if (!proxies.only_proxies) {

@@ -334,26 +334,18 @@ susp0:
 		case 3:
 		/* jpeg_read_scanlines */
 			/* color */
-		while (global_cinfo->output_scanline
-			<global_cinfo->output_height){
+		while (global_cinfo->output_scanline < global_cinfo->output_height) {
 			int a, lines;
 
-			for (a=0;a<16;a++){
-				deco->scanlines[a]=cimg->buffer
-				+(global_cinfo
-				->output_scanline+a)
-				*global_cinfo->output_width*cimg->
-					buffer_bytes_per_pixel;
+			for (a = 0; a < 16; a++) {
+				deco->scanlines[a] = cimg->buffer + ((size_t)global_cinfo->output_scanline + a) * global_cinfo->output_width * cimg->buffer_bytes_per_pixel;
 			}
 
-			if ((lines=
-				jpeg_read_scanlines(
-				global_cinfo,deco->scanlines,1))){
+			if ((lines = jpeg_read_scanlines(global_cinfo, deco->scanlines, 1))) {
 				/* Some lines were written into cimg buffer */
-				cimg->rows_added=1;
-
+				cimg->rows_added = 1;
 				fix_data(deco, lines);
-			}else{
+			} else {
 				/* No lines have been written into cimg
 				 * buffer */
 				/* We are suspended and we want more data */

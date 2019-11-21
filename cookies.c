@@ -175,12 +175,12 @@ int is_path_prefix(unsigned char *d, unsigned char *s)
 	return d[dl - 1] == '/' || !s[dl] || s[dl] == '/' || s[dl] == POST_CHAR || s[dl] == '?' || s[dl] == '&';
 }
 
-int cookie_expired(struct cookie *c)	/* parse_http_date is broken */
+int cookie_expired(struct cookie *c)
 {
 	time_t t;
 	errno = 0;
 	EINTRLOOPX(t, time(NULL), (time_t)-1);
-	return 0 && (c->expires && c->expires < t);
+	return c->expires && c->expires < t;
 }
 
 void add_cookies(unsigned char **s, int *l, unsigned char *url)

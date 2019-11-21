@@ -73,7 +73,7 @@ static int x_default_window_width;
 static int x_default_window_height;
 
 static long (*x_get_color_function)(int);
-static void x_translate_colors(unsigned char *data, int x, int y, int skip);
+static void x_translate_colors(unsigned char *data, int x, int y, ssize_t skip);
 
 static void selection_request(XEvent *event);
 
@@ -1043,8 +1043,8 @@ static int x_decode_button(int b)
 {
 	switch (b) {
 		case 1: return B_LEFT;
-		case 3: return B_RIGHT;
 		case 2: return B_MIDDLE;
+		case 3: return B_RIGHT;
 		case 4: return B_WHEELUP;
 		case 5: return B_WHEELDOWN;
 		case 6: return B_WHEELLEFT;
@@ -1275,7 +1275,6 @@ static void x_process_events(void *data)
 	}
 ret:;
 }
-
 
 /* returns pointer to string with driver parameter or NULL */
 static unsigned char *x_get_driver_param(void)
@@ -1796,7 +1795,7 @@ static unsigned short *x_get_real_colors(void)
 	return v;
 }
 
-static void x_translate_colors(unsigned char *data, int x, int y, int skip)
+static void x_translate_colors(unsigned char *data, int x, int y, ssize_t skip)
 {
 	int i, j;
 

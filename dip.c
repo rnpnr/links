@@ -114,8 +114,7 @@ typedef double scale_t;
  * black or 255 is black doesn't matter.
  */
 
-static void add_col_gray(unsigned *restrict col_buf, unsigned char *restrict ptr, int
-		line_skip, int n, unsigned weight)
+static void add_col_gray(unsigned *restrict col_buf, unsigned char *restrict ptr, size_t line_skip, size_t n, unsigned weight)
 {
 	for (;n;n--){
 		*col_buf+=weight*(*ptr);
@@ -125,8 +124,7 @@ static void add_col_gray(unsigned *restrict col_buf, unsigned char *restrict ptr
 }
 
  /* We assume unsigned short holds at least 16 bits. */
-static void add_row_gray(unsigned *restrict row_buf, unsigned char *restrict ptr, int n,
-	unsigned weight)
+static void add_row_gray(unsigned *restrict row_buf, unsigned char *restrict ptr, size_t n, unsigned weight)
 {
 	for (;n;n--){
 		*row_buf+=weight**ptr;
@@ -138,7 +136,7 @@ static void add_row_gray(unsigned *restrict row_buf, unsigned char *restrict ptr
 /* line_skip is in pixels. The column contains the whole pixels (R G B)
  * We assume unsigned short holds at least 16 bits. */
 static void add_col_color(scale_t *restrict col_buf, unsigned short *restrict ptr,
-	int line_skip, int n, ulonglong weight)
+	size_t line_skip, size_t n, ulonglong weight)
 {
 	if (!weight) return;
 	{
@@ -156,7 +154,7 @@ static void add_col_color(scale_t *restrict col_buf, unsigned short *restrict pt
 /* n is in pixels. pixel is 3 unsigned shorts in series */
  /* We assume unsigned short holds at least 16 bits. */
 static void add_row_color(scale_t *restrict row_buf, unsigned short *restrict ptr,
-	int n, ulonglong weight)
+	size_t n, ulonglong weight)
 {
 	if (!weight) return;
 	{
@@ -173,7 +171,7 @@ static void add_row_color(scale_t *restrict row_buf, unsigned short *restrict pt
 
 /* We assume unsigned holds at least 32 bits */
 static void emit_and_bias_col_gray(unsigned *restrict col_buf, unsigned char *restrict out,
-	int line_skip, int n, unsigned weight)
+	size_t line_skip, size_t n, unsigned weight)
 {
 	unsigned half=weight>>1;
 
@@ -186,7 +184,7 @@ static void emit_and_bias_col_gray(unsigned *restrict col_buf, unsigned char *re
 
 /* We assume unsigned holds at least 32 bits */
 static void emit_and_bias_row_gray(unsigned *restrict row_buf, unsigned char *restrict out,
-	int n, unsigned weight)
+	size_t n, unsigned weight)
 {
 	unsigned half=weight>>1;
 
@@ -197,13 +195,13 @@ static void emit_and_bias_row_gray(unsigned *restrict row_buf, unsigned char *re
 }
 
 /* We assume unsigned holds at least 32 bits */
-static void bias_buf_gray(unsigned *restrict col_buf, int n, unsigned half)
+static void bias_buf_gray(unsigned *restrict col_buf, size_t n, unsigned half)
 {
 	for (;n;n--) *col_buf++=half;
 }
 
 /* We assume unsigned holds at least 32 bits */
-static void bias_buf_color(scale_t *restrict col_buf, int n, scale_t half)
+static void bias_buf_color(scale_t *restrict col_buf, size_t n, scale_t half)
 {
 	for (;n;n--){
 		col_buf[0]=half;
@@ -220,7 +218,7 @@ static void bias_buf_color(scale_t *restrict col_buf, int n, scale_t half)
 /* We assume unsigned holds at least 32 bits */
 /* We assume unsigned short holds at least 16 bits. */
 static void emit_and_bias_col_color(scale_t *restrict col_buf,
-	unsigned short *restrict out, int line_skip, int n, unsigned weight)
+	unsigned short *restrict out, size_t line_skip, size_t n, unsigned weight)
 {
 	scale_t half=(scale_t)weight / 2;
 	scale_t inv_weight = (scale_t)1 / weight;
@@ -245,7 +243,7 @@ static void emit_and_bias_col_color(scale_t *restrict col_buf,
 /* We assume unsigned holds at least 32 bits */
 /* We assume unsigned short holds at least 16 bits. */
 static void emit_and_bias_row_color(scale_t *restrict row_buf,
-	unsigned short *restrict out, int n, unsigned weight)
+	unsigned short *restrict out, size_t n, unsigned weight)
 {
 	scale_t half = (scale_t)weight / 2;
 	scale_t inv_weight = (scale_t)1 / weight;
@@ -266,18 +264,17 @@ static void emit_and_bias_row_color(scale_t *restrict row_buf,
 /* For enlargement only -- does linear filtering.
  * Allocates output and frees input.
  * We assume unsigned holds at least 32 bits */
-static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
-	unsigned char ** out, int ox)
+static void enlarge_gray_horizontal(unsigned char *in, size_t ix, size_t y, unsigned char ** out, size_t ox)
 {
 	unsigned *col_buf;
-	int total;
-	int out_pos,in_pos,in_begin,in_end;
-	unsigned half=(ox-1)>>1;
+	size_t total;
+	size_t out_pos,in_pos,in_begin,in_end;
+	unsigned half = (ox - 1) >> 1;
 	unsigned char *outptr;
 	unsigned char *inptr;
 
-	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > INT_MAX) overalloc();
+	if (ox && ox * y / ox != y) overalloc();
+	if (ox * y > INT_MAX) overalloc();
 	outptr = xmalloc(ox * y);
 	inptr=in;
 	*out=outptr;
@@ -291,7 +288,7 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 		free(in);
 	}else{
 		total=(ix-1)*(ox-1);
-		if ((unsigned)y > INT_MAX / sizeof(*col_buf)) overalloc();
+		if (y > INT_MAX / sizeof(*col_buf)) overalloc();
 		col_buf = xmalloc(y * sizeof(*col_buf));
 		bias_buf_gray(col_buf, y, half);
 		out_pos=0;
@@ -299,9 +296,9 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
 		again:
 		in_begin=in_pos;
 		in_end=in_pos+ox-1;
-		add_col_gray(col_buf,inptr, ix, y, in_end-out_pos);
-		add_col_gray(col_buf,inptr+1, ix, y, out_pos-in_begin);
-		emit_and_bias_col_gray(col_buf,outptr,ox,y,ox-1);
+		add_col_gray(col_buf, inptr, ix, y, in_end - out_pos);
+		add_col_gray(col_buf, inptr + 1, ix, y, out_pos - in_begin);
+		emit_and_bias_col_gray(col_buf, outptr, ox, y, ox - 1);
 		outptr++;
 		out_pos+=ix-1;
 		if (out_pos>in_end){
@@ -323,14 +320,14 @@ static void enlarge_gray_horizontal(unsigned char *in, int ix, int y,
  * Frees input and allocates output.
  * We assume unsigned holds at least 32 bits
  */
-static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
-	unsigned short **outa, int ox)
+static void enlarge_color_horizontal(unsigned short *in, size_t ix, size_t y,
+	unsigned short **outa, size_t ox)
 {
-	int alloc_size;
+	size_t alloc_size;
 	scale_t *col_buf;
-	int a;
-	unsigned skip=3*ix;
-	unsigned oskip=3*ox;
+	size_t a;
+	size_t skip = 3 * ix;
+	size_t oskip = 3 * ox;
 	unsigned short *out;
 
 	if (!in) {
@@ -342,8 +339,8 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 		*outa=in;
 		return;
 	}
-	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > INT_MAX / 3 / sizeof(*out)) overalloc();
+	if (ox && ox * y / ox != y) overalloc();
+	if (ox * y > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
@@ -361,24 +358,24 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 
-	if ((unsigned)y > (INT_MAX) / 3 / sizeof(*col_buf))
+	if (y > INT_MAX / 3 / sizeof(*col_buf))
 		overalloc();
-	alloc_size = (int)(y*3*sizeof(*col_buf));
+	alloc_size = y * 3 * sizeof(*col_buf);
 	alloc_size = (alloc_size) & ~(0);
 	if (alloc_size > INT_MAX)
 		overalloc();
 	col_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_col_buf;
-		int out_idx;
+		ssize_t out_idx;
 		thread_col_buf = (scale_t *)((char *)col_buf);
 		bias_buf_color(thread_col_buf, y, (scale_t)(ox - 1) / 2);
 		for (out_idx = 0; out_idx <= ox - 1; out_idx++) {
 			ulonglong out_pos, in_pos, in_end;
-			int in_idx;
+			size_t in_idx;
 			out_pos = (ulonglong)out_idx * (ix - 1);
 			if (out_idx)
-				in_idx = (int)((out_pos - 1) / (ox - 1));
+				in_idx = (out_pos - 1) / (ox - 1);
 			else
 				in_idx = 0;
 			in_pos = (ulonglong)in_idx * (ox - 1);
@@ -402,12 +399,11 @@ static void enlarge_color_horizontal(unsigned short *in, int ix, int y,
 /* Works for both enlarging and diminishing. Linear resample, no low pass.
  * Automatically mem_frees the "in" and allocates "out". */
 /* We assume unsigned holds at least 32 bits */
-static void scale_gray_horizontal(unsigned char *in, int ix, int y,
-	unsigned char **out, int ox)
+static void scale_gray_horizontal(unsigned char *in, size_t ix, size_t y, unsigned char **out, size_t ox)
 {
 	unsigned *col_buf;
-	int total=ix*ox;
-	int out_pos,in_pos,in_begin,in_end,out_end;
+	size_t total = ix * ox;
+	size_t out_pos, in_pos, in_begin, in_end, out_end;
 	unsigned char *outptr;
 	unsigned char *inptr;
 
@@ -418,14 +414,14 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 		*out=in;
 		return;
 	}
-	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > INT_MAX) overalloc();
+	if (ox && ox * y / ox != y) overalloc();
+	if (ox * y > INT_MAX) overalloc();
 	outptr = xmalloc(ox * y);
 	inptr=in;
 	*out=outptr;
-	if ((unsigned)y > INT_MAX / sizeof(*col_buf)) overalloc();
+	if (y > INT_MAX / sizeof(*col_buf)) overalloc();
 	col_buf = xmalloc(y * sizeof(*col_buf));
-	bias_buf_gray(col_buf, y, ix>>1);
+	bias_buf_gray(col_buf, y, ix >> 1);
 	out_pos=0;
 	in_pos=0;
 	again:
@@ -434,14 +430,14 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
 	out_end=out_pos+ix;
 	if (in_begin<out_pos)in_begin=out_pos;
 	if (in_end>out_end)in_end=out_end;
-	add_col_gray(col_buf,inptr,ix,y,in_end-in_begin);
+	add_col_gray(col_buf, inptr, ix, y, in_end - in_begin);
 	in_end=in_pos+ox;
 	if (out_end>=in_end){
 		in_pos=in_end;
 		inptr++;
 	}
 	if (out_end<=in_end){
-			emit_and_bias_col_gray(col_buf,outptr,ox,y,ix);
+			emit_and_bias_col_gray(col_buf, outptr, ox, y, ix);
 			out_pos=out_pos+ix;
 			outptr++;
 	}
@@ -458,13 +454,12 @@ static void scale_gray_horizontal(unsigned char *in, int ix, int y,
  * Frees ina and allocates outa.
  * If ox*3<=ix, and display_optimize, performs optimization for LCD.
  */
-static void scale_color_horizontal(unsigned short *in, int ix, int y,
-		unsigned short **outa, int ox)
+static void scale_color_horizontal(unsigned short *in, size_t ix, size_t y, unsigned short **outa, size_t ox)
 {
-	int alloc_size;
+	size_t alloc_size;
 	scale_t *col_buf;
-	unsigned skip=3*ix;
-	unsigned oskip=3*ox;
+	size_t skip = 3 * ix;
+	size_t oskip = 3 * ox;
 	unsigned short *out;
 
 	if (!in) {
@@ -480,8 +475,8 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		enlarge_color_horizontal(in,ix,y,outa,ox);
 		return;
 	}
-	if (ox && (unsigned)ox * (unsigned)y / (unsigned)ox != (unsigned)y) overalloc();
-	if ((unsigned)ox * (unsigned)y > INT_MAX / 3 / sizeof(*out)) overalloc();
+	if (ox && ox * y / ox != y) overalloc();
+	if (ox * y > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * ox * y);
 	*outa=out;
 	if (!out) {
@@ -489,24 +484,24 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 		return;
 	}
 
-	if ((unsigned)y > (INT_MAX) / 3 / sizeof(*col_buf))
+	if (y > INT_MAX / 3 / sizeof(*col_buf))
 		overalloc();
-	alloc_size = (int)(y*3*sizeof(*col_buf));
+	alloc_size = y * 3 * sizeof(*col_buf);
 	alloc_size = (alloc_size) & ~(0);
 	if (alloc_size > INT_MAX)
 		overalloc();
 	col_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_col_buf;
-		int out_idx;
+		size_t out_idx;
 		thread_col_buf = (scale_t *)((char *)col_buf);
 		bias_buf_color(thread_col_buf, y, (scale_t)ix / 2);
 		for (out_idx = 0; out_idx < ox; out_idx++) {
 			ulonglong out_pos, out_end, in_pos;
-			int in_idx;
+			size_t in_idx;
 			out_pos = (ulonglong)out_idx * ix;
 			out_end = out_pos + ix;
-			in_idx = (int)(out_pos / ox);
+			in_idx = out_pos / ox;
 			in_pos = (ulonglong)in_idx * ox;
 			do {
 				ulonglong in_begin, in_end;
@@ -532,19 +527,18 @@ static void scale_color_horizontal(unsigned short *in, int ix, int y,
 
 /* For magnification only. Does linear filtering. */
 /* We assume unsigned holds at least 32 bits */
-static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
-	unsigned char ** out ,int oy)
+static void enlarge_gray_vertical(unsigned char *in, size_t x, size_t iy, unsigned char ** out, size_t oy)
 {
 	unsigned *row_buf;
-	int total;
-	int out_pos,in_pos,in_begin,in_end;
-	int half=(oy-1)>>1;
+	size_t total;
+	size_t out_pos, in_pos, in_begin, in_end;
+	unsigned int half = (oy - 1) >> 1;
 	unsigned char *outptr;
 	unsigned char *inptr;
 
 	if (iy==1){
-		if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-		if ((unsigned)x * (unsigned)oy > INT_MAX) overalloc();
+		if (x && x * oy / x != oy) overalloc();
+		if (x * oy > INT_MAX) overalloc();
 		outptr = xmalloc(oy * x);
 		*out=outptr;
 		for(;oy;oy--,outptr+=x)
@@ -554,13 +548,13 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 	else if (iy==oy){
 		*out=in;
 	}else{
-		if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-		if ((unsigned)x * (unsigned)oy > INT_MAX) overalloc();
-		outptr = xmalloc(oy*x);
+		if (x && x * oy / x != oy) overalloc();
+		if (x * oy > INT_MAX) overalloc();
+		outptr = xmalloc(oy * x);
 		inptr=in;
 		*out=outptr;
 		total=(iy-1)*(oy-1);
-		if ((unsigned)x > INT_MAX / sizeof(*row_buf)) overalloc();
+		if (x > INT_MAX / sizeof(*row_buf)) overalloc();
 		row_buf = xmalloc(x * sizeof(*row_buf));
 		bias_buf_gray(row_buf, x, half);
 		out_pos=0;
@@ -568,9 +562,9 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 		again:
 		in_begin=in_pos;
 		in_end=in_pos+oy-1;
-		add_row_gray(row_buf, inptr, x, in_end-out_pos);
-		add_row_gray(row_buf, inptr+x, x, out_pos-in_begin);
-		emit_and_bias_row_gray(row_buf, outptr, x, oy-1);
+		add_row_gray(row_buf, inptr, x, in_end - out_pos);
+		add_row_gray(row_buf, inptr + x, x, out_pos - in_begin);
+		emit_and_bias_row_gray(row_buf, outptr, x, oy - 1);
 		outptr+=x;
 		out_pos+=iy-1;
 		if (out_pos>in_end){
@@ -588,10 +582,9 @@ static void enlarge_gray_vertical(unsigned char *in, int x, int iy,
 
 /* For magnification only. Does linear filtering */
 /* We assume unsigned holds at least 32 bits */
-static void enlarge_color_vertical(unsigned short *in, int x, int iy,
-	unsigned short **outa ,int oy)
+static void enlarge_color_vertical(unsigned short *in, size_t x, size_t iy, unsigned short **outa, size_t oy)
 {
-	int alloc_size;
+	size_t alloc_size;
 	scale_t *row_buf;
 	unsigned short *out;
 
@@ -605,8 +598,8 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 		return;
 	}
 	/* Rivendell */
-	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-	if ((unsigned)x * (unsigned)oy > INT_MAX / 3 / sizeof(*out)) overalloc();
+	if (x && x * oy / x != oy) overalloc();
+	if (x * oy > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
@@ -622,24 +615,24 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 		return;
 	}
 
-	if ((unsigned)x > (INT_MAX) / 3 / sizeof(*row_buf))
+	if (x > (INT_MAX) / 3 / sizeof(*row_buf))
 		overalloc();
-	alloc_size = (int)(x*3*sizeof(*row_buf));
+	alloc_size = x * 3 * sizeof(*row_buf);
 	alloc_size = (alloc_size) & ~(0);
 	if (alloc_size > INT_MAX)
 		overalloc();
 	row_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_row_buf;
-		int out_idx;
+		size_t out_idx;
 		thread_row_buf = (scale_t *)((char *)row_buf);
 		bias_buf_color(thread_row_buf,x,(scale_t)(oy-1) / 2);
 		for (out_idx = 0; out_idx <= oy - 1; out_idx++) {
 			ulonglong out_pos, in_pos, in_end;
-			int in_idx;
+			size_t in_idx;
 			out_pos = (ulonglong)out_idx * (iy - 1);
 			if (out_idx)
-				in_idx = (int)((out_pos - 1) / (oy - 1));
+				in_idx = (out_pos - 1) / (oy - 1);
 			else
 				in_idx = 0;
 			in_pos = (ulonglong)in_idx * (oy - 1);
@@ -663,12 +656,11 @@ static void enlarge_color_vertical(unsigned short *in, int x, int iy,
 /* Both enlarges and diminishes. Linear filtering.
  * Automatically allocates output and frees input.
  * We assume unsigned holds at least 32 bits */
-static void scale_gray_vertical(unsigned char *in, int x, int iy,
-	unsigned char **out ,int oy)
+static void scale_gray_vertical(unsigned char *in, size_t x, size_t iy, unsigned char **out, size_t oy)
 {
 	unsigned *row_buf;
-	int total=iy*oy;
-	int out_pos,in_pos,in_begin,in_end,out_end;
+	size_t total = iy * oy;
+	size_t out_pos, in_pos, in_begin, in_end, out_end;
 	unsigned char *outptr;
 	unsigned char *inptr;
 
@@ -681,14 +673,14 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 		*out=in;
 		return;
 	}
-	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-	if ((unsigned)x * (unsigned)oy > INT_MAX) overalloc();
+	if (x && x * oy / x != oy) overalloc();
+	if (x * oy > INT_MAX) overalloc();
 	outptr = xmalloc(x * oy);
 	inptr=in;
 	*out=outptr;
-	if ((unsigned)x > INT_MAX / sizeof(*row_buf)) overalloc();
-	row_buf=mem_calloc(x*sizeof(*row_buf));
-	bias_buf_gray(row_buf, x, iy>>1);
+	if (x > INT_MAX / sizeof(*row_buf)) overalloc();
+	row_buf = mem_calloc(x * sizeof(*row_buf));
+	bias_buf_gray(row_buf, x, iy >> 1);
 	out_pos=0;
 	in_pos=0;
 	again:
@@ -697,14 +689,14 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
 	out_end=out_pos+iy;
 	if (in_begin<out_pos)in_begin=out_pos;
 	if (in_end>out_end)in_end=out_end;
-	add_row_gray(row_buf,inptr,x,in_end-in_begin);
+	add_row_gray(row_buf, inptr, x, in_end - in_begin);
 	in_end=in_pos+oy;
 	if (out_end>=in_end){
 		in_pos=in_end;
 		inptr+=x;
 	}
 	if (out_end<=in_end){
-			emit_and_bias_row_gray(row_buf,outptr,x,iy);
+			emit_and_bias_row_gray(row_buf, outptr, x, iy);
 			out_pos=out_pos+iy;
 			outptr+=x;
 	}
@@ -721,10 +713,9 @@ static void scale_gray_vertical(unsigned char *in, int x, int iy,
    We assume unsigned short can hold at least 16 bits.
    We assume unsigned holds at least 32 bits.
  */
-static void scale_color_vertical(unsigned short *in, int x, int iy,
-	unsigned short **outa, int oy)
+static void scale_color_vertical(unsigned short *in, size_t x, size_t iy, unsigned short **outa, size_t oy)
 {
-	int alloc_size;
+	size_t alloc_size;
 	scale_t *row_buf;
 	unsigned short *out;
 
@@ -741,32 +732,32 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
 		enlarge_color_vertical(in,x,iy,outa,oy);
 		return;
 	}
-	if (x && (unsigned)x * (unsigned)oy / (unsigned)x != (unsigned)oy) overalloc();
-	if ((unsigned)x * (unsigned)oy > INT_MAX / 3 / sizeof(*out)) overalloc();
+	if (x && x * oy / x != oy) overalloc();
+	if (x * oy > INT_MAX / 3 / sizeof(*out)) overalloc();
 	out = xmalloc(sizeof(*out) * 3 * oy * x);
 	*outa=out;
 	if (!out) {
 		free(in);
 		return;
 	}
-	if ((unsigned)x > (INT_MAX) / 3 / sizeof(*row_buf))
+	if (x > INT_MAX / 3 / sizeof(*row_buf))
 		overalloc();
-	alloc_size = (int)(x*3*sizeof(*row_buf));
+	alloc_size = x * 3 * sizeof(*row_buf);
 	alloc_size = (alloc_size) & ~(0);
 	if (alloc_size > INT_MAX)
 		overalloc();
 	row_buf = xmalloc(alloc_size);
 	{
 		scale_t *thread_row_buf;
-		int out_idx;
+		size_t out_idx;
 		thread_row_buf = (scale_t *)((char *)row_buf);
 		bias_buf_color(thread_row_buf,x,(scale_t)iy / 2);
 		for (out_idx = 0; out_idx < oy; out_idx++) {
 			ulonglong out_pos, out_end, in_pos;
-			int in_idx;
+			size_t in_idx;
 			out_pos = (ulonglong)out_idx * iy;
 			out_end = out_pos + iy;
-			in_idx = (int)(out_pos / oy);
+			in_idx = out_pos / oy;
 			in_pos = (ulonglong)in_idx * oy;
 			do {
 				ulonglong in_begin, in_end;
@@ -795,16 +786,15 @@ static void scale_color_vertical(unsigned short *in, int x, int iy,
  * pass or bilinear filtering. Automatically mem_frees the "in".
  * Automatically allocates "out".
  */
-static void scale_gray(unsigned char *in, int ix, int iy,
-	unsigned char **out, int ox, int oy)
+static void scale_gray(unsigned char *in, size_t ix, size_t iy, unsigned char **out, size_t ox, size_t oy)
 {
 	unsigned char *intermediate_buffer;
 
 	if (!ix||!iy){
 		free(in);
-		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
-		if ((unsigned)ox * (unsigned)oy > INT_MAX) overalloc();
-		*out=mem_calloc(ox*oy);
+		if (ox && ox * oy / ox != oy) overalloc();
+		if (ox * oy > INT_MAX) overalloc();
+		*out = mem_calloc(ox * oy);
 		return;
 	}
 	if (ix*oy<ox*iy){
@@ -822,15 +812,14 @@ static void scale_gray(unsigned char *in, int ix, int iy,
  * Allocates output and frees input
  * We assume unsigned short holds at least 16 bits.
  */
-void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
-	int ox, int oy)
+void scale_color(unsigned short *in, size_t ix, size_t iy, unsigned short **out, size_t ox, size_t oy)
 {
 	unsigned short *intermediate_buffer;
 
 	if (!ix||!iy){
 		free(in);
-		if (ox && (unsigned)ox * (unsigned)oy / (unsigned)ox != (unsigned)oy) overalloc();
-		if ((unsigned)ox * (unsigned)oy > INT_MAX / 3 / sizeof(**out)) overalloc();
+		if (ox && ox * oy / ox != oy) overalloc();
+		if (ox * oy > INT_MAX / 3 / sizeof(**out)) overalloc();
 		*out = mem_calloc(ox * oy * sizeof(**out) * 3);
 		return;
 	}
@@ -846,8 +835,7 @@ void scale_color(unsigned short *in, int ix, int iy, unsigned short **out,
 /* Fills a block with given color. length is number of pixels. pixel is a
  * tribyte. 24 bits per pixel.
  */
-void mix_one_color_24(unsigned char *restrict dest, int length,
-		   unsigned char r, unsigned char g, unsigned char b)
+void mix_one_color_24(unsigned char *restrict dest, size_t length, unsigned char r, unsigned char g, unsigned char b)
 {
 	for (;length;length--){
 		dest[0]=r;
@@ -861,7 +849,7 @@ void mix_one_color_24(unsigned char *restrict dest, int length,
  * tribyte. 48 bits per pixel.
  * We assume unsigned short holds at least 16 bits.
  */
-void mix_one_color_48(unsigned short *restrict dest, int length,
+void mix_one_color_48(unsigned short *restrict dest, size_t length,
 		   unsigned short r, unsigned short g, unsigned short b)
 {
 	for (;length;length--){
@@ -880,7 +868,7 @@ void mix_one_color_48(unsigned short *restrict dest, int length,
  * We assume unsigned short holds at least 16 bits.
  */
 static void mix_two_colors(unsigned short *restrict dest, unsigned char *restrict alpha,
-	int length ,unsigned short r0, unsigned short g0, unsigned short b0,
+	size_t length,  unsigned short r0, unsigned short g0, unsigned short b0,
 	unsigned short r255, unsigned short g255, unsigned short b255)
 {
 	unsigned char mask, cmask;
@@ -909,13 +897,13 @@ static void mix_two_colors(unsigned short *restrict dest, unsigned char *restric
 
 /* We assume unsigned short holds at least 16 bits. */
 void agx_and_uc_32_to_48_table(unsigned short *restrict dest,
-		const unsigned char *restrict src, int lenght, unsigned short *restrict table,
+		const unsigned char *restrict src, size_t length, unsigned short *restrict table,
 		unsigned short rb, unsigned short gb, unsigned short bb)
 {
 	unsigned char alpha, calpha;
 	unsigned short ri, gi, bi;
 
-	for (;lenght;lenght--)
+	for (; length; length--)
 	{
 		ri=table[src[0]];
 		gi=table[src[1]+256];
@@ -949,7 +937,7 @@ void agx_and_uc_32_to_48_table(unsigned short *restrict dest,
  */
 /* We assume unsigned short holds at least 16 bits. */
 void agx_and_uc_32_to_48(unsigned short *restrict dest,
-		const unsigned char *restrict src, int lenght, float red_gamma,
+		const unsigned char *restrict src, size_t length, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb,
 		unsigned short gb, unsigned short bb)
 {
@@ -958,7 +946,7 @@ void agx_and_uc_32_to_48(unsigned short *restrict dest,
 	unsigned short ri,gi,bi;
 	const float inv_255=(float)(1/255.);
 
-	for (;lenght;lenght--)
+	for (; length; length--)
 	{
 		r=src[0];
 		g=src[1];
@@ -1000,7 +988,7 @@ void agx_and_uc_32_to_48(unsigned short *restrict dest,
  */
 /* We assume unsigned short holds at least 16 bits. */
 void agx_and_uc_64_to_48(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, float red_gamma,
+		const unsigned short *restrict src, size_t length, float red_gamma,
 		float green_gamma, float blue_gamma, unsigned short rb,
 		unsigned short gb, unsigned short bb)
 {
@@ -1009,7 +997,7 @@ void agx_and_uc_64_to_48(unsigned short *restrict dest,
 	unsigned short ri,gi,bi;
 	const float inv_65535=(float)(1/65535.);
 
-	for (;lenght;lenght--)
+	for (; length; length--)
 	{
 		r=src[0];
 		g=src[1];
@@ -1051,13 +1039,13 @@ void agx_and_uc_64_to_48(unsigned short *restrict dest,
  * in linear monitor output photon space. alpha 255 means full image no background.
  * We assume unsigned short holds at least 16 bits. */
 void agx_and_uc_64_to_48_table(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, unsigned short *restrict gamma_table,
+		const unsigned short *restrict src, size_t length, unsigned short *restrict gamma_table,
 		unsigned short rb, unsigned short gb, unsigned short bb)
 {
 	unsigned short alpha, calpha;
 	unsigned short ri,gi,bi;
 
-	for (;lenght;lenght--)
+	for (; length; length--)
 	{
 		ri=gamma_table[*src];
 		gi=gamma_table[src[1]+65536];
@@ -1089,13 +1077,13 @@ void agx_and_uc_64_to_48_table(unsigned short *restrict dest,
  * dest. src and dest may be identical and it will work.
  * We assume unsigned short holds at least 16 bits. */
 void agx_48_to_48(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, float red_gamma,
+		const unsigned short *restrict src, size_t length, float red_gamma,
 		float green_gamma, float blue_gamma)
 {
 	float a;
 	const float inv_65535=(float)(1/65535.);
 
-	for (;lenght;lenght--,src+=3,dest+=3)
+	for (; length; length--, src += 3, dest += 3)
 	{
 		a = src[0];
 		a*=inv_65535;
@@ -1117,9 +1105,9 @@ void agx_48_to_48(unsigned short *restrict dest,
  * dest. src and dest may be identical and it will work.
  * We assume unsigned short holds at least 16 bits. */
 void agx_48_to_48_table(unsigned short *restrict dest,
-		const unsigned short *restrict src, int lenght, unsigned short *restrict table)
+		const unsigned short *restrict src, size_t length, unsigned short *restrict table)
 {
-	for (;lenght;lenght--,src+=3,dest+=3)
+	for (; length; length--, src += 3, dest += 3)
 	{
 		dest[0]=table[*src];
 		dest[1]=table[src[1]+65536];
@@ -1131,14 +1119,14 @@ void agx_48_to_48_table(unsigned short *restrict dest,
  * number of triples. output is input powered to the given gamma, passed into
  * dest. src and dest may be identical and it will work.
  * We assume unsigned short holds at least 16 bits. */
-void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src, int
-			  lenght, float red_gamma, float green_gamma, float
+void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src,
+			  size_t length, float red_gamma, float green_gamma, float
 			  blue_gamma)
 {
 	float a;
 	const float inv_255=(float)(1/255.);
 
-	for (;lenght;lenght--,src+=3,dest+=3)
+	for (; length; length--, src += 3, dest += 3)
 	{
 		a=*src;
 		a*=inv_255;
@@ -1214,10 +1202,10 @@ void make_gamma_table(struct cached_image *cimg)
 }
 
 /* We assume unsigned short holds at least 16 bits. */
-void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src, int
-			  lenght, unsigned short *restrict table)
+void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src,
+			  size_t length, unsigned short *restrict table)
 {
-	for (;lenght;lenght--,src+=3,dest+=3)
+	for (; length; length--, src += 3, dest += 3)
 	{
 		dest[0]=table[src[0]];
 		dest[1]=table[src[1]+256];

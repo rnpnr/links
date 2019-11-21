@@ -24,7 +24,7 @@ struct http_connection_info {
 static void http_send_header(struct connection *c);
 static void http_get_header(struct connection *c);
 static void test_restart(struct connection *c);
-static void add_user_agent(unsigned char **hdr, int *l);
+static void add_user_agent(unsigned char **hdr, int *l, const char *url);
 static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigned char *prev_url);
 static void add_accept(unsigned char **hdr, int *l);
 static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url, struct connection *c);
@@ -330,13 +330,15 @@ added_connect:
 		add_to_str(&hdr, &l, h);
 		free(h);
 		if ((h = get_port_str(host))) {
-			add_chr_to_str(&hdr, &l, ':');
-			add_to_str(&hdr, &l, h);
+			if (strcmp(cast_char h, c->ssl ? "443" : "80")) {
+				add_chr_to_str(&hdr, &l, ':');
+				add_to_str(&hdr, &l, h);
+			}
 			free(h);
 		}
 		add_to_str(&hdr, &l, cast_uchar "\r\n");
 	}
-	add_user_agent(&hdr, &l);
+	add_user_agent(&hdr, &l, info->https_forward ? NULL : cast_char host);
 	if (proxy)
 		add_proxy_auth_string(&hdr, &l, c->url);
 	if (!info->https_forward) {
@@ -394,12 +396,25 @@ static void test_restart(struct connection *c)
 	}
 }
 
-static void add_user_agent(unsigned char **hdr, int *l)
+static void add_user_agent(unsigned char **hdr, int *l, const char *url)
 {
 	add_to_str(hdr, l, cast_uchar "User-Agent: ");
 	if (SCRUB_HEADERS)
 		add_to_str(hdr, l, cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0\r\n");
 	else if (!(*http_options.header.fake_useragent)) {
+		/*
+		 * Google started to return css-styled page for searches.
+		 * It returns non-css page if the user agent begins with Lynx.
+		 */
+		if (url && (casestrstr(cast_uchar url, cast_uchar "/www.google.")
+		|| casestrstr(cast_uchar url, cast_uchar "/google."))
+		&& strstr(url, "/search?")
+		&& (strstr(url, "?q=")
+		|| strstr(url, "&q="))
+		&& !strstr(url, "?tbm=isch")
+		&& !strstr(url, "&tbm=isch"))
+			add_to_str(hdr, l, cast_uchar("Lynx/"));
+
 		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
 		add_to_str(hdr, l, system_name);
 		add_to_str(hdr, l, cast_uchar "; ");

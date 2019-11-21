@@ -186,7 +186,7 @@ int slow_fpu = -1;
 		int r,g,b,o,rt,gt,bt,y,x;\
 		unsigned char *restrict outp=out->data;\
 		int *restrict bptr;\
-		int skip=out->skip-SKIP_CODE;\
+		ssize_t skip = out->skip - SKIP_CODE;\
 \
 		o=0;o=o; /*warning go away */\
 		switch(out->x){\
@@ -222,7 +222,7 @@ int slow_fpu = -1;
 		unsigned short ir, ig, ib;\
 		int rt,gt,bt,o,x,y;\
 		unsigned char *restrict outp=out->data;\
-		int skip=out->skip-SKIP_CODE;\
+		ssize_t skip = out->skip - SKIP_CODE;\
 	\
 		o=0;o=o; /*warning go away */\
 		for (y=out->y;y;y--){\

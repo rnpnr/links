@@ -1525,7 +1525,7 @@ struct f_data *cached_format_html(struct f_data_c *fd, struct object_request *rq
 		}
 	}) {};
 	if (ses) {
-		if (report_status || !fd->f_data || fd->f_data->time_to_get >= DISPLAY_FORMATTING_STATUS)
+		if (report_status || !fd->f_data || fd->f_data->time_to_get >= DISPLAY_FORMATTING_STATUS || (rq->ce && rq->ce->length >= 1000000))
 			print_progress(ses, TEXT_(T_FORMATTING_DOCUMENT));
 	}
 	detach_f_data(&fd->f_data);
@@ -2996,6 +2996,10 @@ void win_func(struct window *win, struct links_event *ev, int fw)
 		|| BM_IS_WHEEL(ev->b))
 			move_session_to_front(ses);
 		send_event(ses, ev);
+		break;
+	case EV_EXTRA:
+		if (ev->x == EV_EXTRA_OPEN_URL)
+			goto_url(ses, (unsigned char *)ev->b);
 		break;
 	default:
 		die("session.c win_func(): unknown event\n");

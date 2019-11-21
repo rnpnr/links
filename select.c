@@ -578,7 +578,7 @@ struct signal_handler {
 static volatile int signal_mask[NUM_SIGNALS];
 static volatile struct signal_handler signal_handlers[NUM_SIGNALS];
 
-pid_t signal_pid;
+static pid_t signal_pid;
 int signal_pipe[2];
 
 static void got_signal(int sig)

@@ -491,18 +491,61 @@ static unsigned char *rewrite_url(unsigned char *n)
 	return n;
 }
 
+static int test_qualified_name(char *host, char *hostname)
+{
+	char *c;
+	if (!strcasecmp(host, hostname))
+		return 1;
+	c = strchr(hostname, '.');
+	if (c) {
+		*c = 0;
+		if (!strcasecmp(host, hostname))
+			return 1;
+	}
+	return 0;
+}
+
+static int is_local_host(char *host)
+{
+	if (!*host)
+		return 1;
+	if (!strcasecmp(host, "localhost"))
+		return 1;
+	{
+		int rs;
+		char n[4096];
+		n[0] = 0;
+		EINTRLOOP(rs, gethostname(n, sizeof(n)));
+		n[sizeof(n) - 1] = 0;
+		if (!rs && strlen(n) < sizeof(n) - 1) {
+			if (test_qualified_name(host, n))
+				return 1;
+		}
+	}
+	return 0;
+		
+}
+
 static void insert_wd(unsigned char **up, unsigned char *cwd)
 {
 	unsigned char *u = *up;
 	unsigned char *cw;
 	unsigned char *url;
+	char *host;
 	int url_l;
+	int i;
 	if (!u || !cwd || !*cwd)
 		return;
 	if (casecmp(u, cast_uchar "file://", 7))
 		return;
-	if (dir_sep(u[7]))
+	for (i = 7; u[i] && !dir_sep(u[i]); i++);
+	host = cast_char memacpy(u + 7, i - 7);
+	if (is_local_host(host)) {
+		free(host);
+		memmove(u + 7, u + i, strlen(cast_const_char (u + i)) + 1);
 		return;
+	}
+	free(host);
 	url = init_str();
 	url_l = 0;
 	add_bytes_to_str(&url, &url_l, u, 7);

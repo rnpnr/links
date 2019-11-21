@@ -1027,17 +1027,19 @@ static void html_img(unsigned char *a)
 	ismap = format_.link && (F || !has_attr(a, cast_uchar "usemap")) && has_attr(a, cast_uchar "ismap");
 	free(format_.image);
 	format_.image = NULL;
-	if ((s = get_url_val_img(a, cast_uchar "data-full"))
-	|| (s = get_url_val_img(a, cast_uchar "data-normal"))
-	|| (s = get_url_val_img(a, cast_uchar "data-src"))
-	|| (s = get_url_val_img(a, cast_uchar "data-defer-src"))
-	|| (s = get_url_val_img(a, cast_uchar "data-li-src"))
-	|| (s = get_url_val_img(a, cast_uchar "data-original"))
-	|| (s = get_url_val_img(a, cast_uchar "data-small"))
+	if ((s = get_url_val_img(a, cast_uchar "data-defer-src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-delay-url"))
+	|| (s = get_url_val_img(a, cast_uchar "data-full"))
 	|| (s = get_url_val_img(a, cast_uchar "data-lazy"))
 	|| (s = get_url_val_img(a, cast_uchar "data-lazy-src"))
-	|| (s = get_url_val_img(a, cast_uchar "src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-li-src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-normal"))
+	|| (s = get_url_val_img(a, cast_uchar "data-original"))
+	|| (s = get_url_val_img(a, cast_uchar "data-small"))
 	|| (s = get_url_val_img(a, cast_uchar "data-source"))
+	|| (s = get_url_val_img(a, cast_uchar "data-src"))
+	|| (s = get_url_val_img(a, cast_uchar "data-thumb"))
+	|| (s = get_url_val_img(a, cast_uchar "src"))
 	|| (s = get_url_val_img(a, cast_uchar "dynsrc"))
 	|| (s = get_url_val_img(a, cast_uchar "data"))
 	|| (s = get_url_val_img(a, cast_uchar "content"))
@@ -2670,7 +2672,8 @@ static void html_meta(unsigned char *a)
 		if (!strcmp(cast_const_char prop, "og:image")) {
 			unsigned char *host = get_host_name(format_.href_base);
 			if (host) {
-				if (strstr(cast_const_char host, "flickr.")
+				if (strstr(cast_const_char host, "facebook.")
+				|| strstr(cast_const_char host, "flickr.")
 				|| strstr(cast_const_char host, "imgur.")
 				|| strstr(cast_const_char host, "instagram.")
 				|| strstr(cast_const_char host, "mastadon.")
@@ -2742,7 +2745,13 @@ static void html_link(unsigned char *a)
 	}
 	if (!casestrcmp(name, cast_uchar "dns-prefetch")) {
 		unsigned char *pre_url, *host;
+		if (dmp || *proxies.socks_proxy || proxies.only_proxies)
+			goto skip;
 		pre_url = join_urls(format_.href_base, url);
+		if (get_proxy_string(pre_url) || is_noproxy_url(pre_url)) {
+			free(pre_url);
+			goto skip;
+		}
 		host = get_host_name(pre_url);
 		free(pre_url);
 		free(host);
@@ -2843,7 +2852,7 @@ static struct element_info elements[] = {
 	{"BUTTON",	html_button,	0, 0},
 
 	{"META",	html_meta,	0, 1},
-	{"LINK",	html_link,	1, 1},
+	{"LINK",	html_link,	0, 1},
 	{"IFRAME",	html_iframe,	1, 1},
 	{"FRAME",	html_frame,	1, 1},
 	{"FRAMESET",	html_frameset,	1, 0},
