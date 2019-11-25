@@ -995,14 +995,13 @@ int g_next_link(struct f_data_c *fd, int dir, int do_scroll)
 {
 	int orig_link = -1;
 	int r = 2;
-	int n, pn;
+	int n;
 	if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
 		orig_link = fd->vs->current_link;
-		n = (pn = fd->vs->current_link) + dir;
+		n = fd->vs->current_link + dir;
 	} else {
 retry:
 		n = dir > 0 ? 0 : fd->f_data->nlinks - 1;
-		pn = -1;
 	}
 	again:
 	if (n < 0 || n >= fd->f_data->nlinks) {

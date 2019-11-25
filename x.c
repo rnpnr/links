@@ -1250,7 +1250,6 @@ static void x_process_events(void *data)
 	if (last_was_mouse)  {
 		int a, b;
 
-		last_was_mouse = 0;
 		dev = x_find_gd(last_event.xmotion.window);
 		if (!dev)
 			goto ret;
@@ -1596,7 +1595,7 @@ invalid_param:
 		xim = XOpenIM(x_display, NULL, NULL, NULL);
 #if defined(LC_CTYPE)
 		if (!xim) {
-			if (!l) l = cast_uchar setlocale(LC_CTYPE, "en_US.UTF-8");
+			if (!l) setlocale(LC_CTYPE, "en_US.UTF-8");
 			xim = XOpenIM(x_display, NULL, NULL, NULL);
 		}
 #endif

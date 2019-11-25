@@ -2573,10 +2573,6 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 				q--;
 			}
 		}
-		if (q > 0) {
-			q = 0;
-			/*internal("parse_frame_widths: q > 0"); may happen when page contains too big values */
-		}
 		free(oo);
 	}
 	for (i = 0; i < ol; i++) if (!o[i]) {

@@ -1397,7 +1397,6 @@ static void display_table_frames(struct table *t, int x, int y)
 			if (t->border && (t->frame & F_RHS)) {
 				draw_frame_point(cx, cy, i, j);
 				if (j < t->y) draw_frame_vline(cx, safe_add(cy, 1), t->r_heights[j], i, j);
-				cx = safe_add(cx, 1);
 			}
 			cy = safe_add(cy, 1);
 		} else if (j < t->y) {
