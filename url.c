@@ -28,12 +28,12 @@ static const struct {
 
 
 
-static int check_protocol(unsigned char *p, int l)
+static int check_protocol(unsigned char *p, size_t l)
 {
 	int i;
 	for (i = 0; protocols[i].prot; i++)
 		if (!casecmp(cast_uchar protocols[i].prot, p, l)
-		&& strlen((char *)protocols[i].prot) == (size_t)l)
+		&& strlen(protocols[i].prot) == l)
 			return i;
 	return -1;
 }
@@ -91,7 +91,7 @@ int parse_url(unsigned char *url, int *prlen, unsigned char **user, int *uslen, 
 		return -1;
 	if (prlen)
 		*prlen = (int)(p - url);
-	if ((a = check_protocol(url, (int)(p - url))) == -1)
+	if ((a = check_protocol(url, p - url)) == -1)
 		return -1;
 	if (p[1] != '/' || p[2] != '/') {
 		if (protocols[a].need_slashes)
@@ -323,7 +323,7 @@ static void translate_directories(unsigned char *url)
 		return;
 	if (!casecmp(url, cast_uchar "magnet:", 7))
 		return;
-	if (!dd || dd == url /*|| *--dd != '/'*/)
+	if (!dd || dd == url)
 		return;
 	if (!dsep(*dd)) {
 		dd--;
@@ -440,12 +440,12 @@ static unsigned char *rewrite_url_google_docs(unsigned char *n)
 		{ "https://drive.google.com/file/d/", "https://drive.google.com/uc?export=download&id=", "" },
 		{ "https://drive.google.com/file/u/", "https://drive.google.com/uc?export=download&id=", "" }
 	};
-	for (i = 0; i < (int)array_elements(patterns); i++)
+	for (i = 0; i < array_elements(patterns); i++)
 		if (!cmpbeg(n, cast_uchar patterns[i].beginning))
 			goto match;
 	return n;
 match:
-	id = n + strlen((char *)patterns[i].beginning);
+	id = n + strlen(patterns[i].beginning);
 	url_end = id + strcspn(cast_const_char id, "#" POST_CHAR_STRING);
 	id_end = memchr(id, '/', url_end - id);
 	if (!id_end)
@@ -468,16 +468,16 @@ match:
 
 static unsigned char *rewrite_url_mediawiki_svg(unsigned char *n)
 {
-	const unsigned char u1[] = "/media/math/render/svg/";
-	const unsigned char u2[] = "/media/math/render/png/";
+	const char u1[] = "/media/math/render/svg/";
+	const char u2[] = "/media/math/render/png/";
 	unsigned char *d, *s;
 	d = get_url_data(n);
 	if (!d)
 		return n;
-	s = cast_uchar strstr((char *)d, (char *)u1);
+	s = cast_uchar strstr((char *)d, u1);
 	if (!s)
 		return n;
-	memcpy(s, u2, strlen((char *)u2));
+	memcpy(s, u2, strlen(u2));
 	return n;
 }
 
@@ -861,6 +861,7 @@ void add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll, int encod
 		else if (accept_char(chr) || encode_special == -2)
 			add_chr_to_str(s, l, chr);
 		else if (chr == 10 || chr == 13) {
+			continue;
 		} else {
 			add_to_str(s, l, cast_uchar "&#");
 			add_num_to_str(s, l, (int)chr);
@@ -873,8 +874,8 @@ void convert_file_charset(unsigned char **s, int *l, int start_l)
 {
 }
 
-static const unsigned char xn[] = "xn--";
-static const unsigned xn_l = sizeof(xn) - 1;
+static const char xn[] = "xn--";
+static const size_t xn_l = sizeof(xn) - 1;
 
 #define puny_max_length	63
 #define puny_base	36
@@ -992,7 +993,7 @@ static unsigned char *puny_encode(unsigned char *s, int len)
 		goto ret_free_uni;
 	}
 
-	if (res_l != (int)xn_l)
+	if (res_l != xn_l)
 		add_chr_to_str(&res, &res_l, '-');
 
 	puny_init(&st, ni);
@@ -1019,7 +1020,6 @@ static unsigned char *puny_encode(unsigned char *s, int len)
 				skip++;
 			if (c == lchar) {
 				unsigned n;
-				/*fprintf(stderr, "%d\n", skip);*/
 				n = skip;
 				while (1) {
 					unsigned t = puny_threshold(&st);
@@ -1065,7 +1065,7 @@ static unsigned char *puny_decode(unsigned char *s, int len)
 	unsigned cchar, pos;
 	struct puny_state st;
 
-	if (!(len >= 4 && !casecmp(s, xn, xn_l)))
+	if (!(len >= 4 && !casecmp(s, cast_uchar xn, xn_l)))
 		return NULL;
 	s += xn_l;
 	len -= xn_l;
@@ -1244,7 +1244,7 @@ static unsigned char *display_url_or_host(struct terminal *term, unsigned char *
 		if ((uu = cast_uchar strchr((char *)url, POST_CHAR)))
 			*uu = 0;
 
-	if (!url_non_ascii(url) && !strstr((char *)url, (char *)xn))
+	if (!url_non_ascii(url) && !strstr((char *)url, xn))
 		return url;
 
 	if (!just_host)
