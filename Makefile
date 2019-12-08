@@ -1,4 +1,5 @@
 # links - lynx-like alternative character mode WWW browser
+.POSIX:
 
 include config.mk
 
@@ -86,3 +87,5 @@ install: all
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/links
 	rm -f $(DESTDIR)$(MANPREFIX)/man1/links.1
+
+.PHONY: all options clean install uninstall
