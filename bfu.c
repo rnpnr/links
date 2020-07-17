@@ -87,9 +87,6 @@ static inline int txtlen(struct terminal *term, unsigned char *s)
 	return strlen((char *)s);
 }
 
-void init_bfu(void) {}
-void shutdown_bfu(void) {}
-
 unsigned char m_bar = 0;
 
 static unsigned select_hotkey(struct terminal *term, unsigned char *text, unsigned char *hotkey, unsigned *hotkeys, int n)

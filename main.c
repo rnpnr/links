@@ -363,7 +363,6 @@ static void initialize_all_subsystems(void)
 static void initialize_all_subsystems_2(void)
 {
 	GF(init_dip());
-	init_bfu();
 	GF(init_imgcache());
 	init_fcache();
 	GF(init_grview());
@@ -376,7 +375,6 @@ static void terminate_all_subsystems(void)
 	check_bottom_halves();
 	destroy_all_terminals();
 	check_bottom_halves();
-	shutdown_bfu();
 	if (!F)
 		free_all_itrms();
 	release_object(&dump_obj);

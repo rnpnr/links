@@ -1812,9 +1812,6 @@ struct memory_list *getml(void *, ...);
 void add_to_ml(struct memory_list **, ...);
 void freeml(struct memory_list *);
 
-void init_bfu(void);
-void shutdown_bfu(void);
-
 #define DIALOG_LB	gf_val(DIALOG_LEFT_BORDER + DIALOG_LEFT_INNER_BORDER + 1, G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1 + G_DIALOG_LEFT_INNER_BORDER)
 #define DIALOG_TB	gf_val(DIALOG_TOP_BORDER + DIALOG_TOP_INNER_BORDER + 1, G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 + G_DIALOG_TOP_INNER_BORDER)
 
