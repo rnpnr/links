@@ -549,8 +549,6 @@ static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static inline void reinit_video(void) { }
-
 static void refresh_network(void *xxx)
 {
 	abort_background_connections();
@@ -808,7 +806,6 @@ static void data_cleanup(void)
 		cleanup_session(ses);
 		draw_formatted(ses);
 	}
-	reinit_video();
 	free_blacklist();
 	free_cookies();
 	free_auth();
