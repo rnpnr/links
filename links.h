@@ -2187,8 +2187,6 @@ struct f_data_c *current_frame(struct session *);
 void reset_form(struct f_data_c *f, int form_num);
 void set_textarea(struct session *, struct f_data_c *, int);
 
-int known_image_type(unsigned char *type);
-
 /* html.c */
 
 enum html_attr {

@@ -22,7 +22,6 @@ SRC = \
 	html_tbl.c\
 	http.c\
 	https.c\
-	img.c\
 	kbd.c\
 	language.c\
 	listedit.c\

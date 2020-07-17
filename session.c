@@ -1811,7 +1811,6 @@ static int plain_type(struct object_request *rq, unsigned char **p)
 	if (!casestrcmp(ct, cast_uchar "text/plain") ||
 	    !casestrcmp(ct, cast_uchar "file/txt")) goto ff;
 	r = 2;
-	if (F && known_image_type(ct)) goto ff;
 	r = -1;
 
 	ff:

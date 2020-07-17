@@ -1108,18 +1108,12 @@ static void html_obj(unsigned char *a, int obj)
 			free(ju);
 		}
 	}
-	if (type && known_image_type(type)) {
-		html_img(a);
-		if (obj == 1) html_top.invisible = INVISIBLE;
-		goto ret;
-	}
 	url = get_url_val(a, cast_uchar "src");
 	if (!url) url = get_url_val(a, cast_uchar "data");
 	if (url) {
 		put_link_line(cast_uchar "", !obj ? cast_uchar "[EMBED]" : cast_uchar "[OBJ]", url, cast_uchar "");
 		free(url);
 	}
-	ret:
 	if (base) {
 		free(format_.href_base);
 		format_.href_base = old_base;
