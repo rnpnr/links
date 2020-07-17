@@ -362,10 +362,7 @@ static void initialize_all_subsystems(void)
 /* Is called sometimes after and sometimes before graphics driver init */
 static void initialize_all_subsystems_2(void)
 {
-	GF(init_dip());
-	GF(init_imgcache());
 	init_fcache();
-	GF(init_grview());
 }
 
 static void terminate_all_subsystems(void)
@@ -395,8 +392,6 @@ static void terminate_all_subsystems(void)
 	check_bottom_halves();
 	end_config();
 	free_strerror_buf();
-	GF(free_dither());
-	GF(shutdown_graphics());
 	os_free_clipboard();
 	if (fg_poll_timer != NULL) {
 		kill_timer(fg_poll_timer);

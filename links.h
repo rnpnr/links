@@ -75,7 +75,6 @@ do {							\
 #define F 0
 
 #define gf_val(x, y) (x)
-#define GF(x)
 
 #define MAX_STR_LEN	1024
 

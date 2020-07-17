@@ -2858,7 +2858,6 @@ void win_func(struct window *win, struct links_event *ev, int fw)
 		move_session_to_front(ses);
 		free(ses->st_old);
 		ses->st_old = NULL;
-		GF(set_window_pos(win, 0, 0, ev->x, ev->y));
 		set_doc_view(ses);
 		html_interpret_recursive(ses->screen);
 		draw_fd(ses->screen);
