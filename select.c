@@ -4,6 +4,8 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <limits.h>
+
 #include "links.h"
 
 #if defined(evtimer_set) && !defined(timeout_set)

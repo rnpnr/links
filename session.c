@@ -3,6 +3,8 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <limits.h>
+
 #include "links.h"
 
 struct list_head downloads = {&downloads, &downloads};

@@ -3,9 +3,10 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-#include "links.h"
-
+#include <limits.h>
 #include <sys/stat.h>
+
+#include "links.h"
 
 static void setrwx(unsigned m, unsigned char *p)
 {

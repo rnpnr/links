@@ -1,3 +1,5 @@
+#include <limits.h>
+
 #include "links.h"
 
 static struct list_head auth = {&auth, &auth};

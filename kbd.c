@@ -3,6 +3,8 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <limits.h>
+
 #include "links.h"
 
 #define OUT_BUF_SIZE		10240

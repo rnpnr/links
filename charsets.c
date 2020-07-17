@@ -3,8 +3,10 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-#include "links.h"
+#include <limits.h>
 #include <wctype.h>
+
+#include "links.h"
 
 struct codepage_desc {
 	const char *name;

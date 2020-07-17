@@ -4,6 +4,7 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 

@@ -3,6 +3,8 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <limits.h>
+
 #include "links.h"
 
 static void init_ctrl(struct form_control *, struct form_state *);

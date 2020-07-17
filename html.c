@@ -3,6 +3,7 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <limits.h>
 #include <string.h>
 
 #include "links.h"

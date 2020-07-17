@@ -3,8 +3,9 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-#include "links.h"
+#include <limits.h>
 
+#include "links.h"
 
 /*------------------------ ASSOCIATIONS -----------------------*/
 

@@ -4,6 +4,8 @@
  * This file is a part of the Links program, released under GPL
  */
 
+#include <limits.h>
+
 #include "links.h"
 
 #define ACCEPT_NONE	0

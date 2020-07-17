@@ -4,8 +4,10 @@
  */
 
 #include <errno.h>
+#include <limits.h>
 #include <search.h>
 #include <unistd.h>
+
 #include "links.h"
 
 static struct list_head cache = {&cache, &cache};

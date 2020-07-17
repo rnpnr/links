@@ -3,9 +3,10 @@
  * This file is a part of the Links program, released under GPL.
  */
 
-#include "links.h"
-
+#include <limits.h>
 #include <sys/ioctl.h>
+
+#include "links.h"
 
 int page_size = 4096;
 
