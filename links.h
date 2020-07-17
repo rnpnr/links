@@ -35,19 +35,6 @@
 
 #include <openssl/ssl.h>
 
-#if defined(G)
-#if defined(HAVE_PNG_H)
-#include <png.h>
-#endif /* #if defined(HAVE_PNG_H) */
-#ifndef png_jmpbuf
-#define png_jmpbuf(png_ptr)	((png_ptr)->jmpbuf)
-#endif
-#ifndef _SETJMP_H
-#include <setjmp.h>
-#endif /* _SETJMP_H */
-#endif /* #if defined(G) */
-
-
 #define longlong long long
 #define ulonglong unsigned long long
 
@@ -85,19 +72,10 @@ do {							\
 	(ret_) = (call_);				\
 } while (!(ret_) && errno == EINTR)
 
-#ifndef G
 #define F 0
-#else
-extern int F;
-#endif
 
-#ifndef G
 #define gf_val(x, y) (x)
 #define GF(x)
-#else
-#define gf_val(x, y) (F ? (y) : (x))
-#define GF(x) if (F) {x;}
-#endif
 
 #define MAX_STR_LEN	1024
 
@@ -985,435 +963,6 @@ struct rgb {
 	unsigned char pad;
 };
 
-#ifdef G
-
-/* lru.c */
-
-struct lru_entry {
-	struct lru_entry *above, *below, *next;
-	struct lru_entry **previous;
-	void *data;
-	unsigned bytes_consumed;
-};
-
-struct lru {
-	int (*compare_function)(void *, void *);
-	struct lru_entry *top, *bottom;
-	int bytes, items;
-};
-
-void lru_insert(struct lru *cache, void *entry, struct lru_entry **row, unsigned bytes_consumed);
-void *lru_get_bottom(struct lru *cache);
-void lru_destroy_bottom(struct lru *cache);
-void lru_init(struct lru *cache, int (*compare_function)(void *entry, void *templ));
-void *lru_lookup(struct lru *cache, void *templ, struct lru_entry **row);
-
-/* drivers.c */
-
-/* Bitmap is allowed to pass only to that driver from which was obtained.
- * It is forbidden to get bitmap from svga driver and pass it to X driver.
- * It is impossible to get an error when registering a bitmap
- */
-struct bitmap {
-	int x, y; /* Dimensions */
-	ssize_t skip; /* Byte distance between vertically consecutive pixels */
-	void *data; /* Pointer to room for topleft pixel */
-	void *flags; /* Allocation flags for the driver */
-};
-
-struct rect {
-	int x1, x2, y1, y2;
-};
-
-struct rect_set {
-	int rl;
-	int m;
-	struct rect r[1];
-};
-
-struct graphics_device {
-	/* Only graphics driver is allowed to write to this */
-
-	struct rect size; /* Size of the window */
-	/*int left, right, top, bottom;*/
-	struct rect clip;
-		/* right, bottom are coords of the first point that are outside the clipping area */
-
-	void *driver_data;
-
-	/* Only user is allowed to write here, driver inits to zero's */
-	void *user_data;
-	void (*redraw_handler)(struct graphics_device *dev, struct rect *r);
-	void (*resize_handler)(struct graphics_device *dev);
-	void (*keyboard_handler)(struct graphics_device *dev, int key, int flags);
-	void (*mouse_handler)(struct graphics_device *dev, int x, int y, int buttons);
-	void (*extra_handler)(struct graphics_device *dev, int type, unsigned char *string);
-};
-
-struct driver_param;
-
-struct graphics_driver {
-	unsigned char *name;
-	unsigned char *(*init_driver)(unsigned char *param, unsigned char *display);	/* param is get from get_driver_param and saved into configure file */
-
-	/* Creates new device and returns pointer to it */
-	struct graphics_device *(*init_device)(void);
-
-	/* Destroys the device */
-	void (*shutdown_device)(struct graphics_device *dev);
-
-	void (*shutdown_driver)(void);
-
-	unsigned char *(*get_driver_param)(void);	/* returns allocated string with parameter given to init_driver function */
-	unsigned char *(*get_af_unix_name)(void);
-
-	/* dest must have x and y filled in when get_empty_bitmap is called */
-	int (*get_empty_bitmap)(struct bitmap *dest);
-
-	void (*register_bitmap)(struct bitmap *bmp);
-
-	void *(*prepare_strip)(struct bitmap *bmp, int top, int lines);
-	void (*commit_strip)(struct bitmap *bmp, int top, int lines);
-
-	/* Must not touch x and y. Suitable for re-registering. */
-	void (*unregister_bitmap)(struct bitmap *bmp);
-	void (*draw_bitmap)(struct graphics_device *dev, struct bitmap *hndl, int x, int y);
-
-	/* Input into get_color has gamma 1/display_gamma.
-	 * Input of 255 means exactly the largest sample the display is able to produce.
-	 * Thus, if we have 3 bits for red, we will perform this code:
-	 * red=((red*7)+127)/255;
-	 */
-	long (*get_color)(int rgb);
-
-	void (*fill_area)(struct graphics_device *dev, int x1, int y1, int x2, int y2, long color);
-	void (*draw_hline)(struct graphics_device *dev, int left, int y, int right, long color);
-	void (*draw_vline)(struct graphics_device *dev, int x, int top, int bottom, long color);
-	int (*scroll)(struct graphics_device *dev, struct rect_set **set, int scx, int scy);
-	 /* When scrolling, the empty spaces will have undefined contents. */
-	 /* returns:
-	    0 - the caller should not care about redrawing, redraw will be sent
-	    1 - the caller should redraw uncovered area */
-	 /* when set is not NULL rectangles in the set (uncovered area) should be redrawn */
-	void (*set_clip_area)(struct graphics_device *dev);
-
-	void (*flush)(struct graphics_device *dev);
-
-	void (*set_palette)(void);
-	unsigned short *(*get_real_colors)(void);
-
-	void (*set_title)(struct graphics_device *dev, unsigned char *title);
-		/* set window title. title is in utf-8 encoding -- you should recode it to device charset */
-		/* if device doesn't support titles (svgalib, framebuffer), this should be NULL, not empty function ! */
-
-	int (*exec)(char *command, int flag);
-		/* -if !NULL executes command on this graphics device,
-		   -if NULL links uses generic (console) command executing
-		    functions
-		   -return value is the same as of the 'system' syscall
-		   -if flag is !0, run command in separate shell
-		    else run command directly
-		 */
-
-	void (*set_clipboard_text)(struct graphics_device *gd, unsigned char *text);
-	unsigned char *(*get_clipboard_text)(void);
-
-	int depth; /* Data layout
-		    * depth
-		    *  4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
-		    * +---------+-+-+---------+-----+
-		    * +         | | |         |     |
-		    * +---------+-+-+---------+-----+
-		    *
-		    *  0 - 2  Number of bytes per pixel in passed bitmaps
-		    *  3 - 7  Number of significant bits per pixel -- 1, 4, 8, 15, 16, 24
-		    *  8      0 -- normal order, 1 -- misordered.Has the same value as vga_misordered from the VGA mode.
-		    *  9      1 -- misordered (0rgb)
-		    * 10 - 14 1 -- dither to the requested number of bits
-		    *
-		    * This number is to be used by the layer that generates images.
-		    * Memory layout for 1 bytes per pixel is:
-		    * 2 colors:
-		    *  7 6 5 4 3 2 1 0
-		    * +-------------+-+
-		    * |      0      |B| B is The Bit. 0 black, 1 white
-		    * +-------------+-+
-		    *
-		    * 16 colors:
-		    *  7 6 5 4 3 2 1 0
-		    * +-------+-------+
-		    * |   0   | PIXEL | Pixel is 4-bit index into palette
-		    * +-------+-------+
-		    *
-		    * 256 colors:
-		    *  7 6 5 4 3 2 1 0
-		    * +---------------+
-		    * |  --PIXEL--    | Pixels is 8-bit index into palette
-		    * +---------------+
-		    */
-	int x, y;	/* size of screen. only for drivers that use virtual devices */
-	int flags;	/* GD_xxx flags */
-	struct driver_param *param;
-};
-
-#define GD_DONT_USE_SCROLL	1
-#define GD_NEED_CODEPAGE	2
-#define GD_UNICODE_KEYS		4
-#define GD_ONLY_1_WINDOW	8
-#define GD_NOAUTO		16
-#define GD_NO_OS_SHELL		32
-#define GD_NO_LIBEVENT		64
-#define GD_SELECT_PALETTE	128
-#define GD_SWITCH_PALETTE	256
-
-extern struct graphics_driver *drv;
-
-#define CLIP_DRAW_BITMAP				\
-	if (!is_rect_valid(&dev->clip)) return;		\
-	if (!bmp->x || !bmp->y) return;			\
-	if (x >= dev->clip.x2) return;			\
-	if (x + bmp->x <= dev->clip.x1) return;		\
-	if (y >= dev->clip.y2) return;			\
-	if (y + bmp->y <= dev->clip.y1) return;		\
-
-#define CLIP_FILL_AREA					\
-	if (x1 < dev->clip.x1) x1 = dev->clip.x1;	\
-	if (x2 > dev->clip.x2) x2 = dev->clip.x2;	\
-	if (y1 < dev->clip.y1) y1 = dev->clip.y1;	\
-	if (y2 > dev->clip.y2) y2 = dev->clip.y2;	\
-	if (x1 >= x2 || y1 >= y2) return;		\
-
-#define CLIP_DRAW_HLINE					\
-	if (y < dev->clip.y1) return;			\
-	if (y >= dev->clip.y2) return;			\
-	if (x1 < dev->clip.x1) x1 = dev->clip.x1;	\
-	if (x2 > dev->clip.x2) x2 = dev->clip.x2;	\
-	if (x1 >= x2) return;				\
-
-#define CLIP_DRAW_VLINE					\
-	if (x < dev->clip.x1) return;			\
-	if (x >= dev->clip.x2) return;			\
-	if (y1 < dev->clip.y1) y1 = dev->clip.y1;	\
-	if (y2 > dev->clip.y2) y2 = dev->clip.y2;	\
-	if (y1 >= y2) return;				\
-
-void add_graphics_drivers(unsigned char **s, int *l);
-unsigned char *init_graphics(unsigned char *, unsigned char *, unsigned char *);
-void shutdown_graphics(void);
-void update_driver_param(void);
-int g_kbd_codepage(struct graphics_driver *drv);
-
-extern struct graphics_device **virtual_devices;
-extern int n_virtual_devices;
-extern struct graphics_device *current_virtual_device;
-
-static inline int is_rect_valid(struct rect *r)
-{
-	return r->x1 < r->x2 && r->y1 < r->y2;
-}
-int do_rects_intersect(struct rect *, struct rect *);
-void intersect_rect(struct rect *, struct rect *, struct rect *);
-void unite_rect(struct rect *, struct rect *, struct rect *);
-struct rect_set *init_rect_set(void);
-void add_to_rect_set(struct rect_set **, struct rect *);
-void exclude_rect_from_set(struct rect_set **, struct rect *);
-static inline void exclude_from_set(struct rect_set **s, int x1, int y1, int x2, int y2)
-{
-	struct rect r;
-	r.x1 = x1;
-	r.x2 = x2;
-	r.y1 = y1;
-	r.y2 = y2;
-	exclude_rect_from_set(s, &r);
-}
-
-void set_clip_area(struct graphics_device *dev, struct rect *r);
-int restrict_clip_area(struct graphics_device *dev, struct rect *r, int x1, int y1, int x2, int y2);
-
-struct rect_set *g_scroll(struct graphics_device *dev, int scx, int scy);
-
-/* dip.c */
-
-/* Digital Image Processing utilities
- * (c) 2000 Clock <clock@atrey.karlin.mff.cuni.cz>
- *
- * This file is a part of Links
- *
- * This file does gray scaling (for prescaling fonts), color scaling (for scaling images
- * where different size is defined in the HTML), two colors mixing (alpha monochromatic letter
- * on a monochromatic backround and font operations.
- */
-
-#define sRGB_gamma	0.45455		/* For HTML, which runs
-					 * according to sRGB standard. Number
-					 * in HTML tag is linear to photons raised
-					 * to this power.
-					 */
-
-extern unsigned aspect; /* Must hold at least 20 bits */
-int fontcache_info(int type);
-
-#define G_BFU_FONT_SIZE menu_font_size
-
-struct letter {
-	const unsigned char *begin; /* Begin in the byte stream (of PNG data) */
-	int length; /* Length (in bytes) of the PNG data in the byte stream */
-	int code; /* Unicode code of the character */
-	short xsize; /* x size of the PNG image */
-	short ysize; /* y size of the PNG image */
-	struct lru_entry *color_list;
-};
-
-struct font {
-	int begin; /* Begin in the letter stream */
-	int length; /* Length in the letter stream */
-};
-
-struct style {
-	int refcount;
-	unsigned char r0, g0, b0, r1, g1, b1;
-	/* ?0 are background, ?1 foreground.
-	 * These are unrounded 8-bit sRGB space
-	 */
-	unsigned char flags; /* non-zero means underline */
-	int height;
-	long underline_color; /* Valid only if flags are nonzero */
-	int mono_space; /* -1 if the font is not monospaced
-			 * width of the space otherwise
-			 */
-	int mono_height; /* Height of the space if mono_space is >=0
-			  * undefined otherwise
-			  */
-};
-
-struct font_cache_entry {
-	unsigned char r0, g0, b0, r1, g1, b1;
-	unsigned char flags;
-	int char_number;
-	int mono_space, mono_height; /* if the letter was rendered for a
-	monospace font, then size of the space. Otherwise, mono_space
-	is -1 and mono_height is undefined. */
-	struct bitmap bitmap;
-};
-
-
-struct cached_image;
-
-void g_print_text(struct graphics_device *device, int x, int y, struct style *style, unsigned char *text, int *width);
-int g_text_width(struct style *style, unsigned char *text);
-int g_char_width(struct style *style, unsigned ch);
-/*unsigned char ags_8_to_8(unsigned char input, float gamma);*/
-unsigned short ags_8_to_16(unsigned char input, float gamma);
-unsigned char ags_16_to_8(unsigned short input, float gamma);
-unsigned short ags_16_to_16(unsigned short input, float gamma);
-void agx_24_to_48(unsigned short *restrict dest, const unsigned char *restrict src,
-		size_t length, float red_gamma, float green_gamma, float blue_gamma);
-void make_gamma_table(struct cached_image *cimg);
-void agx_24_to_48_table(unsigned short *restrict dest, const unsigned char *restrict src,
-		size_t length, unsigned short *restrict gamma_table);
-void agx_48_to_48_table(unsigned short *restrict dest,
-		const unsigned short *restrict src, size_t length, unsigned short *restrict table);
-void agx_48_to_48(unsigned short *restrict dest,
-		const unsigned short *restrict src, size_t length, float red_gamma,
-		float green_gamma, float blue_gamma);
-void agx_and_uc_32_to_48_table(unsigned short *restrict dest,
-		const unsigned char *restrict src, size_t length, unsigned short *restrict table,
-		unsigned short rb, unsigned short gb, unsigned short bb);
-void agx_and_uc_32_to_48(unsigned short *restrict dest,
-		const unsigned char *restrict src, size_t length, float red_gamma,
-		float green_gamma, float blue_gamma, unsigned short rb, unsigned
-		short gb, unsigned short bb);
-void agx_and_uc_64_to_48_table(unsigned short *restrict dest,
-		const unsigned short *restrict src, size_t length, unsigned short *restrict gamma_table,
-		unsigned short rb, unsigned short gb, unsigned short bb);
-void agx_and_uc_64_to_48(unsigned short *restrict dest,
-		const unsigned short *restrict src, size_t length, float red_gamma,
-		float green_gamma, float blue_gamma, unsigned short rb, unsigned
-		short gb, unsigned short bb);
-void mix_one_color_48(unsigned short *restrict dest, size_t length,
-		   unsigned short r, unsigned short g, unsigned short b);
-void mix_one_color_24(unsigned char *restrict dest, size_t length,
-		   unsigned char r, unsigned char g, unsigned char b);
-void scale_color(unsigned short *in, size_t ix, size_t iy, unsigned short **out,
-	size_t ox, size_t oy);
-void update_aspect(void);
-void flush_bitmaps(int flush_font, int flush_images, int redraw_all);
-
-struct g_object;
-
-struct wrap_struct {
-	struct style *style;
-	unsigned char *text;
-	int pos;
-	int width;
-	struct g_object *obj;
-	struct g_object *last_wrap_obj;
-	unsigned char *last_wrap;
-	int force_break;
-};
-
-int g_wrap_text(struct wrap_struct *);
-
-int hack_rgb(int rgb);
-
-#define FF_BOLD		1
-#define FF_MONOSPACED	2
-#define FF_ITALIC	4
-#define FF_UNDERLINE	8
-
-#define FF_SHAPES	4
-
-struct style *g_get_style_font(int fg, int bg, int size, int fflags, unsigned char *font);
-struct style *g_get_style(int fg, int bg, int size, int fflags);
-struct style *g_invert_style(struct style *);
-void g_free_style(struct style *style0);
-struct style *g_clone_style(struct style *);
-
-extern tcount gamma_stamp;
-
-extern long gamma_cache_color_1;
-extern int gamma_cache_rgb_1;
-extern long gamma_cache_color_2;
-extern int gamma_cache_rgb_2;
-
-long real_dip_get_color_sRGB(int rgb);
-
-static inline long dip_get_color_sRGB(int rgb)
-{
-	if (rgb == gamma_cache_rgb_1) return gamma_cache_color_1;
-	if (rgb == gamma_cache_rgb_2) return gamma_cache_color_2;
-	return real_dip_get_color_sRGB(rgb);
-}
-
-void init_dip(void);
-
-#ifdef PNG_USER_MEM_SUPPORTED
-void *my_png_alloc(png_structp png_ptr, png_size_t size);
-void my_png_free(png_structp png_ptr, void *ptr);
-#endif
-
-/* dither.c */
-
-extern int slow_fpu;	/* -1 --- don't know, 0 --- no, 1 --- yes */
-
-/* Dithering functions (for blocks of pixels being dithered into bitmaps) */
-void dither(unsigned short *in, struct bitmap *out);
-int *dither_start(unsigned short *in, struct bitmap *out);
-void dither_restart(unsigned short *in, struct bitmap *out, int *dregs);
-extern void (*round_fn)(unsigned short *restrict in, struct bitmap *out);
-
-long (*get_color_fn(int depth))(int rgb);
-void init_dither(int depth);
-void round_color_sRGB_to_48(unsigned short *restrict red, unsigned short *restrict green,
-		unsigned short *restrict blue, int rgb);
-
-void q_palette(unsigned size, unsigned color, unsigned scale, unsigned rgb[3]);
-double rgb_distance(int r1, int g1, int b1, int r2, int g2, int b2);
-
-void free_dither(void);
-
-#endif
-
 /* terminal.c */
 
 extern unsigned char frame_dumb[];
@@ -1459,10 +1008,6 @@ struct window {
 	void *data;
 	int xp, yp;
 	struct terminal *term;
-#ifdef G
-	struct rect pos;
-	struct rect redr;
-#endif
 	list_entry_last
 };
 
@@ -1511,12 +1056,6 @@ struct terminal {
 	unsigned char *title;
 
 	int handle_to_close;
-#ifdef G
-	struct graphics_device *dev;
-	int last_mouse_x;
-	int last_mouse_y;
-	int last_mouse_b;
-#endif
 	unsigned char utf8_buffer[7];
 	int utf8_paste_mode;
 	list_entry_last
@@ -1557,9 +1096,6 @@ unsigned char *get_cwd(void);
 void set_cwd(unsigned char *);
 unsigned char get_attribute(int, int);
 struct terminal *init_term(int, int, void (*)(struct window *, struct links_event *, int));
-#ifdef G
-struct terminal *init_gfx_term(void (*)(struct window *, struct links_event *, int), unsigned char *, void *, int);
-#endif
 struct term_spec *new_term_spec(unsigned char *);
 void free_term_specs(void);
 void destroy_terminal(void *);
@@ -1574,13 +1110,6 @@ void add_empty_window(struct terminal *, void (*)(void *), void *);
 void draw_to_window(struct window *, void (*)(struct terminal *, void *), void *);
 void redraw_all_terminals(void);
 void flush_terminal(struct terminal *);
-
-#ifdef G
-
-void set_window_pos(struct window *, int, int, int, int);
-void t_redraw(struct graphics_device *, struct rect *);
-
-#endif
 
 /* text only */
 void set_char(struct terminal *, int, int, unsigned, unsigned char);
@@ -1601,9 +1130,6 @@ int unblock_itrm(int);
 #define TERM_FN_TITLE	1
 #define TERM_FN_RESIZE	2
 
-#ifdef G
-int have_extra_exec(void);
-#endif
 void exec_on_terminal(struct terminal *, unsigned char *, unsigned char *, unsigned char);
 void do_terminal_function(struct terminal *, unsigned char, unsigned char *);
 void set_terminal_title(struct terminal *, unsigned char *);
@@ -1636,10 +1162,6 @@ void sig_cont(void *t);
 
 void unhandle_terminal_signals(struct terminal *term);
 int attach_terminal(void *, int);
-#ifdef G
-int attach_g_terminal(unsigned char *, void *, int);
-void gfx_connection(int);
-#endif
 
 /* objreq.c */
 
@@ -1827,10 +1349,6 @@ struct link {
 	int first_point_to_move;
 	struct point *pos;
 	int obj_order;
-#ifdef G
-	struct rect r;
-	struct g_object *obj;
-#endif
 };
 
 enum l_link {
@@ -1950,13 +1468,6 @@ static inline void ds2do(struct document_setup *ds, struct document_options *doo
 			doo->default_link = palette_16_colors[ds->t_link_color];
 		}
 	}
-#ifdef G
-	else {
-		color2rgb(&doo->default_fg, ds->g_text_color);
-		color2rgb(&doo->default_bg, ds->g_background_color);
-		color2rgb(&doo->default_link, ds->g_link_color);
-	}
-#endif
 }
 
 struct node {
@@ -1995,232 +1506,6 @@ struct frameset_desc {
 
 struct f_data;
 
-#ifdef G
-
-enum shape {
-	SHAPE_DEFAULT,
-	SHAPE_RECT,
-	SHAPE_CIRCLE,
-	SHAPE_POLY
-};
-
-struct map_area {
-	int shape;
-	int *coords;
-	int ncoords;
-	int link_num;
-};
-
-struct image_map {
-	int n_areas;
-	struct map_area area[1];
-};
-
-struct background {
-	int sRGB; /* This is 3*8 bytes with sRGB_gamma (in sRGB space).
-		     This is not rounded. */
-	long color;
-	tcount gamma_stamp;
-};
-
-struct f_data_c;
-
-#define G_OBJ_ALIGN_SPECIAL	(INT_MAX - 2)
-#define G_OBJ_ALIGN_MIDDLE	(INT_MAX - 2)
-#define G_OBJ_ALIGN_TOP		(INT_MAX - 1)
-
-struct g_object {
-	/* public data --- must be same in all g_object* structures */
-	void (*mouse_event)(struct f_data_c *, struct g_object *, int, int, int);
-		/* pos is relative to object */
-	void (*draw)(struct f_data_c *, struct g_object *, int, int);
-		/* absolute pos on screen */
-	void (*destruct)(struct g_object *);
-	void (*get_list)(struct g_object *, void (*)(struct g_object *parent, struct g_object *child));
-	int x, y, xw, yw;
-	struct g_object *parent;
-};
-
-#define go_go_head_1st	struct g_object go;
-#define go_head_last
-
-struct g_object_text_image {
-	go_go_head_1st
-	int link_num;
-	int link_order;
-	struct image_map *map;
-	int ismap;
-	go_head_last
-};
-
-struct g_object_text {
-	struct g_object_text_image goti;
-	struct style *style;
-	int srch_pos;
-	unsigned char text[1];
-};
-
-struct g_object_line {
-	go_go_head_1st
-	struct background *bg;
-	int n_entries;
-	go_head_last
-	struct g_object *entries[1];
-};
-
-struct g_object_area {
-	go_go_head_1st
-	struct background *bg;
-	int n_lines;
-	go_head_last
-	struct g_object_line *lines[1];
-};
-
-struct table;
-
-struct g_object_table {
-	go_go_head_1st
-	struct table *t;
-	go_head_last
-};
-
-struct g_object_tag {
-	go_go_head_1st
-	go_head_last
-	/* private data... */
-	unsigned char name[1];
-};
-
-#define IM_PNG 0
-#define IM_GIF 1
-
-#ifdef HAVE_JPEG
-#define IM_JPG 3
-#endif /* #ifdef HAVE_JPEG */
-
-#define MEANING_DIMS	  0
-#define MEANING_AUTOSCALE 1
-struct cached_image {
-	list_entry_1st
-	int refcount;
-
-	int background_color; /* nezaokrouhlene pozadi:
-			       * sRGB, (r<<16)+(g<<8)+b */
-	unsigned char *url;
-	ssize_t wanted_xw, wanted_yw; /* This is what is written in the alt.
-				     If some dimension is omitted, then
-				     it's <0. This is what was requested
-				     when the image was created. */
-	int wanted_xyw_meaning; /* MEANING_DIMS or MEANING_AUTOSCALE.
-				   The meaning of wanted_xw and wanted_yw. */
-	int scale; /* How is the image scaled */
-	unsigned aspect; /* What aspect ratio the image is for. But the
-		       PNG aspect is ignored :( */
-
-	ssize_t xww, yww; /* This is the resulting dimensions on the screen
-			 measured in screen pixels. */
-
-	ssize_t width, height; /* From image header.
-			    * If the buffer is allocated,
-			    * it is always allocated to width*height.
-			    * If the buffer is NULL then width and height
-			    * are garbage. We assume these dimensions
-			    * are given in the meter space (not pixel space).
-			    * Which is true for all images except aspect
-			    * PNG, but we don't support aspect PNG yet.
-			    */
-	unsigned char image_type; /* IM_??? constant */
-	unsigned char *buffer; /* Buffer with image data */
-	unsigned char buffer_bytes_per_pixel; /* 3 or 4 or 6 or 8
-				     * 3: RGB
-				     * 4: RGBA
-				     * 6: RRGGBB
-				     * 8: RRGGBBAA
-				     */
-	float red_gamma, green_gamma, blue_gamma;
-		/* data=light_from_monitor^[red|green|blue]_gamma.
-		 * i. e. 0.45455 is here if the image is in sRGB
-		 * makes sense only if buffer is !=NULL
-		 */
-	tcount gamma_stamp; /* Number that is increased every gamma change */
-	struct bitmap bmp; /* Registered bitmap. bmp.x=-1 and bmp.y=-1
-			    * if the bmp is not registered.
-			    */
-	unsigned char bmp_used;
-	int last_length; /* length of cache entry at which last decoding was
-			  * done. Makes sense only if reparse==0
-			  */
-	tcount last_count; /* Always valid. */
-	tcount last_count2; /* Always valid. */
-	void *decoder;	      /* Decoder unfinished work. If NULL, decoder
-			       * has finished or has not yet started.
-			       */
-	int rows_added; /* 1 if some rows were added inside the decoder */
-	unsigned char state; /* 0...3 or 8...15 */
-	unsigned char strip_optimized; /* 0 no strip optimization
-				1 strip-optimized (no buffer allocated permanently
-				and bitmap is always allocated)
-			      */
-	unsigned char eof_hit;
-	int *dregs; /* Only for stip-optimized cached images */
-	unsigned short *gamma_table; /* When suitable and source is 8 bits per pixel,
-				      * this is allocated to 256*3*sizeof(*gamma_table)
-				      * = 1536 bytes and speeds up the gamma calculations
-				      * tremendously */
-	list_entry_last
-};
-
-struct additional_file;
-
-struct g_object_image {
-	struct g_object_text_image goti;
-			  /* x,y: coordinates
-			     xw, yw: width on the screen, or <0 if
-			     not yet known. Already scaled. */
-	/* For html parser. If xw or yw are zero, then entries
-	       background_color
-	       af
-	       width
-	       height
-	       image_type
-	       buffer
-	       buffer_bytes_per_pixel
-	       *_gamma
-	       gamma_stamp
-	       bmp
-	       last_length
-	       last_count2
-	       decoder
-	       rows_added
-	       reparse
-	are uninitialized and thus garbage
-	*/
-
-	/* End of compatibility with g_object_text */
-
-	list_entry_1st
-
-	struct cached_image *cimg;
-	struct additional_file *af;
-
-	long id;
-	unsigned char *name;
-	unsigned char *alt;
-	int vspace, hspace, border;
-	unsigned char *orig_src;
-	unsigned char *src;
-	int background; /* Remembered background from insert_image
-			 * (g_part->root->bg->sRGB)
-			 */
-	int xyw_meaning;
-
-	list_entry_last
-};
-
-void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm);
-
-#endif
-
 struct additional_file *request_additional_file(struct f_data *f, unsigned char *url);
 
 /*
@@ -2243,16 +1528,6 @@ struct additional_file {
 	list_entry_last
 	unsigned char url[1];
 };
-
-#ifdef G
-struct image_refresh {
-	list_entry_1st
-	struct g_object *img;
-	uttime tim;
-	uttime start;
-	list_entry_last
-};
-#endif
 
 struct f_data {
 	list_entry_1st
@@ -2295,26 +1570,6 @@ struct f_data {
 	int uncacheable;	/* cannot be cached - either created from source modified by document.write or modified by javascript */
 
 	/* graphics only */
-#ifdef G
-	struct g_object *root;
-	struct g_object *locked_on;
-
-	unsigned char *srch_string;
-	int srch_string_size;
-
-	unsigned char *last_search;
-	int *search_positions;
-	int *search_lengths;
-	int n_search_positions;
-	int hlt_pos; /* index of first highlighted byte */
-	int hlt_len; /* length of highlighted bytes; (hlt_pos+hlt_len) is index of last highlighted character */
-	int start_highlight_x;
-	int start_highlight_y;
-	struct list_head images;	/* list of all images in this f_data */
-	int n_images;	/* pocet obrazku (tim se obrazky taky identifikujou), po kazdem pridani obrazku se zvedne o 1 */
-
-	struct list_head image_refresh;
-#endif
 	list_entry_last
 };
 
@@ -2336,9 +1591,6 @@ struct view_state {
 	int orig_brl_x;
 	int orig_brl_y;
 	int brl_in_field;
-#ifdef G
-	int g_display_link;
-#endif
 };
 
 struct location;
@@ -2479,14 +1731,6 @@ struct session {
 
 	int brl_cursor_mode;
 
-#ifdef G
-	int locked_link;	/* for graphics - when link is locked on FIELD/AREA */
-	int scrolling;
-	int scrolltype;
-	int scrolloff;
-
-	int back_size;
-#endif
 	list_entry_last
 };
 
@@ -2610,12 +1854,6 @@ struct menu {
 	void *data;
 	struct window *win;
 	struct menu_item *items;
-#ifdef G
-	unsigned char **hktxt1;
-	unsigned char **hktxt2;
-	unsigned char **hktxt3;
-	int xl1, yl1, xl2, yl2;
-#endif
 	void (*free_function)(void *);
 	void *free_data;
 	unsigned hotkeys[1];
@@ -2628,9 +1866,6 @@ struct mainmenu {
 	void *data;
 	struct window *win;
 	struct menu_item *items;
-#ifdef G
-	int xl1, yl1, xl2, yl2;
-#endif
 	unsigned hotkeys[1];
 };
 
@@ -2716,11 +1951,6 @@ struct dialog_data {
 	int selected;
 	struct memory_list *ml;
 	int brl_y;
-#ifdef G
-	struct rect_set *s;
-	struct rect r;
-	struct rect rr;
-#endif
 	struct dialog_item_data items[1];
 };
 
@@ -2957,183 +2187,7 @@ struct f_data_c *current_frame(struct session *);
 void reset_form(struct f_data_c *f, int form_num);
 void set_textarea(struct session *, struct f_data_c *, int);
 
-/* font_inc.c */
-
-#ifdef G
-extern struct letter letter_data[];
-extern struct font font_table[];
-#endif
-
-/* gif.c */
-
-#ifdef G
-
-void gif_destroy_decoder(struct cached_image *);
-void gif_start(struct cached_image *goi);
-void gif_restart(unsigned char *data, int length);
-
-#endif
-
-/* png.c */
-
-#ifdef G
-
-void png_start(struct cached_image *cimg);
-void png_restart(struct cached_image *cimg, unsigned char *data, int length);
-void png_destroy_decoder(struct cached_image *cimg);
-void add_png_version(unsigned char **s, int *l);
-
-#endif /* #ifdef G */
-
-/* img.c */
-
-#ifdef G
-
-struct image_description {
-	unsigned char *url;		/* url=completed url */
-	int xsize, ysize;		/* -1 --- unknown size. Space:pixel
-					   space of the screen */
-	int link_num;
-	int link_order;
-	unsigned char *name;
-	unsigned char *alt;
-	unsigned char *src;		/* reflects the src attribute */
-	int border, vspace, hspace;
-	int align;
-	int ismap;
-	int insert_flag;		/* pokud je 1, ma se vlozit do seznamu obrazku ve f_data */
-
-	unsigned char *usemap;
-	unsigned autoscale_x, autoscale_y; /* Requested autoscale dimensions
-					      (maximum allowed rectangle), 0,0
-					      means turned off. 0,something or
-					      something,0 not allowed. */
-};
-
-extern int end_callback_hit;
-extern struct cached_image *global_cimg;
-
-/* Below are internal functions shared with imgcache.c, gif.c, and xbm.c */
-int header_dimensions_known(struct cached_image *cimg);
-void img_end(struct cached_image *cimg);
-void compute_background_8(struct cached_image *cimg, unsigned char rgb[3]);
-void buffer_to_bitmap_incremental(struct cached_image *cimg, unsigned char *buffer, ssize_t height, ssize_t yoff, int *dregs, int use_strip);
-
-/* Below is external interface provided by img.c */
-struct g_part;
-int get_foreground(int rgb);
-struct g_object_image *insert_image(struct g_part *p, struct image_description *im);
-void change_image (struct g_object_image *goi, unsigned char *url, unsigned char *src, struct f_data *fdata);
-void img_destruct_cached_image(struct cached_image *img);
-
-#endif
-
-/* jpeg.c */
-
-#if defined(G) && defined(HAVE_JPEG)
-
-/* Functions exported by jpeg.c for higher layers */
-void jpeg_start(struct cached_image *cimg);
-void jpeg_restart(struct cached_image *cimg, unsigned char *data, int length);
-void jpeg_destroy_decoder(struct cached_image *cimg);
-void add_jpeg_version(unsigned char **s, int *l);
-
-#endif /* #if defined(G) && defined(HAVE_JPEG) */
-
 int known_image_type(unsigned char *type);
-
-/* imgcache.c */
-
-#ifdef G
-
-void init_imgcache(void);
-int imgcache_info(int type);
-struct cached_image *find_cached_image(int bg, unsigned char *url, int xw, int
-		yw, int xyw_meaning, int scale, unsigned aspect);
-void add_image_to_cache(struct cached_image *ci);
-
-#endif
-
-/* view_gr.c */
-
-#ifdef G
-
-/* intersection of 2 intervals s=start, l=len (len 0 is empty interval) */
-static inline void intersect(int s1, int l1, int s2, int l2, int *s3, int *l3)
-{
-	int e1 = s1 + l1;
-	int e2 = s2 + l2;
-	int e3;
-
-	if (e1 < s1) { int tmp = s1; s1 = e1; e1 = tmp; }
-	if (e2 < s2) { int tmp = s2; s2 = e2; e2 = tmp; }
-
-	if (!l1 || !l2)
-		goto intersect_empty;
-
-	if (s1 <= s2 && s2 <= e1)
-		*s3 = s2;
-	else if (s2 < s1)
-		*s3 = s1;
-	else
-		goto intersect_empty;
-
-	if (s1 <= e2 && e2 <= e1)
-		e3 = e2;
-	else if (e2 > e1)
-		e3 = e1;
-	else
-		goto intersect_empty;
-
-	*l3 = e3 - *s3;
-	return;
-
-	intersect_empty:
-	*s3 = 0;
-	*l3 = 0;
-}
-
-
-int g_forward_mouse(struct f_data_c *fd, struct g_object *a, int x, int y, int b);
-
-void draw_vscroll_bar(struct graphics_device *dev, int x, int y, int yw, int total, int view, int pos);
-void draw_hscroll_bar(struct graphics_device *dev, int x, int y, int xw, int total, int view, int pos);
-void get_scrollbar_pos(int dsize, int total, int vsize, int vpos, int *start, int *end);
-
-
-void get_parents(struct f_data *f, struct g_object *a);
-
-void g_dummy_mouse(struct f_data_c *, struct g_object *, int, int, int);
-void g_text_mouse(struct f_data_c *, struct g_object *, int, int, int);
-void g_line_mouse(struct f_data_c *, struct g_object *, int, int, int);
-void g_area_mouse(struct f_data_c *, struct g_object *, int, int, int);
-
-void g_dummy_draw(struct f_data_c *, struct g_object *, int, int);
-void g_text_draw(struct f_data_c *, struct g_object *, int, int);
-void g_line_draw(struct f_data_c *, struct g_object *, int, int);
-void g_area_draw(struct f_data_c *, struct g_object *, int, int);
-
-void g_tag_destruct(struct g_object *);
-void g_text_destruct(struct g_object *);
-void g_line_destruct(struct g_object *);
-void g_line_bg_destruct(struct g_object *);
-void g_area_destruct(struct g_object *);
-
-void g_line_get_list(struct g_object *, void (*)(struct g_object *parent, struct g_object *child));
-void g_area_get_list(struct g_object *, void (*)(struct g_object *parent, struct g_object *child));
-
-void draw_one_object(struct f_data_c *fd, struct g_object *o);
-void draw_title(struct f_data_c *f);
-void draw_graphical_doc(struct terminal *t, struct f_data_c *scr, int active);
-int g_next_link(struct f_data_c *fd, int dir, int do_scroll);
-int g_frame_ev(struct session *ses, struct f_data_c *fd, struct links_event *ev);
-void g_find_next(struct f_data_c *f, int);
-
-int is_link_in_view(struct f_data_c *fd, int nl);
-
-void init_grview(void);
-
-#endif
 
 /* html.c */
 
@@ -3359,24 +2413,6 @@ struct part {
 	unsigned char utf8_part_len;
 };
 
-#ifdef G
-struct g_part {
-	int x, y;
-	int xmax;
-	int cx, cy;
-	int cx_w;
-	struct g_object_area *root;
-	struct g_object_line *line;
-	struct g_object_text *text;
-	int pending_text_len;
-	struct wrap_struct w;
-	struct style *current_style;
-	struct f_data *data;
-	int link_num;
-	struct list_head uf;
-};
-#endif
-
 struct sizes {
 	int xmin, xmax, y;
 };
@@ -3422,29 +2458,6 @@ int get_search_data(struct f_data *);
 
 struct frameset_desc *create_frameset(struct f_data *fda, struct frameset_param *fp);
 void create_frame(struct frame_param *fp);
-
-/* html_gr.c */
-
-#ifdef G
-
-void release_image_map(struct image_map *map);
-int is_in_area(struct map_area *a, int x, int y);
-
-struct background *g_get_background(unsigned char *bg, unsigned char *bgcolor);
-void g_release_background(struct background *bg);
-void g_draw_background(struct graphics_device *dev, struct background *bg, int x, int y, int xw, int yw);
-
-void g_x_extend_area(struct g_object_area *a, int width, int height, int align);
-struct g_part *g_format_html_part(unsigned char *, unsigned char *, int, int, int, unsigned char *, int, unsigned char *, unsigned char *, struct f_data *);
-void g_release_part(struct g_part *);
-int g_get_area_width(struct g_object_area *o);
-void add_object(struct g_part *pp, struct g_object *o);
-void add_object_to_line(struct g_part *pp, struct g_object_line **lp,
-	struct g_object *go);
-void flush_pending_text_to_line(struct g_part *p);
-void flush_pending_line_to_obj(struct g_part *p, int minheight);
-
-#endif
 
 /* html_tbl.c */
 

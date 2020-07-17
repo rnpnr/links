@@ -755,13 +755,7 @@ void select_loop(void (*init)(void))
 	set_handlers(signal_pipe[0], clear_events_ptr, NULL, (void *)(long)signal_pipe[0]);
 	init();
 	CHK_BH;
-
-#ifdef G
-	if (!F || !(drv->flags & GD_NO_LIBEVENT))
-#endif
-	{
-		enable_libevent();
-	}
+	enable_libevent();
 	if (!event_enabled) {
 		restrict_fds();
 	}

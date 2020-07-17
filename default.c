@@ -1195,9 +1195,6 @@ void load_config(void)
 
 void write_config(struct terminal *term)
 {
-#ifdef G
-	if (F) update_driver_param();
-#endif
 	write_config_data(links_home, cast_uchar "links.cfg", links_options, term);
 }
 

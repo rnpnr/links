@@ -946,11 +946,6 @@ void draw_doc(struct terminal *t, void *scr_)
 				else set_cursor(t, xp, yp, xp, yp);
 			}
 			fill_area(t, xp, yp, xw, yw, ' ', get_session_attribute(ses, 0));
-#ifdef G
-		} else {
-			long color = dip_get_color_sRGB(ses->ds.g_background_color /* 0x808080 */);
-			drv->fill_area(t->dev, xp, yp, xp + xw, yp + yw, color);
-#endif
 		}
 		if (active) set_window_ptr(ses->win, xp, yp);
 		return;
@@ -1037,10 +1032,6 @@ void draw_doc(struct terminal *t, void *scr_)
 		draw_forms(t, scr);
 		if (active) draw_current_link(t, scr);
 		if (ses->search_word) scr->xl = scr->yl = -1;
-#ifdef G
-	} else {
-		draw_graphical_doc(t, scr, active);
-#endif
 	}
 }
 
@@ -1056,9 +1047,6 @@ static void draw_doc_c(struct terminal *t, void *scr_)
 {
 	struct f_data_c *scr = (struct f_data_c *)scr_;
 	clr_xl(scr);
-#ifdef G
-	if (F) if (scr == scr->ses->screen) draw_title(scr);
-#endif
 	draw_doc(t, scr);
 }
 
@@ -1642,10 +1630,8 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 				add_to_str(data, len, ct);
 				if (strlen(cast_const_char ct) >= 4 && !casecmp(ct, cast_uchar "text", 4)) {
 					add_to_str(data, len, cast_uchar "; charset=");
-					if (!F) add_to_str(data, len, get_cp_mime_name(term_charset(ses->term)));
-#ifdef G
-					else add_to_str(data, len, get_cp_mime_name(ses->ds.assume_cp));
-#endif
+					if (!F)
+						add_to_str(data, len, get_cp_mime_name(term_charset(ses->term)));
 				}
 				free(ct);
 			}
@@ -1754,9 +1740,6 @@ unsigned char *get_form_url(struct session *ses, struct f_data_c *f, struct form
 	if (!form) return NULL;
 	if (form->type == FC_RESET) {
 		reset_form(f, form->form_num);
-#ifdef G
-		if (F) draw_fd(f);
-#endif
 		return NULL;
 	}
 	if (onsubmit)*onsubmit=0;
@@ -1935,22 +1918,13 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 		else {
 			struct form_control *fc = NULL;
 			struct list_head *lfc;
-#ifdef G
-			int re = 0;
-#endif
 			foreach(struct form_control, fc, lfc, f->f_data->forms)
 				if (fc->form_num == link->form->form_num && fc->type == FC_RADIO && !xstrcmp(fc->name, link->form->name)) {
 					struct form_state *fffs = find_form_state(f, fc);
 					fffs->state = 0;
-#ifdef G
-					re = 1;
-#endif
 				}
 			fs = find_form_state(f, link->form);
 			fs->state = 1;
-#ifdef G
-			if (F && re) draw_fd(f);
-#endif
 		}
 		return 1;
 	}
@@ -1966,19 +1940,10 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 	}
 	if (link->type == L_FIELD || link->type == L_AREA) {
 		/* pri enteru v textovem policku se bude posilat vzdycky       -- Brain */
-		if (!has_form_submit(f->f_data, link->form) && (!a || !F)) goto submit;
-#ifdef G
-		if (F && a) {
-			ses->locked_link = 1;
-			return 2;
-		}
-#endif
-		if (!F) {
+		if (!has_form_submit(f->f_data, link->form) && (!a || !F))
+			goto submit;
+		if (!F)
 			down(ses, f, 0);
-		}
-#ifdef G
-		else g_next_link(f, 1, 1);
-#endif
 		return 1;
 	}
 	internal("bad link type %d", link->type);
@@ -2018,12 +1983,6 @@ void selected_item(struct terminal *term, void *pitem, void *ses_)
 	}
 	fixup_select_state(form, fs);
 	f->active = 1;
-#ifdef G
-	if (F) {
-		f->xl = -1;
-		f->yl = -1;
-	}
-#endif
 	draw_to_window(ses->win, draw_doc, f);
 	change_screen_status(ses);
 	print_screen_status(ses);
@@ -2543,12 +2502,6 @@ void find_next(struct session *ses, struct f_data_c *f, int a)
 		ses->search_word = stracpy(ses->last_search_word);
 	}
 	print_progress(ses, TEXT_(T_SEARCHING));
-#ifdef G
-	if (F) {
-		g_find_next(f, a);
-		return;
-	}
-#endif
 	if (get_search_data(f->f_data) < 0) {
 		free(ses->search_word);
 		ses->search_word = NULL;
@@ -2783,10 +2736,8 @@ static int send_to_frame(struct session *ses, struct links_event *ev)
 	if (!fd)
 		return 0;
 
-	if (!F) r = frame_ev(ses, fd, ev);
-#ifdef G
-	else r = g_frame_ev(ses, fd, ev);
-#endif
+	if (!F)
+		r = frame_ev(ses, fd, ev);
 	if (r == 1) {
 		fd->active = 1;
 		draw_to_window(ses->win, draw_doc_c, fd);
@@ -2804,10 +2755,8 @@ void next_frame(struct session *ses, int p)
 	struct f_data_c *fd, *fdd = NULL;
 	struct list_head *lfdd;
 
-	if (!(fd = current_frame(ses))) return;
-#ifdef G
-	ses->locked_link = 0;
-#endif
+	if (!(fd = current_frame(ses)))
+		return;
 	while ((fd = fd->parent)) {
 		n = (int)list_size(&fd->subframes);
 		vs = fd->vs;
@@ -2831,15 +2780,6 @@ void next_frame(struct session *ses, int p)
 		else vs->frame_pos = 0;
 		goto next_sub;
 	}
-#ifdef G
-	if (F && (fd = current_frame(ses)) && fd->vs && fd->f_data) {
-		if (fd->vs->current_link >= 0 && fd->vs->current_link < fd->f_data->nlinks) {
-			if (fd->vs->g_display_link && (fd->f_data->links[fd->vs->current_link].type == L_FIELD || fd->f_data->links[fd->vs->current_link].type == L_AREA)) {
-				if ((fd->f_data->locked_on = fd->f_data->links[fd->vs->current_link].obj)) fd->ses->locked_link = 1;
-			}
-		}
-	}
-#endif
 }
 
 void do_for_frame(struct session *ses, void (*f)(struct session *, struct f_data_c *, int), int a)
@@ -2863,10 +2803,7 @@ static void do_mouse_event(struct session *ses, struct links_event *ev)
 	if (!fd) return;
 	if (ev->x >= fd->xp && ev->x < fd->xp + fd->xw &&
 	    ev->y >= fd->yp && ev->y < fd->yp + fd->yw) goto ok;
-#ifdef G
-	if (ses->scrolling) goto ok;
-#endif
-	r:
+ r:
 	next_frame(ses, 1);
 	fdd = current_frame(ses);
 	/*o = &fdd->f_data->opt;*/
@@ -2997,32 +2934,12 @@ void send_event(struct session *ses, struct links_event *ev)
 			go_back(ses, -1);
 			goto x;
 		}
-#ifdef G
-		if (ses->locked_link) {
-			if (BM_IS_WHEEL(ev->b)) {
-				send_to_frame(ses, ev);
-				return;
-			} else if ((ev->b & BM_ACT) != B_MOVE) {
-				ses->locked_link = 0;
-				clr_xl(ses->screen);
-				draw_formatted(ses);
-			} else return;
-		}
-#endif
 		if (ev->y >= 0 && ev->y < gf_val(1, G_BFU_FONT_SIZE) && ev->x >=0 && ev->x < ses->term->x && (ev->b & BM_ACT) == B_DOWN) {
-#ifdef G
-			if (F && ev->x < ses->back_size) {
-				go_back(ses, 1);
-				goto x;
-			} else
-#endif
-			{
-				struct window *m;
-				activate_bfu_technology(ses, -1);
-				m = list_struct(ses->term->windows.next, struct window);
-				m->handler(m, ev, 0);
-				goto x;
-			}
+			struct window *m;
+			activate_bfu_technology(ses, -1);
+			m = list_struct(ses->term->windows.next, struct window);
+			m->handler(m, ev, 0);
+			goto x;
 		}
 		do_mouse_event(ses, ev);
 	}
@@ -3303,18 +3220,6 @@ static void send_image(struct terminal *term, void *xxx, void *ses_)
 	goto_url_not_from_dialog(ses, u, fd);
 }
 
-#ifdef G
-
-static void send_scale(struct terminal *term, void *xxx, void *ses_)
-{
-	struct session *ses = ses_;
-	ses->ds.porn_enable ^= 1;
-	html_interpret_recursive(ses->screen);
-	draw_formatted(ses);
-}
-
-#endif
-
 void save_as(struct terminal *term, void *xxx, void *ses_)
 {
 	struct session *ses = ses_;
@@ -3410,13 +3315,12 @@ void link_menu(struct terminal *term, void *xxx, void *ses_)
 		}
 	}
 	if (link->where_img) {
-		if (!F || f->f_data->opt.plain != 2) add_to_menu(&mi, TEXT_(T_VIEW_IMAGE), cast_uchar "i", TEXT_(T_HK_VIEW_IMAGE), send_image, NULL, 0, -1);
-#ifdef G
-		else add_to_menu(&mi, TEXT_(T_SCALE_IMAGE_TO_FULL_SCREEN), cast_uchar "Enter", TEXT_(T_HK_SCALE_IMAGE_TO_FULL_SCREEN), send_scale, NULL, 0, -1);
-#endif
-		if (!anonymous) add_to_menu(&mi, TEXT_(T_DOWNLOAD_IMAGE), cast_uchar "I", TEXT_(T_HK_DOWNLOAD_IMAGE), send_download_image, NULL, 0, -1);
+		if (!F || f->f_data->opt.plain != 2)
+			add_to_menu(&mi, TEXT_(T_VIEW_IMAGE), cast_uchar "i", TEXT_(T_HK_VIEW_IMAGE), send_image, NULL, 0, -1);
+		if (!anonymous)
+			add_to_menu(&mi, TEXT_(T_DOWNLOAD_IMAGE), cast_uchar "I", TEXT_(T_HK_DOWNLOAD_IMAGE), send_download_image, NULL, 0, -1);
 	}
-	no_l:
+ no_l:
 	if (!mi->text) add_to_menu(&mi, TEXT_(T_NO_LINK_SELECTED), cast_uchar "", M_BAR, NULL, NULL, 0, -1);
 	do_menu(term, mi, ses);
 }
@@ -3638,8 +3542,7 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 			free(d);
 			add_chr_to_str(&m, &ll, '\'');
 
-			if (l->img_alt)
-			{
+			if (l->img_alt) {
 				unsigned char *txt;
 
 				add_to_str(&m, &ll, cast_uchar " alt='");
@@ -3648,16 +3551,6 @@ static unsigned char *print_current_linkx_plus(struct f_data_c *fd, struct termi
 				add_chr_to_str(&m, &ll, '\'');
 				free(txt);
 			}
-#ifdef G
-			if (F&&l->obj)
-			{
-				add_to_str(&m, &ll, cast_uchar " size='");
-				add_num_to_str(&m, &ll, l->obj->xw);
-				add_chr_to_str(&m, &ll, 'x');
-				add_num_to_str(&m, &ll, l->obj->yw);
-				add_chr_to_str(&m, &ll, '\'');
-			}
-#endif
 			goto p;
 		}
 		goto p;

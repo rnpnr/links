@@ -15,7 +15,6 @@ SRC = \
 	data.c\
 	default.c\
 	dns.c\
-	drivers.c\
 	error.c\
 	file.c\
 	html.c\
@@ -43,21 +42,7 @@ SRC = \
 	view.c
 OBJ = $(SRC:.c=.o)
 
-XSRC = \
-	dip.c\
-	dither.c\
-	font_inc.c\
-	gif.c\
-	html_gr.c\
-	imgcache.c\
-	jpeg.c\
-	lru.c\
-	png.c\
-	view_gr.c\
-	x.c
-XOBJ = $(XSRC:.c=.o)
-
-all: options linksg
+all: options links
 
 options:
 	@echo "CFLAGS  = $(CFLAGS)"
@@ -70,11 +55,8 @@ options:
 links: $(OBJ)
 	$(CC) -o $@ $(OBJ) $(LDFLAGS)
 
-linksg: $(OBJ) $(XOBJ)
-	$(CC) -o links $(OBJ) $(XOBJ) $(LDFLAGS)
-
 clean:
-	rm -f *.o links linksg
+	rm -f *.o links
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin

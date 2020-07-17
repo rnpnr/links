@@ -366,20 +366,12 @@ int exe(char *path, int fg)
 #ifdef SIGWINCH
 	do_signal(SIGWINCH, SIG_DFL);
 #endif
-#ifdef G
-	if (F && drv->exec) return drv->exec(path, fg);
-#endif
 	return system(path);
 }
 
 /* clipboard -> links */
 unsigned char *get_clipboard_text(struct terminal *term)
 {
-#ifdef G
-	if (F && drv->get_clipboard_text) {
-		return drv->get_clipboard_text();
-	}
-#endif
 	if (!clipboard)
 		return NULL;
 	return convert(0, term_charset(term), clipboard, NULL);
@@ -388,23 +380,12 @@ unsigned char *get_clipboard_text(struct terminal *term)
 /* links -> clipboard */
 void set_clipboard_text(struct terminal *term, unsigned char *data)
 {
-#ifdef G
-	if (F && drv->set_clipboard_text) {
-		drv->set_clipboard_text(term->dev, data);
-		return;
-	}
-#endif
 	free(clipboard);
 	clipboard = convert(term_charset(term), 0, data, NULL);
 }
 
 int clipboard_support(struct terminal *term)
 {
-#ifdef G
-	if (F && drv->set_clipboard_text) {
-		return 1;
-	}
-#endif
 	return 0;
 }
 
@@ -481,32 +462,6 @@ static int open_in_new_screen(struct terminal *term, unsigned char *exe, unsigne
 	return 0;
 }
 
-#ifdef G
-static int open_in_new_g(struct terminal *term, unsigned char *exe, unsigned char *param)
-{
-	void *info;
-	unsigned char *target = NULL;
-	int len;
-	int base = 0;
-	unsigned char *url;
-	if (!cmpbeg(param, cast_uchar "-base-session ")) {
-		param = cast_uchar strchr(cast_const_char param, ' ') + 1;
-		base = atoi(cast_const_char param);
-		param += strcspn(cast_const_char param, " ");
-		if (*param == ' ') param++;
-	}
-	if (!cmpbeg(param, cast_uchar "-target ")) {
-		param = cast_uchar strchr(cast_const_char param, ' ') + 1;
-		target = param;
-		param += strcspn(cast_const_char param, " ");
-		if (*param == ' ') *param++ = 0;
-	}
-	url = param;
-	info = create_session_info(base, url, target, &len);
-	return attach_g_terminal(term->cwd, info, len);
-}
-#endif
-
 static const struct {
 	int env;
 	int (*open_window_fn)(struct terminal *term, unsigned char *, unsigned char *);
@@ -515,9 +470,6 @@ static const struct {
 } oinw[] = {
 	{ENV_XWIN, open_in_new_xterm, TEXT_(T_XTERM), TEXT_(T_HK_XTERM)},
 	{ENV_SCREEN, open_in_new_screen, TEXT_(T_SCREEN), TEXT_(T_HK_SCREEN)},
-#ifdef G
-	{ENV_G, open_in_new_g, TEXT_(T_WINDOW), TEXT_(T_HK_WINDOW)},
-#endif
 };
 
 struct open_in_new *get_open_in_new(int environment)
@@ -547,9 +499,6 @@ struct open_in_new *get_open_in_new(int environment)
 
 int can_open_os_shell(int environment)
 {
-#ifdef G
-	if (F && drv->flags & GD_NO_OS_SHELL) return 0;
-#endif
 	return 1;
 }
 

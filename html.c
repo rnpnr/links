@@ -786,15 +786,6 @@ static int parse_width(const char *w, const int trunc)
 	if (end - w < l || s < 0 || s > 10000) return -1;
 	if (p) {
 		if (trunc) {
-#ifdef G
-			if (trunc == 3) {
-				return -1;
-				/*
-				limit = d_opt->yw - G_SCROLL_BAR_WIDTH;
-				if (limit < 0) limit = 0;
-				*/
-			}
-#endif
 			s = s * limit / 100;
 		}
 		else return -1;
@@ -1091,97 +1082,12 @@ static void html_img(unsigned char *a)
 			if (ismap) kill_html_stack_item(&html_top);
 		}
 		free(al);
-#ifdef G
-	} else {
-		struct image_description i;
-		unsigned char *al;
-		unsigned char *u;
-		int aa = -1;
-
-		if ((al = get_attr_val(a, cast_uchar "align"))) {
-			if (!casestrcmp(al, cast_uchar "left")) aa = AL_LEFT;
-			if (!casestrcmp(al, cast_uchar "right")) aa = AL_RIGHT;
-			if (!casestrcmp(al, cast_uchar "center")) aa = AL_CENTER;
-			if (!casestrcmp(al, cast_uchar "bottom")) aa = AL_BOTTOM;
-			if (!casestrcmp(al, cast_uchar "middle")) aa = AL_MIDDLE;
-			if (!casestrcmp(al, cast_uchar "top")) aa = AL_TOP;
-			free(al);
-		}
-
-		if (aa == AL_LEFT || aa == AL_RIGHT || aa == AL_CENTER) {
-			ln_break(1);
-			html_stack_dup();
-			par_format.align = aa;
-		}
-
-		memset(&i,0,sizeof(i));
-		if (ismap) {
-			unsigned char *h;
-			html_stack_dup();
-			h = stracpy(format_.link);
-			add_to_strn(&h, cast_uchar "?0,0");
-			free(format_.link);
-			format_.link = h;
-		}
-
-		i.url = stracpy(format_.image);
-
-		i.src = orig_link;
-		orig_link = NULL;
-		/*
-		i.xsize = get_num(a, cast_uchar "width");
-		i.ysize = get_num(a, cast_uchar "height");
-		*/
-		i.xsize = get_width(a, cast_uchar "width", 2);
-		i.ysize = get_width(a, cast_uchar "height", 3);
-		if (d_opt->porn_enable && i.xsize < 0 && i.ysize < 0 && d_opt->plain == 2) {
-			/* Strict checking for porn condition ;-) */
-			i.autoscale_x = d_opt->xw;
-			i.autoscale_y = d_opt->yw;
-		} else {
-			/* Turn off autoscale */
-			i.autoscale_x = 0;
-			i.autoscale_y = 0;
-		}
-		/*debug("%s, %s -> %d, %d", get_attr_val(a, cast_uchar "width"), get_attr_val(a, cast_uchar "height"), i.xsize, i.ysize);*/
-		i.hspace = get_num(a, cast_uchar "hspace");
-		i.vspace = get_num(a, cast_uchar "vspace");
-		i.border = get_num(a, cast_uchar "border");
-		i.align = aa;
-		i.name = get_attr_val(a, cast_uchar "id");
-		if (!i.name) i.name = get_attr_val(a, cast_uchar "name");
-		i.alt = get_attr_val(a, cast_uchar "title");
-		if (!i.alt) i.alt = get_attr_val(a, cast_uchar "alt");
-		i.insert_flag = !(format_.form);
-		i.ismap = ismap;
-		if ((u = get_url_val(a, cast_uchar "usemap"))) {
-			i.usemap = join_urls(*u == '#' ? top_href_base() : format_.href_base, u);
-			free(u);
-		}
-		if (i.url) {
-			special_f(ff, SP_IMAGE, &i);
-			free(i.url);
-		}
-		free(i.usemap);
-		free(i.name);
-		free(i.alt);
-		free(i.src);
-		line_breax = 0;
-		if (ismap) kill_html_stack_item(&html_top);
-		if (aa == AL_LEFT || aa == AL_RIGHT || aa == AL_CENTER) {
-			ln_break(1);
-			kill_html_stack_item(&html_top);
-		}
-		line_breax = 0;
-		was_br = 0;
-#endif
 	}
-	ret:
+ ret:
 	free(format_.image);
 	format_.image = NULL;
 	html_format_changed = 1;
 	if (usemap) kill_html_stack_item(&html_top);
-	/*put_chrs(cast_uchar " ", 1);*/
 	free(orig_link);
 }
 
@@ -1336,14 +1242,6 @@ static void html_blockquote(unsigned char *a)
 
 static void html_h(int h, unsigned char *a)
 {
-#ifdef G
-	if (F) {
-		html_linebrk(a);
-		format_.fontsize = 8 - h;
-		format_.attr |= AT_BOLD;
-		return;
-	}
-#endif
 	par_format.align = AL_LEFT;
 	if (h == 1)
 		return;
@@ -1427,16 +1325,6 @@ static void html_hr(unsigned char *a)
 		while (i-- > 0) put_chrs(&r, 1);
 		special_f(ff, SP_NOWRAP, 0);
 	}
-#ifdef G
-	else {
-		struct hr_param hr;
-		if (q < 0) q = 2;
-		if (i < 0) i = par_format.width - 2 * margin * G_HTML_MARGIN - 6 * G_HTML_MARGIN;
-		hr.size = q;
-		hr.width = i;
-		if (i >= 0) special_f(ff, SP_HR, &hr);
-	}
-#endif
 	ln_break(2);
 	kill_html_stack_item(&html_top);
 }
@@ -1537,9 +1425,6 @@ static void html_li(unsigned char *a)
 		unsigned char x[8] = "*&nbsp;";
 		if ((par_format.flags & P_LISTMASK) == P_O) x[0] = 'o';
 		if ((par_format.flags & P_LISTMASK) == P_PLUS) x[0] = '+';
-#ifdef G
-		if (F) par_format.leftmargin += 2;
-#endif
 		put_chrs(x, 7);
 		if (!F) par_format.leftmargin += 2;
 		par_format.align = AL_LEFT;
@@ -1549,9 +1434,6 @@ static void html_li(unsigned char *a)
 		char n[32];
 		int t = par_format.flags & P_LISTMASK;
 		int s = get_num(a, cast_uchar "value");
-#ifdef G
-		if (F) par_format.leftmargin += 4;
-#endif
 		if (s != -1) par_format.list_number = s;
 		if ((t != P_roman && t != P_ROMAN
 		&& par_format.list_number < 10)
@@ -1792,16 +1674,6 @@ static void set_max_textarea_width(int *w)
 			*w = limit;
 			if (*w < HTML_MINIMAL_TEXTAREA_WIDTH) *w = HTML_MINIMAL_TEXTAREA_WIDTH;
 		}
-#ifdef G
-	} else {
-		struct style *st = g_get_style(0, 0, d_opt->font_size, FF_MONOSPACED);
-		int uw = g_char_width(st, '_');
-		g_free_style(st);
-		if (uw && *w > limit / uw) {
-			*w = limit / uw;
-			if (*w < HTML_MINIMAL_TEXTAREA_WIDTH) *w = HTML_MINIMAL_TEXTAREA_WIDTH;
-		}
-#endif
 	}
 }
 
@@ -2391,13 +2263,6 @@ static void do_html_textarea(unsigned char *attr, unsigned char *html, unsigned 
 			rows = d_opt->yw;
 			if (rows <= 0) rows = 1;
 		}
-#ifdef G
-	} else {
-		if (d_opt->font_size && rows > (int)(d_opt->yw - G_SCROLL_BAR_WIDTH) / (int)d_opt->font_size) {
-			rows = (int)(d_opt->yw - G_SCROLL_BAR_WIDTH) / (int)d_opt->font_size;
-			if (rows <= 0) rows = 1;
-		}
-#endif
 	}
 	fc->cols = cols;
 	fc->rows = rows;
@@ -2413,9 +2278,6 @@ static void do_html_textarea(unsigned char *attr, unsigned char *html, unsigned 
 	html_stack_dup();
 	format_.form = fc;
 	format_.attr = AT_BOLD | AT_FIXED;
-#ifdef G
-	if (F) format_.attr &= ~AT_BOLD;
-#endif
 	format_.fontsize = 3;
 	for (i = 0; i < rows; i++) {
 		int j;

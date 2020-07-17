@@ -44,16 +44,6 @@ static struct itrm *ditrm = NULL;
 
 int is_blocked(void)
 {
-#ifdef G
-	if (F) {
-		struct terminal *term = NULL;
-		struct list_head *lterm;
-		foreach(struct terminal, term, lterm, terminals)
-			if (term->blocked != -1)
-				return 1;
-		return 0;
-	}
-#endif
 	return ditrm && ditrm->blocked;
 }
 

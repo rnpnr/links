@@ -126,10 +126,6 @@ static void poll_fg(void *t_)
 	fg_poll_timer = NULL;
 	if (!F)
 		r = unblock_itrm(1);
-#ifdef G
-	else
-		r = 0;
-#endif
 	if (r == -1)
 		fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
 	if (r == -2) {
@@ -201,54 +197,6 @@ int attach_terminal(void *info, int len)
 	close_socket(&terminal_pipe[1]);
 	return -1;
 }
-
-#ifdef G
-
-int attach_g_terminal(unsigned char *cwd, void *info, int len)
-{
-	struct terminal *term;
-	term = init_gfx_term(win_func, cwd, info, len);
-	free(info);
-	return term ? 0 : -1;
-}
-
-void gfx_connection(int h)
-{
-	int r;
-	unsigned char cwd[MAX_CWD_LEN];
-	unsigned char hold_conn;
-	void *info;
-	int info_len;
-	struct terminal *term;
-
-	if (hard_read(h, cwd, MAX_CWD_LEN) != MAX_CWD_LEN)
-		goto err_close;
-	cwd[MAX_CWD_LEN - 1] = 0;
-	if (hard_read(h, &hold_conn, 1) != 1)
-		goto err_close;
-	if (hard_read(h, (unsigned char *)&info_len, sizeof(int)) != sizeof(int) || info_len < 0)
-		goto err_close;
-	info = xmalloc((size_t)info_len);
-	if (hard_read(h, info, info_len) != info_len)
-		goto err_close_free;
-	term = init_gfx_term(win_func, cwd, info, info_len);
-	if (term) {
-		if (hold_conn)
-			term->handle_to_close = h;
-		else {
-			hard_write(h, cast_uchar "x", 1);
-			EINTRLOOP(r, close(h));
-		}
-		free(info);
-		return;
-	}
-err_close_free:
-	free(info);
-err_close:
-	EINTRLOOP(r, close(h));
-}
-
-#endif
 
 static struct object_request *dump_obj;
 static off_t dump_pos;
@@ -367,32 +315,9 @@ static void init(void)
 		if (ggr) {
 			close_socket(&terminal_pipe[0]);
 			close_socket(&terminal_pipe[1]);
-#ifdef G
-			{
-				unsigned char *r;
-				if ((r = init_graphics(ggr_drv, ggr_mode, ggr_display))) {
-					fprintf(stderr, "%s", r);
-					free(r);
-					retval = RET_SYNTAX;
-					goto ttt;
-				}
-				handle_basic_signals(NULL);
-				if (drv->get_af_unix_name && !no_connect) {
-					unsigned char *n = stracpy(drv->name);
-					unsigned char *nn = drv->get_af_unix_name();
-					if (*nn) {
-						add_to_strn(&n, cast_uchar "-");
-						add_to_strn(&n, nn);
-					}
-					free(n);
-				}
-				init_dither(drv->depth);
-			}
-#else
 			fprintf(stderr, "Graphics not enabled when compiling\n");
 			retval = RET_SYNTAX;
 			goto ttt;
-#endif
 		}
 		init_b = 1;
 		init_bookmarks();
@@ -404,16 +329,6 @@ static void init(void)
 			if (attach_terminal(info, len) < 0)
 				fatal_exit("Could not open initial session");
 		}
-#ifdef G
-		else {
-			unsigned char *cwd = get_cwd();
-			if (!cwd)
-				cwd = stracpy(cast_uchar "");
-			if (attach_g_terminal(cwd, info, len) < 0)
-				fatal_exit("Could not open initial session");
-			free(cwd);
-		}
-#endif
 	} else {
 		unsigned char *uu, *uuu, *wd;
 		initialize_all_subsystems_2();

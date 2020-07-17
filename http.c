@@ -422,13 +422,9 @@ static void add_user_agent(unsigned char **hdr, int *l, const char *url)
 		if (!F && !list_empty(terminals)) {
 			unsigned char *t = cast_uchar "text";
 			add_to_str(hdr, l, t);
-		}
-#ifdef G
-		else if (F && drv)
-			add_to_str(hdr, l, drv->name);
-#endif
-		else
+		} else {
 			add_to_str(hdr, l, cast_uchar "dump");
+		}
 		add_to_str(hdr, l, cast_uchar ")\r\n");
 	} else {
 		add_to_str(hdr, l, http_options.header.fake_useragent);

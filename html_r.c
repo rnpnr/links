@@ -18,16 +18,6 @@ struct f_data *init_formatted(struct document_options *opt)
 	init_list(scr->forms);
 	init_list(scr->tags);
 	init_list(scr->nodes);
-#ifdef G
-	scr->n_images=0;
-	init_list(scr->images);
-	scr->search_positions = NULL;
-	scr->search_lengths = NULL;
-	init_list(scr->image_refresh);
-	scr->start_highlight_x = -1;
-	scr->start_highlight_y = -1;
-	scr->hlt_pos = -1;
-#endif
 	return scr;
 }
 
@@ -105,9 +95,6 @@ static void clear_formatted(struct f_data *scr)
 	free(scr->slines1);
 	free(scr->slines2);
 
-#ifdef G
-	if (scr->root) scr->root->destruct(scr->root);
-#endif
 	release_object(&scr->rq);
 	free_additional_files(&scr->af);
 	free(scr->title);
@@ -136,13 +123,6 @@ static void clear_formatted(struct f_data *scr)
 	free_list(struct form_control, scr->forms);
 	free_list(struct tag, scr->tags);
 	free_list(struct node, scr->nodes);
-#ifdef G
-	free_list(struct image_refresh, scr->image_refresh);
-	free(scr->srch_string);
-	free(scr->last_search);
-	free(scr->search_positions);
-	free(scr->search_lengths);
-#endif
 	free(scr->refresh);
 }
 
@@ -538,10 +518,6 @@ struct link *new_link(struct f_data *f)
 				(f->nlinks + ALLOC_GR) * sizeof(struct link));
 	}
 	memset(&f->links[f->nlinks], 0, sizeof(struct link));
-#ifdef G
-	f->links[f->nlinks].r.x1 = INT_MAX;
-	f->links[f->nlinks].r.y1 = INT_MAX;
-#endif
 	return &f->links[f->nlinks++];
 }
 
@@ -1213,24 +1189,6 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 		struct part *rp;
 		if ((rp = format_html_part(start, end, par_format.align, par_format.leftmargin, screen->opt.xw, screen, 0, 0, head, 1)))
 			free(rp);
-#ifdef G
-	} else {
-		struct g_part *rp;
-		if ((rp = g_format_html_part(start, end, par_format.align, par_format.leftmargin, screen->opt.xw - G_SCROLL_BAR_WIDTH, head, 1, bg, bgcolor, screen))) {
-			int w = screen->opt.xw;
-			int h = screen->opt.yw;
-			screen->x = rp->x;
-			screen->y = rp->root->go.yw;
-			if (screen->x > w) w = screen->x;
-			if (screen->y > h) h = screen->y;
-			g_x_extend_area(rp->root, w, h, AL_LEFT);
-			screen->root = &rp->root->go;
-			rp->root = NULL;
-			g_release_part(rp);
-			free(rp);
-			get_parents(screen, screen->root);
-		}
-#endif
 	}
 	free(head);
 	free(bg);

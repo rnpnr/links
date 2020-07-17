@@ -77,10 +77,6 @@ void freeml(struct memory_list *ml)
 
 static inline int is_utf_8(struct terminal *term)
 {
-#ifdef G
-	if (F)
-		return 1;
-#endif
 	if (!term_charset(term))
 		return 1;
 	return 0;
@@ -88,56 +84,11 @@ static inline int is_utf_8(struct terminal *term)
 
 static inline int txtlen(struct terminal *term, unsigned char *s)
 {
-#ifdef G
-	if (F)
-		return g_text_width(bfu_style_wb, s);
-	else
-#endif
-		return strlen((char *)s);
+	return strlen((char *)s);
 }
-
-#ifdef G
-struct style *bfu_style_wb, *bfu_style_wb_b, *bfu_style_bw, *bfu_style_bw_u;
-struct style *bfu_style_bw_mono;
-struct style *bfu_style_wb_mono, *bfu_style_wb_mono_u;
-
-long bfu_fg_color, bfu_bg_color;
-
-void init_bfu(void)
-{
-	if (!F) return;
-	bfu_bg_color = dip_get_color_sRGB(G_BFU_BG_COLOR);
-	bfu_fg_color = dip_get_color_sRGB(G_BFU_FG_COLOR);
-	bfu_style_wb = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, 0);
-	bfu_style_wb_b = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, 0);
-	bfu_style_bw = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, 0);
-	bfu_style_bw_u = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, FF_UNDERLINE);
-	bfu_style_bw_mono = g_get_style(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE, FF_MONOSPACED);
-	bfu_style_wb_mono = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, FF_MONOSPACED);
-	bfu_style_wb_mono_u = g_get_style(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE, FF_UNDERLINE | FF_MONOSPACED);
-}
-
-#define G_DIALOG_FIELD_WIDTH g_char_width(bfu_style_wb_mono, ' ')
-
-void shutdown_bfu(void)
-{
-	if (!F)
-		return;
-	g_free_style(bfu_style_wb);
-	g_free_style(bfu_style_wb_b);
-	g_free_style(bfu_style_bw);
-	g_free_style(bfu_style_bw_u);
-	g_free_style(bfu_style_bw_mono);
-	g_free_style(bfu_style_wb_mono);
-	g_free_style(bfu_style_wb_mono_u);
-}
-
-#else
 
 void init_bfu(void) {}
 void shutdown_bfu(void) {}
-
-#endif
 
 unsigned char m_bar = 0;
 
@@ -185,35 +136,6 @@ void do_menu_selected(struct terminal *term, struct menu_item *items, void *data
 	for (i = 0; i < menu->ni; i++)
 		menu->hotkeys[i] = select_hotkey(term, items[i].text,
 					items[i].hotkey, menu->hotkeys, i);
-#ifdef G
-	if (F) {
-		if ((unsigned)menu->ni > INT_MAX / sizeof(unsigned char *))
-			overalloc();
-		menu->hktxt1 = mem_calloc(menu->ni * sizeof(unsigned char *));
-		menu->hktxt2 = mem_calloc(menu->ni * sizeof(unsigned char *));
-		menu->hktxt3 = mem_calloc(menu->ni * sizeof(unsigned char *));
-		for (i = 0; i < menu->ni; i++) {
-			unsigned char *txt = get_text_translation(items[i].text, term);
-			unsigned char *txt2, *txt3 = txt;
-			if (items[i].hotkey != M_BAR) while (*txt3) {
-				unsigned u;
-				txt2 = txt3;
-				GET_UTF_8(txt3, u);
-				u = charset_upcase(u, 0);
-				if (u == menu->hotkeys[i]) {
-					menu->hktxt1[i] = memacpy(txt, txt2 - txt);
-					menu->hktxt2[i] = memacpy(txt2, txt3 - txt2);
-					menu->hktxt3[i] = stracpy(txt3);
-					goto x;
-				}
-			}
-			menu->hktxt1[i] = stracpy(txt);
-			menu->hktxt2[i] = stracpy(cast_uchar "");
-			menu->hktxt3[i] = stracpy(cast_uchar "");
-			x:;
-		}
-	}
-#endif
 	add_window(term, menu_func, menu);
 }
 
@@ -265,19 +187,7 @@ static void count_menu_size(struct terminal *term, struct menu *menu)
 	int my;
 	for (my = 0; my < menu->ni; my++) {
 		int s;
-#ifdef G
-	if (menu->items[my].free_i & MENU_FONT_LIST)  {
-		struct style *st = g_get_style_font(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE,
-			(menu->items[my].free_i & MENU_FONT_LIST_BOLD ? FF_BOLD : 0) |
-			(menu->items[my].free_i & MENU_FONT_LIST_MONO ? FF_MONOSPACED : 0),
-			menu->items[my].data);
-		s = g_text_width(st, menu->items[my].text);
-		g_free_style(st);
-	} else
-#endif
-	{
 		s = txtlen(term, get_text_translation(menu->items[my].text, term)) + txtlen(term, get_text_translation(get_rtext(menu->items[my].rtext), term)) + gf_val(MENU_HOTKEY_SPACE, G_MENU_HOTKEY_SPACE) * (get_text_translation(get_rtext(menu->items[my].rtext), term)[0] != 0);
-	}
 		s += gf_val(4, 2 * (G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER));
 		if (s > mx) mx = s;
 	}
@@ -285,13 +195,6 @@ static void count_menu_size(struct terminal *term, struct menu *menu)
 	my += gf_val(2, 2 * G_MENU_TOP_BORDER);
 	if (mx > sx) mx = sx;
 	if (my > sy) my = sy;
-#ifdef G
-	if (F) {
-		my -= 2 * G_MENU_TOP_BORDER;
-		my -= my % G_BFU_FONT_SIZE;
-		my += 2 * G_MENU_TOP_BORDER;
-	}
-#endif
 	menu->nview = gf_val(my - 2, (my - 2 * G_MENU_TOP_BORDER) / G_BFU_FONT_SIZE);
 	menu->xw = mx;
 	menu->yw = my;
@@ -299,9 +202,6 @@ static void count_menu_size(struct terminal *term, struct menu *menu)
 	if ((menu->y = menu->yp) < 0) menu->y = 0;
 	if (menu->x + mx > sx) menu->x = sx - mx;
 	if (menu->y + my > sy) menu->y = sy - my;
-#ifdef G
-	if (F) set_window_pos(menu->win, menu->x, menu->y, menu->x + menu->xw, menu->y + menu->yw);
-#endif
 }
 
 static void scroll_menu(struct menu *menu, int d)
@@ -387,149 +287,6 @@ static void display_menu_txt(struct terminal *term, void *menu_)
 static int menu_oldview = -1;
 static int menu_oldsel = -1;
 
-#ifdef G
-
-static int menu_ptr_set;
-
-static void display_menu_item_gfx(struct terminal *term, struct menu *menu, int it)
-{
-	struct menu_item *item = &menu->items[it];
-	struct graphics_device *dev = term->dev;
-	int y;
-	if (it < menu->view || it >= menu->ni || it >= menu->view + menu->nview) return;
-	y = menu->y + G_MENU_TOP_BORDER + (it - menu->view) * G_BFU_FONT_SIZE;
-	if (item->hotkey == M_BAR && !get_text_translation(item->text, term)[0]) {
-		drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1,
-			y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2,
-			y + (G_BFU_FONT_SIZE - 1) / 2, bfu_bg_color);
-		drv->draw_hline(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1,
-			y + (G_BFU_FONT_SIZE - 1) / 2,
-			menu->x + menu->xw - G_MENU_LEFT_BORDER / 2,
-			bfu_fg_color);
-
-		drv->fill_area(dev, menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1,
-			y + (G_BFU_FONT_SIZE - 1) / 2 + 1,
-			menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2,
-			y + G_BFU_FONT_SIZE, bfu_bg_color);
-	} else {
-		int p;
-		struct rect r;
-		unsigned char *rtext = get_text_translation(get_rtext(item->rtext), term);
-		if (it != menu->selected) {
-			drv->fill_area(dev,
-				menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y,
-				menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER,
-				y + G_BFU_FONT_SIZE, bfu_bg_color);
-		} else {
-			menu->xl1 = menu->x;
-			menu->yl1 = y;
-			menu->xl2 = menu->x + menu->xw;
-			menu->yl2 = y + G_BFU_FONT_SIZE;
-			menu_ptr_set = 1;
-			set_window_ptr(menu->win, menu->x + menu->xw, y);
-			drv->fill_area(dev,
-				menu->x + (G_MENU_LEFT_BORDER - 1) / 2 + 1, y,
-				menu->x + G_MENU_LEFT_BORDER,
-				y + G_BFU_FONT_SIZE, bfu_bg_color);
-			drv->fill_area(dev,
-				menu->x + menu->xw - G_MENU_LEFT_BORDER, y,
-				menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2,
-				y + G_BFU_FONT_SIZE, bfu_bg_color);
-			drv->fill_area(dev, menu->x + G_MENU_LEFT_BORDER, y,
-				menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER,
-				y + G_BFU_FONT_SIZE, bfu_fg_color);
-		}
-		restrict_clip_area(dev, &r,
-			menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER,
-			y, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER,
-			y + G_BFU_FONT_SIZE);
-		if (it == menu->selected) {
-			struct style *style_wb;
-			if (menu->items[it].free_i & MENU_FONT_LIST) {
-				style_wb = g_get_style_font(G_BFU_BG_COLOR, G_BFU_FG_COLOR, G_BFU_FONT_SIZE,
-					(menu->items[it].free_i & MENU_FONT_LIST_BOLD ? FF_BOLD : 0) |
-					(menu->items[it].free_i & MENU_FONT_LIST_MONO ? FF_MONOSPACED : 0),
-					menu->items[it].data);
-			} else {
-				style_wb = bfu_style_wb;
-			}
-			p = menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER;
-			g_print_text(dev, p, y, style_wb, menu->hktxt1[it], &p);
-			g_print_text(dev, p, y, style_wb, menu->hktxt2[it], &p);
-			if (menu->items[it].free_i & MENU_FONT_LIST) {
-				g_free_style(style_wb);
-			}
-		} else {
-			struct style *style_bw, *style_bw_u;
-			if (menu->items[it].free_i & MENU_FONT_LIST) {
-				style_bw = style_bw_u = g_get_style_font(G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_BFU_FONT_SIZE,
-					(menu->items[it].free_i & MENU_FONT_LIST_BOLD ? FF_BOLD : 0) |
-					(menu->items[it].free_i & MENU_FONT_LIST_MONO ? FF_MONOSPACED : 0),
-					menu->items[it].data);
-			} else {
-				style_bw = bfu_style_bw;
-				style_bw_u = bfu_style_bw_u;
-			}
-			p = menu->x + G_MENU_LEFT_BORDER + G_MENU_LEFT_INNER_BORDER;
-			g_print_text(dev, p, y, style_bw, menu->hktxt1[it], &p);
-			g_print_text(dev, p, y, style_bw_u, menu->hktxt2[it], &p);
-			g_print_text(dev, p, y, style_bw, menu->hktxt3[it], &p);
-			if (menu->items[it].free_i & MENU_FONT_LIST)
-				g_free_style(style_bw);
-		}
-		if (!*rtext) {
-			set_clip_area(dev, &r);
-			if (p > menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER) p = menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER;
-			if (it != menu->selected)
-				drv->fill_area(dev, p, y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + G_BFU_FONT_SIZE, bfu_bg_color);
-			else
-				drv->fill_area(dev, p, y, menu->x + menu->xw - G_MENU_LEFT_BORDER, y + G_BFU_FONT_SIZE, bfu_fg_color);
-		} else {
-			int s = menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER - g_text_width(bfu_style_wb, rtext);
-			if (s < p) s = p;
-			drv->fill_area(dev, p, y, s, y + G_BFU_FONT_SIZE, it != menu->selected ? bfu_bg_color : bfu_fg_color);
-			g_print_text(dev, s, y, it != menu->selected ? bfu_style_bw : bfu_style_wb, rtext, NULL);
-			set_clip_area(dev, &r);
-			if (it != menu->selected)
-				drv->fill_area(dev, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER, y, menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2, y + G_BFU_FONT_SIZE, bfu_bg_color);
-			else
-				drv->fill_area(dev, menu->x + menu->xw - G_MENU_LEFT_BORDER - G_MENU_LEFT_INNER_BORDER, y, menu->x + menu->xw - G_MENU_LEFT_BORDER, y + G_BFU_FONT_SIZE, bfu_fg_color);
-		}
-	}
-}
-
-static void display_menu_gfx(struct terminal *term, void *menu_)
-{
-	struct menu *menu = (struct menu *)menu_;
-	int p;
-	struct graphics_device *dev = term->dev;
-	if (menu_oldview == menu->view) {
-		if (menu_oldsel >= 0 && menu_oldsel < menu->ni && menu_oldsel < menu->view + menu->nview) display_menu_item_gfx(term, menu, menu_oldsel);
-		if (menu->selected >= 0 && menu->selected < menu->ni && menu->selected < menu->view + menu->nview) display_menu_item_gfx(term, menu, menu->selected);
-		return;
-	}
-#define PX1 (menu->x + (G_MENU_LEFT_BORDER - 1) / 2)
-#define PX2 (menu->x + menu->xw - (G_MENU_LEFT_BORDER + 1) / 2)
-#define PY1 (menu->y + (G_MENU_TOP_BORDER - 1) / 2)
-#define PY2 (menu->y + menu->yw - (G_MENU_TOP_BORDER + 1) / 2)
-	drv->fill_area(dev, menu->x, menu->y, menu->x + menu->xw, PY1, bfu_bg_color);
-	drv->fill_area(dev, menu->x, PY1, PX1, PY2 + 1, bfu_bg_color);
-	drv->fill_area(dev, PX2 + 1, PY1, menu->x + menu->xw, PY2 + 1, bfu_bg_color);
-	drv->fill_area(dev, menu->x, PY2 + 1, menu->x + menu->xw, menu->y + menu->yw, bfu_bg_color);
-	drv->draw_hline(dev, PX1, PY1, PX2 + 1, bfu_fg_color);
-	drv->draw_hline(dev, PX1, PY2, PX2 + 1, bfu_fg_color);
-	drv->draw_vline(dev, PX1, PY1 + 1, PY2, bfu_fg_color);
-	drv->draw_vline(dev, PX2, PY1 + 1, PY2, bfu_fg_color);
-	drv->fill_area(dev, PX1 + 1, PY1 + 1, PX2, menu->y + G_MENU_TOP_BORDER, bfu_bg_color);
-	drv->fill_area(dev, PX1 + 1, menu->y + menu->yw - G_MENU_TOP_BORDER, PX2, PY2, bfu_bg_color);
-	menu->xl1 = menu->yl1 = menu->xl2 = menu->yl2 = 0;
-	menu_ptr_set = 0;
-	for (p = menu->view; p < menu->ni && p < menu->view + menu->nview; p++) display_menu_item_gfx(term, menu, p);
-	if (!menu_ptr_set) set_window_ptr(menu->win, menu->x, menu->y);
-}
-
-#endif
-
 static void menu_func(struct window *win, struct links_event *ev, int fwd)
 {
 	int s = 0;
@@ -572,21 +329,11 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			foreachfrom(struct window, w1, w1l, win->term->windows, &win->list_entry) {
 				struct menu *m1;
 				if (w1->handler == mainmenu_func) {
-#ifdef G
-					struct mainmenu *m2 = w1->data;
-					if (F && !f && ev->x >= m2->xl1 && ev->x < m2->xl2 && ev->y >= m2->yl1 && ev->y < m2->yl2) goto bbb;
-#endif
 					if (ev->y < LL) goto del;
 					break;
 				}
 				if (w1->handler != menu_func) break;
 				m1 = w1->data;
-#ifdef G
-				if (F && !f && ev->x >= m1->xl1
-				&& ev->x < m1->xl2 && ev->y >= m1->yl1
-				&& ev->y < m1->yl2)
-					goto bbb;
-#endif
 				if (ev->x > m1->x && ev->x < m1->x+m1->xw-1
 				&& ev->y > m1->y && ev->y < m1->y+m1->yw-1)
 					goto del;
@@ -595,9 +342,6 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 			if ((ev->b & BM_ACT) == B_DOWN) goto del;
 			if (0)
  del:				delete_window_ev(win, ev);
-#ifdef G
- bbb:;
-#endif
 		} else {
 			if (!(ev->x < menu->x || ev->x >= menu->x+menu->xw
 			|| ev->y < menu->y + gf_val(1, G_MENU_TOP_BORDER)
@@ -687,19 +431,6 @@ static void menu_func(struct window *win, struct links_event *ev, int fwd)
 		menu_oldview = menu_oldsel = -1;
 		break;
 	case EV_ABORT:
-#ifdef G
-		if (F) {
-			int i;
-			for (i = 0; i < menu->ni; i++) {
-				free(menu->hktxt1[i]);
-				free(menu->hktxt2[i]);
-				free(menu->hktxt3[i]);
-			}
-			free(menu->hktxt1);
-			free(menu->hktxt2);
-			free(menu->hktxt3);
-		}
-#endif
 		if (menu->items->free_i) {
 			int i;
 			for (i = 0; i < menu->ni; i++) {
@@ -778,35 +509,6 @@ static void display_mainmenu(struct terminal *term, void *menu_)
 			}
 			p += 2;
 		}
-#ifdef G
-	} else {
-		struct graphics_device *dev = term->dev;
-		int i, p;
-		drv->fill_area(dev, 0, 0, p = G_MAINMENU_LEFT_BORDER,
-			G_BFU_FONT_SIZE, bfu_bg_color);
-		for (i = 0; i < menu->ni; i++) {
-			int s = i == menu->selected;
-			unsigned char *text = get_text_translation(menu->items[i].text, term);
-			if (s) {
-				menu->xl1 = p;
-				menu->yl1 = 0;
-				set_window_ptr(menu->win, p, G_BFU_FONT_SIZE);
-			}
-			drv->fill_area(dev, p, 0, p + G_MAINMENU_BORDER, G_BFU_FONT_SIZE, s ? bfu_fg_color : bfu_bg_color);
-			p += G_MAINMENU_BORDER;
-			g_print_text(dev, p, 0, s ? bfu_style_wb : bfu_style_bw,
-				text, &p);
-			drv->fill_area(dev, p, 0, p + G_MAINMENU_BORDER,
-				G_BFU_FONT_SIZE,
-				s ? bfu_fg_color : bfu_bg_color);
-			p += G_MAINMENU_BORDER;
-			if (s) {
-				menu->xl2 = p;
-				menu->yl2 = G_BFU_FONT_SIZE;
-			}
-		}
-		drv->fill_area(dev, p, 0, term->x, G_BFU_FONT_SIZE, bfu_bg_color);
-#endif
 	}
 }
 
@@ -838,10 +540,7 @@ static void mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 	switch ((int)ev->ev) {
 	case EV_INIT:
 	case EV_RESIZE:
-#ifdef G
-		if (F) set_window_pos(win, 0, 0, win->term->x, G_BFU_FONT_SIZE);
-#endif
-		/*-fallthrough*/
+		/* FALLTHROUGH */
 	case EV_REDRAW:
 		draw_to_window(win, display_mainmenu, menu);
 		break;
@@ -1039,137 +738,6 @@ void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int 
 			break;
 		default:
 			internal("display_dlg_item: unknown item: %d", di->item->type);
-#ifdef G
-	} else {
-		struct rect rr;
-		struct graphics_device *dev = term->dev;
-		if (!dlg->s)
-			restrict_clip_area(dev, &rr, dlg->rr.x1, dlg->rr.y1,
-				dlg->rr.x2, dlg->rr.y2);
-		switch (di->item->type) {
-			int p, pp;
-			struct style *st;
-			unsigned char *text, *text2, *text3, *tt, *t;
-			struct rect r;
-		case D_CHECKBOX:
-			p = di->x;
-			if (di->checked) {
-				if (!sel)
-					g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid ? cast_uchar(G_DIALOG_RADIO_L G_DIALOG_RADIO_X G_DIALOG_RADIO_R) : cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R), &p);
-				else {
-					g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_L:cast_uchar G_DIALOG_CHECKBOX_L, &p);
-					g_print_text(dev, p, di->y, bfu_style_bw_u, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X, &p);
-					g_print_text(dev, p, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_R:cast_uchar G_DIALOG_CHECKBOX_R, &p);
-				}
-			} else {
-				int s = g_text_width(bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_X:cast_uchar G_DIALOG_CHECKBOX_X);
-				g_print_text(dev, di->x, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_L:cast_uchar G_DIALOG_CHECKBOX_L, &p);
-				if (!sel) {
-					drv->fill_area(dev, p, di->y,
-						p + s,
-						di->y + G_BFU_FONT_SIZE,
-						bfu_bg_color);
-					p += s;
-				} else {
-					restrict_clip_area(dev, &r, p, di->y, p + s, di->y + G_BFU_FONT_SIZE);
-					g_print_text(dev, p, di->y, bfu_style_bw_u, cast_uchar "          ", NULL);
-					p += s;
-					set_clip_area(dev, &r);
-				}
-				g_print_text(dev, p, di->y, bfu_style_bw, di->item->gid?cast_uchar G_DIALOG_RADIO_R:cast_uchar G_DIALOG_CHECKBOX_R, &p);
-			}
-			di->l = p - di->x;
-			if (sel) set_window_ptr(dlg->win, di->x, di->y + G_BFU_FONT_SIZE);
-			if (dlg->s) exclude_from_set(&dlg->s, di->x, di->y, p, di->y + G_BFU_FONT_SIZE);
-			break;
-		case D_FIELD:
-		case D_FIELD_PASS:
-			text = memacpy(di->cdata, di->cpos);
-			if (*(text2 = text3 = di->cdata + di->cpos)) {
-				GET_UTF_8(text3, p);
-				text2 = memacpy(text2, text3 - text2);
-			} else {
-				text2 = stracpy(cast_uchar " ");
-				text3 = cast_uchar "";
-			}
-			if (!text2) {
-				free(text);
-				break;
-			}
-			text3 = stracpy(text3);
-			if (di->item->type == D_FIELD_PASS) {
-				unsigned d;
-				for (tt = t = text; *tt; ) {
-					t = tt;
-					GET_UTF_8(tt, d);
-					*t++ = '*';
-				}
-				*t = 0;
-				if (di->cdata[di->cpos]) {
-					for (tt = t = text2; *tt; ) {
-						t = tt;
-						GET_UTF_8(tt, d);
-						*t++ = '*';
-					}
-					*t = 0;
-					for (tt = t = text3; *tt; ) {
-						t = tt;
-						GET_UTF_8(tt, d);
-						*t++ = '*';
-					}
-					*t = 0;
-				}
-			}
-			p = g_text_width(bfu_style_wb_mono, text);
-			pp = g_text_width(bfu_style_wb_mono, text2);
-			if (di->vpos + di->l < p + pp) di->vpos = p + pp - di->l;
-			if (di->vpos > p) di->vpos = p;
-			if (di->vpos < 0) di->vpos = 0;
-
-			if (dlg->s)
-				exclude_from_set(&dlg->s, di->x, di->y,
-					di->x + di->l, di->y + G_BFU_FONT_SIZE);
-			restrict_clip_area(dev, &r, di->x, di->y, di->x + di->l,
-				di->y + G_BFU_FONT_SIZE);
-			p = di->x - di->vpos;
-			g_print_text(dev, p, di->y, bfu_style_wb_mono, text, &p);
-			g_print_text(dev, p, di->y,
-				sel ? bfu_style_wb_mono_u : bfu_style_wb_mono,
-				text2, &p);
-			g_print_text(dev, p, di->y, bfu_style_wb_mono, text3, &p);
-			drv->fill_area(dev, p, di->y, di->x + di->l,
-				di->y + G_BFU_FONT_SIZE, bfu_fg_color);
-			set_clip_area(dev, &r);
-			free(text);
-			free(text2);
-			free(text3);
-			if (sel) {
-				set_window_ptr(dlg->win, di->x, di->y);
-			}
-
-			break;
-		case D_BUTTON:
-			st = sel ? bfu_style_wb_b : bfu_style_bw;
-			text = get_text_translation(di->item->text, term);
-			text2 = xmalloc(strlen(cast_const_char text) + 5);
-			strcpy(cast_char text2, cast_const_char G_DIALOG_BUTTON_L);
-			strcpy(cast_char(text2 + 2), cast_const_char text);
-			strcat(cast_char text2, cast_const_char G_DIALOG_BUTTON_R);
-			di->l = 0;
-			g_print_text(dev, di->x, di->y, st, text2, &di->l);
-			free(text2);
-			if (dlg->s)
-				exclude_from_set(&dlg->s, di->x, di->y,
-					di->x + di->l, di->y + G_BFU_FONT_SIZE);
-			if (sel)
-				set_window_ptr(dlg->win, di->x,
-					di->y + G_BFU_FONT_SIZE);
-			break;
-		default:
-			internal("display_dlg_item: unknown item: %d", di->item->type);
-		}
-		if (!dlg->s) set_clip_area(dev, &rr);
-#endif
 	}
 }
 
@@ -1283,9 +851,6 @@ static int dlg_mouse(struct dialog_data *dlg, struct dialog_item_data *di, struc
 				GET_UTF_8(t, u);
 				if (!u) continue;
 				if (!F) p++;
-#ifdef G
-				else p += g_char_width(bfu_style_wb_mono, u);
-#endif
 				if (p > ev->x) break;
 			}
 		}
@@ -1323,20 +888,8 @@ static void redraw_dialog_items(struct terminal *term, void *dlg_)
 static void redraw_dialog(struct terminal *term, void *dlg_)
 {
 	struct dialog_data *dlg = (struct dialog_data *)dlg_;
-#ifdef G
-	int i;
-#endif
 	dlg->dlg->fn(dlg);
 	redraw_dialog_items(term, dlg);
-#ifdef G
-	if (F) {
-		set_clip_area(term->dev, &dlg->r);
-		for (i = 0; i < dlg->s->m; i++) if (is_rect_valid(&dlg->s->r[i]))
-			drv->fill_area(term->dev, dlg->s->r[i].x1, dlg->s->r[i].y1, dlg->s->r[i].x2, dlg->s->r[i].y2, bfu_bg_color);
-		free(dlg->s);
-		dlg->s = NULL;
-	}
-#endif
 }
 
 static void tab_compl(struct terminal *term, void *hi_, void *win_)
@@ -1892,133 +1445,6 @@ void draw_dlg(struct dialog_data *dlg)
 		print_text(term, tpos + dlg->x - 1, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
 		print_text(term, tpos + dlg->x, dlg->y + DIALOG_TOP_BORDER, i, get_text_translation(dlg->dlg->title, term), COLOR_DIALOG_TITLE);
 		print_text(term, tpos + dlg->x + i, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
-#ifdef G
-	} else {
-		struct graphics_device *dev = dlg->win->term->dev;
-		struct rect r;
-		struct rect rt;
-		unsigned char *text = get_text_translation(dlg->dlg->title, dlg->win->term);
-		int xtl = txtlen(dlg->win->term, text);
-		int tl = xtl + 2 * G_DIALOG_TITLE_BORDER;
-		int TXT_X, TXT_Y;
-		if (tl > dlg->xw - 2 * G_DIALOG_LEFT_BORDER - 2 * G_DIALOG_VLINE_SPACE) tl = dlg->xw - 2 * G_DIALOG_LEFT_BORDER - 2 * G_DIALOG_VLINE_SPACE;
-		TXT_X = dlg->x + (dlg->xw - tl) / 2;
-		TXT_Y = dlg->y + G_DIALOG_TOP_BORDER + (G_DIALOG_HLINE_SPACE + 1) / 2 - G_BFU_FONT_SIZE / 2;
-		if (TXT_Y < dlg->y) TXT_Y = dlg->y;
-		if (TXT_Y < dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 - G_BFU_FONT_SIZE)
-			TXT_Y = dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 - G_BFU_FONT_SIZE;
-		set_window_pos(dlg->win, dlg->x, dlg->y, dlg->x + dlg->xw, dlg->y + dlg->yw);
-
-		restrict_clip_area(dev, &r, TXT_X, TXT_Y, TXT_X + tl, TXT_Y + G_BFU_FONT_SIZE);
-		rt.x1 = TXT_X;
-		rt.x2 = TXT_X + tl;
-		rt.y1 = TXT_Y;
-		rt.y2 = TXT_Y + G_BFU_FONT_SIZE;
-		if (xtl > tl)
-			g_print_text(dev, TXT_X, TXT_Y, bfu_style_wb, text, NULL);
-		else {
-			drv->fill_area(dev, TXT_X, TXT_Y,
-				TXT_X + (tl - xtl) / 2, TXT_Y + G_BFU_FONT_SIZE,
-				bfu_fg_color);
-			g_print_text(dev, TXT_X + (tl - xtl) / 2, TXT_Y,
-				bfu_style_wb, text, NULL);
-			drv->fill_area(dev, TXT_X + (tl - xtl) / 2 + xtl,
-				TXT_Y, TXT_X + tl, TXT_Y + G_BFU_FONT_SIZE,
-				bfu_fg_color);
-		}
-		set_clip_area(dev, &r);
-
-		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER,
-			dlg->y + G_DIALOG_TOP_BORDER, TXT_X, bfu_fg_color);
-		drv->draw_hline(dev,
-			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
-			TXT_X, bfu_fg_color);
-		drv->draw_hline(dev, TXT_X + tl, dlg->y + G_DIALOG_TOP_BORDER,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, bfu_fg_color);
-		drv->draw_hline(dev, TXT_X + tl,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE,
-			bfu_fg_color);
-		drv->draw_hline(dev, dlg->x + G_DIALOG_LEFT_BORDER,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER, bfu_fg_color);
-		drv->draw_hline(dev,
-			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE,
-			bfu_fg_color);
-
-		drv->draw_vline(dev, dlg->x + G_DIALOG_LEFT_BORDER,
-			dlg->y + G_DIALOG_TOP_BORDER + 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1,
-			bfu_fg_color);
-		drv->draw_vline(dev,
-			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1,
-			bfu_fg_color);
-		drv->draw_vline(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
-			dlg->y + G_DIALOG_TOP_BORDER + 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1, bfu_fg_color);
-		drv->draw_vline(dev,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE - 1,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1,
-			bfu_fg_color);
-
-		drv->fill_area(dev, dlg->x, dlg->y, TXT_X,
-			dlg->y + G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, TXT_X, dlg->y, TXT_X + tl, TXT_Y,
-			bfu_bg_color);
-		drv->fill_area(dev, TXT_X + tl, dlg->y, dlg->x + dlg->xw,
-			dlg->y + G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, dlg->x, dlg->y + G_DIALOG_TOP_BORDER,
-			dlg->x + G_DIALOG_LEFT_BORDER,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER,
-			dlg->y + G_DIALOG_TOP_BORDER, dlg->x + dlg->xw,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER, bfu_bg_color);
-		drv->fill_area(dev, dlg->x,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER,
-			dlg->x + dlg->xw, dlg->y + dlg->yw, bfu_bg_color);
-
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1,
-			dlg->y + G_DIALOG_TOP_BORDER + 1, TXT_X,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
-			bfu_bg_color);
-		drv->fill_area(dev, TXT_X + tl,
-			dlg->y + G_DIALOG_TOP_BORDER + 1,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
-			bfu_bg_color);
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
-			dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE,
-			bfu_bg_color);
-		drv->fill_area(dev,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE,
-			dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE,
-			bfu_bg_color);
-		drv->fill_area(dev, dlg->x + G_DIALOG_LEFT_BORDER + 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE,
-			dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - 1,
-			dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - 1,
-			bfu_bg_color);
-
-		dlg->s = init_rect_set();
-		dlg->rr.x1 = dlg->x + G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1;
-		dlg->rr.x2 = dlg->x + dlg->xw - G_DIALOG_LEFT_BORDER - G_DIALOG_VLINE_SPACE - 1;
-		dlg->rr.y1 = dlg->y + G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1;
-		dlg->rr.y2 = dlg->y + dlg->yw - G_DIALOG_TOP_BORDER - G_DIALOG_HLINE_SPACE - 1;
-		add_to_rect_set(&dlg->s, &dlg->rr);
-		exclude_rect_from_set(&dlg->s, &rt);
-		restrict_clip_area(dev, &dlg->r, dlg->rr.x1, dlg->rr.y1,
-			dlg->rr.x2, dlg->rr.y2);
-#endif
 	}
 }
 
@@ -2035,9 +1461,6 @@ void max_text_width(struct terminal *term, unsigned char *text, int *width, int 
 				int u;
 				GET_UTF_8(text, u);
 				if (!F) c++;
-#ifdef G
-				else c += g_char_width(align & AL_MONO ? bfu_style_wb_mono : bfu_style_wb, u);
-#endif
 			}
 		}
 		if (c > *width) *width = c;
@@ -2057,9 +1480,6 @@ void min_text_width(struct terminal *term, unsigned char *text, int *width, int 
 				int u;
 				GET_UTF_8(text, u);
 				if (!F) c++;
-#ifdef G
-				else c += g_char_width(align & AL_MONO ? bfu_style_wb_mono : bfu_style_wb, u);
-#endif
 			}
 		}
 		if (c > *width) *width = c;
@@ -2069,9 +1489,6 @@ void min_text_width(struct terminal *term, unsigned char *text, int *width, int 
 int dlg_format_text(struct dialog_data *dlg, struct terminal *term, unsigned char *text, int x, int *y, int w, int *rw, unsigned char co, int align)
 {
 	int xx = x;
-#ifdef G
-	unsigned char *tx2;
-#endif
 	text = get_text_translation(text, dlg->win->term);
 	if (!F) while (1) {
 		unsigned char *t1;
@@ -2111,57 +1528,6 @@ int dlg_format_text(struct dialog_data *dlg, struct terminal *term, unsigned cha
 		if (*text == ' ' || *text == '\n') text++;
 		(*y)++;
 	}
-#ifdef G
-	else if ((tx2 = cast_uchar strchr(cast_const_char text, '\n'))) {
-		unsigned char *txt = stracpy(text);
-		unsigned char *tx1 = txt;
-		tx2 = txt + (tx2 - text);
-		do {
-			*tx2 = 0;
-			dlg_format_text(dlg, term, tx1, x, y, w, rw, co, align);
-			tx1 = tx2 + 1;
-		} while ((tx2 = cast_uchar strchr(cast_const_char tx1, '\n')));
-		dlg_format_text(dlg, term, tx1, x, y, w, rw, co, align);
-		free(txt);
-	} else {
-		int www;
-		unsigned char *txt;
-		struct wrap_struct ww;
-		int r;
-		ww.style = align & AL_MONO ? bfu_style_bw_mono : bfu_style_bw;
-		ww.width = w;
-		new_ln:
-		ww.text = text;
-		ww.obj = NULL;
-		ww.pos = 0;
-		ww.last_wrap = NULL;
-		ww.last_wrap_obj = NULL;
-		ww.force_break = 1;
-		r = g_wrap_text(&ww);
-		if (!r) {
-			txt = memacpy(text, ww.last_wrap - text);
-			www = g_text_width(ww.style, txt);
-			if (!term)
-				free(txt);
-			text = ww.last_wrap;
-			if (*text == ' ') text++;
-		} else {
-			www = ww.pos;
-			txt = text;
-		}
-		if (term) {
-			int xx = (align & AL_MASK) == AL_CENTER ? x + (w - www) / 2 : x;
-			g_print_text(dlg->win->term->dev, xx, *y, ww.style, txt, NULL);
-			if (dlg->s) exclude_from_set(&dlg->s, xx, *y, xx + www, *y + G_BFU_FONT_SIZE);
-			if (!r)
-				free(txt);
-		}
-		if (www > w) www = w;
-		if (rw && www > *rw) *rw = www;
-		*y += G_BFU_FONT_SIZE;
-		if (!r) goto new_ln;
-	}
-#endif
 	return xx - x;
 }
 
@@ -2317,15 +1683,8 @@ void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned c
 			(*y) += 2 * LL;
 		}
 		if (term) {
-			if (!F) print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, strlen((char *)get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
-#ifdef G
-			else {
-				int l, ll;
-				l = ll = x + nx + (item->item->type == D_CHECKBOX ? txtlen(dlg->win->term, cast_uchar(G_DIALOG_CHECKBOX_L G_DIALOG_CHECKBOX_X G_DIALOG_CHECKBOX_R)) + G_DIALOG_GROUP_TEXT_SPACE : 0);
-				g_print_text(term->dev, ll, *y, bfu_style_bw, get_text_translation(texts[0], dlg->win->term), &ll);
-				exclude_from_set(&dlg->s, l, *y, ll, *y + G_BFU_FONT_SIZE);
-			}
-#endif
+			if (!F)
+				print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, strlen((char *)get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
 			item->x = x + nx + sl * (item->item->type != D_CHECKBOX);
 			item->y = *y;
 			if (item->item->type == D_FIELD || item->item->type == D_FIELD_PASS) item->l = gf_val(item->item->dlen, item->item->dlen * G_DIALOG_FIELD_WIDTH);

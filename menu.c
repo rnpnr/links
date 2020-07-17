@@ -19,9 +19,6 @@ static unsigned char * const version_texts[] = {
 	TEXT_(T_ENCRYPTION),
 	TEXT_(T_UTF8_TERMINAL),
 	TEXT_(T_GRAPHICS_MODE),
-#ifdef G
-	TEXT_(T_IMAGE_LIBRARIES),
-#endif
 	TEXT_(T_CONFIGURATION_DIRECTORY),
 	NULL,
 };
@@ -99,24 +96,8 @@ static void menu_version(void *term_)
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
 	add_to_str(&s, &l, cast_uchar "\n");
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-#ifdef G
-	i = l;
-	add_graphics_drivers(&s, &l);
-	for (; s[i]; i++) if (s[i - 1] == ' ') s[i] = upcase(s[i]);
-#else
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-#endif
 	add_to_str(&s, &l, cast_uchar "\n");
-
-#ifdef G
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_png_version(&s, &l);
-#ifdef HAVE_JPEG
-	add_to_str(&s, &l, cast_uchar ", ");
-	add_jpeg_version(&s, &l);
-#endif
-	add_to_str(&s, &l, cast_uchar "\n");
-#endif
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 	if (links_home) {
@@ -347,36 +328,6 @@ static int resource_info(struct terminal *term, struct refresh *r2)
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
-#ifdef G
-	if (F) {
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_IMAGE_CACHE), term));
-		add_to_str(&a, &l, cast_uchar ": ");
-		add_unsigned_long_num_to_str(&a, &l, imgcache_info(CI_BYTES));
-		add_chr_to_str(&a, &l, ' ');
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_BYTES), term));
-		add_to_str(&a, &l, cast_uchar ", ");
-		add_unsigned_long_num_to_str(&a, &l, imgcache_info(CI_FILES));
-		add_chr_to_str(&a, &l, ' ');
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_IMAGES), term));
-		add_to_str(&a, &l, cast_uchar ", ");
-		add_unsigned_long_num_to_str(&a, &l, imgcache_info(CI_LOCKED));
-		add_chr_to_str(&a, &l, ' ');
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
-		add_to_str(&a, &l, cast_uchar ".\n");
-
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_FONT_CACHE), term));
-		add_to_str(&a, &l, cast_uchar ": ");
-		add_unsigned_long_num_to_str(&a, &l, fontcache_info(CI_BYTES));
-		add_chr_to_str(&a, &l, ' ');
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_BYTES), term));
-		add_to_str(&a, &l, cast_uchar ", ");
-		add_unsigned_long_num_to_str(&a, &l, fontcache_info(CI_FILES));
-		add_chr_to_str(&a, &l, ' ');
-		add_to_str(&a, &l, get_text_translation(TEXT_(T_LETTERS), term));
-		add_to_str(&a, &l, cast_uchar ".\n");
-	}
-#endif
-
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_FORMATTED_DOCUMENT_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, formatted_info(CI_FILES));
@@ -598,302 +549,7 @@ static void terminal_options(struct terminal *term, void *xxx, void *ses_)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-#ifndef G
-
 static inline void reinit_video(void) { }
-
-#else
-
-#define VO_GAMMA_LEN 9
-static unsigned char disp_red_g[VO_GAMMA_LEN];
-static unsigned char disp_green_g[VO_GAMMA_LEN];
-static unsigned char disp_blue_g[VO_GAMMA_LEN];
-static unsigned char user_g[VO_GAMMA_LEN];
-static unsigned char aspect_str[VO_GAMMA_LEN];
-
-static void reinit_video(void);
-
-static void refresh_video(void *xxx)
-{
-	display_red_gamma = atof(cast_const_char disp_red_g);
-	display_green_gamma = atof(cast_const_char disp_green_g);
-	display_blue_gamma = atof(cast_const_char disp_blue_g);
-	user_gamma = atof(cast_const_char user_g);
-	bfu_aspect = atof(cast_const_char aspect_str);
-	if (F && drv->flags & (GD_SELECT_PALETTE | GD_SWITCH_PALETTE) && drv->set_palette)
-		drv->set_palette();
-	reinit_video();
-}
-
-static void reinit_video(void)
-{
-	if (!F)
-		return;
-
-	/* Flush font cache */
-	update_aspect();
-
-	/* Recompute dithering tables for the new gamma */
-	init_dither(drv->depth);
-
-	shutdown_bfu();
-	init_bfu();
-	init_grview();
-
-	/* Redraw all terminals */
-	cls_redraw_all_terminals();
-
-	shrink_format_cache(SH_FREE_ALL);
-}
-
-#define video_msg_0	TEXT_(T_VIDEO_OPTIONS_TEXT)
-
-static unsigned char * const video_msg_1[] = {
-	TEXT_(T_RED_DISPLAY_GAMMA),
-	TEXT_(T_GREEN_DISPLAY_GAMMA),
-	TEXT_(T_BLUE_DISPLAY_GAMMA),
-	TEXT_(T_USER_GAMMA),
-	TEXT_(T_ASPECT_RATIO),
-};
-
-static unsigned char * const video_msg_2[] = {
-	TEXT_(T_DITHER_LETTERS),
-	TEXT_(T_DITHER_IMAGES),
-	TEXT_(T_8_BIT_GAMMA_CORRECTION),
-	TEXT_(T_16_BIT_GAMMA_CORRECTION),
-	TEXT_(T_AUTO_GAMMA_CORRECTION),
-};
-
-#define video_option_select_palette    (drv->flags & GD_SELECT_PALETTE)
-#define video_option_switch_palette    (drv->flags & GD_SWITCH_PALETTE)
-#define video_option_scrolling         (drv->flags & GD_DONT_USE_SCROLL)
-
-static unsigned char * const video_msg_select_palette[] = {
-	TEXT_(T_RGB_PALETTE_6x6x6),
-	TEXT_(T_RGB_PALETTE_8x8x4),
-};
-
-static unsigned char * const video_msg_switch_palette[] = {
-	TEXT_(T_SWITCH_PALETTE),
-};
-
-static unsigned char * const video_msg_scrolling[] = {
-	TEXT_(T_OVERWRITE_SCREEN_INSTEAD_OF_SCROLLING_IT),
-};
-
-static void videoopt_fn(struct dialog_data *dlg)
-{
-	struct terminal *term = dlg->win->term;
-	struct dialog_item_data *did;
-	int max = 0, min = 0;
-	int w, rw;
-	int y = gf_val(-1, -G_BFU_FONT_SIZE);
-	max_text_width(term, video_msg_0, &max, AL_LEFT);
-	min_text_width(term, video_msg_0, &min, AL_LEFT);
-	max_group_width(term, video_msg_1, dlg->items, array_elements(video_msg_1), &max);
-	min_group_width(term, video_msg_1, dlg->items, array_elements(video_msg_1), &min);
-	checkboxes_width(term, video_msg_2, array_elements(video_msg_2), &max, max_text_width);
-	checkboxes_width(term, video_msg_2, array_elements(video_msg_2), &min, min_text_width);
-	if (video_option_select_palette) {
-		checkboxes_width(term, video_msg_select_palette, array_elements(video_msg_select_palette), &max, max_text_width);
-		checkboxes_width(term, video_msg_select_palette, array_elements(video_msg_select_palette), &min, min_text_width);
-	}
-	if (video_option_switch_palette) {
-		checkboxes_width(term, video_msg_switch_palette, array_elements(video_msg_switch_palette), &max, max_text_width);
-		checkboxes_width(term, video_msg_switch_palette, array_elements(video_msg_switch_palette), &min, min_text_width);
-	}
-	if (video_option_scrolling) {
-		checkboxes_width(term, video_msg_scrolling, array_elements(video_msg_scrolling), &max, max_text_width);
-		checkboxes_width(term, video_msg_scrolling, array_elements(video_msg_scrolling), &min, min_text_width);
-	}
-	max_buttons_width(term, dlg->items + dlg->n-2, 2, &max);
-	min_buttons_width(term, dlg->items + dlg->n-2, 2, &min);
-	w = dlg->win->term->x * 9 / 10 - 2 * DIALOG_LB;
-	if (w > max) w = max;
-	if (w < min) w = min;
-	if (w > dlg->win->term->x - 2 * DIALOG_LB) w = dlg->win->term->x - 2 * DIALOG_LB;
-	if (w < 1) w = 1;
-	rw = 0;
-	dlg_format_text(dlg, NULL, video_msg_0, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
-	did = dlg->items;
-	dlg_format_group(dlg, NULL, video_msg_1, did, array_elements(video_msg_1), 0, &y, w, &rw);
-	did += array_elements(video_msg_1);
-	y += LL;
-	dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_2), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_2);
-	did += array_elements(video_msg_2);
-	if (video_option_select_palette) {
-		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_select_palette), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_select_palette);
-		did += array_elements(video_msg_select_palette);
-	}
-	if (video_option_switch_palette) {
-		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_switch_palette), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_switch_palette);
-		did += array_elements(video_msg_switch_palette);
-	}
-	if (video_option_scrolling) {
-		dlg_format_checkboxes(dlg, NULL, did, array_elements(video_msg_scrolling), dlg->x + DIALOG_LB, &y, w, &rw, video_msg_scrolling);
-		did += array_elements(video_msg_scrolling);
-	}
-	y += LL;
-	dlg_format_buttons(dlg, NULL, did, 2, 0, &y, w, &rw, AL_CENTER);
-	w = rw;
-	dlg->xw = w + 2 * DIALOG_LB;
-	dlg->yw = y + 2 * DIALOG_TB;
-	center_dlg(dlg);
-	draw_dlg(dlg);
-	y = dlg->y + DIALOG_TB;
-	dlg_format_text(dlg, term, video_msg_0, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
-	did = dlg->items;
-	dlg_format_group(dlg, term, video_msg_1, did, array_elements(video_msg_1), dlg->x + DIALOG_LB, &y, w, NULL);
-	did += array_elements(video_msg_1);
-	y += LL;
-	dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_2), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_2);
-	did += array_elements(video_msg_2);
-	if (video_option_select_palette) {
-		dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_select_palette), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_select_palette);
-		did += array_elements(video_msg_select_palette);
-	}
-	if (video_option_switch_palette) {
-		dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_switch_palette), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_switch_palette);
-		did += array_elements(video_msg_switch_palette);
-	}
-	if (video_option_scrolling) {
-		dlg_format_checkboxes(dlg, term, did, array_elements(video_msg_scrolling), dlg->x + DIALOG_LB, &y, w, NULL, video_msg_scrolling);
-		did += array_elements(video_msg_scrolling);
-	}
-	y += gf_val(1, G_BFU_FONT_SIZE);
-	dlg_format_buttons(dlg, term, dlg->items+dlg->n-2, 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
-}
-
-static void remove_zeroes(unsigned char *string)
-{
-	int l=(int)strlen(cast_const_char string);
-
-	while(l&&(string[l-1]=='0')){
-		l--;
-		string[l]=0;
-	}
-}
-
-static void video_options(struct terminal *term, void *xxx, void *ses_)
-{
-	struct dialog *d;
-	int a;
-	snprintf(cast_char disp_red_g, VO_GAMMA_LEN, "%f", display_red_gamma);
-	remove_zeroes(disp_red_g);
-	snprintf(cast_char disp_green_g, VO_GAMMA_LEN, "%f", display_green_gamma);
-	remove_zeroes(disp_green_g);
-	snprintf(cast_char disp_blue_g, VO_GAMMA_LEN, "%f", display_blue_gamma);
-	remove_zeroes(disp_blue_g);
-	snprintf(cast_char user_g, VO_GAMMA_LEN, "%f", user_gamma);
-	remove_zeroes(user_g);
-	snprintf(cast_char aspect_str, VO_GAMMA_LEN, "%f", bfu_aspect);
-	remove_zeroes(aspect_str);
-	d = mem_calloc(sizeof(struct dialog) + 15 * sizeof(struct dialog_item));
-	d->title = TEXT_(T_VIDEO_OPTIONS);
-	d->fn = videoopt_fn;
-	d->refresh = refresh_video;
-	a=0;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = VO_GAMMA_LEN;
-	d->items[a].data = disp_red_g;
-	d->items[a].fn = check_float;
-	d->items[a].gid = 1;
-	d->items[a++].gnum = 10000;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = VO_GAMMA_LEN;
-	d->items[a].data = disp_green_g;
-	d->items[a].fn = check_float;
-	d->items[a].gid = 1;
-	d->items[a++].gnum = 10000;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = VO_GAMMA_LEN;
-	d->items[a].data = disp_blue_g;
-	d->items[a].fn = check_float;
-	d->items[a].gid = 1;
-	d->items[a++].gnum = 10000;
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = VO_GAMMA_LEN;
-	d->items[a].data = user_g;
-	d->items[a].fn = check_float;
-	d->items[a].gid = 1;
-	d->items[a++].gnum = 10000;
-
-	d->items[a].type = D_FIELD;
-	d->items[a].dlen = VO_GAMMA_LEN;
-	d->items[a].data = aspect_str;
-	d->items[a].fn = check_float;
-	d->items[a].gid = 25;
-	d->items[a++].gnum = 400;
-
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&dither_letters;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&dither_images;
-	d->items[a].type = D_CHECKBOX;
-
-	d->items[a].gid = 2;
-	d->items[a].gnum = 0;
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&gamma_bits;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 2;
-	d->items[a].gnum = 1;
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&gamma_bits;
-	d->items[a].type = D_CHECKBOX;
-	d->items[a].gid = 2;
-	d->items[a].gnum = 2;
-	d->items[a].dlen = sizeof(int);
-	d->items[a++].data = (void *)&gamma_bits;
-
-	if (video_option_select_palette) {
-		int *palette_mode_p = &drv->param->palette_mode;
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].gid = 3;
-		d->items[a].gnum = 0;
-		d->items[a].dlen = sizeof(int);
-		d->items[a++].data = (void *)palette_mode_p;
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].gid = 3;
-		d->items[a].gnum = 1;
-		d->items[a].dlen = sizeof(int);
-		d->items[a++].data = (void *)palette_mode_p;
-	}
-
-	if (video_option_switch_palette) {
-		int *palette_mode_p = &drv->param->palette_mode;
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].gid = 0;
-		d->items[a].dlen = sizeof(int);
-		d->items[a++].data = (void *)palette_mode_p;
-	}
-
-	if (video_option_scrolling) {
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].gid = 0;
-		d->items[a].dlen = sizeof(int);
-		d->items[a++].data = (void *)&overwrite_instead_of_scroll;
-	}
-
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ENTER;
-	d->items[a].fn = ok_dialog;
-	d->items[a++].text = TEXT_(T_OK);
-	d->items[a].type = D_BUTTON;
-	d->items[a].gid = B_ESC;
-	d->items[a].fn = cancel_dialog;
-	d->items[a++].text = TEXT_(T_CANCEL);
-	d->items[a].type = D_END;
-	do_dialog(term, d, getml(d, NULL));
-}
-
-#endif
 
 static void refresh_network(void *xxx)
 {
@@ -1681,57 +1337,27 @@ static void dlg_http_options(struct terminal *term, void *xxx, void *yyy)
 }
 
 static unsigned char mc_str[8];
-#ifdef G
-static unsigned char ic_str[8];
-static unsigned char fc_str[8];
-#endif
 static unsigned char doc_str[4];
 
 static void cache_refresh(void *xxx)
 {
 	memory_cache_size = atoi(cast_const_char mc_str) * 1024;
-#ifdef G
-	if (F) {
-		image_cache_size = atoi(cast_const_char ic_str) * 1024;
-		font_cache_size = atoi(cast_const_char fc_str) * 1024;
-	}
-#endif
 	max_format_cache_entries = atoi(cast_const_char doc_str);
 	shrink_memory(SH_CHECK_QUOTA);
 }
 
 static unsigned char * const cache_texts[] = { TEXT_(T_MEMORY_CACHE_SIZE__KB), TEXT_(T_NUMBER_OF_FORMATTED_DOCUMENTS), TEXT_(T_AGGRESSIVE_CACHE) };
-#ifdef G
-static unsigned char * const g_cache_texts[] = { TEXT_(T_MEMORY_CACHE_SIZE__KB), TEXT_(T_IMAGE_CACHE_SIZE__KB), TEXT_(T_FONT_CACHE_SIZE__KB), TEXT_(T_NUMBER_OF_FORMATTED_DOCUMENTS), TEXT_(T_AGGRESSIVE_CACHE) };
-#endif
 
 static void cache_opt(struct terminal *term, void *xxx, void *yyy)
 {
 	struct dialog *d;
 	int a;
 	snprint(mc_str, 8, memory_cache_size / 1024);
-#ifdef G
-	if (F) {
-		snprint(ic_str, 8, image_cache_size / 1024);
-		snprint(fc_str, 8, font_cache_size / 1024);
-	}
-#endif
 	snprint(doc_str, 4, max_format_cache_entries);
-#ifdef G
-	if (F) {
-		d = mem_calloc(sizeof(struct dialog) + 7 * sizeof(struct dialog_item));
-	} else
-#endif
-	{
-		d = mem_calloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
-	}
+	d = mem_calloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
 	a=0;
 	d->title = TEXT_(T_CACHE_OPTIONS);
 	d->fn = group_fn;
-#ifdef G
-	if (F) d->udata = (void *)g_cache_texts;
-	else
-#endif
 	d->udata = (void *)cache_texts;
 	d->refresh = cache_refresh;
 	d->items[a].type = D_FIELD;
@@ -1741,25 +1367,6 @@ static void cache_opt(struct terminal *term, void *xxx, void *yyy)
 	d->items[a].gid = 0;
 	d->items[a].gnum = INT_MAX / 1024;
 	a++;
-#ifdef G
-	if (F)
-	{
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 8;
-		d->items[a].data = ic_str;
-		d->items[a].fn = check_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = INT_MAX / 1024;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 8;
-		d->items[a].data = fc_str;
-		d->items[a].fn = check_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = INT_MAX / 1024;
-		a++;
-	}
-#endif
 	d->items[a].type = D_FIELD;
 	d->items[a].dlen = 4;
 	d->items[a].data = doc_str;
@@ -1811,10 +1418,6 @@ static void menu_save_html_options(struct terminal *term, void *xxx, void *ses_)
 }
 
 static unsigned char marg_str[2];
-#ifdef G
-static unsigned char html_font_str[4];
-static unsigned char image_scale_str[6];
-#endif
 
 static void session_refresh(struct session *ses)
 {
@@ -1826,33 +1429,8 @@ static void html_refresh(void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	ses->ds.margin = atoi(cast_const_char marg_str);
-#ifdef G
-	if (F) {
-		ses->ds.font_size = atoi(cast_const_char html_font_str);
-		ses->ds.image_scale = atoi(cast_const_char image_scale_str);
-	}
-#endif
 	session_refresh(ses);
 }
-
-#ifdef G
-static unsigned char * const html_texts_g[] = {
-	TEXT_(T_DISPLAY_TABLES),
-	TEXT_(T_DISPLAY_FRAMES),
-	TEXT_(T_BREAK_LONG_LINES),
-	TEXT_(T_DISPLAY_LINKS_TO_IMAGES),
-	TEXT_(T_DISPLAY_IMAGE_FILENAMES),
-	TEXT_(T_DISPLAY_IMAGES),
-	TEXT_(T_AUTO_REFRESH),
-	TEXT_(T_TARGET_IN_NEW_WINDOW),
-	TEXT_(T_TEXT_MARGIN),
-	cast_uchar "",
-	TEXT_(T_IGNORE_CHARSET_INFO_SENT_BY_SERVER),
-	TEXT_(T_USER_FONT_SIZE),
-	TEXT_(T_SCALE_ALL_IMAGES_BY),
-	TEXT_(T_PORN_ENABLE)
-};
-#endif
 
 static unsigned char * const html_texts[] = {
 	TEXT_(T_DISPLAY_TABLES),
@@ -1874,28 +1452,14 @@ static int dlg_assume_cp(struct dialog_data *dlg, struct dialog_item_data *di)
 	return 0;
 }
 
-#ifdef G
-static int dlg_kb_cp(struct dialog_data *dlg, struct dialog_item_data *di)
-{
-	return 0;
-}
-#endif
-
 void dialog_html_options(struct session *ses)
 {
 	struct dialog *d;
 	int a;
 
 	snprint(marg_str, 2, ses->ds.margin);
-	if (!F) {
+	if (!F)
 		d = mem_calloc(sizeof(struct dialog) + 14 * sizeof(struct dialog_item));
-#ifdef G
-	} else {
-		d = mem_calloc(sizeof(struct dialog) + 16 * sizeof(struct dialog_item));
-		snprintf(cast_char html_font_str,4,"%d",ses->ds.font_size);
-		snprintf(cast_char image_scale_str,6,"%d",ses->ds.image_scale);
-#endif
-	}
 	d->title = TEXT_(T_HTML_OPTIONS);
 	d->fn = group_fn;
 	d->udata = (void *)gf_val(html_texts, html_texts_g);
@@ -1923,14 +1487,6 @@ void dialog_html_options(struct session *ses)
 	d->items[a].data = (unsigned char *) &ses->ds.image_names;
 	d->items[a].dlen = sizeof(int);
 	a++;
-#ifdef G
-	if (F) {
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].data = (unsigned char *) &ses->ds.display_images;
-		d->items[a].dlen = sizeof(int);
-		a++;
-	}
-#endif
 	if (!F) {
 		d->items[a].type = D_CHECKBOX;
 		d->items[a].data = (unsigned char *) &ses->ds.table_order;
@@ -1967,28 +1523,6 @@ void dialog_html_options(struct session *ses)
 	d->items[a].data = (unsigned char *) &ses->ds.hard_assume;
 	d->items[a].dlen = sizeof(int);
 	a++;
-#ifdef G
-	if (F) {
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 4;
-		d->items[a].data = html_font_str;
-		d->items[a].fn = check_number;
-		d->items[a].gid = 1;
-		d->items[a].gnum = MAX_FONT_SIZE;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 4;
-		d->items[a].data = image_scale_str;
-		d->items[a].fn = check_number;
-		d->items[a].gid = 1;
-		d->items[a].gnum = 999;
-		a++;
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].data = (unsigned char *) &ses->ds.porn_enable;
-		d->items[a].dlen = sizeof(int);
-		a++;
-	}
-#endif
 	d->items[a].type = D_BUTTON;
 	d->items[a].gid = B_ENTER;
 	d->items[a].fn = ok_dialog;
@@ -2011,24 +1545,9 @@ static void menu_html_options(struct terminal *term, void *xxx, void *ses_)
 
 static unsigned char * const color_texts[] = { cast_uchar "", cast_uchar "", cast_uchar "", TEXT_(T_IGNORE_DOCUMENT_COLOR) };
 
-#ifdef G
-static unsigned char * const color_texts_g[] = { TEXT_(T_TEXT_COLOR), TEXT_(T_LINK_COLOR), TEXT_(T_BACKGROUND_COLOR), TEXT_(T_IGNORE_DOCUMENT_COLOR) };
-
-static unsigned char g_text_color_str[7];
-static unsigned char g_link_color_str[7];
-static unsigned char g_background_color_str[7];
-#endif
-
 static void html_color_refresh(void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-#ifdef G
-	if (F) {
-		ses->ds.g_text_color = (int)strtol(cast_const_char g_text_color_str, NULL, 16);
-		ses->ds.g_link_color = (int)strtol(cast_const_char g_link_color_str, NULL, 16);
-		ses->ds.g_background_color = (int)strtol(cast_const_char g_background_color_str, NULL, 16);
-	}
-#endif
 	html_interpret_recursive(ses->screen);
 	draw_formatted(ses);
 }
@@ -2061,14 +1580,6 @@ static void menu_color(struct terminal *term, void *xxx, void *ses_)
 	struct session *ses = (struct session *)ses_;
 	struct dialog *d;
 
-#ifdef G
-	if (F) {
-		snprintf(cast_char g_text_color_str, 7, "%06x", (unsigned)ses->ds.g_text_color);
-		snprintf(cast_char g_link_color_str, 7, "%06x", (unsigned)ses->ds.g_link_color);
-		snprintf(cast_char g_background_color_str,7,"%06x", (unsigned)ses->ds.g_background_color);
-	}
-#endif
-
 	d = mem_calloc(sizeof(struct dialog) + 6 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_COLOR);
 	d->fn = group_fn;
@@ -2099,30 +1610,6 @@ static void menu_color(struct terminal *term, void *xxx, void *ses_)
 		d->items[2].data = (unsigned char *)&ses->ds.t_background_color;
 		d->items[2].dlen = sizeof(int);
 	}
-#ifdef G
-	else {
-		d->items[0].type = D_FIELD;
-		d->items[0].dlen = 7;
-		d->items[0].data = g_text_color_str;
-		d->items[0].fn = check_hex_number;
-		d->items[0].gid = 0;
-		d->items[0].gnum = 0xffffff;
-
-		d->items[1].type = D_FIELD;
-		d->items[1].dlen = 7;
-		d->items[1].data = g_link_color_str;
-		d->items[1].fn = check_hex_number;
-		d->items[1].gid = 0;
-		d->items[1].gnum = 0xffffff;
-
-		d->items[2].type = D_FIELD;
-		d->items[2].dlen = 7;
-		d->items[2].data = g_background_color_str;
-		d->items[2].fn = check_hex_number;
-		d->items[2].gid = 0;
-		d->items[2].gnum = 0xffffff;
-	}
-#endif
 
 	d->items[3].type = D_CHECKBOX;
 	d->items[3].data = (unsigned char *) gf_val(&ses->ds.t_ignore_document_color, &ses->ds.g_ignore_document_color);
@@ -2146,39 +1633,13 @@ static void menu_color(struct terminal *term, void *xxx, void *ses_)
 static unsigned char new_bookmarks_file[MAX_STR_LEN];
 static int new_bookmarks_codepage = 0;
 
-#ifdef G
-static unsigned char menu_font_str[4];
-static unsigned char bg_color_str[7];
-static unsigned char fg_color_str[7];
-static unsigned char scroll_area_color_str[7];
-static unsigned char scroll_bar_color_str[7];
-static unsigned char scroll_frame_color_str[7];
-#endif
-
 static void refresh_misc(void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-#ifdef G
-	if (F) {
-		menu_font_size = (int)strtol(cast_const_char menu_font_str, NULL, 10);
-		G_BFU_FG_COLOR = (int)strtol(cast_const_char fg_color_str, NULL, 16);
-		G_BFU_BG_COLOR = (int)strtol(cast_const_char bg_color_str, NULL, 16);
-		G_SCROLL_BAR_AREA_COLOR = (int)strtol(cast_const_char scroll_area_color_str, NULL, 16);
-		G_SCROLL_BAR_BAR_COLOR = (int)strtol(cast_const_char scroll_bar_color_str, NULL, 16);
-		G_SCROLL_BAR_FRAME_COLOR = (int)strtol(cast_const_char scroll_frame_color_str, NULL, 16);
-		shutdown_bfu();
-		init_bfu();
-		init_grview();
-		cls_redraw_all_terminals();
-	}
-#endif
 	if (strcmp((char *)new_bookmarks_file, (char *)bookmarks_file))
 		reinit_bookmarks(ses, new_bookmarks_file);
 }
 
-#ifdef G
-static unsigned char * const miscopt_labels_g[] = { TEXT_(T_MENU_FONT_SIZE), TEXT_(T_ENTER_COLORS_AS_RGB_TRIPLETS), TEXT_(T_MENU_FOREGROUND_COLOR), TEXT_(T_MENU_BACKGROUND_COLOR), TEXT_(T_SCROLL_BAR_AREA_COLOR), TEXT_(T_SCROLL_BAR_BAR_COLOR), TEXT_(T_SCROLL_BAR_FRAME_COLOR), TEXT_(T_BOOKMARKS_FILE), NULL };
-#endif
 static unsigned char * const miscopt_labels[] = { TEXT_(T_BOOKMARKS_FILE), NULL };
 static unsigned char * const miscopt_checkbox_labels[] = { TEXT_(T_SAVE_URL_HISTORY_ON_EXIT), NULL };
 
@@ -2192,23 +1653,8 @@ static void miscopt_fn(struct dialog_data *dlg)
 	int a=0;
 	int bmk=!anonymous;
 
-#ifdef G
-	if (F&&((drv->flags)&GD_NEED_CODEPAGE))a=1;
-#endif
-
 	max_text_width(term, labels[F?7:0], &max, AL_LEFT);
 	min_text_width(term, labels[F?7:0], &min, AL_LEFT);
-#ifdef G
-	if (F)
-	{
-		max_text_width(term, labels[1], &max, AL_LEFT);
-		min_text_width(term, labels[1], &min, AL_LEFT);
-		max_group_width(term, labels, dlg->items, 1, &max);
-		min_group_width(term, labels, dlg->items, 1, &min);
-		max_group_width(term, labels + 2, dlg->items+1, 5, &max);
-		min_group_width(term, labels + 2, dlg->items+1, 5, &min);
-	}
-#endif
 	if (bmk)
 	{
 		max_buttons_width(term, dlg->items + dlg->n - 3 - a - bmk, 1, &max);
@@ -2232,17 +1678,6 @@ static void miscopt_fn(struct dialog_data *dlg)
 	if (w < 5) w = 5;
 	rw = 0;
 
-#ifdef G
-	if (F)
-	{
-		dlg_format_group(dlg, NULL, labels, dlg->items,1,dlg->x + DIALOG_LB, &y, w, &rw);
-		y += LL;
-		dlg_format_text(dlg, NULL, labels[1], dlg->x + DIALOG_LB, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += LL;
-		dlg_format_group(dlg, NULL, labels+2, dlg->items+1,5,dlg->x + DIALOG_LB, &y, w, &rw);
-		y += LL;
-	}
-#endif
 	if (bmk) {
 		dlg_format_text_and_field(dlg, NULL, labels[F?7:0], dlg->items + dlg->n - 4 - a - bmk, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 		y += LL;
@@ -2260,20 +1695,7 @@ static void miscopt_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-#ifdef G
-	if (F) {
-		y += LL;
-		dlg_format_group(dlg, term, labels, dlg->items,1,dlg->x + DIALOG_LB, &y, w, NULL);
-		y += LL;
-		dlg_format_text(dlg, term, labels[1], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-		y += LL;
-		dlg_format_group(dlg, term, labels+2, dlg->items+1,5,dlg->x + DIALOG_LB, &y, w, NULL);
-		y += LL;
-	} else
-#endif
-	{
-		y += LL;
-	}
+	y += LL;
 	if (bmk) {
 		dlg_format_text_and_field(dlg, term, labels[F?7:0], dlg->items + dlg->n - 4 - a - bmk, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 		y += LL;
@@ -2297,77 +1719,15 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 	if (anonymous&&!F) return;	/* if you add something into text mode (or both text and graphics), remove this (and enable also miscelaneous_options in do_setup_menu) */
 
 	safe_strncpy(new_bookmarks_file,bookmarks_file,MAX_STR_LEN);
-	if (!F) {
+	if (!F)
 		d = mem_calloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
-	}
-#ifdef G
-	else {
-		d = mem_calloc(sizeof(struct dialog) + 12 * sizeof(struct dialog_item));
-		snprintf(cast_char menu_font_str,4,"%d",menu_font_size);
-		snprintf(cast_char fg_color_str,7,"%06x",(unsigned) G_BFU_FG_COLOR);
-		snprintf(cast_char bg_color_str,7,"%06x",(unsigned) G_BFU_BG_COLOR);
-		snprintf(cast_char scroll_bar_color_str,7,"%06x",(unsigned) G_SCROLL_BAR_BAR_COLOR);
-		snprintf(cast_char scroll_area_color_str,7,"%06x",(unsigned) G_SCROLL_BAR_AREA_COLOR);
-		snprintf(cast_char scroll_frame_color_str,7,"%06x",(unsigned) G_SCROLL_BAR_FRAME_COLOR);
-	}
-#endif
 	d->title = TEXT_(T_MISCELANEOUS_OPTIONS);
 	d->refresh = refresh_misc;
 	d->refresh_data = ses;
 	d->fn=miscopt_fn;
 	if (!F)
 		d->udata = (void *)miscopt_labels;
-#ifdef G
-	else
-		d->udata = (void *)miscopt_labels_g;
-#endif
 	d->udata2 = ses;
-#ifdef G
-	if (F) {
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 4;
-		d->items[a].data = menu_font_str;
-		d->items[a].fn = check_number;
-		d->items[a].gid = 1;
-		d->items[a].gnum = MAX_FONT_SIZE;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 7;
-		d->items[a].data = fg_color_str;
-		d->items[a].fn = check_hex_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = 0xffffff;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 7;
-		d->items[a].data = bg_color_str;
-		d->items[a].fn = check_hex_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = 0xffffff;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 7;
-		d->items[a].data = scroll_area_color_str;
-		d->items[a].fn = check_hex_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = 0xffffff;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 7;
-		d->items[a].data = scroll_bar_color_str;
-		d->items[a].fn = check_hex_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = 0xffffff;
-		a++;
-		d->items[a].type = D_FIELD;
-		d->items[a].dlen = 7;
-		d->items[a].data = scroll_frame_color_str;
-		d->items[a].fn = check_hex_number;
-		d->items[a].gid = 0;
-		d->items[a].gnum = 0xffffff;
-		a++;
-	}
-#endif
 	if (!anonymous) {
 		d->items[a].type = D_FIELD;
 		d->items[a].dlen = MAX_STR_LEN;
@@ -2381,17 +1741,6 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 		d->items[a].dlen = sizeof(int);
 		a++;
 	}
-#ifdef G
-	if (F && (drv->flags & GD_NEED_CODEPAGE)) {
-		d->items[a].type = D_BUTTON;
-		d->items[a].gid = 0;
-		d->items[a].fn = dlg_kb_cp;
-		d->items[a].text = TEXT_(T_KEYBOARD_CODEPAGE);
-		d->items[a].data = (unsigned char *)&drv->param->kbd_codepage;
-		d->items[a].dlen = sizeof(int);
-		a++;
-	}
-#endif
 	if (!anonymous) {
 		d->items[a].type = D_CHECKBOX;
 		d->items[a].gid = 0;
@@ -2421,16 +1770,6 @@ static const struct menu_item file_menu11[] = {
 	{ TEXT_(T_RELOAD), cast_uchar "Ctrl-R", TEXT_(T_HK_RELOAD), menu_reload, NULL, 0, 1 },
 };
 
-#ifdef G
-static const struct menu_item file_menu111[] = {
-	{ TEXT_(T_GOTO_URL), cast_uchar "g", TEXT_(T_HK_GOTO_URL), menu_goto_url, NULL, 0, 1 },
-	{ TEXT_(T_GO_BACK), cast_uchar "z", TEXT_(T_HK_GO_BACK), menu_go_back, NULL, 0, 1 },
-	{ TEXT_(T_GO_FORWARD), cast_uchar "x", TEXT_(T_HK_GO_FORWARD), menu_go_forward, NULL, 0, 1 },
-	{ TEXT_(T_HISTORY), cast_uchar ">", TEXT_(T_HK_HISTORY), history_menu, NULL, 1, 1 },
-	{ TEXT_(T_RELOAD), cast_uchar "Ctrl-R", TEXT_(T_HK_RELOAD), menu_reload, NULL, 0, 1 },
-};
-#endif
-
 static const struct menu_item file_menu12[] = {
 	{ TEXT_(T_BOOKMARKS), cast_uchar "s", TEXT_(T_HK_BOOKMARKS), menu_bookmark_manager, NULL, 0, 1 },
 };
@@ -2441,23 +1780,6 @@ static const struct menu_item file_menu21[] = {
 	{ TEXT_(T_SAVE_URL_AS), cast_uchar "", TEXT_(T_HK_SAVE_URL_AS), menu_save_url_as, NULL, 0, 1 },
 	{ TEXT_(T_SAVE_FORMATTED_DOCUMENT), cast_uchar "", TEXT_(T_HK_SAVE_FORMATTED_DOCUMENT), menu_save_formatted, NULL, 0, 1 },
 };
-
-#ifdef G
-static const struct menu_item file_menu211[] = {
-	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
-	{ TEXT_(T_SAVE_AS), cast_uchar "", TEXT_(T_HK_SAVE_AS), save_as, NULL, 0, 1 },
-	{ TEXT_(T_SAVE_URL_AS), cast_uchar "", TEXT_(T_HK_SAVE_URL_AS), menu_save_url_as, NULL, 0, 1 },
-};
-#endif
-
-#ifdef G
-static const struct menu_item file_menu211_clipb[] = {
-	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1 },
-	{ TEXT_(T_SAVE_AS), cast_uchar "", TEXT_(T_HK_SAVE_AS), save_as, NULL, 0, 1 },
-	{ TEXT_(T_SAVE_URL_AS), cast_uchar "", TEXT_(T_HK_SAVE_URL_AS), menu_save_url_as, NULL, 0, 1 },
-	{ TEXT_(T_COPY_URL_LOCATION), cast_uchar "", TEXT_(T_HK_COPY_URL_LOCATION), copy_url_location, NULL, 0, 1 },
-};
-#endif
 
 static const struct menu_item file_menu22[] = {
 	{ cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 1},
@@ -2485,11 +1807,6 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 	if (!F) {
 		memcpy(e, file_menu11, sizeof(file_menu11));
 		e += sizeof(file_menu11) / sizeof(struct menu_item);
-#ifdef G
-	} else {
-		memcpy(e, file_menu111, sizeof(file_menu111));
-		e += sizeof(file_menu111) / sizeof(struct menu_item);
-#endif
 	}
 	if (!anonymous) {
 		memcpy(e, file_menu12, sizeof(file_menu12));
@@ -2509,19 +1826,6 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 		if (!F) {
 			memcpy(e, file_menu21, sizeof(file_menu21));
 			e += sizeof(file_menu21) / sizeof(struct menu_item);
-#ifdef G
-		} else {
-			if (clipboard_support(term))
-			{
-				memcpy(e, file_menu211_clipb, sizeof(file_menu211_clipb));
-				e += sizeof(file_menu211_clipb) / sizeof(struct menu_item);
-			}
-			else
-			{
-				memcpy(e, file_menu211, sizeof(file_menu211));
-				e += sizeof(file_menu211) / sizeof(struct menu_item);
-			}
-#endif
 		}
 	}
 	memcpy(e, file_menu22, sizeof(file_menu22));
@@ -2635,18 +1939,6 @@ static const struct menu_item help_menu[] = {
 	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
 };
 
-#ifdef G
-static const struct menu_item help_menu_g[] = {
-	{ TEXT_(T_ABOUT), cast_uchar "", TEXT_(T_HK_ABOUT), menu_about, NULL, 0, 0 },
-	{ TEXT_(T_KEYS), cast_uchar "F1", TEXT_(T_HK_KEYS), menu_keys, NULL, 0, 0 },
-	{ TEXT_(T_MANUAL), cast_uchar "", TEXT_(T_HK_MANUAL), menu_url, TEXT_(T_URL_MANUAL), 0, 0 },
-	{ TEXT_(T_HOMEPAGE), cast_uchar "", TEXT_(T_HK_HOMEPAGE), menu_url, TEXT_(T_URL_HOMEPAGE), 0, 0 },
-	{ TEXT_(T_CALIBRATION), cast_uchar "", TEXT_(T_HK_CALIBRATION), menu_url, TEXT_(T_URL_CALIBRATION), 0, 0 },
-	{ TEXT_(T_COPYING), cast_uchar "", TEXT_(T_HK_COPYING), menu_copying, NULL, 0, 0 },
-	{ NULL, NULL, 0, NULL, NULL, 0, 0 }
-};
-#endif
-
 static const struct menu_item net_options_menu[] = {
 	{ TEXT_(T_CONNECTIONS), cast_uchar "", TEXT_(T_HK_CONNECTIONS), dlg_net_options, NULL, 0, 0 },
 	{ TEXT_(T_PROXIES), cast_uchar "", TEXT_(T_HK_PROXIES), dlg_proxy_options, NULL, 0, 0 },
@@ -2681,12 +1973,6 @@ static const struct menu_item setup_menu_2[] = {
 	{ TEXT_(T_TERMINAL_OPTIONS), cast_uchar "", TEXT_(T_HK_TERMINAL_OPTIONS), terminal_options, NULL, 0, 1 },
 };
 
-#ifdef G
-static const struct menu_item setup_menu_3[] = {
-	{ TEXT_(T_VIDEO_OPTIONS), cast_uchar "", TEXT_(T_HK_VIDEO_OPTIONS), video_options, NULL, 0, 1 },
-};
-#endif
-
 static const struct menu_item setup_menu_5[] = {
 	{ TEXT_(T_NETWORK_OPTIONS), cast_uchar ">", TEXT_(T_HK_NETWORK_OPTIONS), network_menu, NULL, 1, 1 },
 };
@@ -2713,9 +1999,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 	struct menu_item *setup_menu, *e;
 	int size =
 		sizeof(setup_menu_2) +
-#ifdef G
-		sizeof(setup_menu_3) +
-#endif
 		sizeof(setup_menu_5) +
 		sizeof(setup_menu_6) +
 		sizeof(setup_menu_7) +
@@ -2725,11 +2008,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 	if (!F) {
 		memcpy(e, setup_menu_2, sizeof(setup_menu_2));
 		e += sizeof(setup_menu_2) / sizeof(struct menu_item);
-#ifdef G
-	} else {
-		memcpy(e, setup_menu_3, sizeof(setup_menu_3));
-		e += sizeof(setup_menu_3) / sizeof(struct menu_item);
-#endif
 	}
 	if (!anonymous) {
 		memcpy(e, setup_menu_5, sizeof(setup_menu_5));
@@ -2771,9 +2049,6 @@ void activate_bfu_technology(struct session *ses, int item)
 {
 	struct terminal *term = ses->term;
 	struct menu_item *m = (struct menu_item *)main_menu;
-#ifdef G
-	struct menu_item *mg = m;
-#endif
 	do_mainmenu(term, gf_val(m, mg), ses, item);
 }
 

@@ -281,13 +281,8 @@ static void x_print_screen_status(struct terminal *term, void *ses_)
 	if (!F) {
 		unsigned char color = get_session_attribute(ses, proxies.only_proxies);
 		fill_area(term, 0, term->y - 1, term->x, 1, ' ', color);
-		if (ses->st) print_text(term, 0, term->y - 1, (int)strlen(cast_const_char ses->st), ses->st, COLOR_STATUS);
-#ifdef G
-	} else {
-		int l = 0;
-		if (ses->st) g_print_text(term->dev, 0, term->y - G_BFU_FONT_SIZE, bfu_style_wb_mono, ses->st, &l);
-		drv->fill_area(term->dev, l, term->y - G_BFU_FONT_SIZE, term->x, term->y, !proxies.only_proxies ? bfu_bg_color : bfu_fg_color);
-#endif
+		if (ses->st)
+			print_text(term, 0, term->y - 1, (int)strlen(cast_const_char ses->st), ses->st, COLOR_STATUS);
 	}
 }
 
@@ -308,16 +303,6 @@ static void x_print_screen_title(struct terminal *term, void *ses_)
 
 static void print_only_screen_status(struct session *ses)
 {
-#ifdef G
-	if (F) {
-		if (ses->st_old) {
-			if (ses->st && !strcmp(cast_const_char ses->st, cast_const_char ses->st_old)) return;
-			free(ses->st_old);
-			ses->st_old = NULL;
-		}
-		if (!memcmp(&ses->term->dev->clip, &ses->term->dev->size, sizeof(struct rect))) ses->st_old = stracpy(ses->st);
-	}
-#endif
 	draw_to_window(ses->win, x_print_screen_status, ses);
 }
 
@@ -660,28 +645,6 @@ void download_window_function(struct dialog_data *dlg)
 			print_text(term, x + p + 2, y, (int)strlen(cast_const_char q), q, COLOR_DIALOG_TEXT);
 			free(q);
 			y++;
-#ifdef G
-		} else {
-			unsigned char *q;
-			int p, s, ss, m;
-			y += G_BFU_FONT_SIZE;
-			q = download_percentage(down, 1);
-			extend_str(&q, 1);
-			memmove(q + 1, q, strlen(cast_const_char q) + 1);
-			q[0] = ']';
-			s = g_text_width(bfu_style_bw_mono, cast_uchar "[");
-			ss = g_text_width(bfu_style_bw_mono, q);
-			p = w - s - ss;
-			if (p < 0) p = 0;
-			m = download_meter(p, stat);
-			g_print_text(term->dev, x, y, bfu_style_bw_mono, cast_uchar "[", NULL);
-			drv->fill_area(term->dev, x + s, y, x + s + m, y + G_BFU_FONT_SIZE, bfu_fg_color);
-			drv->fill_area(term->dev, x + s + m, y, x + s + p, y + G_BFU_FONT_SIZE, bfu_bg_color);
-			g_print_text(term->dev, x + w - ss, y, bfu_style_bw_mono, q, NULL);
-			if (dlg->s) exclude_from_set(&dlg->s, x, y, x + w, y + G_BFU_FONT_SIZE);
-			free(q);
-			y += G_BFU_FONT_SIZE;
-#endif
 		}
 	}
 	y += gf_val(1, G_BFU_FONT_SIZE);
@@ -1393,14 +1356,6 @@ static void detach_f_data(struct f_data **ff)
 	*ff = NULL;
 
 	f->fd = NULL;
-#ifdef G
-	f->hlt_pos = -1;
-	f->hlt_len = 0;
-	f->start_highlight_x = -1;
-	f->start_highlight_y = -1;
-	f->locked_on = NULL;
-	free_list(struct image_refresh, f->image_refresh);
-#endif
 	if (f->frame_desc_link || f->uncacheable || !f_is_cacheable(f) || !is_format_cache_entry_uptodate(f) || !f->ses) {
 		destroy_formatted(f);
 	} else {
@@ -1632,11 +1587,7 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 	if (fd->parent && fd->parent->f_data && !o.hard_assume) {
 		o.assume_cp = fd->parent->f_data->cp;
 	}
-#ifdef G
-	o.gamma_stamp = gamma_stamp;
-#else
 	o.gamma_stamp = 0;
-#endif
 	o.plain = fd->vs->plain;
 	if (o.plain == 1 && !o.break_long_lines) {
 		o.xp = 0;
@@ -1657,14 +1608,6 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 			else
 				o.col = 0;
 		}
-#ifdef G
-		else {
-			if (!fd->ses->ds.g_ignore_document_color)
-				o.col = 2;
-			else
-				o.col = 0;
-		}
-#endif
 		o.cp = term_charset(fd->ses->term);
 	} else {
 		o.col = 3;
@@ -1766,69 +1709,13 @@ static void copy_additional_files(struct additional_files **a)
 	*a = afs;
 }
 
-#ifdef G
-
-static void image_timer(void *fd_)
-{
-	struct f_data_c *fd = (struct f_data_c *)fd_;
-	uttime now;
-	struct image_refresh *ir = NULL;
-	struct list_head *lir;
-	struct list_head neww;
-	init_list(neww);
-	fd->image_timer = NULL;
-	if (!fd->f_data) return;
-	now = get_time();
-	foreach(struct image_refresh, ir, lir, fd->f_data->image_refresh) {
-		if (now - ir->start >= ir->tim) {
-			lir = lir->prev;
-			del_from_list(ir);
-			add_to_list(neww, ir);
-		}
-	}
-	foreach(struct image_refresh, ir, lir, neww) {
-		draw_one_object(fd, ir->img);
-	}
-	free_list(struct image_refresh, neww);
-	if (fd->image_timer == NULL && !list_empty(fd->f_data->image_refresh)) fd->image_timer = install_timer(G_IMG_REFRESH, image_timer, fd);
-}
-
-void refresh_image(struct f_data_c *fd, struct g_object *img, uttime tm)
-{
-	struct image_refresh *ir = NULL;
-	struct list_head *lir;
-	uttime now, e;
-	if (!fd->f_data) return;
-	now = get_time();
-	e = now + tm;
-	foreach(struct image_refresh, ir, lir, fd->f_data->image_refresh) if (ir->img == img) {
-		if (e - ir->start < ir->tim) {
-			ir->tim = tm;
-			ir->start = now;
-		}
-		return;
-	}
-	ir = xmalloc(sizeof(struct image_refresh));
-	ir->img = img;
-	ir->tim = tm;
-	ir->start = now;
-	add_to_list(fd->f_data->image_refresh, ir);
-	if (fd->image_timer == NULL) fd->image_timer = install_timer(!tm ? 0 : G_IMG_REFRESH, image_timer, fd);
-}
-
-#endif
-
 void reinit_f_data_c(struct f_data_c *fd)
 {
 	struct additional_file *af = NULL;
 	struct list_head *laf;
 	struct f_data_c *fd1 = NULL;
 	struct list_head *lfd1;
-#ifdef G
-	if (F)
-		if (fd == current_frame(fd->ses))
-			fd->ses->locked_link = 0;
-#endif
+
 	foreach(struct f_data_c, fd1, lfd1, fd->subframes) {
 		if (fd->ses->wtd_target_base == fd1) fd->ses->wtd_target_base = NULL;
 		reinit_f_data_c(fd1);
@@ -2228,9 +2115,6 @@ static void ses_go_backward(struct session *ses)
 			add_to_list(ses->history, loc);
 		}
 	}
-#ifdef G
-	ses->locked_link = 0;
-#endif
 	ses->screen->loc = cur_loc(ses);
 	ses->screen->vs = ses->screen->loc->vs;
 	ses->wtd = NULL;
@@ -2238,7 +2122,6 @@ static void ses_go_backward(struct session *ses)
 	ses->screen->rq->upcall = fd_loaded;
 	ses->screen->rq->data = ses->screen;
 	ses->screen->rq->upcall(ses->screen->rq, ses->screen);
-
 }
 
 static void tp_cancel(void *ses_)
@@ -2987,11 +2870,7 @@ void win_func(struct window *win, struct links_event *ev, int fw)
 		draw_formatted(ses);
 		break;
 	case EV_MOUSE:
-#ifdef G
-		if (F)
-			set_window_ptr(win, ev->x, ev->y);
-#endif
-		/*-fallthrough*/
+		/*FALLTHROUGH*/
 	case EV_KBD:
 		if (ev->ev == EV_KBD
 		|| (ev->b & BM_ACT) != B_MOVE
