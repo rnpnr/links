@@ -175,7 +175,7 @@ void cls_redraw_all_terminals(void)
 	struct terminal *term = NULL;
 	struct list_head *lterm;
 	foreach(struct terminal, term, lterm, terminals) {
-		if (!F) redraw_terminal_cls(term);
+		redraw_terminal_cls(term);
 	}
 }
 
@@ -184,20 +184,18 @@ void draw_to_window(struct window *win, void (*fn)(struct terminal *term, void *
 	struct terminal *term = win->term;
 	struct window *w = NULL;
 	struct list_head *lw;
-	if (!F) {
-		pr(fn(term, data)) {};
-		term = win->term;
-		if (win->list_entry.prev == &term->windows || term->redrawing) return;
-		term->redrawing = 1;
-		{
-			struct links_event ev = { EV_REDRAW, 0, 0, 0 };
-			ev.x = term->x;
-			ev.y = term->y;
-			foreachbackfrom(struct window, w, lw, term->windows, win->list_entry.prev)
-				w->handler(w, &ev, 0);
-		}
-		term->redrawing = 0;
-	}
+	struct links_event ev = { EV_REDRAW, 0, 0, 0 };
+
+	pr(fn(term, data)) {};
+	term = win->term;
+	if (win->list_entry.prev == &term->windows || term->redrawing)
+		return;
+	term->redrawing = 1;
+	ev.x = term->x;
+	ev.y = term->y;
+	foreachbackfrom(struct window, w, lw, term->windows, win->list_entry.prev)
+		w->handler(w, &ev, 0);
+	term->redrawing = 0;
 }
 
 void add_window(struct terminal *term, void (*handler)(struct window *, struct links_event *, int), void *data)
@@ -222,7 +220,7 @@ void delete_window(struct window *win)
 	win->handler(win, &ev, 1);
 	del_from_list(win);
 	free(win->data);
-	if (!F) redraw_terminal(term);
+	redraw_terminal(term);
 	free(win);
 }
 
@@ -379,29 +377,27 @@ struct terminal *init_term(int fdin, int fdout, void (*root_window)(struct windo
 
 static int process_utf_8(struct terminal *term, struct links_event *ev)
 {
+	size_t l;
+	unsigned char *p;
+	unsigned c;
 	if (ev->ev == EV_KBD) {
-		if (!F) {
-			size_t l;
-			unsigned char *p;
-			unsigned c;
-			if (ev->x <= 0 || ev->x >= 0x100) goto direct;
-			if ((term->utf8_paste_mode ^ ev->y) & KBD_PASTING) {
-				term->utf8_paste_mode = ev->y & KBD_PASTING;
-				term->utf8_buffer[0] = 0;
-			}
-			if ((l = strlen(cast_const_char term->utf8_buffer))
-				>= sizeof(term->utf8_buffer) - 1
-			|| ev->x < 0x80 || ev->x >= 0xc0) {
-				term->utf8_buffer[0] = 0;
-				l = 0;
-			}
-			term->utf8_buffer[l] = (unsigned char)ev->x;
-			term->utf8_buffer[l + 1] = 0;
-			p = term->utf8_buffer;
-			GET_UTF_8(p, c);
-			if (!c) return 0;
-			ev->x = c;
+		if (ev->x <= 0 || ev->x >= 0x100) goto direct;
+		if ((term->utf8_paste_mode ^ ev->y) & KBD_PASTING) {
+			term->utf8_paste_mode = ev->y & KBD_PASTING;
+			term->utf8_buffer[0] = 0;
 		}
+		if ((l = strlen(cast_const_char term->utf8_buffer))
+			>= sizeof(term->utf8_buffer) - 1
+		|| ev->x < 0x80 || ev->x >= 0xc0) {
+			term->utf8_buffer[0] = 0;
+			l = 0;
+		}
+		term->utf8_buffer[l] = (unsigned char)ev->x;
+		term->utf8_buffer[l + 1] = 0;
+		p = term->utf8_buffer;
+		GET_UTF_8(p, c);
+		if (!c) return 0;
+		ev->x = c;
 direct:
 		term->utf8_buffer[0] = 0;
 	}
@@ -666,8 +662,7 @@ void redraw_all_terminals(void)
 
 void flush_terminal(struct terminal *term)
 {
-	if (!F)
-		redraw_screen(term);
+	redraw_screen(term);
 }
 
 void destroy_terminal(void *term_)
@@ -681,21 +676,19 @@ void destroy_terminal(void *term_)
 	del_from_list(term);
 	close_socket(&term->blocked);
 	free(term->title);
-	if (!F) {
-		free(term->screen);
-		free(term->last_screen);
-		free(term->input_queue);
-		set_handlers(term->fdin, NULL, NULL, NULL);
-		EINTRLOOP(rs, close(term->fdin));
-		if (!term->master) {
-			if (term->fdout != term->fdin)
-				EINTRLOOP(rs, close(term->fdout));
-		} else {
-			unhandle_terminal_signals(term);
-			free_all_itrms();
-			if (!list_empty(terminals)) {
-				os_detach_console();
-			}
+	free(term->screen);
+	free(term->last_screen);
+	free(term->input_queue);
+	set_handlers(term->fdin, NULL, NULL, NULL);
+	EINTRLOOP(rs, close(term->fdin));
+	if (!term->master) {
+		if (term->fdout != term->fdin)
+			EINTRLOOP(rs, close(term->fdout));
+	} else {
+		unhandle_terminal_signals(term);
+		free_all_itrms();
+		if (!list_empty(terminals)) {
+			os_detach_console();
 		}
 	}
 	if (term->handle_to_close != -1) {
@@ -880,13 +873,11 @@ static void unblock_terminal(void *term_)
 	struct terminal *term = (struct terminal *)term_;
 	close_handle(&term->blocked);
 	term->blocked = -1;
-	if (!F) {
-		set_handlers(term->fdin, in_term, NULL, term);
-		unblock_itrm(term->fdin);
-		/* clear the dirty flag because unblock_itrm queued a resize
-		   event - so avoid double redraw */
-		term->dirty = 0;
-	}
+	set_handlers(term->fdin, in_term, NULL, term);
+	unblock_itrm(term->fdin);
+	/* clear the dirty flag because unblock_itrm queued a resize
+	   event - so avoid double redraw */
+	term->dirty = 0;
 }
 
 void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char *delet, unsigned char fg)
@@ -896,7 +887,7 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 	if (!path) path = cast_uchar "";
 	if (term->master) {
 		if (!*path) {
-			if (!F) dispatch_special(delet);
+			dispatch_special(delet);
 		} else {
 			int blockh;
 			unsigned char *param;
@@ -913,10 +904,10 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 			add_chr_to_str(&param, &paraml, 0);
 			add_to_str(&param, &paraml, delet);
 			if (fg == 1)
-				if (!F) block_itrm(term->fdin);
+				block_itrm(term->fdin);
 			if ((blockh = start_thread(exec_thread, param, paraml + 1, *delet != 0)) == -1) {
 				if (fg == 1)
-					if (!F) unblock_itrm(term->fdin);
+					unblock_itrm(term->fdin);
 				free(param);
 				return;
 			}
@@ -924,7 +915,7 @@ void exec_on_terminal(struct terminal *term, unsigned char *path, unsigned char 
 			if (fg == 1) {
 				term->blocked = blockh;
 				set_handlers(blockh, unblock_terminal, NULL, term);
-				if (!F) set_handlers(term->fdin, NULL, NULL, term);
+				set_handlers(term->fdin, NULL, NULL, term);
 			} else {
 				set_handlers(blockh, close_handle, NULL, &blockh);
 			}
@@ -967,8 +958,7 @@ void set_terminal_title(struct terminal *term, unsigned char *title)
 	if (term->title && !strcmp(cast_const_char title, cast_const_char term->title)) goto ret;
 	free(term->title);
 	term->title = stracpy(title);
-	if (!F)
-		do_terminal_function(term, TERM_FN_TITLE, title);
+	do_terminal_function(term, TERM_FN_TITLE, title);
  ret:
 	free(title);
 }

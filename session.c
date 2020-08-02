@@ -278,12 +278,10 @@ void change_screen_status(struct session *ses)
 static void x_print_screen_status(struct terminal *term, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	if (!F) {
-		unsigned char color = get_session_attribute(ses, proxies.only_proxies);
-		fill_area(term, 0, term->y - 1, term->x, 1, ' ', color);
-		if (ses->st)
-			print_text(term, 0, term->y - 1, (int)strlen(cast_const_char ses->st), ses->st, COLOR_STATUS);
-	}
+	unsigned char color = get_session_attribute(ses, proxies.only_proxies);
+	fill_area(term, 0, term->y - 1, term->x, 1, ' ', color);
+	if (ses->st)
+		print_text(term, 0, term->y - 1, (int)strlen(cast_const_char ses->st), ses->st, COLOR_STATUS);
 }
 
 static void x_print_screen_title(struct terminal *term, void *ses_)
@@ -311,8 +309,7 @@ void print_screen_status(struct session *ses)
 	unsigned char *m;
 
 	print_only_screen_status(ses);
-	if (!F)
-		draw_to_window(ses->win, x_print_screen_title, ses);
+	draw_to_window(ses->win, x_print_screen_title, ses);
 
 	m = stracpy(cast_uchar "Links");
 	if (ses->screen
@@ -324,7 +321,7 @@ void print_screen_status(struct session *ses)
 	}
 	set_terminal_title(ses->term, m);
 
-	if (!F && ses->brl_cursor_mode) {
+	if (ses->brl_cursor_mode) {
 		if (ses->brl_cursor_mode == 1) set_cursor(ses->term, 0, 0, 0, 0);
 		if (ses->brl_cursor_mode == 2) set_cursor(ses->term, 0, ses->term->y - 1, 0, ses->term->y - 1);
 	}
@@ -557,7 +554,7 @@ void download_window_function(struct dialog_data *dlg)
 	int show_percentage = 0;
 	unsigned char *m, *u;
 	struct status *stat = &down->stat;
-	if (!F) redraw_below_window(dlg->win);
+	redraw_below_window(dlg->win);
 	down->win = dlg->win;
 	if (stat->state == S_TRANS && stat->prg->elapsed / 100) {
 		int l = 0;
@@ -634,18 +631,16 @@ void download_window_function(struct dialog_data *dlg)
 	x = dlg->x + DIALOG_LB;
 	dlg_format_text(dlg, term, u, x, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	if (show_percentage) {
-		if (!F) {
-			unsigned char *q;
-			int p = w - 6;
-			y++;
-			set_only_char(term, x, y, '[', 0);
-			set_only_char(term, x + p + 1, y, ']', 0);
-			fill_area(term, x + 1, y, download_meter(p, stat), 1, CHAR_DIALOG_METER, COLOR_DIALOG_METER);
-			q = download_percentage(down, 1);
-			print_text(term, x + p + 2, y, (int)strlen(cast_const_char q), q, COLOR_DIALOG_TEXT);
-			free(q);
-			y++;
-		}
+		unsigned char *q;
+		int p = w - 6;
+		y++;
+		set_only_char(term, x, y, '[', 0);
+		set_only_char(term, x + p + 1, y, ']', 0);
+		fill_area(term, x + 1, y, download_meter(p, stat), 1, CHAR_DIALOG_METER, COLOR_DIALOG_METER);
+		q = download_percentage(down, 1);
+		print_text(term, x + p + 2, y, (int)strlen(cast_const_char q), q, COLOR_DIALOG_TEXT);
+		free(q);
+		y++;
 	}
 	y += gf_val(1, G_BFU_FONT_SIZE);
 	dlg_format_text(dlg, term, m, x, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
@@ -1580,7 +1575,7 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 		oxw = oyw = oxp = oyp = -1;
 	}
 	memset(&o, 0, sizeof(struct document_options));
-	ds2do(&fd->ses->ds, &o, F || fd->ses->term->spec->col);
+	ds2do(&fd->ses->ds, &o, fd->ses->term->spec->col);
 	if (!casecmp(fd->loc->url, cast_uchar "file://", 7) && !o.hard_assume) {
 		o.assume_cp = term_charset(fd->ses->term);
 	}
@@ -1602,12 +1597,10 @@ static void html_interpret(struct f_data_c *fd, int report_status)
 	}
 	o.scrolling = fd->scrolling;
 	if (fd->ses->term->spec) {
-		if (!F) {
-			if (!fd->ses->ds.t_ignore_document_color)
-				o.col = fd->ses->term->spec->col;
-			else
-				o.col = 0;
-		}
+		if (!fd->ses->ds.t_ignore_document_color)
+			o.col = fd->ses->term->spec->col;
+		else
+			o.col = 0;
 		o.cp = term_charset(fd->ses->term);
 	} else {
 		o.col = 3;

@@ -96,8 +96,8 @@
 
 #define G_LEFT_ARROW			"\342\206\220"
 #define G_RIGHT_ARROW			"\342\206\222"
-#define MENU_SUBMENU			(!F ? cast_uchar ">" : cast_uchar G_RIGHT_ARROW)
-#define CERT_RIGHT_ARROW		(!F ? cast_uchar " -> " : cast_uchar " " G_RIGHT_ARROW " ")
+#define MENU_SUBMENU			(cast_uchar ">")
+#define CERT_RIGHT_ARROW		(cast_uchar " -> ")
 
 #define G_SCROLL_BAR_WIDTH		12
 #define G_SCROLL_BAR_MIN_SIZE		20

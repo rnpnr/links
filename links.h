@@ -72,8 +72,6 @@ do {							\
 	(ret_) = (call_);				\
 } while (!(ret_) && errno == EINTR)
 
-#define F 0
-
 #define gf_val(x, y) (x)
 
 #define MAX_STR_LEN	1024
@@ -1456,16 +1454,14 @@ static inline void ds2do(struct document_setup *ds, struct document_options *doo
 	doo->display_images = ds->display_images;
 	doo->image_scale = ds->image_scale;
 	doo->porn_enable = ds->porn_enable;
-	if (!F) {
-		if (!col) {
-			doo->default_fg = palette_16_colors[7];
-			doo->default_bg = palette_16_colors[0];
-			doo->default_link = palette_16_colors[15];
-		} else {
-			doo->default_fg = palette_16_colors[ds->t_text_color];
-			doo->default_bg = palette_16_colors[ds->t_background_color];
-			doo->default_link = palette_16_colors[ds->t_link_color];
-		}
+	if (!col) {
+		doo->default_fg = palette_16_colors[7];
+		doo->default_bg = palette_16_colors[0];
+		doo->default_link = palette_16_colors[15];
+	} else {
+		doo->default_fg = palette_16_colors[ds->t_text_color];
+		doo->default_bg = palette_16_colors[ds->t_background_color];
+		doo->default_link = palette_16_colors[ds->t_link_color];
 	}
 }
 

@@ -790,9 +790,7 @@ static void redraw_list_element(struct terminal *term, struct dialog_data *dlg, 
 	int b;
 	unsigned char element;
 
-	if (!F) {
-		color = l == ld->current_pos ? COLOR_MENU_SELECTED : COLOR_MENU_TEXT;
-	}
+	color = l == ld->current_pos ? COLOR_MENU_SELECTED : COLOR_MENU_TEXT;
 
 	txt = ld->type_item(term, l, 1);
 	if (!txt) {
@@ -856,12 +854,10 @@ static void redraw_list_element(struct terminal *term, struct dialog_data *dlg, 
 		}
 	}
 
-	if (!F) {
-		print_text(term, dlg->x + x + DIALOG_LB, y, w-x, txt, color);
-		x += strlen((char *)txt);
-		fill_area(term, dlg->x+DIALOG_LB+x, y, w-x, 1, ' ', 0);
-		set_line_color(term, dlg->x + DIALOG_LB + x, y, w-x, color);
-	}
+	print_text(term, dlg->x + x + DIALOG_LB, y, w-x, txt, color);
+	x += strlen((char *)txt);
+	fill_area(term, dlg->x+DIALOG_LB+x, y, w-x, 1, ' ', 0);
+	set_line_color(term, dlg->x + DIALOG_LB + x, y, w-x, color);
 	free(txt);
 }
 
@@ -873,7 +869,7 @@ static void redraw_list(struct terminal *term, void *bla)
 	struct dialog_data *dlg = rd->dlg;
 	int y, a;
 	struct list *l;
-	int w = dlg->xw - 2 * DIALOG_LB - (F ? sirka_scrollovadla : 0);
+	int w = dlg->xw - 2 * DIALOG_LB;
 	y = dlg->y + DIALOG_TB;
 
 	for (a = 0, l = ld->win_offset; a < ld->n_items; ) {
@@ -883,7 +879,7 @@ static void redraw_list(struct terminal *term, void *bla)
 		y += gf_val(1, G_BFU_FONT_SIZE);
 		if (l == ld->list) break;
 	}
-	if (!F) fill_area(term, dlg->x + DIALOG_LB, y, w, ld->n_items-a, ' ', COLOR_MENU_TEXT);
+	fill_area(term, dlg->x + DIALOG_LB, y, w, ld->n_items-a, ' ', COLOR_MENU_TEXT);
 }
 
 
@@ -895,12 +891,12 @@ static void redraw_list_line(struct terminal *term, void *bla)
 	struct list_description *ld = rd->ld;
 	struct dialog_data *dlg = rd->dlg;
 	int direction = rd->n;
-	int w = dlg->xw - 2 * DIALOG_LB - (F ? sirka_scrollovadla : 0);
+	int w = dlg->xw - 2 * DIALOG_LB;
 	int y = dlg->y + DIALOG_TB + gf_val(ld->win_pos, ld->win_pos * G_BFU_FONT_SIZE);
 	struct list *l;
 
 	redraw_list_element(term, dlg, y, w, ld, ld->current_pos);
-	if (!F && !term->spec->block_cursor) {
+	if (!term->spec->block_cursor) {
 		set_cursor(term, dlg->x + DIALOG_LB, y, dlg->x + DIALOG_LB, y);
 	}
 	y += gf_val(direction, direction * G_BFU_FONT_SIZE);
@@ -928,9 +924,7 @@ static void redraw_list_line(struct terminal *term, void *bla)
 /* direction: -1=up, 1=down */
 static void scroll_list(struct terminal *term, void *bla)
 {
-	if (!F) {
-		redraw_list(term, bla);
-	}
+	redraw_list(term, bla);
 }
 
 
@@ -954,7 +948,7 @@ static void list_find_next(struct redraw_data *rd, int direction)
 				if (l!=item) l->type|=2;
 
 		draw_to_window(dlg->win,redraw_list,rd);
-		if (!F && !ses->term->spec->block_cursor)
+		if (!ses->term->spec->block_cursor)
 			set_cursor(ses->term, dlg->x + DIALOG_LB,
 				dlg->y + DIALOG_TB + ld->win_pos,
 				dlg->x + DIALOG_LB,
@@ -1219,7 +1213,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 				(ev->y)<(dlg->y+DIALOG_TB)||
 				(ev->y)>=(dlg->y+DIALOG_TB+gf_val(ld->n_items,G_BFU_FONT_SIZE*(ld->n_items)))||
 				(ev->x)<(dlg->x+DIALOG_LB)||
-				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB-(F?sirka_scrollovadla:0))
+				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB)
 			)break;  /* out of the dialog */
 
 			n=(ev->y-dlg->y-DIALOG_TB)/gf_val(1,G_BFU_FONT_SIZE);
@@ -1251,7 +1245,7 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 				(ev->y)<(dlg->y+DIALOG_TB)||
 				(ev->y)>=(dlg->y+DIALOG_TB+gf_val(ld->n_items,G_BFU_FONT_SIZE*(ld->n_items)))||
 				(ev->x)<(dlg->x+DIALOG_LB)||
-				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB-(F?sirka_scrollovadla:0))
+				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB)
 			)goto skip_item_click;  /* out of the dialog */
 
 			n=(ev->y-dlg->y-DIALOG_TB)/gf_val(1,G_BFU_FONT_SIZE);

@@ -471,41 +471,40 @@ void do_mainmenu(struct terminal *term, struct menu_item *items, void *data, int
 static void display_mainmenu(struct terminal *term, void *menu_)
 {
 	struct mainmenu *menu = (struct mainmenu *)menu_;
-	if (!F) {
-		int i;
-		int p = 2;
-		fill_area(term, 0, 0, term->x, 1, ' ', COLOR_MAINMENU);
-		for (i = 0; i < menu->ni; i++) {
-			int s = 0;
-			unsigned c;
-			unsigned char *tmptext = get_text_translation(menu->items[i].text, term);
-			unsigned char co;
-			if (i == menu->selected) {
-				s = 1;
-				co = COLOR_MAINMENU_SELECTED;
-			} else
-				co = COLOR_MAINMENU;
-			if (i == menu->selected) {
-				fill_area(term, p, 0, 2, 1, ' ', co);
-				menu->sp = p;
-				set_cursor(term, p, 0, term->x - 1, term->y - 1);
-				set_window_ptr(menu->win, p, 1);
-			}
-			p += 2;
-			for (;; p++) {
-				c = GET_TERM_CHAR(term, &tmptext);
-				if (!c) break;
-				if (!s && charset_upcase(c, term_charset(term)) == menu->hotkeys[i]) {
-					s = 1;
-					set_char(term, p, 0, c, COLOR_MAINMENU_HOTKEY);
-				} else
-					set_char(term, p, 0, c, co);
-			}
-			if (i == menu->selected) {
-				fill_area(term, p, 0, 2, 1, ' ', co);
-			}
-			p += 2;
+	int i;
+	int p = 2;
+	fill_area(term, 0, 0, term->x, 1, ' ', COLOR_MAINMENU);
+	for (i = 0; i < menu->ni; i++) {
+		int s = 0;
+		unsigned c;
+		unsigned char *tmptext = get_text_translation(menu->items[i].text, term);
+		unsigned char co;
+		if (i == menu->selected) {
+			s = 1;
+			co = COLOR_MAINMENU_SELECTED;
+		} else {
+			co = COLOR_MAINMENU;
 		}
+		if (i == menu->selected) {
+			fill_area(term, p, 0, 2, 1, ' ', co);
+			menu->sp = p;
+			set_cursor(term, p, 0, term->x - 1, term->y - 1);
+			set_window_ptr(menu->win, p, 1);
+		}
+		p += 2;
+		for (;; p++) {
+			c = GET_TERM_CHAR(term, &tmptext);
+			if (!c) break;
+			if (!s && charset_upcase(c, term_charset(term)) == menu->hotkeys[i]) {
+				s = 1;
+				set_char(term, p, 0, c, COLOR_MAINMENU_HOTKEY);
+			} else {
+				set_char(term, p, 0, c, co);
+			}
+		}
+		if (i == menu->selected)
+			fill_area(term, p, 0, 2, 1, ' ', co);
+		p += 2;
 	}
 }
 
@@ -674,67 +673,70 @@ void do_dialog(struct terminal *term, struct dialog *dlg, struct memory_list *ml
 void display_dlg_item(struct dialog_data *dlg, struct dialog_item_data *di, int sel)
 {
 	struct terminal *term = dlg->win->term;
-	if (!F) switch (di->item->type) {
-		unsigned char co;
-		unsigned char *text, *t;
-		int vposlen, cposlen;
-		case D_CHECKBOX:
-			/* radio or checkbox */
-			if (di->checked) print_text(term, di->x, di->y, 3, cast_uchar "[X]", COLOR_DIALOG_CHECKBOX);
-			else print_text(term, di->x, di->y, 3, cast_uchar "[ ]", COLOR_DIALOG_CHECKBOX);
-			if (sel) {
-				set_cursor(term, di->x + 1, di->y, di->x + 1, di->y);
-				set_window_ptr(dlg->win, di->x, di->y);
-			}
-			break;
-		case D_FIELD:
-		case D_FIELD_PASS:
-			fill_area(term, di->x, di->y, di->l, 1, ' ', COLOR_DIALOG_FIELD);
-			if (di->vpos > di->cpos) di->vpos = di->cpos;
-			vposlen = strlen((char *)(di->cdata + di->vpos));
-			cposlen = strlen((char *)(di->cdata + di->cpos));
-			if (!di->l) {
-				di->vpos = di->cpos;
-				vposlen = cposlen;
-			} else {
-				while (vposlen - cposlen > di->l - 1) {
-					t = di->cdata + di->vpos;
-					GET_TERM_CHAR(term, &t);
-					di->vpos = (int)(t - di->cdata);
-					vposlen--;
-				}
-			}
-			if (di->item->type == D_FIELD_PASS) {
-				t = xmalloc(vposlen + 1);
-				memset(t, '*', vposlen);
-				t[vposlen] = 0;
-			} else {
+	unsigned char co;
+	unsigned char *text, *t;
+	int vposlen, cposlen;
+
+	switch (di->item->type) {
+	case D_CHECKBOX:
+		/* radio or checkbox */
+		if (di->checked)
+			print_text(term, di->x, di->y, 3, cast_uchar "[X]", COLOR_DIALOG_CHECKBOX);
+		else
+			print_text(term, di->x, di->y, 3, cast_uchar "[ ]", COLOR_DIALOG_CHECKBOX);
+		if (sel) {
+			set_cursor(term, di->x + 1, di->y, di->x + 1, di->y);
+			set_window_ptr(dlg->win, di->x, di->y);
+		}
+		break;
+	case D_FIELD:
+	case D_FIELD_PASS:
+		fill_area(term, di->x, di->y, di->l, 1, ' ', COLOR_DIALOG_FIELD);
+		if (di->vpos > di->cpos) di->vpos = di->cpos;
+		vposlen = strlen((char *)(di->cdata + di->vpos));
+		cposlen = strlen((char *)(di->cdata + di->cpos));
+		if (!di->l) {
+			di->vpos = di->cpos;
+			vposlen = cposlen;
+		} else {
+			while (vposlen - cposlen > di->l - 1) {
 				t = di->cdata + di->vpos;
+				GET_TERM_CHAR(term, &t);
+				di->vpos = (int)(t - di->cdata);
+				vposlen--;
 			}
-			print_text(term, di->x, di->y, di->l, t, COLOR_DIALOG_FIELD_TEXT);
-			if (di->item->type == D_FIELD_PASS) 
-				free(t);
-			if (sel) {
-				set_cursor(term, di->x + vposlen - cposlen,
-					di->y, di->x + vposlen - cposlen, di->y);
-				set_window_ptr(dlg->win, di->x, di->y);
-			}
-			break;
-		case D_BUTTON:
-			co = sel ? COLOR_DIALOG_BUTTON_SELECTED : COLOR_DIALOG_BUTTON;
-			text = get_text_translation(di->item->text, term);
-			print_text(term, di->x, di->y, 2, cast_uchar "[ ", co);
-			print_text(term, di->x + 2, di->y, strlen((char *)text), text, co);
-			print_text(term, di->x + 2 + strlen((char *)text),
-				di->y, 2, cast_uchar " ]", co);
-			if (sel) {
-				set_cursor(term, di->x + 2, di->y, di->x + 2,
-					di->y);
-				set_window_ptr(dlg->win, di->x, di->y);
-			}
-			break;
-		default:
-			internal("display_dlg_item: unknown item: %d", di->item->type);
+		}
+		if (di->item->type == D_FIELD_PASS) {
+			t = xmalloc(vposlen + 1);
+			memset(t, '*', vposlen);
+			t[vposlen] = 0;
+		} else {
+			t = di->cdata + di->vpos;
+		}
+		print_text(term, di->x, di->y, di->l, t, COLOR_DIALOG_FIELD_TEXT);
+		if (di->item->type == D_FIELD_PASS) 
+			free(t);
+		if (sel) {
+			set_cursor(term, di->x + vposlen - cposlen,
+				di->y, di->x + vposlen - cposlen, di->y);
+			set_window_ptr(dlg->win, di->x, di->y);
+		}
+		break;
+	case D_BUTTON:
+		co = sel ? COLOR_DIALOG_BUTTON_SELECTED : COLOR_DIALOG_BUTTON;
+		text = get_text_translation(di->item->text, term);
+		print_text(term, di->x, di->y, 2, cast_uchar "[ ", co);
+		print_text(term, di->x + 2, di->y, strlen((char *)text), text, co);
+		print_text(term, di->x + 2 + strlen((char *)text),
+			di->y, 2, cast_uchar " ]", co);
+		if (sel) {
+			set_cursor(term, di->x + 2, di->y, di->x + 2,
+				di->y);
+			set_window_ptr(dlg->win, di->x, di->y);
+		}
+		break;
+	default:
+		internal("display_dlg_item: unknown item: %d", di->item->type);
 	}
 }
 
@@ -847,7 +849,7 @@ static int dlg_mouse(struct dialog_data *dlg, struct dialog_item_data *di, struc
 				if (!*t) break;
 				GET_UTF_8(t, u);
 				if (!u) continue;
-				if (!F) p++;
+				p++;
 				if (p > ev->x) break;
 			}
 		}
@@ -1427,22 +1429,21 @@ void center_dlg(struct dialog_data *dlg)
 
 void draw_dlg(struct dialog_data *dlg)
 {
-	if (!F) {
-		int i, tpos;
-		struct terminal *term = dlg->win->term;
-		fill_area(term, dlg->x, dlg->y, dlg->xw, dlg->yw, ' ',
-			COLOR_DIALOG);
-		draw_frame(term, dlg->x + DIALOG_LEFT_BORDER,
-			dlg->y + DIALOG_TOP_BORDER,
-			dlg->xw - 2 * DIALOG_LEFT_BORDER,
-			dlg->yw - 2 * DIALOG_TOP_BORDER, COLOR_DIALOG_FRAME,
-			DIALOG_FRAME);
-		i = strlen((char *)get_text_translation(dlg->dlg->title, term));
-		tpos = (dlg->xw - i) / 2;
-		print_text(term, tpos + dlg->x - 1, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
-		print_text(term, tpos + dlg->x, dlg->y + DIALOG_TOP_BORDER, i, get_text_translation(dlg->dlg->title, term), COLOR_DIALOG_TITLE);
-		print_text(term, tpos + dlg->x + i, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
-	}
+	int i, tpos;
+	struct terminal *term = dlg->win->term;
+
+	fill_area(term, dlg->x, dlg->y, dlg->xw, dlg->yw, ' ',
+		COLOR_DIALOG);
+	draw_frame(term, dlg->x + DIALOG_LEFT_BORDER,
+		dlg->y + DIALOG_TOP_BORDER,
+		dlg->xw - 2 * DIALOG_LEFT_BORDER,
+		dlg->yw - 2 * DIALOG_TOP_BORDER, COLOR_DIALOG_FRAME,
+		DIALOG_FRAME);
+	i = strlen((char *)get_text_translation(dlg->dlg->title, term));
+	tpos = (dlg->xw - i) / 2;
+	print_text(term, tpos + dlg->x - 1, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
+	print_text(term, tpos + dlg->x, dlg->y + DIALOG_TOP_BORDER, i, get_text_translation(dlg->dlg->title, term), COLOR_DIALOG_TITLE);
+	print_text(term, tpos + dlg->x + i, dlg->y + DIALOG_TOP_BORDER, 1, cast_uchar " ", COLOR_DIALOG_TITLE);
 }
 
 void max_text_width(struct terminal *term, unsigned char *text, int *width, int align)
@@ -1457,7 +1458,7 @@ void max_text_width(struct terminal *term, unsigned char *text, int *width, int 
 			} else {
 				int u;
 				GET_UTF_8(text, u);
-				if (!F) c++;
+				c++;
 			}
 		}
 		if (c > *width) *width = c;
@@ -1476,7 +1477,7 @@ void min_text_width(struct terminal *term, unsigned char *text, int *width, int 
 			} else {
 				int u;
 				GET_UTF_8(text, u);
-				if (!F) c++;
+				c++;
 			}
 		}
 		if (c > *width) *width = c;
@@ -1487,7 +1488,7 @@ int dlg_format_text(struct dialog_data *dlg, struct terminal *term, unsigned cha
 {
 	int xx = x;
 	text = get_text_translation(text, dlg->win->term);
-	if (!F) while (1) {
+	for (;;) {
 		unsigned char *t1;
 		unsigned ch;
 		int cx, lbr;
@@ -1680,8 +1681,7 @@ void dlg_format_group(struct dialog_data *dlg, struct terminal *term, unsigned c
 			(*y) += 2 * LL;
 		}
 		if (term) {
-			if (!F)
-				print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, strlen((char *)get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
+			print_text(term, x + nx + 4 * (item->item->type == D_CHECKBOX), *y, strlen((char *)get_text_translation(texts[0], dlg->win->term)), get_text_translation(texts[0], dlg->win->term), COLOR_DIALOG_TEXT);
 			item->x = x + nx + sl * (item->item->type != D_CHECKBOX);
 			item->y = *y;
 			if (item->item->type == D_FIELD || item->item->type == D_FIELD_PASS) item->l = gf_val(item->item->dlen, item->item->dlen * G_DIALOG_FIELD_WIDTH);

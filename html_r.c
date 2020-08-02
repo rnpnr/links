@@ -110,9 +110,8 @@ static void clear_formatted(struct f_data *scr)
 		free(l->pos);
 	}
 	free(scr->links);
-	if (!F)
-		for (y = 0; y < scr->y; y++)
-			free(scr->data[y].d);
+	for (y = 0; y < scr->y; y++)
+		free(scr->data[y].d);
 	free(scr->data);
 	free(scr->lines1);
 	free(scr->lines2);
@@ -1156,6 +1155,8 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	unsigned char *bg = NULL, *bgcolor = NULL;
 	int implicit_pre_wrap;
 	int bg_col, fg_col;
+	struct part *rp;
+
 	current_f_data = screen;
 	d_opt = &screen->opt;
 	screen->use_tag = ce->count;
@@ -1185,25 +1186,23 @@ void really_format_html(struct cache_entry *ce, unsigned char *start, unsigned c
 	last_form_tag = NULL;
 	last_form_attr = NULL;
 	last_input_tag = NULL;
-	if (!F) {
-		struct part *rp;
-		if ((rp = format_html_part(start, end, par_format.align, par_format.leftmargin, screen->opt.xw, screen, 0, 0, head, 1)))
-			free(rp);
-	}
+	if ((rp = format_html_part(start, end, par_format.align, par_format.leftmargin, screen->opt.xw, screen, 0, 0, head, 1)))
+		free(rp);
 	free(head);
 	free(bg);
 	free(bgcolor);
-	if (!F) {
-		screen->x = 0;
-		for (i = screen->y - 1; i >= 0; i--) {
-			if (!screen->data[i].l) {
-				free(screen->data[i].d);
-				screen->y--;
-			} else
-				break;
+	screen->x = 0;
+	for (i = screen->y - 1; i >= 0; i--) {
+		if (!screen->data[i].l) {
+			free(screen->data[i].d);
+			screen->y--;
+		} else {
+			break;
 		}
-		for (i = 0; i < screen->y; i++) if (screen->data[i].l > screen->x) screen->x = screen->data[i].l;
 	}
+	for (i = 0; i < screen->y; i++)
+		if (screen->data[i].l > screen->x)
+			screen->x = screen->data[i].l;
 	free(form.action);
 	free(form.target);
 	free(form.form_name);

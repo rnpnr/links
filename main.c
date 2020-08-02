@@ -97,8 +97,7 @@ void sig_tstp(void *t_)
 	struct terminal *t = (struct terminal *)t_;
 	pid_t pid, newpid;
 	EINTRLOOP(pid, getpid());
-	if (!F)
-		block_itrm(1);
+	block_itrm(1);
 	EINTRLOOP(newpid, fork());
 	if (!newpid) {
 		while (1) {
@@ -124,8 +123,7 @@ static void poll_fg(void *t_)
 	struct terminal *t = (struct terminal *)t_;
 	int r;
 	fg_poll_timer = NULL;
-	if (!F)
-		r = unblock_itrm(1);
+	r = unblock_itrm(1);
 	if (r == -1)
 		fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
 	if (r == -2) {
@@ -136,25 +134,23 @@ static void poll_fg(void *t_)
 
 void sig_cont(void *t_)
 {
-	if (!F)
-		unblock_itrm(1);
+	unblock_itrm(1);
 }
 
 static void handle_basic_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, sig_intr, term, 0);
-	if (!F) install_signal_handler(SIGINT, sig_ctrl_c, term, 0);
-	/*install_signal_handler(SIGTERM, sig_terminate, term, 0);*/
-	if (!F) install_signal_handler(SIGTSTP, sig_tstp, term, 0);
-	if (!F) install_signal_handler(SIGTTIN, sig_tstp, term, 0);
+	install_signal_handler(SIGINT, sig_ctrl_c, term, 0);
+	install_signal_handler(SIGTSTP, sig_tstp, term, 0);
+	install_signal_handler(SIGTTIN, sig_tstp, term, 0);
 	install_signal_handler(SIGTTOU, sig_ign, term, 0);
-	if (!F) install_signal_handler(SIGCONT, sig_cont, term, 0);
+	install_signal_handler(SIGCONT, sig_cont, term, 0);
 }
 
 void unhandle_terminal_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
-	if (!F) install_signal_handler(SIGINT, NULL, NULL, 0);
+	install_signal_handler(SIGINT, NULL, NULL, 0);
 	install_signal_handler(SIGTSTP, NULL, NULL, 0);
 	install_signal_handler(SIGTTIN, NULL, NULL, 0);
 	install_signal_handler(SIGTTOU, NULL, NULL, 0);
@@ -168,8 +164,7 @@ void unhandle_terminal_signals(struct terminal *term)
 static void unhandle_basic_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
-	if (!F) install_signal_handler(SIGINT, NULL, NULL, 0);
-	/*install_signal_handler(SIGTERM, NULL, NULL, 0);*/
+	install_signal_handler(SIGINT, NULL, NULL, 0);
 	install_signal_handler(SIGTSTP, NULL, NULL, 0);
 	install_signal_handler(SIGTTIN, NULL, NULL, 0);
 	install_signal_handler(SIGTTOU, NULL, NULL, 0);
@@ -325,10 +320,8 @@ static void init(void)
 		load_url_history();
 		initialize_all_subsystems_2();
 		info = create_session_info(base_session, u, default_target, &len);
-		if (!F) {
-			if (attach_terminal(info, len) < 0)
-				fatal_exit("Could not open initial session");
-		}
+		if (attach_terminal(info, len) < 0)
+			fatal_exit("Could not open initial session");
 	} else {
 		unsigned char *uu, *uuu, *wd;
 		initialize_all_subsystems_2();
@@ -372,8 +365,7 @@ static void terminate_all_subsystems(void)
 	check_bottom_halves();
 	destroy_all_terminals();
 	check_bottom_halves();
-	if (!F)
-		free_all_itrms();
+	free_all_itrms();
 	release_object(&dump_obj);
 	abort_all_connections();
 

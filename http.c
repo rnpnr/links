@@ -419,7 +419,7 @@ static void add_user_agent(unsigned char **hdr, int *l, const char *url)
 		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
 		add_to_str(hdr, l, system_name);
 		add_to_str(hdr, l, cast_uchar "; ");
-		if (!F && !list_empty(terminals)) {
+		if (!list_empty(terminals)) {
 			unsigned char *t = cast_uchar "text";
 			add_to_str(hdr, l, t);
 		} else {

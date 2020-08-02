@@ -199,7 +199,7 @@ void query_exit(struct session *ses)
 	ses->exit_query = 1;
 	msg_box(ses->term, NULL, TEXT_(T_EXIT_LINKS), AL_CENTER,
 		only_one_term && are_there_downloads() ? TEXT_(T_DO_YOU_REALLY_WANT_TO_EXIT_LINKS_AND_TERMINATE_ALL_DOWNLOADS) :
-		!F || only_one_term ? TEXT_(T_DO_YOU_REALLY_WANT_TO_EXIT_LINKS) :
+		1 || only_one_term ? TEXT_(T_DO_YOU_REALLY_WANT_TO_EXIT_LINKS) :
 		TEXT_(T_DO_YOU_REALLY_WANT_TO_CLOSE_WINDOW),
 		MSG_BOX_END,
 		(void *)ses, 2, TEXT_(T_YES), really_exit_prog, B_ENTER, TEXT_(T_NO), dont_exit_prog, B_ESC);
@@ -1455,8 +1455,7 @@ void dialog_html_options(struct session *ses)
 	int a;
 
 	snprint(marg_str, 2, ses->ds.margin);
-	if (!F)
-		d = mem_calloc(sizeof(struct dialog) + 14 * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + 14 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_HTML_OPTIONS);
 	d->fn = group_fn;
 	d->udata = (void *)gf_val(html_texts, html_texts_g);
@@ -1484,16 +1483,14 @@ void dialog_html_options(struct session *ses)
 	d->items[a].data = (unsigned char *) &ses->ds.image_names;
 	d->items[a].dlen = sizeof(int);
 	a++;
-	if (!F) {
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].data = (unsigned char *) &ses->ds.table_order;
-		d->items[a].dlen = sizeof(int);
-		a++;
-		d->items[a].type = D_CHECKBOX;
-		d->items[a].data = (unsigned char *) &ses->ds.num_links;
-		d->items[a].dlen = sizeof(int);
-		a++;
-	}
+	d->items[a].type = D_CHECKBOX;
+	d->items[a].data = (unsigned char *) &ses->ds.table_order;
+	d->items[a].dlen = sizeof(int);
+	a++;
+	d->items[a].type = D_CHECKBOX;
+	d->items[a].data = (unsigned char *) &ses->ds.num_links;
+	d->items[a].dlen = sizeof(int);
+	a++;
 	d->items[a].type = D_CHECKBOX;
 	d->items[a].data = (unsigned char *) &ses->ds.auto_refresh;
 	d->items[a].dlen = sizeof(int);
@@ -1585,28 +1582,26 @@ static void menu_color(struct terminal *term, void *xxx, void *ses_)
 	d->refresh = html_color_refresh;
 	d->refresh_data = ses;
 
-	if (!F) {
-		d->items[0].type = D_BUTTON;
-		d->items[0].gid = 0;
-		d->items[0].text = TEXT_(T_TEXT_COLOR);
-		d->items[0].fn = select_color_16;
-		d->items[0].data = (unsigned char *)&ses->ds.t_text_color;
-		d->items[0].dlen = sizeof(int);
+	d->items[0].type = D_BUTTON;
+	d->items[0].gid = 0;
+	d->items[0].text = TEXT_(T_TEXT_COLOR);
+	d->items[0].fn = select_color_16;
+	d->items[0].data = (unsigned char *)&ses->ds.t_text_color;
+	d->items[0].dlen = sizeof(int);
 
-		d->items[1].type = D_BUTTON;
-		d->items[1].gid = 0;
-		d->items[1].text = TEXT_(T_LINK_COLOR);
-		d->items[1].fn = select_color_16;
-		d->items[1].data = (unsigned char *)&ses->ds.t_link_color;
-		d->items[1].dlen = sizeof(int);
+	d->items[1].type = D_BUTTON;
+	d->items[1].gid = 0;
+	d->items[1].text = TEXT_(T_LINK_COLOR);
+	d->items[1].fn = select_color_16;
+	d->items[1].data = (unsigned char *)&ses->ds.t_link_color;
+	d->items[1].dlen = sizeof(int);
 
-		d->items[2].type = D_BUTTON;
-		d->items[2].gid = 0;
-		d->items[2].text = TEXT_(T_BACKGROUND_COLOR);
-		d->items[2].fn = select_color_8;
-		d->items[2].data = (unsigned char *)&ses->ds.t_background_color;
-		d->items[2].dlen = sizeof(int);
-	}
+	d->items[2].type = D_BUTTON;
+	d->items[2].gid = 0;
+	d->items[2].text = TEXT_(T_BACKGROUND_COLOR);
+	d->items[2].fn = select_color_8;
+	d->items[2].data = (unsigned char *)&ses->ds.t_background_color;
+	d->items[2].dlen = sizeof(int);
 
 	d->items[3].type = D_CHECKBOX;
 	d->items[3].data = (unsigned char *) gf_val(&ses->ds.t_ignore_document_color, &ses->ds.g_ignore_document_color);
@@ -1650,8 +1645,8 @@ static void miscopt_fn(struct dialog_data *dlg)
 	int a=0;
 	int bmk=!anonymous;
 
-	max_text_width(term, labels[F?7:0], &max, AL_LEFT);
-	min_text_width(term, labels[F?7:0], &min, AL_LEFT);
+	max_text_width(term, labels[0], &max, AL_LEFT);
+	min_text_width(term, labels[0], &min, AL_LEFT);
 	if (bmk)
 	{
 		max_buttons_width(term, dlg->items + dlg->n - 3 - a - bmk, 1, &max);
@@ -1676,7 +1671,7 @@ static void miscopt_fn(struct dialog_data *dlg)
 	rw = 0;
 
 	if (bmk) {
-		dlg_format_text_and_field(dlg, NULL, labels[F?7:0], dlg->items + dlg->n - 4 - a - bmk, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+		dlg_format_text_and_field(dlg, NULL, labels[0], dlg->items + dlg->n - 4 - a - bmk, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 		y += LL;
 	}
 	if (bmk) {
@@ -1694,7 +1689,7 @@ static void miscopt_fn(struct dialog_data *dlg)
 	y = dlg->y + DIALOG_TB;
 	y += LL;
 	if (bmk) {
-		dlg_format_text_and_field(dlg, term, labels[F?7:0], dlg->items + dlg->n - 4 - a - bmk, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+		dlg_format_text_and_field(dlg, term, labels[0], dlg->items + dlg->n - 4 - a - bmk, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 		y += LL;
 		dlg_format_buttons(dlg, term, dlg->items + dlg->n - 3 - a - bmk, 1, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 	}
@@ -1713,17 +1708,17 @@ static void miscelaneous_options(struct terminal *term, void *xxx, void *ses_)
 	struct dialog *d;
 	int a=0;
 
-	if (anonymous&&!F) return;	/* if you add something into text mode (or both text and graphics), remove this (and enable also miscelaneous_options in do_setup_menu) */
+	/* if you add something into text mode (or both text and graphics), remove this (and enable also miscelaneous_options in do_setup_menu) */
+	if (anonymous)
+		return;
 
 	safe_strncpy(new_bookmarks_file,bookmarks_file,MAX_STR_LEN);
-	if (!F)
-		d = mem_calloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
+	d = mem_calloc(sizeof(struct dialog) + 5 * sizeof(struct dialog_item));
 	d->title = TEXT_(T_MISCELANEOUS_OPTIONS);
 	d->refresh = refresh_misc;
 	d->refresh_data = ses;
 	d->fn=miscopt_fn;
-	if (!F)
-		d->udata = (void *)miscopt_labels;
+	d->udata = (void *)miscopt_labels;
 	d->udata2 = ses;
 	if (!anonymous) {
 		d->items[a].type = D_FIELD;
@@ -1801,10 +1796,8 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 	struct menu_item *file_menu, *e;
 	file_menu = xmalloc(sizeof(file_menu11) + sizeof(file_menu12) + sizeof(file_menu21) + sizeof(file_menu22) + sizeof(file_menu3) + 3 * sizeof(struct menu_item));
 	e = file_menu;
-	if (!F) {
-		memcpy(e, file_menu11, sizeof(file_menu11));
-		e += sizeof(file_menu11) / sizeof(struct menu_item);
-	}
+	memcpy(e, file_menu11, sizeof(file_menu11));
+	e += sizeof(file_menu11) / sizeof(struct menu_item);
 	if (!anonymous) {
 		memcpy(e, file_menu12, sizeof(file_menu12));
 		e += sizeof(file_menu12) / sizeof(struct menu_item);
@@ -1820,10 +1813,8 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 		e++;
 	}
 	if (!anonymous) {
-		if (!F) {
-			memcpy(e, file_menu21, sizeof(file_menu21));
-			e += sizeof(file_menu21) / sizeof(struct menu_item);
-		}
+		memcpy(e, file_menu21, sizeof(file_menu21));
+		e += sizeof(file_menu21) / sizeof(struct menu_item);
 	}
 	memcpy(e, file_menu22, sizeof(file_menu22));
 	e += sizeof(file_menu22) / sizeof(struct menu_item);
@@ -1917,7 +1908,7 @@ static const struct menu_item view_menu_anon_color[] = {
 static void do_view_menu(struct terminal *term, void *xxx, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	if (F || term->spec->col) {
+	if (term->spec->col) {
 		if (!anonymous) do_menu(term, (struct menu_item *)view_menu_color, ses);
 		else do_menu(term, (struct menu_item *)view_menu_anon_color, ses);
 	} else {
@@ -2002,15 +1993,13 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 		sizeof(setup_menu_8);
 	setup_menu = xmalloc(size);
 	e = setup_menu;
-	if (!F) {
-		memcpy(e, setup_menu_2, sizeof(setup_menu_2));
-		e += sizeof(setup_menu_2) / sizeof(struct menu_item);
-	}
+	memcpy(e, setup_menu_2, sizeof(setup_menu_2));
+	e += sizeof(setup_menu_2) / sizeof(struct menu_item);
 	if (!anonymous) {
 		memcpy(e, setup_menu_5, sizeof(setup_menu_5));
 		e += sizeof(setup_menu_5) / sizeof(struct menu_item);
 	}
-	if (!anonymous || F) {
+	if (!anonymous) {
 		memcpy(e, setup_menu_6, sizeof(setup_menu_6));
 		e += sizeof(setup_menu_6) / sizeof(struct menu_item);
 	}

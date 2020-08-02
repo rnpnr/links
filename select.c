@@ -762,11 +762,9 @@ void select_loop(void (*init)(void))
 	if (event_enabled) {
 		while (!terminate_loop) {
 			check_signals();
-			if (!F) {
-				do_event_loop(EVLOOP_NONBLOCK);
-				check_signals();
-				redraw_all_terminals();
-			}
+			do_event_loop(EVLOOP_NONBLOCK);
+			check_signals();
+			redraw_all_terminals();
 			if (terminate_loop) break;
 			do_event_loop(EVLOOP_ONCE);
 		}
@@ -779,7 +777,7 @@ void select_loop(void (*init)(void))
 		struct timeval *tm = NULL;
 		check_signals();
 		check_timers();
-		if (!F) redraw_all_terminals();
+		redraw_all_terminals();
 		if (!list_empty(timers)) {
 			uttime tt = list_struct(timers.next, struct timer)->interval + 1;
 				tv.tv_sec = tt / 1000 < INT_MAX ? (int)(tt / 1000) : INT_MAX;

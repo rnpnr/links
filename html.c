@@ -944,14 +944,14 @@ static void html_a_special(unsigned char *a, unsigned char *next, unsigned char 
 
 static void html_sub(unsigned char *a)
 {
-	if (!F) put_chrs(cast_uchar "_", 1);
+	put_chrs(cast_uchar "_", 1);
 	format_.fontsize = 1;
 	format_.baseline = -1;
 }
 
 static void html_sup(unsigned char *a)
 {
-	if (!F) put_chrs(cast_uchar "^", 1);
+	put_chrs(cast_uchar "^", 1);
 	format_.fontsize = 1;
 	if (format_.baseline <= 0) format_.baseline = format_.fontsize;
 }
@@ -1002,8 +1002,7 @@ static void html_img(unsigned char *a)
 	unsigned char *s;
 	unsigned char *orig_link = NULL;
 	int ismap, usemap = 0;
-	/*put_chrs(cast_uchar " ", 1);*/
-	if ((!F || !d_opt->display_images) && ((al = get_url_val(a, cast_uchar "usemap")))) {
+	if ((al = get_url_val(a, cast_uchar "usemap"))) {
 		unsigned char *u;
 		usemap = 1;
 		html_stack_dup();
@@ -1016,7 +1015,7 @@ static void html_img(unsigned char *a)
 		free(u);
 		free(al);
 	}
-	ismap = format_.link && (F || !has_attr(a, cast_uchar "usemap")) && has_attr(a, cast_uchar "ismap");
+	ismap = format_.link && !has_attr(a, cast_uchar "usemap") && has_attr(a, cast_uchar "ismap");
 	free(format_.image);
 	format_.image = NULL;
 	if ((s = get_url_val_img(a, cast_uchar "data-defer-src"))
@@ -1041,48 +1040,47 @@ static void html_img(unsigned char *a)
  skip_img:
 		 orig_link = s;
 	}
-	if (!F || !d_opt->display_images) {
-		if ((!(al = get_attr_val(a, cast_uchar "alt"))
-		&& !(al = get_attr_val(a, cast_uchar "title")))
-		|| !*al) {
-			free(al);
-			if (!d_opt->images && !format_.link)
-				goto ret;
-			if (d_opt->image_names && s) {
-				unsigned char *ss;
-				al = stracpy(cast_uchar "[");
-				if (!(ss = cast_uchar strrchr(cast_const_char s, '/')))
-					ss = s;
-				else
-					ss++;
-				add_to_strn(&al, ss);
-				if ((ss = cast_uchar strchr(cast_const_char al, '?')))
-					*ss = 0;
-				if ((ss = cast_uchar strchr(cast_const_char al, '&')))
-					*ss = 0;
-				add_to_strn(&al, cast_uchar "]");
-			} else if (usemap)
-				al = stracpy(cast_uchar "[USEMAP]");
-			else if
-				(ismap) al = stracpy(cast_uchar "[ISMAP]");
-			else
-				al = stracpy(cast_uchar "[IMG]");
-		}
-		if (al) {
-			if (ismap) {
-				unsigned char *h;
-				html_stack_dup();
-				h = stracpy(format_.link);
-				add_to_strn(&h, cast_uchar "?0,0");
-				free(format_.link);
-				format_.link = h;
-			}
-			html_format_changed = 1;
-			put_chrs(al, (int)strlen(cast_const_char al));
-			if (ismap) kill_html_stack_item(&html_top);
-		}
+	if ((!(al = get_attr_val(a, cast_uchar "alt"))
+	&& !(al = get_attr_val(a, cast_uchar "title")))
+	|| !*al) {
 		free(al);
+		if (!d_opt->images && !format_.link)
+			goto ret;
+		if (d_opt->image_names && s) {
+			unsigned char *ss;
+			al = stracpy(cast_uchar "[");
+			if (!(ss = cast_uchar strrchr(cast_const_char s, '/')))
+				ss = s;
+			else
+				ss++;
+			add_to_strn(&al, ss);
+			if ((ss = cast_uchar strchr(cast_const_char al, '?')))
+				*ss = 0;
+			if ((ss = cast_uchar strchr(cast_const_char al, '&')))
+				*ss = 0;
+			add_to_strn(&al, cast_uchar "]");
+		} else if (usemap) {
+			al = stracpy(cast_uchar "[USEMAP]");
+		} else if (ismap) {
+			al = stracpy(cast_uchar "[ISMAP]");
+		} else {
+			al = stracpy(cast_uchar "[IMG]");
+		}
 	}
+	if (al) {
+		if (ismap) {
+			unsigned char *h;
+			html_stack_dup();
+			h = stracpy(format_.link);
+			add_to_strn(&h, cast_uchar "?0,0");
+			free(format_.link);
+			format_.link = h;
+		}
+		html_format_changed = 1;
+		put_chrs(al, (int)strlen(cast_const_char al));
+		if (ismap) kill_html_stack_item(&html_top);
+	}
+	free(al);
  ret:
 	free(format_.image);
 	format_.image = NULL;
@@ -1137,10 +1135,6 @@ static void html_body(unsigned char *a)
 	get_color(a, cast_uchar "text", &format_.fg);
 	get_color(a, cast_uchar "link", &format_.clink);
 	if (has_attr(a, cast_uchar "onload")) special_f(ff, SP_SCRIPT, NULL);
-	/*
-	get_bgcolor(a, &format_.bg);
-	get_bgcolor(a, &par_format.bgcolor);
-	*/
 }
 
 static void html_skip(unsigned char *a)
@@ -1182,7 +1176,7 @@ static void html_style(unsigned char *a)
 static void html_center(unsigned char *a)
 {
 	par_format.align = AL_CENTER;
-	if (!table_level && !F) par_format.leftmargin = par_format.rightmargin = 0;
+	if (!table_level) par_format.leftmargin = par_format.rightmargin = 0;
 }
 
 static void html_linebrk(unsigned char *a)
@@ -1193,7 +1187,7 @@ static void html_linebrk(unsigned char *a)
 		if (!casestrcmp(al, cast_uchar "right")) par_format.align = AL_RIGHT;
 		if (!casestrcmp(al, cast_uchar "center")) {
 			par_format.align = AL_CENTER;
-			if (!table_level && !F) par_format.leftmargin = par_format.rightmargin = 0;
+			if (!table_level) par_format.leftmargin = par_format.rightmargin = 0;
 		}
 		if (!casestrcmp(al, cast_uchar "justify")) par_format.align = AL_BLOCK;
 		free(al);
@@ -1300,25 +1294,28 @@ static void html_hr(unsigned char *a)
 {
 	int i;
 	int q = get_num(a, cast_uchar "size");
+	unsigned char r = 205;
+
 	html_stack_dup();
 	par_format.align = AL_CENTER;
 	free(format_.link);
 	format_.link = NULL;
 	format_.form = NULL;
 	html_linebrk(a);
-	if (par_format.align == AL_BLOCK) par_format.align = AL_CENTER;
+	if (par_format.align == AL_BLOCK)
+		par_format.align = AL_CENTER;
 	par_format.leftmargin = margin;
 	par_format.rightmargin = margin;
 	i = get_width(a, cast_uchar "width", 1);
-	if (!F) {
-		unsigned char r = 205;
-		if (q >= 0 && q < 2) r = 196;
-		if (i < 0) i = par_format.width - 2 * margin - 4;
-		format_.attr = AT_GRAPHICS;
-		special_f(ff, SP_NOWRAP, 1);
-		while (i-- > 0) put_chrs(&r, 1);
-		special_f(ff, SP_NOWRAP, 0);
-	}
+	if (q >= 0 && q < 2)
+		r = 196;
+	if (i < 0)
+		i = par_format.width - 2 * margin - 4;
+	format_.attr = AT_GRAPHICS;
+	special_f(ff, SP_NOWRAP, 1);
+	while (i-- > 0)
+		put_chrs(&r, 1);
+	special_f(ff, SP_NOWRAP, 0);
 	ln_break(2);
 	kill_html_stack_item(&html_top);
 }
@@ -1406,7 +1403,7 @@ static void html_ol(unsigned char *a)
 		if (!strcmp(cast_const_char al, "I")) par_format.flags = P_ROMAN;
 		free(al);
 	}
-	if (!F) if ((par_format.leftmargin += (par_format.list_level > 1)) > par_format.width * 2 / 3 && !table_level)
+	if ((par_format.leftmargin += (par_format.list_level > 1)) > par_format.width * 2 / 3 && !table_level)
 		par_format.leftmargin = par_format.width * 2 / 3;
 	par_format.align = AL_LEFT;
 	html_top.dontkill = 1;
@@ -1420,7 +1417,7 @@ static void html_li(unsigned char *a)
 		if ((par_format.flags & P_LISTMASK) == P_O) x[0] = 'o';
 		if ((par_format.flags & P_LISTMASK) == P_PLUS) x[0] = '+';
 		put_chrs(x, 7);
-		if (!F) par_format.leftmargin += 2;
+		par_format.leftmargin += 2;
 		par_format.align = AL_LEFT;
 		putsp = -1;
 	} else {
@@ -1448,7 +1445,7 @@ static void html_li(unsigned char *a)
 		} else sprintf(cast_char n, "%d", par_format.list_number);
 		put_chrs((unsigned char *)n, strlen(n));
 		put_chrs(cast_uchar ".&nbsp;", 7);
-		if (!F) par_format.leftmargin += (int)strlen(cast_const_char n) + c + 2;
+		par_format.leftmargin += (int)strlen(cast_const_char n) + c + 2;
 		par_format.align = AL_LEFT;
 		list_struct(html_top.list_entry.next, struct html_element)->parattr.list_number = par_format.list_number + 1;
 		par_format.list_number = 0;
@@ -1663,11 +1660,9 @@ static void set_max_textarea_width(int *w)
 	} else {
 		limit = gf_val(d_opt->xw - 2, d_opt->xw - G_SCROLL_BAR_WIDTH - 2 * G_HTML_MARGIN * d_opt->margin);
 	}
-	if (!F) {
-		if (*w > limit) {
-			*w = limit;
-			if (*w < HTML_MINIMAL_TEXTAREA_WIDTH) *w = HTML_MINIMAL_TEXTAREA_WIDTH;
-		}
+	if (*w > limit) {
+		*w = limit;
+		if (*w < HTML_MINIMAL_TEXTAREA_WIDTH) *w = HTML_MINIMAL_TEXTAREA_WIDTH;
 	}
 }
 
@@ -1749,19 +1744,19 @@ static void html_input(unsigned char *a)
 			put_chrs(cast_uchar "[&nbsp;]", 8);
 			break;
 		case FC_IMAGE:
-			if (!F || !d_opt->display_images) {
-				free(format_.image);
-				format_.image = NULL;
-				if ((al = get_url_val(a, cast_uchar "src")) || (al = get_url_val(a, cast_uchar "dynsrc"))) {
-					format_.image = join_urls(format_.href_base, al);
-					free(al);
-				}
-				format_.attr |= AT_BOLD | AT_FIXED;
-				put_chrs(cast_uchar "[&nbsp;", 7);
-				if (fc->alt) put_chrs(fc->alt, (int)strlen(cast_const_char fc->alt));
-				else put_chrs(cast_uchar "Submit", 6);
-				put_chrs(cast_uchar "&nbsp;]", 7);
-			} else html_img(a);
+			free(format_.image);
+			format_.image = NULL;
+			if ((al = get_url_val(a, cast_uchar "src")) || (al = get_url_val(a, cast_uchar "dynsrc"))) {
+				format_.image = join_urls(format_.href_base, al);
+				free(al);
+			}
+			format_.attr |= AT_BOLD | AT_FIXED;
+			put_chrs(cast_uchar "[&nbsp;", 7);
+			if (fc->alt)
+				put_chrs(fc->alt, (int)strlen(cast_const_char fc->alt));
+			else
+				put_chrs(cast_uchar "Submit", 6);
+			put_chrs(cast_uchar "&nbsp;]", 7);
 			break;
 		case FC_SUBMIT:
 		case FC_RESET:
@@ -2252,11 +2247,10 @@ static void do_html_textarea(unsigned char *attr, unsigned char *html, unsigned 
 	cols++;
 	set_max_textarea_width(&cols);
 	if ((rows = get_num(attr, cast_uchar "rows")) <= 0) rows = HTML_DEFAULT_TEXTAREA_HEIGHT;
-	if (!F) {
-		if (rows > d_opt->yw) {
-			rows = d_opt->yw;
-			if (rows <= 0) rows = 1;
-		}
+	if (rows > d_opt->yw) {
+		rows = d_opt->yw;
+		if (rows <= 0)
+			rows = 1;
 	}
 	fc->cols = cols;
 	fc->rows = rows;

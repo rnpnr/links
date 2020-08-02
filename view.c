@@ -84,13 +84,12 @@ void check_vs(struct f_data_c *f)
 	obx = f->vs->orig_brl_x;
 	oby = f->vs->orig_brl_y;
 	if (vs->current_link >= f->f_data->nlinks) vs->current_link = f->f_data->nlinks - 1;
-	if (!F) {
-		if (vs->current_link != -1 && !c_in_view(f)) {
-			set_pos_x(f, &f->f_data->links[f->vs->current_link]);
-			set_pos_y(f, &f->f_data->links[f->vs->current_link]);
-		}
-		if (vs->current_link == -1) find_link(f, 1, 0);
+	if (vs->current_link != -1 && !c_in_view(f)) {
+		set_pos_x(f, &f->f_data->links[f->vs->current_link]);
+		set_pos_y(f, &f->f_data->links[f->vs->current_link]);
 	}
+	if (vs->current_link == -1)
+		find_link(f, 1, 0);
 	f->vs->orig_view_posx = ovx;
 	f->vs->orig_view_pos = ovy;
 	f->vs->orig_link = ol;
@@ -131,7 +130,6 @@ static int comp_links(const void *l1_, const void *l2_)
 void sort_links(struct f_data *f)
 {
 	int i;
-	if (F) return;
 	if (f->nlinks)
 		qsort(f->links, f->nlinks, sizeof(struct link), comp_links);
 	if ((unsigned)f->y > INT_MAX / sizeof(struct link *)) overalloc();
@@ -932,7 +930,7 @@ void draw_doc(struct terminal *t, void *scr_)
 	struct f_data_c *scr = (struct f_data_c *)scr_;
 	struct session *ses = scr->ses;
 	int active = scr->active;
-	int y;
+	int n, y;
 	int xp = scr->xp;
 	int yp = scr->yp;
 	int xw = scr->xw;
@@ -940,31 +938,26 @@ void draw_doc(struct terminal *t, void *scr_)
 	struct view_state *vs;
 	int vx, vy;
 	if (!scr->vs || !scr->f_data) {
-		if (!F) {
-			if (active) {
-				if (!scr->parent) set_cursor(t, 0, 0, 0, 0);
-				else set_cursor(t, xp, yp, xp, yp);
-			}
-			fill_area(t, xp, yp, xw, yw, ' ', get_session_attribute(ses, 0));
+		if (active) {
+			if (!scr->parent)
+				set_cursor(t, 0, 0, 0, 0);
+			else
+				set_cursor(t, xp, yp, xp, yp);
 		}
+		fill_area(t, xp, yp, xw, yw, ' ', get_session_attribute(ses, 0));
 		if (active) set_window_ptr(ses->win, xp, yp);
 		return;
 	}
 	if (active) {
-		if (!F) {
 			set_cursor(t, xp + xw - 1, yp + yw - 1, xp + xw - 1, yp + yw - 1);
 			set_window_ptr(ses->win, xp, yp);
-		}
 	}
 	check_vs(scr);
 	if (scr->f_data->frame_desc) {
 		struct f_data_c *f = NULL;
 		struct list_head *lf;
-		int n;
-		if (!F) {
-			fill_area(t, xp, yp, xw, yw, ' ', scr->f_data->y ? scr->f_data->bg : 0);
-			draw_frame_lines(ses, scr->f_data->frame_desc, xp, yp);
-		}
+		fill_area(t, xp, yp, xw, yw, ' ', scr->f_data->y ? scr->f_data->bg : 0);
+		draw_frame_lines(ses, scr->f_data->frame_desc, xp, yp);
 		n = 0;
 		foreach(struct f_data_c, f, lf, scr->subframes) {
 			f->active = active && n++ == scr->vs->frame_pos;
@@ -980,7 +973,7 @@ void draw_doc(struct terminal *t, void *scr_)
 		vs->orig_view_pos = vy;
 		vs->view_posx = 0;
 		vs->orig_view_posx = 0;
-		if (!F) set_link(scr);
+		set_link(scr);
 		free(scr->went_to_position);
 		scr->went_to_position = scr->goto_position;
 		scr->goto_position = NULL;
@@ -995,44 +988,47 @@ void draw_doc(struct terminal *t, void *scr_)
 		vs->brl_y = vs->orig_brl_y;
 		ol = vs->orig_link;
 		if (ol < scr->f_data->nlinks) vs->current_link = ol;
-		if (!F) {
-			while (vs->view_pos >= scr->f_data->y) vs->view_pos -= yw ? yw : 1;
-			if (vs->view_pos < 0) vs->view_pos = 0;
-		}
-		if (!F)
-			set_link(scr);
+		while (vs->view_pos >= scr->f_data->y)
+			vs->view_pos -= yw ? yw : 1;
+		if (vs->view_pos < 0)
+			vs->view_pos = 0;
+		set_link(scr);
 		check_vs(scr);
 		vs->orig_link = ol;
 	}
-	if (!F) {
-		vx = vs->view_posx;
-		vy = vs->view_pos;
-		if (scr->xl == vx && scr->yl == vy && scr->xl != -1 && !ses->search_word) {
-			clear_link(t, scr);
-			draw_forms(t, scr);
-			if (active) draw_current_link(t, scr);
-			return;
-		}
-		free_link(scr);
-		scr->xl = vx;
-		scr->yl = vy;
-		fill_area(t, xp, yp, xw, yw, ' ', scr->f_data->y ? scr->f_data->bg : get_session_attribute(ses, 0));
-		if (!scr->f_data->y) return;
-		while (vs->view_pos >= scr->f_data->y) vs->view_pos -= yw ? yw : 1;
-		if (vs->view_pos < 0) vs->view_pos = 0;
-		if (vy != vs->view_pos) {
-			vy = vs->view_pos;
-			check_vs(scr);
-		}
-		for (y = vy <= 0 ? 0 : vy; y < (-vy + scr->f_data->y <= yw ? scr->f_data->y : yw + vy); y++) {
-			int st = vx <= 0 ? 0 : vx;
-			int en = -vx + scr->f_data->data[y].l <= xw ? scr->f_data->data[y].l : xw + vx;
-			set_line(t, xp + st - vx, yp + y - vy, en - st, &scr->f_data->data[y].d[st]);
-		}
+	vx = vs->view_posx;
+	vy = vs->view_pos;
+	if (scr->xl == vx && scr->yl == vy && scr->xl != -1 && !ses->search_word) {
+		clear_link(t, scr);
 		draw_forms(t, scr);
-		if (active) draw_current_link(t, scr);
-		if (ses->search_word) scr->xl = scr->yl = -1;
+		if (active)
+			draw_current_link(t, scr);
+		return;
 	}
+	free_link(scr);
+	scr->xl = vx;
+	scr->yl = vy;
+	fill_area(t, xp, yp, xw, yw, ' ', scr->f_data->y ? scr->f_data->bg : get_session_attribute(ses, 0));
+	if (!scr->f_data->y)
+		return;
+	while (vs->view_pos >= scr->f_data->y)
+		vs->view_pos -= yw ? yw : 1;
+	if (vs->view_pos < 0)
+		vs->view_pos = 0;
+	if (vy != vs->view_pos) {
+		vy = vs->view_pos;
+		check_vs(scr);
+	}
+	for (y = vy <= 0 ? 0 : vy; y < (-vy + scr->f_data->y <= yw ? scr->f_data->y : yw + vy); y++) {
+		int st = vx <= 0 ? 0 : vx;
+		int en = -vx + scr->f_data->data[y].l <= xw ? scr->f_data->data[y].l : xw + vx;
+		set_line(t, xp + st - vx, yp + y - vy, en - st, &scr->f_data->data[y].d[st]);
+	}
+	draw_forms(t, scr);
+	if (active)
+		draw_current_link(t, scr);
+	if (ses->search_word)
+		scr->xl = scr->yl = -1;
 }
 
 static void clr_xl(struct f_data_c *fd)
@@ -1630,8 +1626,7 @@ static void encode_multipart(struct session *ses, struct list_head *l, unsigned 
 				add_to_str(data, len, ct);
 				if (strlen(cast_const_char ct) >= 4 && !casecmp(ct, cast_uchar "text", 4)) {
 					add_to_str(data, len, cast_uchar "; charset=");
-					if (!F)
-						add_to_str(data, len, get_cp_mime_name(term_charset(ses->term)));
+					add_to_str(data, len, get_cp_mime_name(term_charset(ses->term)));
 				}
 				free(ct);
 			}
@@ -1805,7 +1800,8 @@ static unsigned char *get_link_url(struct session *ses, struct f_data_c *f, stru
 {
 	if (l->type == L_LINK) {
 		if (!l->where) {
-			if (l->where_img && (!F || (!f->f_data->opt.display_images && f->f_data->opt.plain != 2))) return stracpy(l->where_img);
+			if (l->where_img)
+				return stracpy(l->where_img);
 			return NULL;
 		}
 		if (ismap_link && strlen(cast_const_char l->where) >= 4 && !strcmp(cast_const_char(l->where + strlen(cast_const_char l->where) - 4), "?0,0")) {
@@ -1869,8 +1865,6 @@ static struct link *get_current_link(struct f_data_c *f)
 	if (!f || !f->f_data || !f->vs) return NULL;
 	if (f->vs->current_link >= 0 && f->vs->current_link < f->f_data->nlinks)
 		return &f->f_data->links[f->vs->current_link];
-	if (F && f->f_data->opt.plain == 2 && f->f_data->nlinks == 1)
-		return &f->f_data->links[0];
 	return NULL;
 }
 
@@ -1940,10 +1934,9 @@ int enter(struct session *ses, struct f_data_c *f, int a)
 	}
 	if (link->type == L_FIELD || link->type == L_AREA) {
 		/* pri enteru v textovem policku se bude posilat vzdycky       -- Brain */
-		if (!has_form_submit(f->f_data, link->form) && (!a || !F))
+		if (!has_form_submit(f->f_data, link->form) && !a)
 			goto submit;
-		if (!F)
-			down(ses, f, 0);
+		down(ses, f, 0);
 		return 1;
 	}
 	internal("bad link type %d", link->type);
@@ -2239,7 +2232,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 			}
 		} else if (ev->x == KBD_DEL || (upcase(ev->x) == 'D' && ev->y & KBD_CTRL)) {
 			int ll = 1;
-			if (!F && ev->x == KBD_DEL && !f->last_captured)
+			if (ev->x == KBD_DEL && !f->last_captured)
 				return 0;
 			if (!f->f_data->opt.cp) {
 				unsigned char *p = fs->string+ fs->state;
@@ -2368,7 +2361,7 @@ int field_op(struct session *ses, struct f_data_c *f, struct link *l, struct lin
 	} else
 		r = 0;
 done:
-	if (!F && r) {
+	if (r) {
 		/* FIXME: test might be broken */
 		if ((ev->ev == EV_KBD && (ev->x == KBD_UP || ev->x == KBD_DOWN))
 		|| form->type != FC_TEXTAREA || textarea_adjust_viewport(f, l))
@@ -2490,7 +2483,7 @@ void find_next(struct session *ses, struct f_data_c *f, int a)
 		return;
 	}
 	p = f->vs->view_pos;
-	if (!F && !a && ses->search_word) {
+	if (!a && ses->search_word) {
 		if (!(find_next_link_in_search(f, ses->search_direction))) return;
 		p += ses->search_direction * f->yw;
 	}
@@ -2637,7 +2630,7 @@ static int frame_ev(struct session *ses, struct f_data_c *fd, struct links_event
 			html_interpret_recursive(ses->screen);
 			draw_formatted(ses);
 		} else if (ev->x == 'i' && !(ev->y & KBD_ALT)) {
-			if (!F || fd->f_data->opt.plain != 2) frm_view_image(ses, fd);
+			frm_view_image(ses, fd);
 		} else if (ev->x == 'I' && !(ev->y & KBD_ALT)) {
 			if (!anonymous) frm_download_image(ses, fd);
 		} else if (upcase(ev->x) == 'D' && !(ev->y & KBD_ALT)) {
@@ -2736,8 +2729,7 @@ static int send_to_frame(struct session *ses, struct links_event *ev)
 	if (!fd)
 		return 0;
 
-	if (!F)
-		r = frame_ev(ses, fd, ev);
+	r = frame_ev(ses, fd, ev);
 	if (r == 1) {
 		fd->active = 1;
 		draw_to_window(ses->win, draw_doc_c, fd);
@@ -2788,12 +2780,10 @@ void do_for_frame(struct session *ses, void (*f)(struct session *, struct f_data
 	if (!fd)
 		return;
 	f(ses, fd, a);
-	if (!F) {
-		fd->active = 1;
-		draw_to_window(ses->win, draw_doc_c, fd);
-		change_screen_status(ses);
-		print_screen_status(ses);
-	}
+	fd->active = 1;
+	draw_to_window(ses->win, draw_doc_c, fd);
+	change_screen_status(ses);
+	print_screen_status(ses);
 }
 
 static void do_mouse_event(struct session *ses, struct links_event *ev)
@@ -3282,9 +3272,7 @@ void link_menu(struct terminal *term, void *xxx, void *ses_)
 	if (!link) goto no_l;
 	if (link->type == L_LINK && link->where) {
 		if (strlen(cast_const_char link->where) >= 4 && !casecmp(link->where, cast_uchar "MAP@", 4)) {
-			if (!F) {
-				add_to_menu(&mi, TEXT_(T_DISPLAY_USEMAP), cast_uchar ">", TEXT_(T_HK_DISPLAY_USEMAP), send_enter, NULL, 1, -1);
-			}
+			add_to_menu(&mi, TEXT_(T_DISPLAY_USEMAP), cast_uchar ">", TEXT_(T_HK_DISPLAY_USEMAP), send_enter, NULL, 1, -1);
 		} else {
 			int c = can_open_in_new(term);
 			add_to_menu(&mi, TEXT_(T_FOLLOW_LINK), cast_uchar "Enter", TEXT_(T_HK_FOLLOW_LINK), send_enter, NULL, 0, -1);
@@ -3292,8 +3280,6 @@ void link_menu(struct terminal *term, void *xxx, void *ses_)
 			if (!anonymous) add_to_menu(&mi, TEXT_(T_DOWNLOAD_LINK), cast_uchar "d", TEXT_(T_HK_DOWNLOAD_LINK), send_download, NULL, 0, -1);
 			if (clipboard_support(term))
 				add_to_menu(&mi, TEXT_(T_COPY_LINK_LOCATION), cast_uchar "", TEXT_(T_HK_COPY_LINK_LOCATION), copy_link_location, NULL, 0, -1);
-			/*add_to_menu(&mi, TEXT_(T_ADD_BOOKMARK), cast_uchar "A", TEXT_(T_HK_ADD_BOOKMARK), menu_bookmark_manager, NULL, 0);*/
-
 		}
 	}
 	if ((link->type == L_CHECKBOX || link->type == L_SELECT || link->type == L_FIELD || link->type == L_AREA) && link->form) {
@@ -3315,8 +3301,7 @@ void link_menu(struct terminal *term, void *xxx, void *ses_)
 		}
 	}
 	if (link->where_img) {
-		if (!F || f->f_data->opt.plain != 2)
-			add_to_menu(&mi, TEXT_(T_VIEW_IMAGE), cast_uchar "i", TEXT_(T_HK_VIEW_IMAGE), send_image, NULL, 0, -1);
+		add_to_menu(&mi, TEXT_(T_VIEW_IMAGE), cast_uchar "i", TEXT_(T_HK_VIEW_IMAGE), send_image, NULL, 0, -1);
 		if (!anonymous)
 			add_to_menu(&mi, TEXT_(T_DOWNLOAD_IMAGE), cast_uchar "I", TEXT_(T_HK_DOWNLOAD_IMAGE), send_download_image, NULL, 0, -1);
 	}
