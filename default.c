@@ -994,14 +994,6 @@ int gamma_bits=2;	/*0 --- 8, 1 --- 16, 2 --- auto */
 int overwrite_instead_of_scroll = 1;
 
 
-int menu_font_size = G_BFU_DEFAULT_FONT_SIZE;
-
-unsigned G_BFU_FG_COLOR = G_DEFAULT_BFU_FG_COLOR;
-unsigned G_BFU_BG_COLOR = G_DEFAULT_BFU_BG_COLOR;
-unsigned G_SCROLL_BAR_AREA_COLOR = G_DEFAULT_SCROLL_BAR_AREA_COLOR;
-unsigned G_SCROLL_BAR_BAR_COLOR = G_DEFAULT_SCROLL_BAR_BAR_COLOR;
-unsigned G_SCROLL_BAR_FRAME_COLOR = G_DEFAULT_SCROLL_BAR_FRAME_COLOR;
-
 unsigned char bookmarks_file[MAX_STR_LEN]="";
 
 int save_history = 1;
@@ -1092,12 +1084,6 @@ static struct option links_options[] = {
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &http_options.header.fake_firefox, "fake_firefox", "http.fake-firefox"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.fake_useragent, "fake_useragent", "http.fake-user-agent"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, &http_options.header.extra_header, "http.extra_header", "http.extra-header"},
-	{1, gen_cmd, num_rd, num_wr, 1, MAX_FONT_SIZE, &menu_font_size, "menu_font_size", "menu-font-size"},
-	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_BFU_BG_COLOR, "background_color", "menu-background-color"},
-	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_BFU_FG_COLOR, "foreground_color", "menu-foreground-color"},
-	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_SCROLL_BAR_AREA_COLOR, "scroll_bar_area_color", "scroll-bar-area-color"},
-	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_SCROLL_BAR_BAR_COLOR, "scroll_bar_bar_color", "scroll-bar-bar-color"},
-	{1, gen_cmd, num_rd, num_wr, 0, 0xffffff, &G_SCROLL_BAR_FRAME_COLOR, "scroll_bar_frame_color", "scroll-bar-frame-color"},
 	{1, gen_cmd, str_rd, str_wr, 0, MAX_STR_LEN, bookmarks_file, "bookmarks_file", "bookmarks-file"},
 	{1, gen_cmd, num_rd, num_wr, 0, 1, &save_history, "save_url_history", "save-url-history"},
 	{1, gen_cmd, dbl_rd, dbl_wr, 1, 10000, &display_red_gamma, "display_red_gamma", "display-red-gamma"},

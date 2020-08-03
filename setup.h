@@ -58,65 +58,15 @@
 #define COLOR_TITLE			COL(007)
 #define COLOR_STATUS			COL(070)
 
-#define G_BFU_DEFAULT_FONT_SIZE		16
-#define G_DEFAULT_BFU_FG_COLOR		0x000000
-#define G_DEFAULT_BFU_BG_COLOR		0xe0e0e0
-
-#define G_MENU_LEFT_BORDER		8
-#define G_MENU_LEFT_INNER_BORDER	8
-#define G_MENU_TOP_BORDER		16
-#define G_MENU_HOTKEY_SPACE		16
-#define G_MAINMENU_LEFT_BORDER		16
-#define G_MAINMENU_BORDER		16
-
-#define G_DIALOG_TITLE_BORDER		8
-#define G_DIALOG_LEFT_BORDER		24
-#define G_DIALOG_TOP_BORDER		16
-#define G_DIALOG_HLINE_SPACE		3
-#define G_DIALOG_VLINE_SPACE		4
-#define G_DIALOG_LEFT_INNER_BORDER	16
-#define G_DIALOG_TOP_INNER_BORDER	(G_BFU_FONT_SIZE < 20 ? 8 : G_BFU_FONT_SIZE - 12)
-
-#define G_DIALOG_BUTTON_SPACE		16
-#define G_DIALOG_CHECKBOX_SPACE		8
-
-#define G_DIALOG_GROUP_SPACE		16
-#define G_DIALOG_GROUP_TEXT_SPACE	8
-
-#define G_DIALOG_CHECKBOX_L		"["
-#define G_DIALOG_CHECKBOX_R		"]"
-#define G_DIALOG_CHECKBOX_X		"X"
-
-#define G_DIALOG_RADIO_L		"["
-#define G_DIALOG_RADIO_R		"]"
-#define G_DIALOG_RADIO_X		"X"
-
-#define G_DIALOG_BUTTON_L		"[ "
-#define G_DIALOG_BUTTON_R		" ]"
-
-#define G_LEFT_ARROW			"\342\206\220"
-#define G_RIGHT_ARROW			"\342\206\222"
 #define MENU_SUBMENU			(cast_uchar ">")
 #define CERT_RIGHT_ARROW		(cast_uchar " -> ")
 
 #define G_SCROLL_BAR_WIDTH		12
 #define G_SCROLL_BAR_MIN_SIZE		20
-#define G_DEFAULT_SCROLL_BAR_FRAME_COLOR	0x000000
-#define G_DEFAULT_SCROLL_BAR_AREA_COLOR		0xc0c0c0
-#define G_DEFAULT_SCROLL_BAR_BAR_COLOR		0x000000
-
-#define G_HTML_DEFAULT_FAMILY		"century"
-
-#define G_HTML_TABLE_FRAME_COLOR	0xe0
 
 #define G_HTML_MARGIN			8
 
-#define G_IMG_REFRESH			1	/* Karle, nedavej sem 0 */
-
 #define MAX_FONT_SIZE			500
-
-#define SLOW_FPU_DETECT_THRESHOLD	1000
-#define SLOW_FPU_MAX_STARTUP		5000
 
 #define ESC_TIMEOUT			200
 
@@ -156,6 +106,4 @@
  * (draw_bfu_element function in listedit.c)
  * BFU_ELEMENT_WIDTH is a size of one bfu element (doesn't depend on graphical/text mode)
  */
-#define BFU_GRX_WIDTH		(G_BFU_FONT_SIZE >> 1)
 #define BFU_ELEMENT_WIDTH	5
-#define BFU_GRX_HEIGHT		G_BFU_FONT_SIZE

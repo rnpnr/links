@@ -185,8 +185,6 @@ static void list_edit_toggle(struct dialog_data *dlg, struct list_description *l
 
 /* This function uses these defines from setup.h:
  *
- * BFU_GRX_WIDTH
- * BFU_GRX_HEIGHT
  * BFU_ELEMENT_WIDTH
  */
 

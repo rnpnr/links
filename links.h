@@ -2599,9 +2599,6 @@ extern int dither_images;
 extern int gamma_bits;
 extern int overwrite_instead_of_scroll;
 
-extern int menu_font_size;
-extern unsigned G_BFU_FG_COLOR, G_BFU_BG_COLOR, G_SCROLL_BAR_AREA_COLOR, G_SCROLL_BAR_BAR_COLOR, G_SCROLL_BAR_FRAME_COLOR;
-
 extern unsigned char bookmarks_file[MAX_STR_LEN];
 
 extern int save_history;
