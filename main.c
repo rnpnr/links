@@ -267,14 +267,6 @@ static void end_dump(struct object_request *r, void *p)
 	terminate_loop = 1;
 }
 
-static void fixup_g(void)
-{
-	if (ggr_drv[0] || ggr_mode[0] || force_g)
-		ggr = 1;
-	if (dmp)
-		ggr = 0;
-}
-
 static void init(void)
 {
 	void *info;
@@ -291,12 +283,10 @@ static void init(void)
 		retval = RET_SYNTAX;
 		goto ttt;
 	}
-	fixup_g();
 	dds.assume_cp = 0;
 	load_config();
 	if (proxies.only_proxies)
 		reset_settings_for_tor();
-	fixup_g();
 	if (!u) {
 		ttt:
 		initialize_all_subsystems_2();
@@ -306,13 +296,6 @@ static void init(void)
 	}
 	init_cookies();
 	if (!dmp) {
-		if (ggr) {
-			close_socket(&terminal_pipe[0]);
-			close_socket(&terminal_pipe[1]);
-			fprintf(stderr, "Graphics not enabled when compiling\n");
-			retval = RET_SYNTAX;
-			goto ttt;
-		}
 		init_b = 1;
 		init_bookmarks();
 		create_initial_extensions();

@@ -937,12 +937,6 @@ void end_config(void)
 	free(links_home);
 }
 
-int ggr = 0;
-int force_g = 0;
-unsigned char ggr_drv[MAX_STR_LEN] = "";
-unsigned char ggr_mode[MAX_STR_LEN] = "";
-unsigned char ggr_display[MAX_STR_LEN] = "";
-
 int anonymous = 0;
 
 unsigned char default_target[MAX_STR_LEN] ="";
@@ -1034,11 +1028,7 @@ static struct option links_options[] = {
 	{1, lookup_cmd, NULL, NULL, 0, 0, NULL, NULL, "lookup"},
 	{1, set_cmd, NULL, NULL, 0, 0, &no_connect, NULL, "no-connect"},
 	{1, set_cmd, NULL, NULL, 0, 0, &anonymous, NULL, "anonymous"},
-	{1, set_cmd, NULL, NULL, 0, 0, &ggr, NULL, "g"},
-	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_drv, NULL, "driver"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, default_target, NULL, "target"},
-	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_mode, NULL, "mode"},
-	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, ggr_display, NULL, "display"},
 	{1, gen_cmd, num_rd, NULL, 0, INT_MAX, &base_session, NULL, "base-session"},
 	{1, set_cmd, NULL, NULL, 0, 0, &force_html, NULL, "force-html"},
 	{1, dump_cmd, NULL, NULL, D_SOURCE, 0, NULL, NULL, "source"},

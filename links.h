@@ -2456,12 +2456,6 @@ void add_table_cache_entry(unsigned char *start, unsigned char *end, int align, 
 
 /* default.c */
 
-extern int ggr;
-extern int force_g;
-extern unsigned char ggr_drv[MAX_STR_LEN];
-extern unsigned char ggr_mode[MAX_STR_LEN];
-extern unsigned char ggr_display[MAX_STR_LEN];
-
 extern unsigned char default_target[MAX_STR_LEN];
 
 unsigned char *parse_options(int, char *[]);

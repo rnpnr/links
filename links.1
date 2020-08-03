@@ -36,30 +36,6 @@ version number and exit.
 Does name lookup, like command "host".
 
 .TP
-\f3-g\f1
-Run Links in graphics mode. If not given, Links will run in text mode.
-Running in graphics mode means that Links will probe all compiled-in graphics
-devices and run on the first found. If none found, links will not run in
-graphics mode.
-
-.TP
-\f3-driver \f2<driver name>\f1
-Graphics driver to use. Drivers are: x, svgalib, fb, directfb, pmshell,
-atheos.
-List of drivers will be shown if you give it an unknown driver.
-Available drivers depend on your operating system and available libraries.
-
-.TP
-\f3-mode \f2<parameter>\f1
-Pass a parameter to the graphics driver. On SVGAlib, this is widthxheightxdepth,
-(where depth is 16, 256, 32K, 64K, 16M or 16M32) and defines the graphics mode, on X the format is WIDTHxHEIGHT and defines the
-window size.
-
-.TP
-\f3-display \f2<x-display>\f1
-Set Xwindow display.
-
-.TP
 \f3-force-html\f1
 Treat files with unknown type as html rather than text.
 (can be toggled with '\\' key)
