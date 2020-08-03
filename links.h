@@ -72,8 +72,6 @@ do {							\
 	(ret_) = (call_);				\
 } while (!(ret_) && errno == EINTR)
 
-#define gf_val(x, y) (x)
-
 #define MAX_STR_LEN	1024
 
 #define BIN_SEARCH(entries, eq, ab, key, result)			\
@@ -1807,10 +1805,8 @@ struct memory_list *getml(void *, ...);
 void add_to_ml(struct memory_list **, ...);
 void freeml(struct memory_list *);
 
-#define DIALOG_LB	gf_val(DIALOG_LEFT_BORDER + DIALOG_LEFT_INNER_BORDER + 1, G_DIALOG_LEFT_BORDER + G_DIALOG_VLINE_SPACE + 1 + G_DIALOG_LEFT_INNER_BORDER)
-#define DIALOG_TB	gf_val(DIALOG_TOP_BORDER + DIALOG_TOP_INNER_BORDER + 1, G_DIALOG_TOP_BORDER + G_DIALOG_HLINE_SPACE + 1 + G_DIALOG_TOP_INNER_BORDER)
-
-#define LL		gf_val(1, G_BFU_FONT_SIZE)
+#define DIALOG_LB	DIALOG_LEFT_BORDER + DIALOG_LEFT_INNER_BORDER + 1
+#define DIALOG_TB	DIALOG_TOP_BORDER + DIALOG_TOP_INNER_BORDER + 1
 
 extern unsigned char m_bar;
 

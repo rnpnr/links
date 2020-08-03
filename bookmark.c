@@ -158,7 +158,7 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 {
 	int max = 0, min = 0;
 	int w, rw;
-	int y = gf_val(-1, -1 * G_BFU_FONT_SIZE);
+	int y = -1;
 	struct terminal *term;
 	int a;
 
@@ -177,12 +177,10 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 
 	rw = w;
 
-	for (a = 0; a < dlg->n - 2; a++) {
+	for (a = 0; a < dlg->n - 2; a++, y++)
 		dlg_format_text_and_field(dlg, NULL, bm_add_msg[a],
 			&dlg->items[a], 0, &y, w, &rw, COLOR_DIALOG_TEXT,
 			AL_LEFT);
-		y += gf_val(1, 1 * G_BFU_FONT_SIZE);
-	}
 	dlg_format_buttons(dlg, NULL, dlg->items+dlg->n-2, 2, 0, &y, w, &rw,
 		AL_CENTER);
 	w = rw;
@@ -191,12 +189,10 @@ static void bookmark_edit_item_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	for (a = 0; a < dlg->n - 2; a++) {
+	for (a = 0; a < dlg->n - 2; a++, y++)
 		dlg_format_text_and_field(dlg, term, bm_add_msg[a],
 			&dlg->items[a], dlg->x + DIALOG_LB, &y, w, NULL,
 			COLOR_DIALOG_TEXT, AL_LEFT);
-		y += gf_val(1, G_BFU_FONT_SIZE);
-	}
 	dlg_format_buttons(dlg, term, &dlg->items[dlg->n-2], 2,
 		dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }

@@ -13,8 +13,6 @@ static void object_timer(void *);
 static struct list_head requests = {&requests, &requests};
 static tcount obj_req_count = 1;
 
-#define LL gf_val(1, G_BFU_FONT_SIZE)
-
 #define MAX_UID_LEN 256
 
 struct auth_dialog {
@@ -54,11 +52,11 @@ static void auth_fn(struct dialog_data *dlg)
 	if (w < min) w = min;
 	rw = w;
 	dlg_format_text(dlg, NULL, a->msg, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
+	y++;
 	dlg_format_text_and_field(dlg, NULL, TEXT_(T_USERID), dlg->items, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
+	y++;
 	dlg_format_text_and_field(dlg, NULL, TEXT_(T_PASSWORD), dlg->items + 1, 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
+	y++;
 	dlg_format_buttons(dlg, NULL, dlg->items + 2, 2, 0, &y, w, &rw, AL_CENTER);
 	w = rw;
 	dlg->xw = rw + 2 * DIALOG_LB;
@@ -66,13 +64,13 @@ static void auth_fn(struct dialog_data *dlg)
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	y += LL;
+	y++;
 	dlg_format_text(dlg, term, a->msg, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
+	y++;
 	dlg_format_text_and_field(dlg, term, TEXT_(T_USERID), dlg->items, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
+	y++;
 	dlg_format_text_and_field(dlg, term, TEXT_(T_PASSWORD), dlg->items + 1, dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += LL;
+	y++;
 	dlg_format_buttons(dlg, term, dlg->items + 2, 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
 }
 

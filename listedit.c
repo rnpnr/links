@@ -876,7 +876,7 @@ static void redraw_list(struct terminal *term, void *bla)
 		redraw_list_element(term, dlg, y, w, ld, l);
 		l = next_in_tree(ld, l);
 		a++;
-		y += gf_val(1, G_BFU_FONT_SIZE);
+		y++;
 		if (l == ld->list) break;
 	}
 	fill_area(term, dlg->x + DIALOG_LB, y, w, ld->n_items-a, ' ', COLOR_MENU_TEXT);
@@ -892,14 +892,14 @@ static void redraw_list_line(struct terminal *term, void *bla)
 	struct dialog_data *dlg = rd->dlg;
 	int direction = rd->n;
 	int w = dlg->xw - 2 * DIALOG_LB;
-	int y = dlg->y + DIALOG_TB + gf_val(ld->win_pos, ld->win_pos * G_BFU_FONT_SIZE);
+	int y = dlg->y + DIALOG_TB + ld->win_pos;
 	struct list *l;
 
 	redraw_list_element(term, dlg, y, w, ld, ld->current_pos);
 	if (!term->spec->block_cursor) {
 		set_cursor(term, dlg->x + DIALOG_LB, y, dlg->x + DIALOG_LB, y);
 	}
-	y += gf_val(direction, direction * G_BFU_FONT_SIZE);
+	y += direction;
 	switch (direction) {
 		case 0:
 			l = NULL;
@@ -1211,12 +1211,12 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 
 			if (
 				(ev->y)<(dlg->y+DIALOG_TB)||
-				(ev->y)>=(dlg->y+DIALOG_TB+gf_val(ld->n_items,G_BFU_FONT_SIZE*(ld->n_items)))||
+				ev->y >= (dlg->y + DIALOG_TB + ld->n_items) ||
 				(ev->x)<(dlg->x+DIALOG_LB)||
 				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB)
 			)break;  /* out of the dialog */
 
-			n=(ev->y-dlg->y-DIALOG_TB)/gf_val(1,G_BFU_FONT_SIZE);
+			n = ev->y - dlg->y - DIALOG_TB;
 			for (a=0;a<n;a++)
 			{
 				struct list *l1;
@@ -1224,7 +1224,6 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 				if (l1==ld->list)goto break2;
 				else l=l1;
 			}
-			/*a=ld->type?((l->depth)>=0?(l->depth)+1:0):(l->depth>=0);*/
 
 			l->type^=4;
 			ld->current_pos=l;
@@ -1243,12 +1242,12 @@ static int list_event_handler(struct dialog_data *dlg, struct links_event *ev)
 
 			if (
 				(ev->y)<(dlg->y+DIALOG_TB)||
-				(ev->y)>=(dlg->y+DIALOG_TB+gf_val(ld->n_items,G_BFU_FONT_SIZE*(ld->n_items)))||
+				ev->y >= (dlg->y + DIALOG_TB + ld->n_items) ||
 				(ev->x)<(dlg->x+DIALOG_LB)||
 				(ev->x)>(dlg->x+dlg->xw-DIALOG_LB)
 			)goto skip_item_click;  /* out of the dialog */
 
-			n=(ev->y-dlg->y-DIALOG_TB)/gf_val(1,G_BFU_FONT_SIZE);
+			n = ev->y - dlg->y - DIALOG_TB;
 			for (a=0;a<n;a++)
 			{
 				struct list *l1;
@@ -1392,7 +1391,7 @@ static void create_list_window_fn(struct dialog_data *dlg)
 	dlg_format_buttons(dlg, NULL, dlg->items, a, 0, &y, w, &rw, AL_CENTER);
 
 	n_items = term->y - y;
-	n_items -= gf_val(2, 3) * DIALOG_TB + gf_val(2, 2 * G_BFU_FONT_SIZE);
+	n_items -= 2 * DIALOG_TB + 2;
 	if (n_items < 2) n_items = 2;
 	ld->n_items = n_items;
 
@@ -1401,7 +1400,7 @@ static void create_list_window_fn(struct dialog_data *dlg)
 		ld->win_pos--;
 	}
 
-	y += gf_val(ld->n_items,ld->n_items*G_BFU_FONT_SIZE);
+	y += ld->n_items;
 
 	rw=w;
 	dlg->xw=rw+2*DIALOG_LB;
@@ -1415,7 +1414,7 @@ static void create_list_window_fn(struct dialog_data *dlg)
 
 	draw_to_window(dlg->win,redraw_list,&rd);
 
-	y=dlg->y+DIALOG_TB+gf_val(ld->n_items+1,(ld->n_items+1)*G_BFU_FONT_SIZE);
+	y = dlg->y + DIALOG_TB + ld->n_items + 1;
 	dlg_format_buttons(dlg, term, dlg->items, a, dlg->x+DIALOG_LB, &y, w, &rw, AL_CENTER);
 }
 

@@ -770,7 +770,7 @@ static int parse_width(const char *w, const int trunc)
 	int p = 0;
 	long s;
 	int l;
-	int limit = par_format.width - (par_format.leftmargin + par_format.rightmargin) * gf_val(1, G_HTML_MARGIN);
+	int limit = par_format.width - par_format.leftmargin + par_format.rightmargin;
 	while (WHITECHAR(*w)) w++;
 	for (l = 0; w[l] && w[l] != ','; l++)
 		;
@@ -789,7 +789,9 @@ static int parse_width(const char *w, const int trunc)
 			s = s * limit / 100;
 		}
 		else return -1;
-	} else s = (s + (gf_val(HTML_CHAR_WIDTH, 1) - 1) / 2) / gf_val(HTML_CHAR_WIDTH, 1);
+	} else {
+		s = (s + (HTML_CHAR_WIDTH - 1) / 2) / HTML_CHAR_WIDTH;
+	}
 	if (trunc == 1 && s > limit) s = limit;
 	if (s < 0) s = 0;
 	return (int)s;
@@ -1655,11 +1657,10 @@ put_text:
 static void set_max_textarea_width(int *w)
 {
 	int limit;
-	if (!table_level) {
-		limit = par_format.width - (par_format.leftmargin + par_format.rightmargin) * gf_val(1, G_HTML_MARGIN);
-	} else {
-		limit = gf_val(d_opt->xw - 2, d_opt->xw - G_SCROLL_BAR_WIDTH - 2 * G_HTML_MARGIN * d_opt->margin);
-	}
+	if (!table_level)
+		limit = par_format.width - par_format.leftmargin + par_format.rightmargin;
+	else
+		limit = d_opt->xw - 2;
 	if (*w > limit) {
 		*w = limit;
 		if (*w < HTML_MINIMAL_TEXTAREA_WIDTH) *w = HTML_MINIMAL_TEXTAREA_WIDTH;
@@ -2367,7 +2368,7 @@ static void parse_frame_widths(unsigned char *a, int ww, int www, int **op, int 
 	}
 	*op = o;
 	*olp = ol;
-	q = gf_val(2 * ol - 1, ol);
+	q = 2 * ol - 1;
 	for (i = 0; i < ol; i++) if (o[i] > 0) q += o[i] - 1;
 	if (q >= ww) {
 		distribute:
@@ -2459,8 +2460,8 @@ static void html_frameset(unsigned char *a)
 		x = f->f[f->xp + f->yp * f->x].xw;
 		y = f->f[f->xp + f->yp * f->x].yw;
 	}
-	parse_frame_widths(c, x, gf_val(HTML_FRAME_CHAR_WIDTH, 1), &fp.xw, &fp.x);
-	parse_frame_widths(d, y, gf_val(HTML_FRAME_CHAR_HEIGHT, 1), &fp.yw, &fp.y);
+	parse_frame_widths(c, x, HTML_FRAME_CHAR_WIDTH, &fp.xw, &fp.x);
+	parse_frame_widths(d, y, HTML_FRAME_CHAR_HEIGHT, &fp.yw, &fp.y);
 	fp.parent = html_top.frameset;
 	if (fp.x && fp.y) {
 		html_top.frameset = special_f(ff, SP_FRAMESET, &fp);

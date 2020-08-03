@@ -618,16 +618,17 @@ void download_window_function(struct dialog_data *dlg)
 	if (w < 1) w = 1;
 	y = 0;
 	dlg_format_text(dlg, NULL, u, 0, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
-	if (show_percentage) y += gf_val(2, 2 * G_BFU_FONT_SIZE);
+	y++;
+	if (show_percentage)
+		y += 2;
 	dlg_format_text(dlg, NULL, m, 0, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y++;
 	dlg_format_buttons(dlg, NULL, dlg->items, dlg->n, 0, &y, w, NULL, AL_CENTER);
 	dlg->xw = w + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
 	center_dlg(dlg);
 	draw_dlg(dlg);
-	y = dlg->y + DIALOG_TB + gf_val(1, G_BFU_FONT_SIZE);
+	y = dlg->y + DIALOG_TB + 1;
 	x = dlg->x + DIALOG_LB;
 	dlg_format_text(dlg, term, u, x, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
 	if (show_percentage) {
@@ -642,9 +643,9 @@ void download_window_function(struct dialog_data *dlg)
 		free(q);
 		y++;
 	}
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y++;
 	dlg_format_text(dlg, term, m, x, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
-	y += gf_val(1, G_BFU_FONT_SIZE);
+	y++;
 	dlg_format_buttons(dlg, term, dlg->items, dlg->n, x, &y, w, NULL, AL_CENTER);
 	free(u);
 	free(m);
@@ -1549,11 +1550,11 @@ static void create_new_frames(struct f_data_c *fd, struct frameset_desc *fs, str
 					request_object(fd->ses->term, loc->url, rel->rq ? rel->rq->url : NULL, PRI_FRAME, NC_CACHE, rel->rq ? get_allow_flags(rel->rq->url) : 0, fd_loaded, nfdc, &nfdc->rq);
 				}
 			}
-			xp += frm->xw + gf_val(1, 0);
+			xp += frm->xw + 1;
 			frm++;
 			if (!c_loc) lloc = lloc->next;
 		}
-		yp += (frm - 1)->yw + gf_val(1, 0);
+		yp += (frm - 1)->yw + 1;
 	}
 }
 
@@ -2661,12 +2662,12 @@ void reload(struct session *ses, int no_cache)
 static void set_doc_view(struct session *ses)
 {
 	ses->screen->xp = 0;
-	ses->screen->yp = gf_val(1, G_BFU_FONT_SIZE);
+	ses->screen->yp = 1;
 	ses->screen->xw = ses->term->x;
-	if (ses->term->y < gf_val(2, 2 * G_BFU_FONT_SIZE))
+	if (ses->term->y < 2)
 		ses->screen->yw = 0;
 	else
-		ses->screen->yw = ses->term->y - gf_val(2, 2 * G_BFU_FONT_SIZE);
+		ses->screen->yw = ses->term->y - 2;
 }
 
 static struct session *create_session(struct window *win)
@@ -2682,8 +2683,8 @@ static struct session *create_session(struct window *win)
 	ses->id = session_id++;
 	ses->screen = create_f_data_c(ses, NULL);
 	ses->screen->xp = 0; ses->screen->xw = term->x;
-	ses->screen->yp = gf_val(1, G_BFU_FONT_SIZE);
-	ses->screen->yw = term->y - gf_val(2, 2 * G_BFU_FONT_SIZE);
+	ses->screen->yp = 1;
+	ses->screen->yw = term->y - 2;
 	memcpy(&ses->ds, &dds, sizeof(struct document_setup));
 	init_list(ses->format_cache);
 	add_to_list(sessions, ses);

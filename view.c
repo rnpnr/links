@@ -2924,7 +2924,7 @@ void send_event(struct session *ses, struct links_event *ev)
 			go_back(ses, -1);
 			goto x;
 		}
-		if (ev->y >= 0 && ev->y < gf_val(1, G_BFU_FONT_SIZE) && ev->x >=0 && ev->x < ses->term->x && (ev->b & BM_ACT) == B_DOWN) {
+		if (ev->y >= 0 && ev->y < 1 && ev->x >=0 && ev->x < ses->term->x && (ev->b & BM_ACT) == B_DOWN) {
 			struct window *m;
 			activate_bfu_technology(ses, -1);
 			m = list_struct(ses->term->windows.next, struct window);

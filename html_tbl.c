@@ -658,7 +658,7 @@ do {									\
 
 static void get_cell_widths(struct table *t)
 {
-	int nl = gf_val(t->p->link_num, t->gp->link_num);
+	int nl = t->p->link_num;
 	int i, j;
 	if (!d_opt->table_order)
 		for (j = 0; j < t->y; j++) for (i = 0; i < t->x; i++) g_c_w(CELL(t, i, j));
@@ -685,7 +685,6 @@ static void dst_width(int *p, int n, int w, int *lim)
 		}
 	}
 	if (w) {
-		/*if (!lim) internal("bug in dst_width");*/
 		lim = NULL;
 		s = 0;
 		goto again;
@@ -829,7 +828,7 @@ static void distribute_widths(struct table *t, int width)
 					if (t->w_c[i] < t->max_c[i] && (om == 3 || t->xcols[i] == W_AUTO)) {
 						mx[i] = t->max_c[i] - t->w_c[i];
 						if (mmax_c)
-							w[i] = safe_add(gf_val(5, 5 * HTML_CHAR_WIDTH), t->max_c[i] * 10 / mmax_c);
+							w[i] = safe_add(5, t->max_c[i] * 10 / mmax_c);
 						else w[i] = 1;
 					}
 					break;
@@ -1236,10 +1235,11 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	html_top.dontkill = 1;
 	par_format.align = AL_LEFT;
 	if ((border = get_num(attr, cast_uchar "border")) == -1) border = has_attr(attr, cast_uchar "border") || has_attr(attr, cast_uchar "rules") || has_attr(attr, cast_uchar "frame");
-	if ((cellsp = get_num(attr, cast_uchar "cellspacing")) == -1) cellsp = gf_val(1, 2);
+	if ((cellsp = get_num(attr, cast_uchar "cellspacing")) == -1)
+		cellsp = 1;
 	if ((cellpd = get_num(attr, cast_uchar "cellpadding")) == -1) {
-		vcellpd = gf_val(0, 1);
-		cellpd = gf_val(!!border, 1);
+		vcellpd = 0;
+		cellpd = !!border;
 	} else {
 		vcellpd = cellpd >= HTML_CHAR_HEIGHT / 2 + 1;
 		cellpd = cellpd >= HTML_CHAR_WIDTH / 2 + 1;
@@ -1297,16 +1297,17 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	}
 	if (!border) frame = F_VOID;
 	wf = 0;
-	if ((width = get_width(attr, cast_uchar "width", gf_val(p->data || p->xp, !!gp->data))) == -1) {
-		width = par_format.width - safe_add(par_format.leftmargin, par_format.rightmargin) * gf_val(1, G_HTML_MARGIN);
+	if ((width = get_width(attr, cast_uchar "width", (p->data || p->xp))) == -1) {
+		width = par_format.width - safe_add(par_format.leftmargin, par_format.rightmargin);
 		if (width < 0) width = 0;
 		wf = 1;
 	}
-	t = parse_table(html, eof, end, &bgcolor, gf_val(p->data || p->xp, !!gp->data), &bad_html, &bad_html_n);
+	t = parse_table(html, eof, end, &bgcolor, (p->data || p->xp), &bad_html, &bad_html_n);
 	for (i = 0; i < bad_html_n; i++) {
 		while (bad_html[i].s < bad_html[i].e && WHITECHAR(*bad_html[i].s)) bad_html[i].s++;
 		while (bad_html[i].s < bad_html[i].e && WHITECHAR(bad_html[i].e[-1])) bad_html[i].e--;
-		if (bad_html[i].s < bad_html[i].e) parse_html(bad_html[i].s, bad_html[i].e, put_chars_f, line_break_f, special_f, gf_val((void *)p, (void *)gp), NULL);
+		if (bad_html[i].s < bad_html[i].e)
+			parse_html(bad_html[i].s, bad_html[i].e, put_chars_f, line_break_f, special_f, (void *)p, NULL);
 	}
 	free(bad_html);
 	t->p = p;
@@ -1327,11 +1328,13 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	get_cell_widths(t);
 	if (get_column_widths(t)) goto ret2;
 	get_table_width(t);
-	if (gf_val(!p->data && !p->xp, !gp->data)) {
+	if ((!p->data && !p->xp)) {
 		if (!wf && t->max_t > width) t->max_t = width;
 		if (t->max_t < t->min_t) t->max_t = t->min_t;
-		if (safe_add(t->max_t, safe_add(par_format.leftmargin, par_format.rightmargin) * gf_val(1, G_HTML_MARGIN)) > gf_val(p->xmax, gp->xmax)) *gf_val(&p->xmax, &gp->xmax) = t->max_t + (par_format.leftmargin + par_format.rightmargin) * gf_val(1, G_HTML_MARGIN);
-		if (safe_add(t->min_t, safe_add(par_format.leftmargin, par_format.rightmargin) * gf_val(1, G_HTML_MARGIN)) > gf_val(p->x, gp->x)) *gf_val(&p->x, &gp->x) = t->min_t + (par_format.leftmargin + par_format.rightmargin) * gf_val(1, G_HTML_MARGIN);
+		if (safe_add(t->max_t, safe_add(par_format.leftmargin, par_format.rightmargin)) > p->xmax)
+			p->xmax = t->max_t + par_format.leftmargin + par_format.rightmargin;
+		if (safe_add(t->min_t, safe_add(par_format.leftmargin, par_format.rightmargin)) > p->x)
+			p->x = t->min_t + par_format.leftmargin + par_format.rightmargin;
 		goto ret2;
 	}
 	if (!cpd_pass && t->min_t > width && t->cellpd) {
@@ -1384,8 +1387,8 @@ void format_table(unsigned char *attr, unsigned char *html, unsigned char *eof, 
 	add_to_list(p->data->nodes, nn);
 	p->cy = cye;
 
-	ret2:
-	*gf_val(&p->link_num, &gp->link_num) = t->link_num;
+ ret2:
+	p->link_num = t->link_num;
 	if (p->cy > p->y)
 		p->y = p->cy;
 	if (t) free_table(t);

@@ -157,5 +157,5 @@
  * BFU_ELEMENT_WIDTH is a size of one bfu element (doesn't depend on graphical/text mode)
  */
 #define BFU_GRX_WIDTH		(G_BFU_FONT_SIZE >> 1)
-#define BFU_ELEMENT_WIDTH	(gf_val(5, 5 * BFU_GRX_WIDTH))
+#define BFU_ELEMENT_WIDTH	5
 #define BFU_GRX_HEIGHT		G_BFU_FONT_SIZE
