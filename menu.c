@@ -1833,7 +1833,6 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 		x = 0;
 	}
 	memcpy(e, file_menu3 + x, sizeof(file_menu3) - x * sizeof(struct menu_item));
-	e += sizeof(file_menu3) / sizeof(struct menu_item);
 	do_menu(term, file_menu, ses);
 }
 
@@ -2008,7 +2007,6 @@ static void do_setup_menu(struct terminal *term, void *xxx, void *ses_)
 		e += sizeof(setup_menu_7) / sizeof(struct menu_item);
 	}
 	memcpy(e, setup_menu_8, sizeof(setup_menu_8));
-	e += sizeof(setup_menu_8) / sizeof(struct menu_item);
 	do_menu(term, setup_menu, ses);
 }
 

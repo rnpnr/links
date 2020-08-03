@@ -296,7 +296,6 @@ static void init(void)
 	load_config();
 	if (proxies.only_proxies)
 		reset_settings_for_tor();
-	u = parse_options(g_argc - 1, g_argv + 1);
 	fixup_g();
 	if (!u) {
 		ttt:

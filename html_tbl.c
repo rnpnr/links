@@ -591,9 +591,7 @@ static struct table *parse_table(unsigned char *html, unsigned char *eof, unsign
 			if (!(sc = new_cell(t, x + k, y + j)) || sc->used) {
 				int l, m;
 				if (sc->mx == x && sc->my == y) continue;
-				/*internal("boo");*/
 				for (l = 0; l < k; l++) memset(CELL(t, x + l, y + j), 0, sizeof(struct table_cell));
-				rsp = j;
 				for (l = 0; l < i; l++) for (m = 0; m < j; m++) CELL(t, x + l, y + m)->rowspan = j;
 				goto brk;
 			}

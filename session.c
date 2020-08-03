@@ -1804,7 +1804,6 @@ static int plain_type(struct object_request *rq, unsigned char **p)
 	r = 1;
 	if (!casestrcmp(ct, cast_uchar "text/plain") ||
 	    !casestrcmp(ct, cast_uchar "file/txt")) goto ff;
-	r = 2;
 	r = -1;
 
 	ff:

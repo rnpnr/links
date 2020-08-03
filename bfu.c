@@ -50,7 +50,7 @@ void add_to_ml(struct memory_list **ml, ...)
 		(*ml)->n = 0;
 	}
 	va_start(ap, ml);
-	while ((q = va_arg(ap, void *))) {
+	while (va_arg(ap, void *)) {
 		if (n == INT_MAX)
 			overalloc();
 		n++;

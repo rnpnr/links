@@ -38,12 +38,10 @@ static void cache_add_to_tree(struct cache_entry *e)
 
 static void cache_delete_from_tree(struct cache_entry *e)
 {
-	void *p;
-
 	if (!e->url[0])
 		return;
 
-	if (!(p = tdelete(e->url, &cache_root, ce_compare)))
+	if (!tdelete(e->url, &cache_root, ce_compare))
 		internal("cache_delete_from_tree: url '%s' not found", e->url);
 }
 
