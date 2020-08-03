@@ -2473,46 +2473,6 @@ static void html_frameset(unsigned char *a)
 	free(d);
 }
 
-/*static void html_frameset(unsigned char *a)
-{
-	int w;
-	int horiz = 0;
-	struct frameset_param *fp;
-	unsigned char *c, *d;
-	if (!d_opt->frames || !special_f(ff, SP_USED, NULL)) return;
-	if (!(c = get_attr_val(a, cast_uchar "cols"))) {
-		horiz = 1;
-		if (!(c = get_attr_val(a, cast_uchar "rows"))) return;
-	}
-	fp = xmalloc(sizeof(struct frameset_param));
-	fp->n = 0;
-	fp->horiz = horiz;
-	par_format.leftmargin = par_format.rightmargin = 0;
-	d = c;
-	while (1) {
-		while (WHITECHAR(*d)) d++;
-		if (!*d) break;
-		if (*d == ',') {
-			d++;
-			continue;
-		}
-		if ((w = parse_width(d, 1)) != -1) {
-			if ((unsigned)fp->n > (INT_MAX - sizeof(struct frameset_param)) / sizeof(int) - 1)
-				overalloc();
-			fp = xrealloc(fp, sizeof(struct frameset_param)
-					+ (fp->n + 1) * sizeof(int));
-			fp->width[fp->n++] = w;
-		}
-		if (!(d = cast_uchar strchr(cast_const_char d, ','))) break;
-		d++;
-	}
-	fp->parent = html_top.frameset;
-	if (fp->n) html_top.frameset = special_f(ff, SP_FRAMESET, fp);
-	free(fp);
-	f:
-	free(c);
-}*/
-
 static void html_meta(unsigned char *a)
 {
 	unsigned char *prop;
