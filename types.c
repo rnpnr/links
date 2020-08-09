@@ -19,7 +19,7 @@ static struct list *assoc_find_item(struct list *start, unsigned char *str, int 
 static unsigned char *assoc_type_item(struct terminal *, struct list *, int);
 
 
-struct list assoc = { init_list_1st(&assoc.list_entry) 0, -1, NULL, init_list_last(&assoc.list_entry) };
+struct list assoc = { init_list_1st(&assoc.list_entry) 0, -1, NULL };
 
 static struct history assoc_search_history = { 0, { &assoc_search_history.items, &assoc_search_history.items } };
 
@@ -407,7 +407,7 @@ static void ext_delete_item(struct list *);
 static struct list *ext_find_item(struct list *start, unsigned char *str, int direction);
 static unsigned char *ext_type_item(struct terminal *, struct list *, int);
 
-struct list extensions = { init_list_1st(&extensions.list_entry) 0, -1, NULL, init_list_last(&extensions.list_entry)  };
+struct list extensions = { init_list_1st(&extensions.list_entry) 0, -1, NULL };
 
 static struct history ext_search_history = { 0, { &ext_search_history.items, &ext_search_history.items } };
 

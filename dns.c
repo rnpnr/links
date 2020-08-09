@@ -11,7 +11,6 @@ struct dnsentry {
 	list_entry_1st
 	uttime absolute_time;
 	struct lookup_result addr;
-	list_entry_last
 	char name[1];
 };
 

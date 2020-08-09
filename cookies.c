@@ -20,7 +20,6 @@ struct list_head c_domains = { &c_domains, &c_domains };
 struct c_server {
 	list_entry_1st
 	int accpt;
-	list_entry_last
 	unsigned char server[1];
 };
 

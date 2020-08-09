@@ -9,7 +9,6 @@ struct cache_upcall {
 	list_entry_1st
 	int (*upcall)(int);
 	unsigned char flags;
-	list_entry_last
 	unsigned char name[1];
 };
 

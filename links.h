@@ -148,24 +148,21 @@ struct list_head {
 	struct list_head *prev;
 };
 
-#define verify_list_entry(e)			((void)0)
-#define verify_double_add(l, e)			((void)0)
-
 #define list_struct(ptr, struc)			get_struct(ptr, struc, list_entry)
 #define init_list(x)				do { (x).next = &(x); (x).prev = &(x); } while (0)
-#define list_empty(x)				(verify_list_entry(&x), (x).next == &(x))
-#define del_list_entry(x)			do { verify_list_entry(x); (x)->next->prev = (x)->prev; (x)->prev->next = (x)->next; (x)->prev = (x)->next = NULL; } while (0)
+#define list_empty(x)				((x).next == &(x))
+#define del_list_entry(x)			do { (x)->next->prev = (x)->prev; (x)->prev->next = (x)->next; (x)->prev = (x)->next = NULL; } while (0)
 #define del_from_list(x)			del_list_entry(&(x)->list_entry)
-#define add_after_list_entry(p, x)		do { verify_double_add(p, x); verify_list_entry(p); (x)->next = (p)->next; (x)->prev = (p); (p)->next = (x); (x)->next->prev = (x); } while (0)
-#define add_before_list_entry(p, x)		do { verify_double_add(p, x); verify_list_entry(p); (x)->prev = (p)->prev; (x)->next = (p); (p)->prev = (x); (x)->prev->next = (x); } while (0)
+#define add_after_list_entry(p, x)		do { (x)->next = (p)->next; (x)->prev = (p); (p)->next = (x); (x)->next->prev = (x); } while (0)
+#define add_before_list_entry(p, x)		do { (x)->prev = (p)->prev; (x)->next = (p); (p)->prev = (x); (x)->prev->next = (x); } while (0)
 #define add_to_list(l, x)			add_after_list_entry(&(l), &(x)->list_entry)
 #define add_to_list_end(l, x)			add_before_list_entry(&(l), &(x)->list_entry)
 #define add_after_pos(p, x)			add_after_list_entry(&(p)->list_entry, &(x)->list_entry)
 #define add_before_pos(p, x)			add_before_list_entry(&(p)->list_entry, &(x)->list_entry)
 #define fix_list_after_realloc(x)		do { (x)->list_entry.prev->next = &(x)->list_entry; (x)->list_entry.next->prev = &(x)->list_entry; } while (0)
-#define foreachfrom(struc, e, h, l, s)		for ((h) = (s); verify_list_entry(h), (h) == &(l) ? 0 : ((e) = list_struct(h, struc), 1); (h) = (h)->next)
+#define foreachfrom(struc, e, h, l, s)		for ((h) = (s); (h) == &(l) ? 0 : ((e) = list_struct(h, struc), 1); (h) = (h)->next)
 #define foreach(struc, e, h, l)			foreachfrom(struc, e, h, l, (l).next)
-#define foreachbackfrom(struc, e, h, l, s)	for ((h) = (s); verify_list_entry(h), (h) == &(l) ? 0 : ((e) = list_struct(h, struc), 1); (h) = (h)->prev)
+#define foreachbackfrom(struc, e, h, l, s)	for ((h) = (s); (h) == &(l) ? 0 : ((e) = list_struct(h, struc), 1); (h) = (h)->prev)
 #define foreachback(struc, e, h, l)		foreachbackfrom(struc, e, h, l, (l).prev)
 #define free_list(struc, l)			do { while (!list_empty(l)) { struc *a__ = list_struct((l).next, struc); del_from_list(a__); free(a__); } } while (0)
 
@@ -179,9 +176,7 @@ static inline int list_size(struct list_head *l)
 }
 
 #define list_entry_1st		struct list_head list_entry;
-#define list_entry_last
 #define init_list_1st(x)	{ (x), (x) },
-#define init_list_last(x)
 
 #define WHITECHAR(x) ((x) == 9 || (x) == 10 || (x) == 12 || (x) == 13 || (x) == ' ')
 #define U(x) ((x) == '"' || (x) == '\'')
@@ -463,7 +458,6 @@ struct cache_entry {
 	unsigned char *ip_address;
 	unsigned char *ssl_info;
 	unsigned char *ssl_authority;
-	list_entry_last
 	unsigned char url[1];
 };
 
@@ -472,7 +466,6 @@ struct fragment {
 	off_t offset;
 	off_t length;
 	off_t real_length;
-	list_entry_last
 	unsigned char data[1];
 };
 
@@ -566,7 +559,6 @@ struct connection {
 	links_ssl *ssl;
 	int no_ssl_session;
 	int no_tls;
-	list_entry_last
 };
 
 extern tcount netcfg_stamp;
@@ -584,7 +576,6 @@ struct k_conn {
 	int protocol_data;
 	links_ssl *ssl;
 	struct lookup_state last_lookup_state;
-	list_entry_last
 };
 
 extern struct list_head keepalive_connections;
@@ -666,7 +657,6 @@ struct status {
 	void (*end)(struct status *, void *);
 	void *data;
 	struct remaining_info *prg;
-	list_entry_last
 };
 
 int is_noproxy_url(unsigned char *url);
@@ -789,12 +779,10 @@ struct cookie {
 	unsigned char *path, *domain;
 	time_t expires; /* zero means undefined */
 	int secure;
-	list_entry_last
 };
 
 struct c_domain {
 	list_entry_1st
-	list_entry_last
 	unsigned char domain[1];
 };
 
@@ -1003,7 +991,6 @@ struct window {
 	void *data;
 	int xp, yp;
 	struct terminal *term;
-	list_entry_last
 };
 
 #define MAX_TERM_LEN	32	/* this must be multiple of 8! (alignment problems) */
@@ -1012,7 +999,6 @@ struct window {
 
 #define ENV_XWIN	1
 #define ENV_SCREEN	2
-#define ENV_G		32768
 
 struct term_spec;
 
@@ -1053,7 +1039,6 @@ struct terminal {
 	int handle_to_close;
 	unsigned char utf8_buffer[7];
 	int utf8_paste_mode;
-	list_entry_last
 };
 
 struct term_spec {
@@ -1069,7 +1054,6 @@ struct term_spec {
 	int right_margin;
 	int top_margin;
 	int bottom_margin;
-	list_entry_last
 };
 
 #define TERM_DUMB	0
@@ -1193,7 +1177,6 @@ struct object_request {
 	off_t last_bytes;
 
 	uttime last_update;
-	list_entry_last
 };
 
 void request_object(struct terminal *, unsigned char *, unsigned char *, int, int, int, void (*)(struct object_request *, void *), void *, struct object_request **);
@@ -1297,7 +1280,6 @@ struct form_control {
 	unsigned char **values; /* values of a select item */
 	unsigned char **labels; /* labels (shown text) of a select item */
 	struct menu_item *menu;
-	list_entry_last
 };
 
 struct line_info {
@@ -1364,7 +1346,6 @@ struct tag {
 	list_entry_1st
 	int x;
 	int y;
-	list_entry_last
 	unsigned char name[1];
 };
 
@@ -1467,7 +1448,6 @@ struct node {
 	list_entry_1st
 	int x, y;
 	int xw, yw;
-	list_entry_last
 };
 
 struct search {
@@ -1518,7 +1498,6 @@ struct additional_file {
 	tcount use_tag2;
 	int need_reparse;
 	int unknown_image_size;
-	list_entry_last
 	unsigned char url[1];
 };
 
@@ -1561,9 +1540,6 @@ struct f_data {
 	int refresh_seconds;
 
 	int uncacheable;	/* cannot be cached - either created from source modified by document.write or modified by javascript */
-
-	/* graphics only */
-	list_entry_last
 };
 
 struct view_state {
@@ -1629,8 +1605,6 @@ struct f_data_c {
 
 	unsigned char scrolling;
 	unsigned char last_captured;
-
-	list_entry_last
 };
 
 struct location {
@@ -1642,15 +1616,6 @@ struct location {
 	struct list_head subframes;	/* struct location */
 	struct view_state *vs;
 	unsigned location_id;
-	list_entry_last
-};
-
-enum wtd {
-	WTD_NO,
-	WTD_FORWARD,
-	WTD_IMGMAP,
-	WTD_RELOAD,
-	WTD_BACK
 };
 
 #define cur_loc(x)	list_struct((x)->history.next, struct location)
@@ -1680,7 +1645,6 @@ struct download {
 	struct session *ses;
 	struct window *win;
 	struct window *ask;
-	list_entry_last
 };
 
 extern struct list_head downloads;
@@ -1723,8 +1687,6 @@ struct session {
 	unsigned char *imgmap_target_base;
 
 	int brl_cursor_mode;
-
-	list_entry_last
 };
 
 struct dialog_data;
@@ -1826,10 +1788,7 @@ enum menu_items {
 	MENU_FREE_ITEMS		= 1,
 	MENU_FREE_TEXT		= 2,
 	MENU_FREE_RTEXT		= 4,
-	MENU_FREE_HOTKEY	= 8,
-	MENU_FONT_LIST		= 16,
-	MENU_FONT_LIST_BOLD	= 32,
-	MENU_FONT_LIST_MONO	= 64
+	MENU_FREE_HOTKEY	= 8
 };
 
 struct menu {
@@ -1859,7 +1818,6 @@ struct mainmenu {
 
 struct history_item {
 	list_entry_1st
-	list_entry_last
 	unsigned char str[1];
 };
 
@@ -2271,7 +2229,6 @@ struct html_element {
 	int linebreak;
 	int dontkill;
 	struct frameset_desc *frameset;
-	list_entry_last
 };
 
 extern int get_attr_val_nl;
@@ -2477,7 +2434,6 @@ struct driver_param {
 	unsigned char *param;
 	unsigned char shell_term[MAX_STR_LEN];
 	int nosave;
-	list_entry_last
 	unsigned char name[1];
 };
 		/* -if exec is NULL, shell_term is unused
@@ -2616,11 +2572,10 @@ struct list {
 	 */
 	int depth;
 	struct list *fotr;   /* ignored when list is flat */
-	list_entry_last
 };
 
-#define list_next(l)	(verify_list_entry(&(l)->list_entry), list_struct((l)->list_entry.next, struct list))
-#define list_prev(l)	(verify_list_entry(&(l)->list_entry), list_struct((l)->list_entry.prev, struct list))
+#define list_next(l)	(list_struct((l)->list_entry.next, struct list))
+#define list_prev(l)	(list_struct((l)->list_entry.prev, struct list))
 
 #define list_head_1st	struct list head;
 #define list_head_last
@@ -2695,7 +2650,6 @@ struct protocol_program {
 	list_entry_1st
 	unsigned char *prog;
 	int system;
-	list_entry_last
 };
 
 extern struct list assoc;

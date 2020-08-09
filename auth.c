@@ -14,7 +14,6 @@ struct http_auth {
 	unsigned char *directory;
 	unsigned char *user_password_encoded;
 	int proxy;
-	list_entry_last
 };
 
 static const unsigned char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

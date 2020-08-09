@@ -42,7 +42,6 @@ struct timer {
 	uttime interval;
 	void (*func)(void *);
 	void *data;
-	list_entry_last
 };
 
 static struct list_head timers = { &timers, &timers };
@@ -172,7 +171,6 @@ struct bottom_half {
 	list_entry_1st
 	void (*fn)(void *);
 	void *data;
-	list_entry_last
 };
 
 static struct list_head bottom_halves = { &bottom_halves, &bottom_halves };

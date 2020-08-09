@@ -108,7 +108,6 @@ struct strerror_val {
 #ifdef REORDER_LIST_ENTRIES
 	unsigned char pad;
 #endif
-	list_entry_last
 	unsigned char msg[1];
 };
 
@@ -2481,7 +2480,7 @@ void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned 
 	}
 	ses->reloadlevel = NC_CACHE;
 	if (!(u = translate_url(url, ses->term->cwd))) {
-		struct status stat = { init_list_1st(NULL) NULL, NULL, S_BAD_URL, PRI_CANCEL, 0, NULL, NULL, NULL, init_list_last(NULL) };
+		struct status stat = { init_list_1st(NULL) NULL, NULL, S_BAD_URL, PRI_CANCEL, 0, NULL, NULL, NULL };
 		print_error_dialog(ses, &stat, url);
 		return;
 	}

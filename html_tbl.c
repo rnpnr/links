@@ -1408,7 +1408,6 @@ struct table_cache_entry {
 	int width;
 	int xs;
 	int link_num;
-	list_entry_last
 	union {
 		struct part p;
 	} u;

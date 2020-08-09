@@ -479,8 +479,6 @@ struct open_in_new *get_open_in_new(int environment)
 	int noin = 0;
 	if (anonymous)
 		return NULL;
-	if (environment & ENV_G)
-		environment = ENV_G;
 	for (i = 0; i < (int)array_elements(oinw); i++)
 		if ((environment & oinw[i].env) == oinw[i].env) {
 			if ((unsigned)noin > INT_MAX / sizeof(struct open_in_new) - 2)

@@ -20,7 +20,6 @@ struct h_conn {
 	list_entry_1st
 	unsigned char *host;
 	int conn;
-	list_entry_last
 };
 
 static struct list_head h_conns = {&h_conns, &h_conns};
@@ -1071,7 +1070,6 @@ int is_entry_used(struct cache_entry *e)
 struct blacklist_entry {
 	list_entry_1st
 	int flags;
-	list_entry_last
 	unsigned char host[1];
 };
 

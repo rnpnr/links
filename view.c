@@ -1411,7 +1411,6 @@ struct submitted_value {
 	void *file_content;
 	int fc_len;
 	int position;
-	list_entry_last
 };
 
 static void free_succesful_controls(struct list_head *submit)
@@ -3188,7 +3187,7 @@ void save_url(void *ses_, unsigned char *url)
 	u2 = translate_url(u1, ses->term->cwd);
 	free(u1);
 	if (!u2) {
-		struct status stat = { init_list_1st(NULL) NULL, NULL, S_BAD_URL, PRI_CANCEL, 0, NULL, NULL, NULL, init_list_last(NULL) };
+		struct status stat = { init_list_1st(NULL) NULL, NULL, S_BAD_URL, PRI_CANCEL, 0, NULL, NULL, NULL };
 		print_error_dialog(ses, &stat, url);
 		return;
 	}

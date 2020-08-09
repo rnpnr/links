@@ -17,7 +17,7 @@ static void *bookmark_default_value(struct session *, unsigned char);
 static struct list *bookmark_find_item(struct list *start, unsigned char *str, int direction);
 static void save_bookmarks(struct session *ses);
 
-struct list bookmarks = { init_list_1st(&bookmarks.list_entry) 0, -1, NULL, init_list_last(&bookmarks.list_entry) };
+struct list bookmarks = { init_list_1st(&bookmarks.list_entry) 0, -1, NULL };
 
 static struct history bookmark_search_history = { 0, { &bookmark_search_history.items, &bookmark_search_history.items } };
 

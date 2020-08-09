@@ -307,7 +307,7 @@ void free_term_specs(void)
 	free_list(struct term_spec, term_specs);
 }
 
-static struct term_spec dumb_term = { init_list_1st(NULL) "", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, init_list_last(NULL) };
+static struct term_spec dumb_term = { init_list_1st(NULL) "", 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 static struct term_spec *default_term_spec(unsigned char *term)
 {

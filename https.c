@@ -32,7 +32,6 @@ struct session_cache_entry {
 	SSL_CTX *ctx;
 	SSL_SESSION *session;
 	int port;
-	list_entry_last
 	char host;
 };
 
