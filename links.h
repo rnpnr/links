@@ -1805,8 +1805,8 @@ struct memory_list *getml(void *, ...);
 void add_to_ml(struct memory_list **, ...);
 void freeml(struct memory_list *);
 
-#define DIALOG_LB	DIALOG_LEFT_BORDER + DIALOG_LEFT_INNER_BORDER + 1
-#define DIALOG_TB	DIALOG_TOP_BORDER + DIALOG_TOP_INNER_BORDER + 1
+#define DIALOG_LB	(DIALOG_LEFT_BORDER + DIALOG_LEFT_INNER_BORDER + 1)
+#define DIALOG_TB	(DIALOG_TOP_BORDER + DIALOG_TOP_INNER_BORDER + 1)
 
 extern unsigned char m_bar;
 
