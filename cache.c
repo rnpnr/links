@@ -12,9 +12,9 @@
 
 static struct list_head cache = {&cache, &cache};
 
-static int cache_size = 0;
+static int cache_size;
 static tcount cache_count = 1;
-static void *cache_root = NULL;
+static void *cache_root;
 
 static int ce_compare(const void *p1, const void *p2)
 {
@@ -214,13 +214,13 @@ int add_fragment(struct cache_entry *e, off_t offset, const unsigned char *data,
 	if (e->length < offset + length)
 		e->length = offset + length;
 	e->count = cache_count++;
-	if (list_empty(e->frag))
+	if (list_empty(e->frag)) {
 		e->count2 = cache_count++;
-	else {
+	} else {
 		f = list_struct(e->frag.prev, struct fragment);
-		if (f->offset + f->length != offset)
+		if (f->offset + f->length != offset) {
 			e->count2 = cache_count++;
-		else {
+		} else {
 			lf = &f->list_entry;
 			goto have_f;
 		}
@@ -243,9 +243,9 @@ have_f:
 					lf = f->list_entry.next;
 					break;
 				}
-			} else
-				if (memcmp(f->data + offset-f->offset, data, (size_t)length))
-					trunc = 1;
+			} else if (memcmp(f->data + offset-f->offset, data, (size_t)length)) {
+				trunc = 1;
+			}
 			memcpy(f->data+offset - f->offset, data, (size_t)length);
 			goto ch_o;
 		}
