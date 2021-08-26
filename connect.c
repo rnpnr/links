@@ -18,59 +18,60 @@ int socket_and_bind(int pf, unsigned char *address)
 {
 	int rs, s = c_socket(pf, SOCK_STREAM, IPPROTO_TCP);
 
-	if (address && *address) {
-		switch (pf) {
-		case PF_INET: {
-			struct sockaddr_in sa;
-			unsigned char addr[4];
-			if (numeric_ip_address((char *)address, (char *)addr) == -1) {
-				EINTRLOOP(rs, close(s));
-				errno = EINVAL;
-				return -1;
-			}
-			memset(&sa, 0, sizeof sa);
-			sa.sin_family = AF_INET;
-			memcpy(&sa.sin_addr.s_addr, addr, 4);
-			sa.sin_port = htons(0);
-			EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
-			if (rs) {
-				int sv_errno = errno;
-				EINTRLOOP(rs, close(s));
-				errno = sv_errno;
-				return -1;
-			}
-			break;
-		}
-		case PF_INET6: {
-			struct sockaddr_in6 sa;
-			unsigned char addr[16];
-			unsigned scope;
-			if (numeric_ipv6_address((char *)address, (char *)addr, &scope) == -1) {
-				EINTRLOOP(rs, close(s));
-				errno = EINVAL;
-				return -1;
-			}
-			memset(&sa, 0, sizeof sa);
-			sa.sin6_family = AF_INET6;
-			memcpy(&sa.sin6_addr, addr, 16);
-			sa.sin6_port = htons(0);
-			sa.sin6_scope_id = scope;
-			EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
-			if (rs) {
-				int sv_errno = errno;
-				EINTRLOOP(rs, close(s));
-				errno = sv_errno;
-				return -1;
-			}
-			break;
-		}
-		default: {
+	if (!address || !(*address))
+		return s;
+
+	switch (pf) {
+	case PF_INET: {
+		struct sockaddr_in sa;
+		unsigned char addr[4];
+		if (numeric_ip_address((char *)address, (char *)addr) == -1) {
 			EINTRLOOP(rs, close(s));
 			errno = EINVAL;
 			return -1;
 		}
+		memset(&sa, 0, sizeof sa);
+		sa.sin_family = AF_INET;
+		memcpy(&sa.sin_addr.s_addr, addr, 4);
+		sa.sin_port = htons(0);
+		EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
+		if (rs) {
+			int sv_errno = errno;
+			EINTRLOOP(rs, close(s));
+			errno = sv_errno;
+			return -1;
 		}
+		break;
 	}
+	case PF_INET6: {
+		struct sockaddr_in6 sa;
+		unsigned char addr[16];
+		unsigned scope;
+		if (numeric_ipv6_address((char *)address, (char *)addr, &scope) == -1) {
+			EINTRLOOP(rs, close(s));
+			errno = EINVAL;
+			return -1;
+		}
+		memset(&sa, 0, sizeof sa);
+		sa.sin6_family = AF_INET6;
+		memcpy(&sa.sin6_addr, addr, 16);
+		sa.sin6_port = htons(0);
+		sa.sin6_scope_id = scope;
+		EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
+		if (rs) {
+			int sv_errno = errno;
+			EINTRLOOP(rs, close(s));
+			errno = sv_errno;
+			return -1;
+		}
+		break;
+	}
+	default:
+		EINTRLOOP(rs, close(s));
+		errno = EINVAL;
+		return -1;
+	}
+
 	return s;
 }
 
@@ -261,9 +262,6 @@ static void ssl_setup_downgrade(struct connection *c)
 {
 #if !defined(HAVE_NSS)
 	int dd = c->no_tls;
-	dd++;
-	dd--;
-	/*debug("no tls: %d", dd);*/
 #ifdef SSL_OP_NO_TLSv1_3
 	if (dd) {
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_TLSv1_3);
@@ -423,7 +421,6 @@ static void handle_socks_reply(void *c_)
 	}
 	b->socks_byte_count += rd;
 	if (b->socks_byte_count < (int)sizeof b->socks_reply) return;
-	/*debug("%x %x %x %x %x %x %x %x", b->socks_reply[0], b->socks_reply[1], b->socks_reply[2], b->socks_reply[3], b->socks_reply[4], b->socks_reply[5], b->socks_reply[6], b->socks_reply[7]);*/
 	if (b->socks_reply[0]) {
 		setcstate(c, S_BAD_SOCKS_VERSION);
 		abort_connection(c);
@@ -497,7 +494,6 @@ static void try_connect(struct connection *c)
 	unsigned short p;
 	struct conn_info *b = c->newconn;
 	struct host_address *addr = &b->l.addr.a[b->l.addr_index];
-	/*debug("%p: %p %d %d\n", b, addr, b->l.addr_index, addr->af);*/
 	if (addr->af == AF_INET)
 		s = socket_and_bind(PF_INET, bind_ip_address);
 	else if (addr->af == AF_INET6)
