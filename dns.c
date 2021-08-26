@@ -264,16 +264,11 @@ ret:
 	return;
 }
 
-static int do_lookup(struct dnsquery *q, int force_async)
+static int do_lookup(struct dnsquery *q)
 {
 	do_real_lookup((unsigned char *)q->name, q->addr_preference, q->addr);
 	end_dns_lookup(q, !q->addr->n);
 	return 0;
-}
-
-static int do_queued_lookup(struct dnsquery *q)
-{
-		return do_lookup(q, 0);
 }
 
 static void check_dns_cache_addr_preference(void)
@@ -353,7 +348,7 @@ int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **q
 	strcpy(q->name, (char *)name);
 	if (qp)
 		*qp = q;
-	return do_queued_lookup(q);
+	return do_lookup(q);
 }
 
 int find_host(unsigned char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
