@@ -417,8 +417,6 @@ struct lookup_state {
 	int target_port;
 };
 
-extern int support_ipv6;
-
 int numeric_ip_address(const char *name, char address[4]);
 int numeric_ipv6_address(const char *name, char address[16], unsigned *scope_id);
 void rotate_addresses(struct lookup_result *);

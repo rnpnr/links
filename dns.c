@@ -3,11 +3,8 @@
  * This file is a part of the Links program, released under GPL
  */
 
-#include <sys/socket.h>
-
+#include "config.h"
 #include "links.h"
-
-int support_ipv6;
 
 struct dnsentry {
 	list_entry_1st
@@ -489,13 +486,5 @@ int ipv6_full_access(void)
 
 void init_dns(void)
 {
-	int h;
 	register_cache_upcall(shrink_dns_cache, 0, cast_uchar "dns");
-	h = socket(AF_INET6, SOCK_STREAM, 0);
-	if (h == -1) {
-		support_ipv6 = 0;
-	} else {
-		close(h);
-		support_ipv6 = 1;
-	}
 }

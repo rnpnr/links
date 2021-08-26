@@ -5,6 +5,7 @@
 
 #include <limits.h>
 
+#include "config.h"
 #include "links.h"
 
 static struct history file_history = { 0, { &file_history.items, &file_history.items } };

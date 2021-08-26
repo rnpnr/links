@@ -51,6 +51,11 @@ options:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
+config.h:
+	cp config.def.h $@
+
+$(OBJ): config.h config.mk
+
 links: $(OBJ)
 	$(CC) -o $@ $(OBJ) $(LDFLAGS)
 

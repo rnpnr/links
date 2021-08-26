@@ -1,0 +1,1 @@
+static const int support_ipv6 = 1;
