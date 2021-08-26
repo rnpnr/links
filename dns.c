@@ -203,7 +203,7 @@ do_swap:
 #endif
 }
 
-void do_real_lookup(unsigned char *name, int preference, struct lookup_result *host)
+static void do_real_lookup(unsigned char *name, int preference, struct lookup_result *host)
 {
 	unsigned char address[16];
 	size_t nl;

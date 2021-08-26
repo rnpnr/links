@@ -864,32 +864,6 @@ static unsigned char *noproxy_cmd(struct option *o, unsigned char ***argv, int *
 	return x_proxy_cmd(o, argv, argc, save_noproxy_list, cast_uchar "Invalid list of domains");
 }
 
-static unsigned char *lookup_cmd(struct option *o, unsigned char ***argv, int *argc)
-{
-	int i;
-	struct lookup_result addr;
-	unsigned char *h, *h2, *h3;
-	if (!*argc) return cast_uchar "Parameter expected";
-	if (*argc >= 2) return cast_uchar "Too many parameters";
-	h = *(*argv)++;
-	(*argc)--;
-	h2 = stracpy(h);
-	h3 = idn_encode_host(h2, (int)strlen(cast_const_char h2), cast_uchar ".", 0);
-	if (!h3) h3 = stracpy(h2);
-	free(h2);
-	do_real_lookup(h3, ipv6_options.addr_preference, &addr);
-	free(h3);
-	if (!addr.n)
-		die("error: host not found\n");
-	for (i = 0; i < addr.n; i++) {
-		unsigned char *a;
-		if ((a = print_address(&addr.a[i])))
-			printf("%s\n", a);
-	}
-	fflush(stdout);
-	exit(RET_OK);
-}
-
 static unsigned char *version_cmd(struct option *o, unsigned char ***argv, int *argc)
 {
 	printf("Links " VERSION "\n");
@@ -1025,7 +999,6 @@ static struct option links_options[] = {
 	{1, printhelp_cmd, NULL, NULL, 0, 0, NULL, NULL, "help"},
 	{1, printhelp_cmd, NULL, NULL, 0, 0, NULL, NULL, "-help"},
 	{1, version_cmd, NULL, NULL, 0, 0, NULL, NULL, "version"},
-	{1, lookup_cmd, NULL, NULL, 0, 0, NULL, NULL, "lookup"},
 	{1, set_cmd, NULL, NULL, 0, 0, &no_connect, NULL, "no-connect"},
 	{1, set_cmd, NULL, NULL, 0, 0, &anonymous, NULL, "anonymous"},
 	{1, setstr_cmd, NULL, NULL, 0, MAX_STR_LEN, default_target, NULL, "target"},

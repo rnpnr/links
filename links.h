@@ -420,7 +420,6 @@ struct lookup_state {
 int numeric_ip_address(const char *name, char address[4]);
 int numeric_ipv6_address(const char *name, char address[16], unsigned *scope_id);
 void rotate_addresses(struct lookup_result *);
-void do_real_lookup(unsigned char *, int, struct lookup_result *);
 int find_host(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
 int find_host_no_cache(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
 void kill_dns_request(void **);
