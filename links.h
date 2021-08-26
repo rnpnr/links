@@ -420,13 +420,13 @@ struct lookup_state {
 int numeric_ip_address(const char *name, char address[4]);
 int numeric_ipv6_address(const char *name, char address[16], unsigned *scope_id);
 void rotate_addresses(struct lookup_result *);
-int find_host(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
-int find_host_no_cache(unsigned char *, struct lookup_result *, void **, void (*)(void *, int), void *);
+int find_host(char *, struct lookup_result *, void **, void (*)(void *, int), void *);
+int find_host_no_cache(char *, struct lookup_result *, void **, void (*)(void *, int), void *);
 void kill_dns_request(void **);
 #if MAX_ADDRESSES > 1
-void dns_set_priority(unsigned char *, struct host_address *, int);
+void dns_set_priority(char *, struct host_address *, int);
 #endif
-void dns_clear_host(unsigned char *);
+void dns_clear_host(char *);
 unsigned long dns_info(int type);
 unsigned char *print_address(struct host_address *);
 int ipv6_full_access(void);

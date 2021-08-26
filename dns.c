@@ -279,13 +279,13 @@ static void check_dns_cache_addr_preference(void)
 	}
 }
 
-static int find_in_dns_cache(unsigned char *name, struct dnsentry **dnsentry)
+static int find_in_dns_cache(char *name, struct dnsentry **dnsentry)
 {
 	struct dnsentry *e = NULL;
 	struct list_head *le;
 	check_dns_cache_addr_preference();
 	foreach(struct dnsentry, e, le, dns_cache)
-		if (!casestrcmp((unsigned char *)e->name, name)) {
+		if (!strcasecmp(e->name, name)) {
 			del_from_list(e);
 			add_to_list(dns_cache, e);
 			*dnsentry = e;
@@ -309,7 +309,7 @@ static void end_dns_lookup(struct dnsquery *q, int a)
 		free(q);
 		return;
 	}
-	if (!find_in_dns_cache((unsigned char *)q->name, &dnsentry)) {
+	if (!find_in_dns_cache(q->name, &dnsentry)) {
 		if (a) {
 			memcpy(q->addr, &dnsentry->addr, sizeof(struct lookup_result));
 			a = 0;
@@ -336,22 +336,22 @@ e:
 	fn(data, a);
 }
 
-int find_host_no_cache(unsigned char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
+int find_host_no_cache(char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
 {
 	struct dnsquery *q;
-	q = xmalloc(sizeof(struct dnsquery) + strlen(cast_const_char name));
+	q = xmalloc(sizeof(struct dnsquery) + strlen(name));
 	q->fn = fn;
 	q->data = data;
 	q->s = (struct dnsquery **)qp;
 	q->addr = addr;
 	q->addr_preference = ipv6_options.addr_preference;
-	strcpy(q->name, (char *)name);
+	strcpy(q->name, name);
 	if (qp)
 		*qp = q;
 	return do_lookup(q);
 }
 
-int find_host(unsigned char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
+int find_host(char *name, struct lookup_result *addr, void **qp, void (*fn)(void *, int), void *data)
 {
 	struct dnsentry *dnsentry;
 	if (qp)
@@ -375,7 +375,7 @@ void kill_dns_request(void **qp)
 }
 
 #if MAX_ADDRESSES > 1
-void dns_set_priority(unsigned char *name, struct host_address *address, int prefer)
+void dns_set_priority(char *name, struct host_address *address, int prefer)
 {
 	int i;
 	struct dnsentry *dnsentry;
@@ -398,7 +398,7 @@ found_it:
 }
 #endif
 
-void dns_clear_host(unsigned char *name)
+void dns_clear_host(char *name)
 {
 	struct dnsentry *dnsentry;
 	if (find_in_dns_cache(name, &dnsentry))

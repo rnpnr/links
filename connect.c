@@ -99,17 +99,16 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 {
 	int socks_port = -1;
 	int as;
-	unsigned char *host;
-	char *p;
+	char *p, *host;
 	size_t sl;
 	struct conn_info *b;
 	if (*c->socks_proxy) {
 		p = strchr(c->socks_proxy, '@');
 		if (p) p++;
 		else p = c->socks_proxy;
-		host = (unsigned char *)strdup(p);
+		host = strdup(p);
 		socks_port = 1080;
-		if ((p = strchr(cast_const_char host, ':'))) {
+		if ((p = strchr(host, ':'))) {
 			long lp;
 			*p++ = 0;
 			if (!*p) goto badu;
@@ -123,21 +122,21 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 			}
 			socks_port = (int)lp;
 		}
-	} else if (!(host = get_host_name(c->url))) {
+	} else if (!(host = (char *)get_host_name(c->url))) {
 		setcstate(c, S_INTERNAL);
 		abort_connection(c);
 		return;
 	}
 	if (c->newconn)
 		internal("already making a connection");
-	sl = strlen(cast_const_char host);
+	sl = strlen(host);
 	if (sl > INT_MAX - sizeof(struct conn_info)) overalloc();
 	b = mem_calloc(sizeof(struct conn_info) + sl);
 	b->func = func;
 	b->sock = sock;
 	b->l.socks_port = socks_port;
 	b->l.target_port = port;
-	strcpy(b->host, cast_const_char host);
+	strcpy(b->host, host);
 	c->newconn = b;
 	if (c->last_lookup_state.addr_index < c->last_lookup_state.addr.n) {
 		b->l.addr = c->last_lookup_state.addr;
@@ -481,7 +480,7 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 	} else
 #endif
 	{
-		dns_clear_host((unsigned char *)b->host);
+		dns_clear_host(b->host);
 		setcstate(c, b->first_error);
 		retry_connection(c);
 	}
@@ -667,8 +666,8 @@ static void update_dns_priority(struct connection *c)
 		if (b->l.addr_index) {
 			int i;
 			for (i = 0; i < b->l.addr_index; i++)
-				dns_set_priority((unsigned char *)b->host, &b->l.addr.a[i], 0);
-			dns_set_priority((unsigned char *)b->host, &b->l.addr.a[i], 1);
+				dns_set_priority(b->host, &b->l.addr.a[i], 0);
+			dns_set_priority(b->host, &b->l.addr.a[i], 1);
 		}
 		b->l.dont_try_more_servers = 1;
 	}
