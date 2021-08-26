@@ -1158,8 +1158,7 @@ static void http_get_header(struct connection *c)
 {
 	struct read_buffer *rb;
 	set_connection_timeout_keepal(c);
-	if (!(rb = alloc_read_buffer()))
-		return;
+	rb = alloc_read_buffer();
 	rb->close = 1;
 	read_from_socket(c, c->sock1, rb, http_got_header);
 }
