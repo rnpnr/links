@@ -3,8 +3,11 @@
  * This file is a part of the Links program, released under GPL.
  */
 
+#include <fcntl.h>
 #include <limits.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "links.h"
 
@@ -239,11 +242,14 @@ int c_dup(int oh)
 
 int c_socket(int d, int t, int p)
 {
-	int h;
-	do {
-		EINTRLOOP(h, socket(d, t, p));
-		if (h != -1) new_fd_cloexec(h);
-	} while (h == -1 && cleanup_fds());
+	int h = socket(d, t, p);
+
+	if (h == -1)
+		die("socket()\n");
+
+	if (fcntl(h, F_SETFD, FD_CLOEXEC) == -1)
+		die("c_socket(): fcntl()\n");
+
 	return h;
 }
 

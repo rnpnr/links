@@ -16,11 +16,8 @@ static void handle_socks_reply(void *);
 
 int socket_and_bind(int pf, unsigned char *address)
 {
-	int s;
-	int rs;
-	s = c_socket(pf, SOCK_STREAM, IPPROTO_TCP);
-	if (s == -1)
-		return -1;
+	int rs, s = c_socket(pf, SOCK_STREAM, IPPROTO_TCP);
+
 	if (address && *address) {
 		switch (pf) {
 		case PF_INET: {
@@ -186,7 +183,6 @@ int get_pasv_socket(struct connection *c, int cc, int *sock, unsigned char *port
 		goto e;
 	}
 	s = c_socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (s == -1) goto e;
 	*sock = s;
 	set_nonblock(s);
 	memcpy(&sb, &sa, sizeof(struct sockaddr_in));
@@ -224,7 +220,6 @@ int get_pasv_socket_ipv6(struct connection *c, int cc, int *sock, unsigned char 
 		goto e;
 	}
 	s = c_socket(PF_INET6, SOCK_STREAM, IPPROTO_TCP);
-	if (s == -1) goto e;
 	*sock = s;
 	set_nonblock(s);
 	memcpy(&sb, &sa, sizeof(struct sockaddr_in6));

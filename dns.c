@@ -3,6 +3,8 @@
  * This file is a part of the Links program, released under GPL
  */
 
+#include <sys/socket.h>
+
 #include "links.h"
 
 int support_ipv6;
@@ -474,8 +476,6 @@ int ipv6_full_access(void)
 	if (!support_ipv6)
 		return 0;
 	h = c_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	if (h == -1)
-		return 0;
 	memset(&sin6, 0, sizeof sin6);
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_port = htons(1024);
@@ -489,13 +489,13 @@ int ipv6_full_access(void)
 
 void init_dns(void)
 {
+	int h;
 	register_cache_upcall(shrink_dns_cache, 0, cast_uchar "dns");
-	int h, rs;
-	h = c_socket(AF_INET6, SOCK_STREAM, 0);
-	if (h == -1)
+	h = socket(AF_INET6, SOCK_STREAM, 0);
+	if (h == -1) {
 		support_ipv6 = 0;
-	else {
-		EINTRLOOP(rs, close(h));
+	} else {
+		close(h);
 		support_ipv6 = 1;
 	}
 }
