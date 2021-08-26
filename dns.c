@@ -408,12 +408,11 @@ void dns_clear_host(char *name)
 
 unsigned long dns_info(int type)
 {
-	switch (type) {
-	case CI_FILES:
+	if (type == CI_FILES)
 		return list_size(&dns_cache);
-	default:
-		internal("dns_info: bad request");
-	}
+
+	die("dns_info()\n");
+	/* NOTREACHED */
 	return 0;
 }
 
