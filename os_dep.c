@@ -447,7 +447,7 @@ static void exec_new_links(struct terminal *term, unsigned char *xterm, unsigned
 	free(str);
 }
 
-unsigned char *links_xterm(void)
+static unsigned char *links_xterm(void)
 {
 	unsigned char *xterm;
 	if (!(xterm = cast_uchar getenv("LINKS_XTERM"))) {
@@ -499,11 +499,6 @@ struct open_in_new *get_open_in_new(int environment)
 			oin[noin].open_window_fn = NULL;
 		}
 	return oin;
-}
-
-int can_open_os_shell(int environment)
-{
-	return 1;
 }
 
 void os_detach_console(void)

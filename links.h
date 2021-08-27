@@ -309,8 +309,6 @@ int os_get_system_name(unsigned char *buffer);
 unsigned char *os_conv_to_external_path(unsigned char *, unsigned char *);
 unsigned char *os_fixup_external_program(unsigned char *);
 int exe(char *, int);
-int can_open_os_shell(int);
-unsigned char *links_xterm(void);
 struct open_in_new *get_open_in_new(int);
 
 void os_free_clipboard(void);

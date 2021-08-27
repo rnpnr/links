@@ -1391,13 +1391,6 @@ static void cache_opt(struct terminal *term, void *xxx, void *yyy)
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static void menu_shell(struct terminal *term, void *xxx, void *yyy)
-{
-	unsigned char *sh;
-	if (!(sh = cast_uchar GETSHELL)) sh = cast_uchar DEFAULT_SHELL;
-	exec_on_terminal(term, sh, cast_uchar "", 1);
-}
-
 static void menu_kill_background_connections(struct terminal *term, void *xxx, void *yyy)
 {
 	abort_background_connections();
@@ -1819,20 +1812,7 @@ static void do_file_menu(struct terminal *term, void *xxx, void *ses_)
 	}
 	memcpy(e, file_menu22, sizeof(file_menu22));
 	e += sizeof(file_menu22) / sizeof(struct menu_item);
-	/*cast_uchar "", cast_uchar "", M_BAR, NULL, NULL, 0, 0,
-	TEXT_(T_OS_SHELL), cast_uchar "", TEXT_(T_HK_OS_SHELL), menu_shell, NULL, 0, 0,*/
 	x = 1;
-	if (!anonymous && can_open_os_shell(term->environment)) {
-		e->text = TEXT_(T_OS_SHELL);
-		e->rtext = cast_uchar "";
-		e->hotkey = TEXT_(T_HK_OS_SHELL);
-		e->func = menu_shell;
-		e->data = NULL;
-		e->in_m = 0;
-		e->free_i = 0;
-		e++;
-		x = 0;
-	}
 	memcpy(e, file_menu3 + x, sizeof(file_menu3) - x * sizeof(struct menu_item));
 	do_menu(term, file_menu, ses);
 }
