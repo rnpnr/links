@@ -2458,10 +2458,6 @@ static void ses_finished_1st_state(struct object_request *rq, void *ses_)
 	}
 }
 
-void ses_destroy_defered_jump(struct session *ses)
-{
-}
-
 /* if from_goto_dialog is 1, set prev_url to NULL */
 void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned char *url, unsigned char *target, struct f_data_c *df, int data, int defer, int from_goto_dialog, int refresh)
 {
@@ -2470,7 +2466,6 @@ void goto_url_f(struct session *ses, void (*state2)(struct session *), unsigned 
 	void (*fn)(struct session *, unsigned char *);
 	int reloadlevel, allow_flags;
 	if (!state2) state2 = ses_go_to_2nd_state;
-	ses_destroy_defered_jump(ses);
 	if ((fn = get_external_protocol_function(url))) {
 		if (proxies.only_proxies && url_bypasses_socks(url)) {
 			msg_box(ses->term, NULL, TEXT_(T_ERROR), AL_CENTER, TEXT_(T_NO_PROXY), MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
@@ -2596,7 +2591,6 @@ void go_back(struct session *ses, int num_steps)
 	int n;
 	if (!num_steps) return;
 	ses->reloadlevel = NC_CACHE;
-	ses_destroy_defered_jump(ses);
 	if (ses_abort_1st_state_loading(ses)) {
 		change_screen_status(ses);
 		print_screen_status(ses);
@@ -2650,7 +2644,6 @@ static void reload_frame(struct f_data_c *fd, int no_cache)
 
 void reload(struct session *ses, int no_cache)
 {
-	ses_destroy_defered_jump(ses);
 	if (no_cache == -1)
 		no_cache = ++ses->reloadlevel;
 	else
@@ -2801,7 +2794,6 @@ void cleanup_session(struct session *ses)
 	free(ses->search_word);
 	ses->default_status = NULL;
 	ses->search_word = NULL;
-	ses_destroy_defered_jump(ses);
 }
 
 void destroy_session(struct session *ses)

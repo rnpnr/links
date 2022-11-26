@@ -1735,7 +1735,6 @@ void go_backwards(struct terminal *term, void *psteps, void *ses_);
 void reload(struct session *, int);
 void cleanup_session(struct session *);
 void destroy_session(struct session *);
-void ses_destroy_defered_jump(struct session *ses);
 struct f_data_c *find_frame(struct session *ses, unsigned char *target, struct f_data_c *base);
 
 
