@@ -8,5 +8,5 @@ LIBS = -L/usr/lib -L/usr/local/lib \
        -lcrypto -levent -lm -lssl -lz
 
 CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_BSD_SOURCE
-CFLAGS = -O2 -std=c99 -Wall -pedantic $(CPPFLAGS)
-LDFLAGS = $(LIBS) $(INCS)
+CFLAGS = -O2 -std=c99 -Wall -pedantic
+LDFLAGS = $(LIBS)
