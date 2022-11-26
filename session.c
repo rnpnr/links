@@ -1777,15 +1777,16 @@ static int is_forced_download(struct object_request *rq)
 	struct cache_entry *ce;
 	unsigned char *cd;
 	char *s;
+	int ret = 0;
 
 	if (!rq || !(ce = rq->ce))
-		return 0;
+		return ret;
 	if ((cd = parse_http_header(ce->head, cast_uchar "Content-Disposition", NULL))) {
 		if ((s = strchr(cast_const_char cd, ';'))) *s = 0;
+		ret = !casestrcmp(cd, cast_uchar "attachment");
 		free(cd);
-		return !casestrcmp(cd, cast_uchar "attachment");
 	}
-	return 0;
+	return ret;
 }
 
 static int plain_type(struct object_request *rq, unsigned char **p)
