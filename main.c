@@ -24,7 +24,6 @@ int retval = RET_OK;
 static void initialize_all_subsystems(void);
 static void initialize_all_subsystems_2(void);
 static void poll_fg(void *);
-static void unhandle_basic_signals(struct terminal *);
 
 static int init_b = 0;
 int g_argc;
@@ -84,10 +83,10 @@ sig_intr(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
 	if (!t) {
-		unhandle_basic_signals(t);
+		unhandle_terminal_signals(t);
 		terminate_loop = 1;
 	} else {
-		unhandle_basic_signals(t);
+		unhandle_terminal_signals(t);
 		exit_prog(t, NULL, NULL);
 	}
 }
@@ -168,21 +167,6 @@ handle_basic_signals(struct terminal *term)
 
 void
 unhandle_terminal_signals(struct terminal *term)
-{
-	install_signal_handler(SIGHUP, NULL, NULL, 0);
-	install_signal_handler(SIGINT, NULL, NULL, 0);
-	install_signal_handler(SIGTSTP, NULL, NULL, 0);
-	install_signal_handler(SIGTTIN, NULL, NULL, 0);
-	install_signal_handler(SIGTTOU, NULL, NULL, 0);
-	install_signal_handler(SIGCONT, NULL, NULL, 0);
-	if (fg_poll_timer != NULL) {
-		kill_timer(fg_poll_timer);
-		fg_poll_timer = NULL;
-	}
-}
-
-static void
-unhandle_basic_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
 	install_signal_handler(SIGINT, NULL, NULL, 0);
