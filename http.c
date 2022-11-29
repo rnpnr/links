@@ -26,25 +26,31 @@ static void http_send_header(struct connection *c);
 static void http_get_header(struct connection *c);
 static void test_restart(struct connection *c);
 static void add_user_agent(unsigned char **hdr, int *l, const char *url);
-static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigned char *prev_url);
+static void add_referer(unsigned char **hdr, int *l, unsigned char *url,
+                        unsigned char *prev_url);
 static void add_accept(unsigned char **hdr, int *l);
-static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url, struct connection *c);
-static void add_accept_charset(unsigned char **hdr, int *l, struct http_connection_info *info);
-static void add_connection(unsigned char **hdr, int *l, int http10, int proxy, int post);
+static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
+                                struct connection *c);
+static void add_accept_charset(unsigned char **hdr, int *l,
+                               struct http_connection_info *info);
+static void add_connection(unsigned char **hdr, int *l, int http10, int proxy,
+                           int post);
 static void add_upgrade(unsigned char **hdr, int *l);
 static void add_if_modified(unsigned char **hdr, int *l, struct connection *c);
-static void add_range(unsigned char **hdr, int *l, unsigned char *url, struct connection *c);
+static void add_range(unsigned char **hdr, int *l, unsigned char *url,
+                      struct connection *c);
 static void add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache);
-static void add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *url);
+static void add_proxy_auth_string(unsigned char **hdr, int *l,
+                                  unsigned char *url);
 static void add_auth_string(unsigned char **hdr, int *l, unsigned char *url);
 static void add_post_header(unsigned char **hdr, int *l, unsigned char **post);
 static void add_extra_options(unsigned char **hdr, int *l);
 
-
 /* Returns a string pointer with value of the item.
  * The string must be destroyed after usage with mem_free.
  */
-unsigned char *parse_http_header(unsigned char *head, unsigned char *item, unsigned char **ptr)
+unsigned char *
+parse_http_header(unsigned char *head, unsigned char *item, unsigned char **ptr)
 {
 	unsigned char *i, *f, *g, *h;
 	if (!head)
@@ -76,7 +82,8 @@ cont:
 	return NULL;
 }
 
-unsigned char *parse_header_param(unsigned char *x, unsigned char *e, int all)
+unsigned char *
+parse_header_param(unsigned char *x, unsigned char *e, int all)
 {
 	unsigned char u;
 	size_t le = strlen((char *)e);
@@ -87,7 +94,8 @@ a:
 		if (!(y = cast_uchar strchr((char *)y, ';')))
 			return NULL;
 	}
-	while (*y && (*y == ';' || *y <= ' ')) y++;
+	while (*y && (*y == ';' || *y <= ' '))
+		y++;
 	if (strlen((char *)y) < le)
 		return NULL;
 	if (casecmp(y, e, le))
@@ -107,16 +115,18 @@ a:
 	return memacpy(y, lp);
 }
 
-int get_http_code(unsigned char *head, int *code, int *version)
+int
+get_http_code(unsigned char *head, int *code, int *version)
 {
 	if (!head)
 		return -1;
 	while (head[0] == ' ')
 		head++;
-	if (upcase(head[0]) != 'H' || upcase(head[1]) != 'T' || upcase(head[2]) != 'T'
-	|| upcase(head[3]) != 'P') return -1;
-	if (head[4] == '/' && head[5] >= '0' && head[5] <= '9'
-	&& head[6] == '.' && head[7] >= '0' && head[7] <= '9' && head[8] <= ' ') {
+	if (upcase(head[0]) != 'H' || upcase(head[1]) != 'T'
+	    || upcase(head[2]) != 'T' || upcase(head[3]) != 'P')
+		return -1;
+	if (head[4] == '/' && head[5] >= '0' && head[5] <= '9' && head[6] == '.'
+	    && head[7] >= '0' && head[7] <= '9' && head[8] <= ' ') {
 		if (version)
 			*version = (head[5] - '0') * 10 + head[7] - '0';
 	} else if (version)
@@ -125,14 +135,15 @@ int get_http_code(unsigned char *head, int *code, int *version)
 		;
 	if (*head++ != ' ')
 		return -1;
-	if (head[0] < '1' || head [0] > '9' || head[1] < '0' || head[1] > '9'
-	|| head[2] < '0' || head [2] > '9') {
+	if (head[0] < '1' || head[0] > '9' || head[1] < '0' || head[1] > '9'
+	    || head[2] < '0' || head[2] > '9') {
 		if (code)
 			*code = 200;
 		return 0;
 	}
 	if (code)
-		*code = (head[0]-'0')*100 + (head[1]-'0')*10 + head[2]-'0';
+		*code = (head[0] - '0') * 100 + (head[1] - '0') * 10 + head[2]
+		        - '0';
 	return 0;
 }
 
@@ -140,17 +151,19 @@ static struct {
 	const char *name;
 	int bugs;
 } buggy_servers[] = {
-	{ "mod_czech/3.1.0", BL_HTTP10 },
-	{ "Purveyor", BL_HTTP10 },
-	{ "Netscape-Enterprise", BL_HTTP10 | BL_NO_ACCEPT_LANGUAGE },
-	{ "Apache Coyote", BL_HTTP10 },
-	{ "lighttpd", BL_HTTP10 },
-	{ "FORPSI", BL_NO_RANGE },
-	{ "Sausalito", BL_HTTP10 },
-	{ NULL, 0 }
+	{"mod_czech/3.1.0",      BL_HTTP10                        },
+	{ "Purveyor",            BL_HTTP10                        },
+	{ "Netscape-Enterprise", BL_HTTP10 | BL_NO_ACCEPT_LANGUAGE},
+	{ "Apache Coyote",       BL_HTTP10                        },
+	{ "lighttpd",            BL_HTTP10                        },
+	{ "FORPSI",              BL_NO_RANGE                      },
+	{ "Sausalito",           BL_HTTP10                        },
+	{ NULL,		  0				}
 };
 
-static int check_http_server_bugs(unsigned char *url, struct http_connection_info *info, unsigned char *head)
+static int
+check_http_server_bugs(unsigned char *url, struct http_connection_info *info,
+                       unsigned char *head)
 {
 	unsigned char *server;
 	int i, bugs;
@@ -171,7 +184,8 @@ static int check_http_server_bugs(unsigned char *url, struct http_connection_inf
 	return 0;
 }
 
-static void http_end_request(struct connection *c, int notrunc, int nokeepalive, int state)
+static void
+http_end_request(struct connection *c, int notrunc, int nokeepalive, int state)
 {
 	struct http_connection_info *info = c->info;
 	if (state == S__OK && c->cache) {
@@ -180,16 +194,14 @@ static void http_end_request(struct connection *c, int notrunc, int nokeepalive,
 		c->cache->incomplete = 0;
 	}
 	setcstate(c, state);
-	if (c->info
-	&& !info->close
-	&& !info->send_close
-	&& !nokeepalive) {
+	if (c->info && !info->close && !info->send_close && !nokeepalive) {
 		add_keepalive_socket(c, HTTP_KEEPALIVE_TIMEOUT, 0);
 	} else
 		abort_connection(c);
 }
 
-void http_func(struct connection *c)
+void
+http_func(struct connection *c)
 {
 	/*setcstate(c, S_CONN);*/
 	/*set_connection_timeout(c);*/
@@ -205,12 +217,14 @@ void http_func(struct connection *c)
 		http_send_header(c);
 }
 
-void proxy_func(struct connection *c)
+void
+proxy_func(struct connection *c)
 {
 	http_func(c);
 }
 
-static void add_url_to_str(unsigned char **str, int *l, unsigned char *url)
+static void
+add_url_to_str(unsigned char **str, int *l, unsigned char *url)
 {
 	unsigned char *sp;
 	for (sp = url; *sp && *sp != POST_CHAR; sp++) {
@@ -223,7 +237,8 @@ static void add_url_to_str(unsigned char **str, int *l, unsigned char *url)
 	}
 }
 
-static void http_send_header(struct connection *c)
+static void
+http_send_header(struct connection *c)
 {
 	struct http_connection_info *info;
 	int http10 = http_options.http10;
@@ -244,7 +259,8 @@ static void http_send_header(struct connection *c)
 	set_connection_timeout_keepal(c);
 	info = mem_calloc(sizeof(struct http_connection_info));
 	c->info = info;
-	info->https_forward = !c->ssl && proxy && host && !casecmp(host, cast_uchar "https://", 8);
+	info->https_forward = !c->ssl && proxy && host
+	                      && !casecmp(host, cast_uchar "https://", 8);
 	if (c->ssl)
 		proxy = 0;
 	hdr = init_str();
@@ -263,7 +279,8 @@ http_bad_url:
 	info->http10 = http10;
 	if (!info->https_forward) {
 		post = cast_uchar strchr((char *)host, POST_CHAR);
-		if (post) post++;
+		if (post)
+			post++;
 	}
 	info->send_close = info->https_forward || http10;
 	if (info->https_forward) {
@@ -301,7 +318,7 @@ http_bad_url:
 		int u_host_len;
 		int u2_len = 0;
 		if (parse_url(u, NULL, NULL, NULL, NULL, NULL, &u_host,
-			&u_host_len, NULL, NULL, NULL, NULL, NULL))
+		              &u_host_len, NULL, NULL, NULL, NULL, NULL))
 			goto http_bad_url;
 		u2 = init_str();
 		add_bytes_to_str(&u2, &u2_len, u, u_host + u_host_len - u);
@@ -362,10 +379,14 @@ added_connect:
 	if (post) {
 		while (post[0] && post[1]) {
 			int h1, h2;
-			h1 = post[0] <= '9' ? (unsigned)post[0] - '0' : post[0] >= 'A' ? upcase(post[0]) - 'A' + 10 : 0;
+			h1 = post[0] <= '9'   ? (unsigned)post[0] - '0'
+			     : post[0] >= 'A' ? upcase(post[0]) - 'A' + 10
+			                      : 0;
 			if (h1 < 0 || h1 >= 16)
 				h1 = 0;
-			h2 = post[1] <= '9' ? (unsigned)post[1] - '0' : post[1] >= 'A' ? upcase(post[1]) - 'A' + 10 : 0;
+			h2 = post[1] <= '9'   ? (unsigned)post[1] - '0'
+			     : post[1] >= 'A' ? upcase(post[1]) - 'A' + 10
+			                      : 0;
 			if (h2 < 0 || h2 >= 16)
 				h2 = 0;
 			add_chr_to_str(&hdr, &l, h1 * 16 + h2);
@@ -377,19 +398,24 @@ added_connect:
 	setcstate(c, S_SENT);
 }
 
-static void test_restart(struct connection *c)
+static void
+test_restart(struct connection *c)
 {
-/* If the cached entity is compressed, request the whole file and turn off compression */
+	/* If the cached entity is compressed, request the whole file and turn
+	 * off compression */
 	if (c->cache && c->from) {
 		unsigned char *d;
-		if ((d = parse_http_header(c->cache->head, cast_uchar "Content-Encoding", NULL))) {
+		if ((d = parse_http_header(c->cache->head,
+		                           cast_uchar "Content-Encoding",
+		                           NULL))) {
 			free(d);
 			c->from = 0;
 			c->no_compress = 1;
 			if (c->tries >= 1) {
 				unsigned char *h;
 				if ((h = get_host_name(c->url))) {
-					add_blacklist_entry(h, BL_NO_COMPRESSION);
+					add_blacklist_entry(h,
+					                    BL_NO_COMPRESSION);
 					free(h);
 				}
 			}
@@ -397,23 +423,25 @@ static void test_restart(struct connection *c)
 	}
 }
 
-static void add_user_agent(unsigned char **hdr, int *l, const char *url)
+static void
+add_user_agent(unsigned char **hdr, int *l, const char *url)
 {
 	add_to_str(hdr, l, cast_uchar "User-Agent: ");
 	if (SCRUB_HEADERS)
-		add_to_str(hdr, l, cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0\r\n");
+		add_to_str(hdr, l,
+		           cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:60.0) "
+		                      "Gecko/20100101 Firefox/60.0\r\n");
 	else if (!(*http_options.header.fake_useragent)) {
 		/*
 		 * Google started to return css-styled page for searches.
 		 * It returns non-css page if the user agent begins with Lynx.
 		 */
-		if (url && (casestrstr(cast_uchar url, cast_uchar "/www.google.")
-		|| casestrstr(cast_uchar url, cast_uchar "/google."))
-		&& strstr(url, "/search?")
-		&& (strstr(url, "?q=")
-		|| strstr(url, "&q="))
-		&& !strstr(url, "?tbm=isch")
-		&& !strstr(url, "&tbm=isch"))
+		if (url
+		    && (casestrstr(cast_uchar url, cast_uchar "/www.google.")
+		        || casestrstr(cast_uchar url, cast_uchar "/google."))
+		    && strstr(url, "/search?")
+		    && (strstr(url, "?q=") || strstr(url, "&q="))
+		    && !strstr(url, "?tbm=isch") && !strstr(url, "&tbm=isch"))
 			add_to_str(hdr, l, cast_uchar("Lynx/"));
 
 		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
@@ -432,28 +460,35 @@ static void add_user_agent(unsigned char **hdr, int *l, const char *url)
 	}
 }
 
-static void add_referer(unsigned char **hdr, int *l, unsigned char *url, unsigned char *prev_url)
+static void
+add_referer(unsigned char **hdr, int *l, unsigned char *url,
+            unsigned char *prev_url)
 {
 	add_to_str(hdr, l, cast_uchar "Referer: ");
 	add_url_to_str(hdr, l, url);
 	add_to_str(hdr, l, cast_uchar "\r\n");
 }
 
-static void add_accept(unsigned char **hdr, int *l)
+static void
+add_accept(unsigned char **hdr, int *l)
 {
 	if (SCRUB_HEADERS)
 		add_to_str(hdr, l,
-			cast_uchar "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n");
+		           cast_uchar
+		           "Accept: "
+		           "text/html,application/xhtml+xml,application/"
+		           "xml;q=0.9,*/*;q=0.8\r\n");
 	else
 		add_to_str(hdr, l, cast_uchar "Accept: */*\r\n");
 }
 
-static int advertise_compression(unsigned char *url, struct connection *c)
+static int
+advertise_compression(unsigned char *url, struct connection *c)
 {
 	struct http_connection_info *info = c->info;
 	char *extd;
 	if (c->no_compress || http_options.no_compression
-	|| info->bl_flags & BL_NO_COMPRESSION)
+	    || info->bl_flags & BL_NO_COMPRESSION)
 		return 0;
 
 	/* Fix for bugzilla. The attachment may be compressed and if the server
@@ -467,7 +502,9 @@ static int advertise_compression(unsigned char *url, struct connection *c)
 	return 1;
 }
 
-static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url, struct connection *c)
+static void
+add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
+                    struct connection *c)
 {
 	if (advertise_compression(url, c)) {
 		int orig_l = *l;
@@ -484,13 +521,14 @@ static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
 	}
 }
 
-static void add_accept_charset(unsigned char **hdr, int *l, struct http_connection_info *info)
+static void
+add_accept_charset(unsigned char **hdr, int *l,
+                   struct http_connection_info *info)
 {
 	static unsigned char *accept_charset = NULL;
 
-	if (SCRUB_HEADERS
-	|| info->bl_flags & BL_NO_CHARSET
-	|| http_options.no_accept_charset)
+	if (SCRUB_HEADERS || info->bl_flags & BL_NO_CHARSET
+	    || http_options.no_accept_charset)
 		return;
 
 	if (!accept_charset) {
@@ -515,7 +553,8 @@ static void add_accept_charset(unsigned char **hdr, int *l, struct http_connecti
 	add_to_str(hdr, l, accept_charset);
 }
 
-static void add_connection(unsigned char **hdr, int *l, int http10, int proxy, int alive)
+static void
+add_connection(unsigned char **hdr, int *l, int http10, int proxy, int alive)
 {
 	if (!http10) {
 		if (!proxy)
@@ -529,13 +568,16 @@ static void add_connection(unsigned char **hdr, int *l, int http10, int proxy, i
 	}
 }
 
-static void add_upgrade(unsigned char **hdr, int *l)
+static void
+add_upgrade(unsigned char **hdr, int *l)
 {
 	if (proxies.only_proxies)
-		add_to_str(hdr, l, cast_uchar "Upgrade-Insecure-Requests: 1\r\n");
+		add_to_str(hdr, l,
+		           cast_uchar "Upgrade-Insecure-Requests: 1\r\n");
 }
 
-static void add_if_modified(unsigned char **hdr, int *l, struct connection *c)
+static void
+add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 {
 	struct cache_entry *e;
 	if ((e = c->cache)) {
@@ -546,9 +588,11 @@ static void add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 			unsigned char *m;
 			if (e->last_modified)
 				m = stracpy(e->last_modified);
-			else if ((m = parse_http_header(e->head, cast_uchar "Date", NULL)))
+			else if ((m = parse_http_header(
+				      e->head, cast_uchar "Date", NULL)))
 				;
-			else if ((m = parse_http_header(e->head, cast_uchar "Expires", NULL)))
+			else if ((m = parse_http_header(
+				      e->head, cast_uchar "Expires", NULL)))
 				;
 			else
 				return;
@@ -560,7 +604,8 @@ static void add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 	}
 }
 
-static void add_range(unsigned char **hdr, int *l, unsigned char *url, struct connection *c)
+static void
+add_range(unsigned char **hdr, int *l, unsigned char *url, struct connection *c)
 {
 	struct cache_entry *e;
 	struct http_connection_info *info = c->info;
@@ -569,21 +614,25 @@ static void add_range(unsigned char **hdr, int *l, unsigned char *url, struct co
 		if (!get_http_code(e->head, &code, NULL) && code >= 300)
 			return;
 	}
-	if (c->from && c->no_cache < NC_IF_MOD && !(info->bl_flags & BL_NO_RANGE)) {
+	if (c->from && c->no_cache < NC_IF_MOD
+	    && !(info->bl_flags & BL_NO_RANGE)) {
 		add_to_str(hdr, l, cast_uchar "Range: bytes=");
 		add_num_to_str(hdr, l, c->from);
 		add_to_str(hdr, l, cast_uchar "-\r\n");
 	}
 }
 
-static void add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache)
+static void
+add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache)
 {
 	if (no_cache >= NC_PR_NO_CACHE)
 		add_to_str(hdr, l,
-			cast_uchar "Pragma: no-cache\r\nCache-Control: no-cache\r\n");
+		           cast_uchar
+		           "Pragma: no-cache\r\nCache-Control: no-cache\r\n");
 }
 
-static void add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *url)
+static void
+add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *url)
 {
 	unsigned char *h;
 	if ((h = get_auth_string(url, 1))) {
@@ -592,7 +641,8 @@ static void add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *ur
 	}
 }
 
-static void add_auth_string(unsigned char **hdr, int *l, unsigned char *url)
+static void
+add_auth_string(unsigned char **hdr, int *l, unsigned char *url)
 {
 	unsigned char *h;
 	if ((h = get_auth_string(url, 0))) {
@@ -601,7 +651,8 @@ static void add_auth_string(unsigned char **hdr, int *l, unsigned char *url)
 	}
 }
 
-static void add_post_header(unsigned char **hdr, int *l, unsigned char **post)
+static void
+add_post_header(unsigned char **hdr, int *l, unsigned char **post)
 {
 	if (*post) {
 		unsigned char *pd = cast_uchar strchr((char *)*post, '\n');
@@ -617,7 +668,8 @@ static void add_post_header(unsigned char **hdr, int *l, unsigned char **post)
 	}
 }
 
-static void add_extra_options(unsigned char **hdr, int *l)
+static void
+add_extra_options(unsigned char **hdr, int *l)
 {
 	unsigned char *p = http_options.header.extra_header;
 	while (1) {
@@ -629,7 +681,8 @@ static void add_extra_options(unsigned char **hdr, int *l)
 			if (c && casecmp(s, cast_uchar "Cookie:", 7)) {
 				unsigned char *v = NULL;
 				unsigned char *cc = memacpy(s, c - s);
-				unsigned char *x = parse_http_header(*hdr, cc, &v);
+				unsigned char *x =
+				    parse_http_header(*hdr, cc, &v);
 				free(cc);
 				if (x) {
 					unsigned char *new_hdr;
@@ -637,11 +690,14 @@ static void add_extra_options(unsigned char **hdr, int *l)
 					free(x);
 					new_hdr = init_str();
 					new_l = 0;
-					add_bytes_to_str(&new_hdr, &new_l, *hdr, v - *hdr);
+					add_bytes_to_str(&new_hdr, &new_l, *hdr,
+					                 v - *hdr);
 					while (*++c == ' ')
 						;
 					add_to_str(&new_hdr, &new_l, c);
-					add_to_str(&new_hdr, &new_l, v + strcspn((char *)v, "\r\n"));
+					add_to_str(
+					    &new_hdr, &new_l,
+					    v + strcspn((char *)v, "\r\n"));
 					free(*hdr);
 					*hdr = new_hdr;
 					*l = new_l;
@@ -659,13 +715,15 @@ already_added:
 	}
 }
 
-static int is_line_in_buffer(struct read_buffer *rb)
+static int
+is_line_in_buffer(struct read_buffer *rb)
 {
 	int l;
 	for (l = 0; l < rb->len; l++) {
 		if (rb->data[l] == 10)
 			return l + 1;
-		if (l < rb->len - 1 && rb->data[l] == 13 && rb->data[l + 1] == 10)
+		if (l < rb->len - 1 && rb->data[l] == 13
+		    && rb->data[l + 1] == 10)
 			return l + 2;
 		if (l == rb->len - 1 && rb->data[l] == 13)
 			return 0;
@@ -675,7 +733,8 @@ static int is_line_in_buffer(struct read_buffer *rb)
 	return 0;
 }
 
-static void read_http_data(struct connection *c, struct read_buffer *rb)
+static void
+read_http_data(struct connection *c, struct read_buffer *rb)
 {
 	struct http_connection_info *info = c->info;
 	int a;
@@ -733,8 +792,10 @@ next_chunk:
 				char *end;
 				long n = 0;
 				if (l != -1)
-					n = strtol(cast_const_char rb->data, &end, 16);
-				if (l == -1 || n < 0 || n >= INT_MAX || cast_uchar end == rb->data) {
+					n = strtol(cast_const_char rb->data,
+					           &end, 16);
+				if (l == -1 || n < 0 || n >= INT_MAX
+				    || cast_uchar end == rb->data) {
 					setcstate(c, S_HTTP_ERROR);
 					abort_connection(c);
 					return;
@@ -769,8 +830,11 @@ next_chunk:
 				if (rb->data[0] == 10)
 					kill_buffer_data(rb, 1);
 				else {
-					if (rb->data[0] != 13 || (rb->len >= 2
-					&& ((unsigned char *)rb->data)[1] != 10)) {
+					if (rb->data[0] != 13
+					    || (rb->len >= 2
+					        && ((unsigned char *)
+					                rb->data)[1]
+					               != 10)) {
 						setcstate(c, S_HTTP_ERROR);
 						abort_connection(c);
 						return;
@@ -789,7 +853,8 @@ read_more:
 	setcstate(c, S_TRANS);
 }
 
-static int get_header(struct read_buffer *rb)
+static int
+get_header(struct read_buffer *rb)
 {
 	int i;
 	if (rb->len <= 0)
@@ -827,7 +892,8 @@ static int get_header(struct read_buffer *rb)
 	return 0;
 }
 
-static void http_got_header(struct connection *c, struct read_buffer *rb)
+static void
+http_got_header(struct connection *c, struct read_buffer *rb)
 {
 	off_t cf;
 	int state = c->state != S_PROC ? S_GETH : S_PROC;
@@ -871,14 +937,17 @@ again:
 		head = memacpy(rb->data, a);
 		kill_buffer_data(rb, a);
 	} else
-		head = stracpy(cast_uchar "HTTP/0.9 200 OK\r\nContent-Type: text/html\r\n\r\n");
+		head = stracpy(
+		    cast_uchar
+		    "HTTP/0.9 200 OK\r\nContent-Type: text/html\r\n\r\n");
 	if (get_http_code(head, &h, &version) || h == 101) {
 		free(head);
 		setcstate(c, S_HTTP_ERROR);
 		abort_connection(c);
 		return;
 	}
-	if (check_http_server_bugs(host, c->info, head) && is_connection_restartable(c)) {
+	if (check_http_server_bugs(host, c->info, head)
+	    && is_connection_restartable(c)) {
 		free(head);
 		setcstate(c, S_RESTART);
 		retry_connection(c);
@@ -912,7 +981,8 @@ again:
 	if (h != 401 && h != 407) {
 		unsigned char *cookie;
 		unsigned char *ch = head;
-		while ((cookie = parse_http_header(ch, cast_uchar "Set-Cookie", &ch))) {
+		while ((cookie = parse_http_header(ch, cast_uchar "Set-Cookie",
+		                                   &ch))) {
 			set_cookie(NULL, host, cookie);
 			free(cookie);
 		}
@@ -934,7 +1004,8 @@ again:
 	}
 	if (h == 431) {
 		unsigned char *hs;
-		if (!(info->bl_flags & BL_NO_CHARSET) && (hs = get_host_name(host))) {
+		if (!(info->bl_flags & BL_NO_CHARSET)
+		    && (hs = get_host_name(host))) {
 			free(head);
 			add_blacklist_entry(hs, BL_NO_CHARSET);
 			free(hs);
@@ -945,7 +1016,8 @@ again:
 		}
 	}
 	if ((h == 500 || h == 502 || h == 503 || h == 504)
-	&& http_options.retry_internal_errors && is_connection_restartable(c)) {
+	    && http_options.retry_internal_errors
+	    && is_connection_restartable(c)) {
 		/* !!! FIXME: wait some time ... */
 		if (is_last_try(c)) {
 			unsigned char *h;
@@ -987,16 +1059,18 @@ again:
 	if ((d = parse_http_header(head, cast_uchar "Cache-Control", NULL))) {
 		unsigned char *f = d;
 		while (1) {
-			while (*f && (*f == ' ' || *f == ',')) f++;
+			while (*f && (*f == ' ' || *f == ','))
+				f++;
 			if (!*f)
 				break;
 			if (!casecmp(f, cast_uchar "no-cache", 8)
-			|| !casecmp(f, cast_uchar "must-revalidate", 15))
+			    || !casecmp(f, cast_uchar "must-revalidate", 15))
 				e->expire_time = 1;
 			if (!casecmp(f, cast_uchar "max-age=", 8)) {
 				if (e->expire_time != 1) {
 					errno = 0;
-					EINTRLOOPX(e->expire_time, time(NULL), (time_t)-1);
+					EINTRLOOPX(e->expire_time, time(NULL),
+					           (time_t)-1);
 					e->expire_time += atoi((char *)(f + 8));
 				}
 			}
@@ -1016,24 +1090,29 @@ again:
 	if ((h == 302 || h == 303 || h == 307 || h == 511) && !e->expire_time)
 		e->expire_time = 1;
 	if (h == 301 || h == 302 || h == 303 || h == 307 || h == 308) {
-		if ((d = parse_http_header(e->head, cast_uchar "Location", NULL))) {
+		if ((d = parse_http_header(e->head, cast_uchar "Location",
+		                           NULL))) {
 			unsigned char *user, *ins;
 			unsigned char *newuser, *newpassword;
 			if (!parse_url(d, NULL, &user, NULL, NULL, NULL, &ins,
-				NULL, NULL, NULL, NULL, NULL, NULL)
-			&& !user && ins && (newuser = get_user_name(host))) {
+			               NULL, NULL, NULL, NULL, NULL, NULL)
+			    && !user && ins
+			    && (newuser = get_user_name(host))) {
 				if (*newuser) {
 					int ins_off = (int)(ins - d);
 					newpassword = get_pass(host);
 					if (!newpassword)
-						newpassword = stracpy(cast_uchar "");
+						newpassword =
+						    stracpy(cast_uchar "");
 					add_to_strn(&newuser, cast_uchar ":");
 					add_to_strn(&newuser, newpassword);
 					add_to_strn(&newuser, cast_uchar "@");
 					extend_str(&d, strlen((char *)newuser));
 					ins = d + ins_off;
-					memmove(ins + strlen((char *)newuser), ins, strlen((char *)ins) + 1);
-					memcpy(ins, newuser, strlen((char *)newuser));
+					memmove(ins + strlen((char *)newuser),
+					        ins, strlen((char *)ins) + 1);
+					memcpy(ins, newuser,
+					       strlen((char *)newuser));
 					free(newpassword);
 				}
 				free(newuser);
@@ -1042,7 +1121,8 @@ again:
 			e->redirect = d;
 			if (h == 307 || h == 308) {
 				unsigned char *p;
-				if ((p = cast_uchar strchr(cast_const_char host, POST_CHAR)))
+				if ((p = cast_uchar strchr(cast_const_char host,
+				                           POST_CHAR)))
 					add_to_strn(&e->redirect, p);
 			}
 		}
@@ -1053,7 +1133,8 @@ again:
 	info->length = -1;
 	info->version = version;
 	if ((d = parse_http_header(e->head, cast_uchar "Connection", NULL))
-	|| (d = parse_http_header(e->head, cast_uchar "Proxy-Connection", NULL))) {
+	    || (d = parse_http_header(e->head, cast_uchar "Proxy-Connection",
+	                              NULL))) {
 		if (!casestrcmp(d, cast_uchar "close"))
 			info->close = 1;
 		free(d);
@@ -1061,10 +1142,12 @@ again:
 		info->close = 1;
 	cf = c->from;
 	c->from = 0;
-	if ((d = parse_http_header(e->head, cast_uchar "Content-Range", NULL))) {
+	if ((d = parse_http_header(e->head, cast_uchar "Content-Range",
+	                           NULL))) {
 		if (strlen((char *)d) > 6) {
 			d[5] = 0;
-			if (!(casestrcmp(d, cast_uchar "bytes")) && d[6] >= '0' && d[6] <= '9') {
+			if (!(casestrcmp(d, cast_uchar "bytes")) && d[6] >= '0'
+			    && d[6] <= '9') {
 				long f = strtol((char *)(d + 6), NULL, 10);
 				if (f >= 0 && (off_t)f >= 0 && (off_t)f == f)
 					c->from = f;
@@ -1072,7 +1155,8 @@ again:
 		}
 		free(d);
 	} else if (h == 206) {
-/* Hmm ... some servers send 206 partial but don't send Content-Range */
+		/* Hmm ... some servers send 206 partial but don't send
+		 * Content-Range */
 		c->from = cf;
 	}
 	if (cf && !c->from && !c->unrestartable)
@@ -1082,7 +1166,8 @@ again:
 		abort_connection(c);
 		return;
 	}
-	if ((d = parse_http_header(e->head, cast_uchar "Content-Length", NULL))) {
+	if ((d = parse_http_header(e->head, cast_uchar "Content-Length",
+	                           NULL))) {
 		char *ep;
 		long l = strtol((char *)d, &ep, 10);
 		if (!*ep && l >= 0 && (off_t)l >= 0 && (off_t)l == l) {
@@ -1093,7 +1178,8 @@ again:
 		}
 		free(d);
 	}
-	if ((d = parse_http_header(e->head, cast_uchar "Accept-Ranges", NULL))) {
+	if ((d = parse_http_header(e->head, cast_uchar "Accept-Ranges",
+	                           NULL))) {
 		if (!casestrcmp(d, cast_uchar "none") && !c->unrestartable)
 			c->unrestartable = 1;
 		free(d);
@@ -1101,7 +1187,8 @@ again:
 		c->unrestartable = 1;
 	if (info->bl_flags & BL_NO_RANGE && !c->unrestartable)
 		c->unrestartable = 1;
-	if ((d = parse_http_header(e->head, cast_uchar "Transfer-Encoding", NULL))) {
+	if ((d = parse_http_header(e->head, cast_uchar "Transfer-Encoding",
+	                           NULL))) {
 		if (!casestrcmp(d, cast_uchar "chunked")) {
 			info->length = -2;
 			info->chunk_remaining = -1;
@@ -1110,7 +1197,8 @@ again:
 	}
 	if (!info->close && info->length == -1)
 		info->close = 1;
-	if ((d = parse_http_header(e->head, cast_uchar "Last-Modified", NULL))) {
+	if ((d = parse_http_header(e->head, cast_uchar "Last-Modified",
+	                           NULL))) {
 		if (e->last_modified && casestrcmp(e->last_modified, d)) {
 			delete_entry_content(e);
 			if (c->from) {
@@ -1127,11 +1215,10 @@ again:
 			free(d);
 	}
 	if (!e->last_modified
-	&& (d = parse_http_header(e->head, cast_uchar "Date", NULL)))
+	    && (d = parse_http_header(e->head, cast_uchar "Date", NULL)))
 		e->last_modified = d;
 	if (info->length == -1 || (version < 11 && info->close))
 		rb->close = 1;
-
 
 	/*
 	 * Truncate entry if:
@@ -1140,7 +1227,8 @@ again:
 	 *	- it was http authentication (the user doesn't need to see the
 	 *	  authentication message).
 	 */
-	if ((d = parse_http_header(e->head, cast_uchar "Content-Encoding", NULL))) {
+	if ((d = parse_http_header(e->head, cast_uchar "Content-Encoding",
+	                           NULL))) {
 		free(d);
 		truncate_entry(e, c->from, 0);
 	} else if (previous_http_code == 401 || previous_http_code == 407)
@@ -1154,7 +1242,8 @@ again:
 	read_http_data(c, rb);
 }
 
-static void http_get_header(struct connection *c)
+static void
+http_get_header(struct connection *c)
 {
 	struct read_buffer *rb;
 	set_connection_timeout_keepal(c);

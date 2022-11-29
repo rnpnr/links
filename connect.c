@@ -14,7 +14,8 @@ static void dns_found(void *, int);
 static void try_connect(struct connection *);
 static void handle_socks_reply(void *);
 
-int socket_and_bind(int pf, unsigned char *address)
+int
+socket_and_bind(int pf, unsigned char *address)
 {
 	int rs, s = c_socket(pf, SOCK_STREAM, IPPROTO_TCP);
 
@@ -34,7 +35,8 @@ int socket_and_bind(int pf, unsigned char *address)
 		sa.sin_family = AF_INET;
 		memcpy(&sa.sin_addr.s_addr, addr, 4);
 		sa.sin_port = htons(0);
-		EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
+		EINTRLOOP(rs,
+		          bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
 		if (rs) {
 			int sv_errno = errno;
 			EINTRLOOP(rs, close(s));
@@ -47,7 +49,8 @@ int socket_and_bind(int pf, unsigned char *address)
 		struct sockaddr_in6 sa;
 		unsigned char addr[16];
 		unsigned scope;
-		if (numeric_ipv6_address((char *)address, (char *)addr, &scope) == -1) {
+		if (numeric_ipv6_address((char *)address, (char *)addr, &scope)
+		    == -1) {
 			EINTRLOOP(rs, close(s));
 			errno = EINVAL;
 			return -1;
@@ -57,7 +60,8 @@ int socket_and_bind(int pf, unsigned char *address)
 		memcpy(&sa.sin6_addr, addr, 16);
 		sa.sin6_port = htons(0);
 		sa.sin6_scope_id = scope;
-		EINTRLOOP(rs, bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
+		EINTRLOOP(rs,
+		          bind(s, (struct sockaddr *)(void *)&sa, sizeof sa));
 		if (rs) {
 			int sv_errno = errno;
 			EINTRLOOP(rs, close(s));
@@ -75,10 +79,12 @@ int socket_and_bind(int pf, unsigned char *address)
 	return s;
 }
 
-void close_socket(int *s)
+void
+close_socket(int *s)
 {
 	int rs;
-	if (*s == -1) return;
+	if (*s == -1)
+		return;
 	set_handlers(*s, NULL, NULL, NULL);
 	EINTRLOOP(rs, close(*s));
 	*s = -1;
@@ -95,7 +101,9 @@ struct conn_info {
 	char host[1];
 };
 
-void make_connection(struct connection *c, int port, int *sock, void (*func)(struct connection *))
+void
+make_connection(struct connection *c, int port, int *sock,
+                void (*func)(struct connection *))
 {
 	int socks_port = -1;
 	int as;
@@ -104,17 +112,20 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	struct conn_info *b;
 	if (*c->socks_proxy) {
 		p = strchr(c->socks_proxy, '@');
-		if (p) p++;
-		else p = c->socks_proxy;
+		if (p)
+			p++;
+		else
+			p = c->socks_proxy;
 		host = strdup(p);
 		socks_port = 1080;
 		if ((p = strchr(host, ':'))) {
 			long lp;
 			*p++ = 0;
-			if (!*p) goto badu;
+			if (!*p)
+				goto badu;
 			lp = strtol(p, &p, 10);
 			if (*p || lp <= 0 || lp >= 65536) {
-				badu:
+badu:
 				free(host);
 				setcstate(c, S_BAD_URL);
 				abort_connection(c);
@@ -130,7 +141,8 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 	if (c->newconn)
 		internal("already making a connection");
 	sl = strlen(host);
-	if (sl > INT_MAX - sizeof(struct conn_info)) overalloc();
+	if (sl > INT_MAX - sizeof(struct conn_info))
+		overalloc();
 	b = mem_calloc(sizeof(struct conn_info) + sl);
 	b->func = func;
 	b->sock = sock;
@@ -145,58 +157,62 @@ void make_connection(struct connection *c, int port, int *sock, void (*func)(str
 		dns_found(c, 0);
 		as = 0;
 	} else if (c->no_cache >= NC_RELOAD)
-		as = find_host_no_cache(host, &b->l.addr, &c->dnsquery, dns_found, c);
+		as = find_host_no_cache(host, &b->l.addr, &c->dnsquery,
+		                        dns_found, c);
 	else
 		as = find_host(host, &b->l.addr, &c->dnsquery, dns_found, c);
 	free(host);
-	if (as) setcstate(c, S_DNS);
+	if (as)
+		setcstate(c, S_DNS);
 }
 
-static void ssl_setup_downgrade(struct connection *c)
+static void
+ssl_setup_downgrade(struct connection *c)
 {
 #if !defined(HAVE_NSS)
 	int dd = c->no_tls;
-#ifdef SSL_OP_NO_TLSv1_3
+	#ifdef SSL_OP_NO_TLSv1_3
 	if (dd) {
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_TLSv1_3);
 		dd--;
 	}
-#endif
-#ifdef SSL_OP_NO_TLSv1_2
+	#endif
+	#ifdef SSL_OP_NO_TLSv1_2
 	if (dd) {
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_TLSv1_2);
 		dd--;
 	}
-#endif
-#ifdef SSL_OP_NO_TLSv1_1
+	#endif
+	#ifdef SSL_OP_NO_TLSv1_1
 	if (dd) {
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_TLSv1_1);
 		dd--;
 	}
-#endif
-#ifdef SSL_OP_NO_TLSv1
+	#endif
+	#ifdef SSL_OP_NO_TLSv1
 	if (dd) {
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_TLSv1);
 		dd--;
 	}
-#endif
-#ifdef SSL_MODE_SEND_FALLBACK_SCSV
+	#endif
+	#ifdef SSL_MODE_SEND_FALLBACK_SCSV
 	if (dd != c->no_tls) {
 		SSL_set_mode(c->ssl->ssl, SSL_MODE_SEND_FALLBACK_SCSV);
 	}
-#endif
+	#endif
 	if (SCRUB_HEADERS) {
-#ifdef SSL_OP_NO_SSLv2
+	#ifdef SSL_OP_NO_SSLv2
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_SSLv2);
-#endif
-#ifdef SSL_OP_NO_SSLv3
+	#endif
+	#ifdef SSL_OP_NO_SSLv3
 		SSL_set_options(c->ssl->ssl, SSL_OP_NO_SSLv3);
-#endif
+	#endif
 	}
 #endif
 }
 
-static void ssl_downgrade_dance(struct connection *c)
+static void
+ssl_downgrade_dance(struct connection *c)
 {
 #if !defined(HAVE_NSS)
 	int downgrades = 0;
@@ -205,18 +221,18 @@ static void ssl_downgrade_dance(struct connection *c)
 		retry_connect(c, S_SSL_ERROR, 1);
 		return;
 	}
-#ifdef SSL_OP_NO_TLSv1_3
+	#ifdef SSL_OP_NO_TLSv1_3
 	downgrades++;
-#endif
-#ifdef SSL_OP_NO_TLSv1_2
+	#endif
+	#ifdef SSL_OP_NO_TLSv1_2
 	downgrades++;
-#endif
-#ifdef SSL_OP_NO_TLSv1_1
+	#endif
+	#ifdef SSL_OP_NO_TLSv1_1
 	downgrades++;
-#endif
-#ifdef SSL_OP_NO_TLSv1
+	#endif
+	#ifdef SSL_OP_NO_TLSv1
 	downgrades++;
-#endif
+	#endif
 	if (++c->no_tls <= downgrades) {
 		retry_connect(c, S_SSL_ERROR, 1);
 	} else {
@@ -228,7 +244,8 @@ static void ssl_downgrade_dance(struct connection *c)
 #endif
 }
 
-static void ssl_want_io(void *c_)
+static void
+ssl_want_io(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
@@ -236,21 +253,22 @@ static void ssl_want_io(void *c_)
 	set_connection_timeout(c);
 
 	switch (SSL_get_error(c->ssl->ssl, SSL_connect(c->ssl->ssl))) {
-		case SSL_ERROR_NONE:
-			connected_callback(c);
-			break;
-		case SSL_ERROR_WANT_READ:
-			set_handlers(*b->sock, ssl_want_io, NULL, c);
-			break;
-		case SSL_ERROR_WANT_WRITE:
-			set_handlers(*b->sock, NULL, ssl_want_io, c);
-			break;
-		default:
-			ssl_downgrade_dance(c);
+	case SSL_ERROR_NONE:
+		connected_callback(c);
+		break;
+	case SSL_ERROR_WANT_READ:
+		set_handlers(*b->sock, ssl_want_io, NULL, c);
+		break;
+	case SSL_ERROR_WANT_WRITE:
+		set_handlers(*b->sock, NULL, ssl_want_io, c);
+		break;
+	default:
+		ssl_downgrade_dance(c);
 	}
 }
 
-static void handle_socks(void *c_)
+static void
+handle_socks(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
@@ -265,7 +283,9 @@ static void handle_socks(void *c_)
 	add_chr_to_str(&command, &len, b->l.target_port);
 	add_bytes_to_str(&command, &len, cast_uchar "\000\000\000\001", 4);
 	if (strchr(c->socks_proxy, '@'))
-		add_bytes_to_str(&command, &len, (unsigned char *)c->socks_proxy, strcspn(c->socks_proxy, "@"));
+		add_bytes_to_str(&command, &len,
+		                 (unsigned char *)c->socks_proxy,
+		                 strcspn(c->socks_proxy, "@"));
 	add_chr_to_str(&command, &len, 0);
 	if (!(host = get_host_name(c->url))) {
 		free(command);
@@ -283,7 +303,8 @@ static void handle_socks(void *c_)
 		retry_connection(c);
 		return;
 	}
-	EINTRLOOP(wr, (int)write(*b->sock, command + b->socks_byte_count, len - b->socks_byte_count));
+	EINTRLOOP(wr, (int)write(*b->sock, command + b->socks_byte_count,
+	                         len - b->socks_byte_count));
 	free(command);
 	if (wr <= 0) {
 		setcstate(c, wr ? get_error_from_errno(errno) : S_CANT_WRITE);
@@ -301,63 +322,71 @@ static void handle_socks(void *c_)
 	}
 }
 
-static void handle_socks_reply(void *c_)
+static void
+handle_socks_reply(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
 	int rd;
 	set_connection_timeout(c);
-	EINTRLOOP(rd, (int)read(*b->sock, b->socks_reply + b->socks_byte_count, sizeof b->socks_reply - b->socks_byte_count));
+	EINTRLOOP(rd, (int)read(*b->sock, b->socks_reply + b->socks_byte_count,
+	                        sizeof b->socks_reply - b->socks_byte_count));
 	if (rd <= 0) {
 		setcstate(c, rd ? get_error_from_errno(errno) : S_CANT_READ);
 		retry_connection(c);
 		return;
 	}
 	b->socks_byte_count += rd;
-	if (b->socks_byte_count < (int)sizeof b->socks_reply) return;
+	if (b->socks_byte_count < (int)sizeof b->socks_reply)
+		return;
 	if (b->socks_reply[0]) {
 		setcstate(c, S_BAD_SOCKS_VERSION);
 		abort_connection(c);
 		return;
 	}
 	switch (b->socks_reply[1]) {
-		case 91:
-			setcstate(c, S_SOCKS_REJECTED);
-			retry_connection(c);
-			return;
-		case 92:
-			setcstate(c, S_SOCKS_NO_IDENTD);
-			abort_connection(c);
-			return;
-		case 93:
-			setcstate(c, S_SOCKS_BAD_USERID);
-			abort_connection(c);
-			return;
-		default:
-			setcstate(c, S_SOCKS_UNKNOWN_ERROR);
-			retry_connection(c);
-			return;
-		case 90:
-			break;
+	case 91:
+		setcstate(c, S_SOCKS_REJECTED);
+		retry_connection(c);
+		return;
+	case 92:
+		setcstate(c, S_SOCKS_NO_IDENTD);
+		abort_connection(c);
+		return;
+	case 93:
+		setcstate(c, S_SOCKS_BAD_USERID);
+		abort_connection(c);
+		return;
+	default:
+		setcstate(c, S_SOCKS_UNKNOWN_ERROR);
+		retry_connection(c);
+		return;
+	case 90:
+		break;
 	}
 	connected(c);
 }
 
-static void dns_found(void *c_, int state)
+static void
+dns_found(void *c_, int state)
 {
 	struct connection *c = (struct connection *)c_;
 	if (state) {
-		setcstate(c, *c->socks_proxy || is_proxy_url(c->url) ? S_NO_PROXY_DNS : S_NO_DNS);
+		setcstate(c, *c->socks_proxy || is_proxy_url(c->url)
+		                 ? S_NO_PROXY_DNS
+		                 : S_NO_DNS);
 		abort_connection(c);
 		return;
 	}
 	try_connect(c);
 }
 
-void retry_connect(struct connection *c, int err, int ssl_downgrade)
+void
+retry_connect(struct connection *c, int err, int ssl_downgrade)
 {
 	struct conn_info *b = c->newconn;
-	if (!b->l.addr_index) b->first_error = err;
+	if (!b->l.addr_index)
+		b->first_error = err;
 	freeSSL(c->ssl);
 	c->ssl = NULL;
 	if (ssl_downgrade) {
@@ -381,7 +410,8 @@ void retry_connect(struct connection *c, int err, int ssl_downgrade)
 	}
 }
 
-static void try_connect(struct connection *c)
+static void
+try_connect(struct connection *c)
 {
 	int s;
 	int rs;
@@ -412,7 +442,8 @@ static void try_connect(struct connection *c)
 		sa.sin_family = AF_INET;
 		memcpy(&sa.sin_addr.s_addr, addr->addr, 4);
 		sa.sin_port = htons(p);
-		EINTRLOOP(rs, connect(s, (struct sockaddr *)(void *)&sa, sizeof sa));
+		EINTRLOOP(
+		    rs, connect(s, (struct sockaddr *)(void *)&sa, sizeof sa));
 	} else if (addr->af == AF_INET6) {
 		struct sockaddr_in6 sa;
 		memset(&sa, 0, sizeof sa);
@@ -420,7 +451,8 @@ static void try_connect(struct connection *c)
 		memcpy(&sa.sin6_addr, addr->addr, 16);
 		sa.sin6_scope_id = addr->scope_id;
 		sa.sin6_port = htons(p);
-		EINTRLOOP(rs, connect(s, (struct sockaddr *)(void *)&sa, sizeof sa));
+		EINTRLOOP(
+		    rs, connect(s, (struct sockaddr *)(void *)&sa, sizeof sa));
 	} else {
 		rs = -1;
 		errno = EINVAL;
@@ -433,7 +465,8 @@ static void try_connect(struct connection *c)
 		set_handlers(s, NULL, connected, c);
 		setcstate(c, !b->l.addr_index ? S_CONN : S_CONN_ANOTHER);
 #if MAX_ADDRESSES > 1
-		if (b->l.addr.n > 1 && (is_connection_restartable(c) || max_tries == 1)) {
+		if (b->l.addr.n > 1
+		    && (is_connection_restartable(c) || max_tries == 1)) {
 			set_connection_timeout(c);
 		}
 #endif
@@ -442,7 +475,9 @@ static void try_connect(struct connection *c)
 	}
 }
 
-void continue_connection(struct connection *c, int *sock, void (*func)(struct connection *))
+void
+continue_connection(struct connection *c, int *sock,
+                    void (*func)(struct connection *))
 {
 	struct conn_info *b;
 	if (c->newconn)
@@ -456,7 +491,8 @@ void continue_connection(struct connection *c, int *sock, void (*func)(struct co
 	connected(c);
 }
 
-static void connected(void *c_)
+static void
+connected(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
@@ -468,9 +504,11 @@ static void connected(void *c_)
 	clear_connection_timeout(c);
 #ifdef SO_ERROR
 	errno = 0;
-	EINTRLOOP(rs, getsockopt(*b->sock, SOL_SOCKET, SO_ERROR, (void *)&err, &len));
+	EINTRLOOP(
+	    rs, getsockopt(*b->sock, SOL_SOCKET, SO_ERROR, (void *)&err, &len));
 	if (!rs) {
-		if (err >= 10000) err -= 10000;	/* Why does EMX return so large values? */
+		if (err >= 10000)
+			err -= 10000; /* Why does EMX return so large values? */
 	} else {
 		if (!(err = errno)) {
 			retry_connect(c, S_STATE, 0);
@@ -478,10 +516,10 @@ static void connected(void *c_)
 		}
 	}
 	if (err > 0
-#ifdef EISCONN
+	#ifdef EISCONN
 	    && err != EISCONN
-#endif
-	    ) {
+	#endif
+	) {
 		retry_connect(c, get_error_from_errno(err), 0);
 		return;
 	}
@@ -506,7 +544,8 @@ static void connected(void *c_)
 		if (!proxies.only_proxies && !c->no_ssl_session) {
 			unsigned char *h = get_host_name(orig_url);
 			int p = get_port(orig_url);
-			SSL_SESSION *ses = get_session_cache_entry(c->ssl->ctx, h, p);
+			SSL_SESSION *ses =
+			    get_session_cache_entry(c->ssl->ctx, h, p);
 			if (ses) {
 				if (SSL_set_session(c->ssl->ssl, ses) == 1)
 					c->ssl->session_set = 1;
@@ -516,10 +555,16 @@ static void connected(void *c_)
 #if !defined(OPENSSL_NO_STDIO)
 		if (!proxies.only_proxies) {
 			if (ssl_options.client_cert_key[0]) {
-				SSL_use_PrivateKey_file(c->ssl->ssl, cast_const_char ssl_options.client_cert_key, SSL_FILETYPE_PEM);
+				SSL_use_PrivateKey_file(
+				    c->ssl->ssl,
+				    cast_const_char ssl_options.client_cert_key,
+				    SSL_FILETYPE_PEM);
 			}
 			if (ssl_options.client_cert_crt[0]) {
-				SSL_use_certificate_file(c->ssl->ssl, cast_const_char ssl_options.client_cert_crt, SSL_FILETYPE_PEM);
+				SSL_use_certificate_file(
+				    c->ssl->ssl,
+				    cast_const_char ssl_options.client_cert_crt,
+				    SSL_FILETYPE_PEM);
 			}
 		}
 #endif
@@ -527,33 +572,34 @@ static void connected(void *c_)
 		ssl_setup_downgrade(c);
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 		if (h[0] == '[' || !numeric_ip_address((char *)h, NULL)
-		    || !numeric_ipv6_address((char *)h, NULL, NULL)
-		    ) goto skip_numeric_address;
+		    || !numeric_ipv6_address((char *)h, NULL, NULL))
+			goto skip_numeric_address;
 		SSL_set_tlsext_host_name(c->ssl->ssl, h);
 skip_numeric_address:
 #endif
 		free(h);
 		switch (SSL_get_error(c->ssl->ssl, SSL_connect(c->ssl->ssl))) {
-			case SSL_ERROR_WANT_READ:
-				setcstate(c, S_SSL_NEG);
-				set_handlers(*b->sock, ssl_want_io, NULL, c);
-				return;
-			case SSL_ERROR_WANT_WRITE:
-				setcstate(c, S_SSL_NEG);
-				set_handlers(*b->sock, NULL, ssl_want_io, c);
-				return;
-			case SSL_ERROR_NONE:
-				break;
-			default:
- ssl_error:
-				ssl_downgrade_dance(c);
-				return;
+		case SSL_ERROR_WANT_READ:
+			setcstate(c, S_SSL_NEG);
+			set_handlers(*b->sock, ssl_want_io, NULL, c);
+			return;
+		case SSL_ERROR_WANT_WRITE:
+			setcstate(c, S_SSL_NEG);
+			set_handlers(*b->sock, NULL, ssl_want_io, c);
+			return;
+		case SSL_ERROR_NONE:
+			break;
+		default:
+ssl_error:
+			ssl_downgrade_dance(c);
+			return;
 		}
 	}
 	connected_callback(c);
 }
 
-static void update_dns_priority(struct connection *c)
+static void
+update_dns_priority(struct connection *c)
 {
 #if MAX_ADDRESSES > 1
 	struct conn_info *b = c->newconn;
@@ -569,17 +615,21 @@ static void update_dns_priority(struct connection *c)
 #endif
 }
 
-static void connected_callback(struct connection *c)
+static void
+connected_callback(struct connection *c)
 {
 	int flags;
 	struct conn_info *b = c->newconn;
 	update_dns_priority(c);
 	if (c->ssl) {
-		if (ssl_options.certificates != SSL_ACCEPT_INVALID_CERTIFICATE) {
-			unsigned char *h = get_host_name(remove_proxy_prefix(c->url));
+		if (ssl_options.certificates
+		    != SSL_ACCEPT_INVALID_CERTIFICATE) {
+			unsigned char *h =
+			    get_host_name(remove_proxy_prefix(c->url));
 			int err = verify_ssl_certificate(c->ssl, h);
 			if (err) {
-				if (ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
+				if (ssl_options.certificates
+				    == SSL_WARN_ON_INVALID_CERTIFICATE) {
 					flags = get_blacklist_flags(h);
 					if (flags & BL_IGNORE_CERTIFICATE)
 						goto ignore_cert;
@@ -589,10 +639,11 @@ static void connected_callback(struct connection *c)
 				abort_connection(c);
 				return;
 			}
-			ignore_cert:
+ignore_cert:
 
 			if (c->no_tls) {
-				if (ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
+				if (ssl_options.certificates
+				    == SSL_WARN_ON_INVALID_CERTIFICATE) {
 					flags = get_blacklist_flags(h);
 					if (flags & BL_IGNORE_DOWNGRADE)
 						goto ignore_downgrade;
@@ -602,11 +653,12 @@ static void connected_callback(struct connection *c)
 				abort_connection(c);
 				return;
 			}
-			ignore_downgrade:
+ignore_downgrade:
 
 			err = verify_ssl_cipher(c->ssl);
 			if (err) {
-				if (ssl_options.certificates == SSL_WARN_ON_INVALID_CERTIFICATE) {
+				if (ssl_options.certificates
+				    == SSL_WARN_ON_INVALID_CERTIFICATE) {
 					flags = get_blacklist_flags(h);
 					if (flags & BL_IGNORE_CIPHER)
 						goto ignore_cipher;
@@ -616,7 +668,7 @@ static void connected_callback(struct connection *c)
 				abort_connection(c);
 				return;
 			}
-			ignore_cipher:
+ignore_cipher:
 
 			free(h);
 		}
@@ -636,7 +688,8 @@ struct write_buffer {
 	unsigned char data[1];
 };
 
-static void write_select(void *c_)
+static void
+write_select(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	struct write_buffer *wb;
@@ -654,7 +707,9 @@ static void write_select(void *c_)
 
 	if (c->ssl) {
 		set_handlers(wb->sock, NULL, write_select, c);
-		if ((wr = SSL_write(c->ssl->ssl, (void *)(wb->data + wb->pos), wb->len - wb->pos)) <= 0) {
+		if ((wr = SSL_write(c->ssl->ssl, (void *)(wb->data + wb->pos),
+		                    wb->len - wb->pos))
+		    <= 0) {
 			int err;
 			err = SSL_get_error(c->ssl->ssl, wr);
 			if (err == SSL_ERROR_WANT_WRITE) {
@@ -664,16 +719,23 @@ static void write_select(void *c_)
 				set_handlers(wb->sock, write_select, NULL, c);
 				return;
 			}
-			setcstate(c, wr ? (err == SSL_ERROR_SYSCALL ? get_error_from_errno(errno) : S_SSL_ERROR) : S_CANT_WRITE);
-			if (!wr || err == SSL_ERROR_SYSCALL) retry_connection(c);
-			else abort_connection(c);
+			setcstate(c, wr ? (err == SSL_ERROR_SYSCALL
+			                       ? get_error_from_errno(errno)
+			                       : S_SSL_ERROR)
+			                : S_CANT_WRITE);
+			if (!wr || err == SSL_ERROR_SYSCALL)
+				retry_connection(c);
+			else
+				abort_connection(c);
 			return;
 		}
 		c->ssl->bytes_written += wr;
 	} else {
-		EINTRLOOP(wr, (int)write(wb->sock, wb->data + wb->pos, wb->len - wb->pos));
+		EINTRLOOP(wr, (int)write(wb->sock, wb->data + wb->pos,
+		                         wb->len - wb->pos));
 		if (wr <= 0) {
-			setcstate(c, wr ? get_error_from_errno(errno) : S_CANT_WRITE);
+			setcstate(c, wr ? get_error_from_errno(errno)
+			                : S_CANT_WRITE);
 			retry_connection(c);
 			return;
 		}
@@ -688,10 +750,13 @@ static void write_select(void *c_)
 	}
 }
 
-void write_to_socket(struct connection *c, int s, unsigned char *data, int len, void (*write_func)(struct connection *))
+void
+write_to_socket(struct connection *c, int s, unsigned char *data, int len,
+                void (*write_func)(struct connection *))
 {
 	struct write_buffer *wb;
-	if ((unsigned)len > INT_MAX - sizeof(struct write_buffer)) overalloc();
+	if ((unsigned)len > INT_MAX - sizeof(struct write_buffer))
+		overalloc();
 	wb = xmalloc(sizeof(struct write_buffer) + len);
 	wb->sock = s;
 	wb->len = len;
@@ -703,10 +768,11 @@ void write_to_socket(struct connection *c, int s, unsigned char *data, int len, 
 	set_handlers(s, NULL, write_select, c);
 }
 
-#define READ_SIZE	64240
-#define TOTAL_READ	(4193008 - READ_SIZE)
+#define READ_SIZE  64240
+#define TOTAL_READ (4193008 - READ_SIZE)
 
-static void read_select(void *c_)
+static void
+read_select(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	int total_read = 0;
@@ -721,15 +787,19 @@ static void read_select(void *c_)
 	set_handlers(rb->sock, NULL, NULL, NULL);
 
 read_more:
-	if ((unsigned)rb->len > INT_MAX - sizeof(struct read_buffer) - READ_SIZE)
+	if ((unsigned)rb->len
+	    > INT_MAX - sizeof(struct read_buffer) - READ_SIZE)
 		overalloc();
 	rb = xrealloc(rb, sizeof(struct read_buffer) + rb->len + READ_SIZE);
 	c->buffer = rb;
 
 	if (c->ssl) {
-		if ((rd = SSL_read(c->ssl->ssl, (void *)(rb->data + rb->len), READ_SIZE)) <= 0) {
+		if ((rd = SSL_read(c->ssl->ssl, (void *)(rb->data + rb->len),
+		                   READ_SIZE))
+		    <= 0) {
 			int err;
-			if (total_read) goto success;
+			if (total_read)
+				goto success;
 			err = SSL_get_error(c->ssl->ssl, rd);
 			if (err == SSL_ERROR_WANT_READ) {
 				set_handlers(rb->sock, read_select, NULL, c);
@@ -744,22 +814,30 @@ read_more:
 				rb->done(c, rb);
 				return;
 			}
-			setcstate(c, rd ? (err == SSL_ERROR_SYSCALL ? get_error_from_errno(errno) : S_SSL_ERROR) : S_CANT_READ);
-			if (!rd || err == SSL_ERROR_SYSCALL) retry_connection(c);
-			else abort_connection(c);
+			setcstate(c, rd ? (err == SSL_ERROR_SYSCALL
+			                       ? get_error_from_errno(errno)
+			                       : S_SSL_ERROR)
+			                : S_CANT_READ);
+			if (!rd || err == SSL_ERROR_SYSCALL)
+				retry_connection(c);
+			else
+				abort_connection(c);
 			return;
 		}
 		c->ssl->bytes_read += rd;
 	} else {
-		EINTRLOOP(rd, (int)read(rb->sock, rb->data + rb->len, READ_SIZE));
+		EINTRLOOP(rd,
+		          (int)read(rb->sock, rb->data + rb->len, READ_SIZE));
 		if (rd <= 0) {
-			if (total_read) goto success;
+			if (total_read)
+				goto success;
 			if (rb->close && !rd) {
 				rb->close = 2;
 				rb->done(c, rb);
 				return;
 			}
-			setcstate(c, rd ? get_error_from_errno(errno) : S_CANT_READ);
+			setcstate(c, rd ? get_error_from_errno(errno)
+			                : S_CANT_READ);
 			retry_connection(c);
 			return;
 		}
@@ -776,7 +854,8 @@ success:
 	rb->done(c, rb);
 }
 
-struct read_buffer *alloc_read_buffer(void)
+struct read_buffer *
+alloc_read_buffer(void)
 {
 	struct read_buffer *rb;
 	rb = xmalloc(sizeof(struct read_buffer) + READ_SIZE);
@@ -784,7 +863,9 @@ struct read_buffer *alloc_read_buffer(void)
 	return rb;
 }
 
-void read_from_socket(struct connection *c, int s, struct read_buffer *buf, void (*read_func)(struct connection *, struct read_buffer *))
+void
+read_from_socket(struct connection *c, int s, struct read_buffer *buf,
+                 void (*read_func)(struct connection *, struct read_buffer *))
 {
 	buf->done = read_func;
 	buf->sock = s;
@@ -794,7 +875,8 @@ void read_from_socket(struct connection *c, int s, struct read_buffer *buf, void
 	set_handlers(s, read_select, NULL, c);
 }
 
-void kill_buffer_data(struct read_buffer *rb, int n)
+void
+kill_buffer_data(struct read_buffer *rb, int n)
 {
 	if (n > rb->len || n < 0) {
 		internal("called kill_buffer_data with bad value");

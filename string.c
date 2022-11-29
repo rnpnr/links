@@ -7,10 +7,12 @@
 
 #include "links.h"
 
-int snprint(unsigned char *s, int n, int num)
+int
+snprint(unsigned char *s, int n, int num)
 {
 	int q = 1;
-	while (q <= num / 10) q *= 10;
+	while (q <= num / 10)
+		q *= 10;
 	while (n-- > 1 && q) {
 		*(s++) = (unsigned char)(num / q + '0');
 		num %= q;
@@ -20,7 +22,8 @@ int snprint(unsigned char *s, int n, int num)
 	return !!q;
 }
 
-int snzprint(unsigned char *s, int n, off_t num)
+int
+snzprint(unsigned char *s, int n, off_t num)
 {
 	off_t q = 1;
 	if (n > 1 && num < 0) {
@@ -28,7 +31,8 @@ int snzprint(unsigned char *s, int n, off_t num)
 		num = -num;
 		n--;
 	}
-	while (q <= num / 10) q *= 10;
+	while (q <= num / 10)
+		q *= 10;
 	while (n-- > 1 && q) {
 		*(s++) = (unsigned char)(num / q + '0');
 		num %= q;
@@ -38,10 +42,11 @@ int snzprint(unsigned char *s, int n, off_t num)
 	return !!q;
 }
 
-void add_to_strn(unsigned char **s, unsigned char *a)
+void
+add_to_strn(unsigned char **s, unsigned char *a)
 {
 	unsigned char *p;
-	size_t l1 = strlen(cast_const_char *s), l2 = strlen(cast_const_char a);
+	size_t l1 = strlen(cast_const_char * s), l2 = strlen(cast_const_char a);
 	if (((l1 | l2) | (l1 + l2 + 1)) > INT_MAX)
 		overalloc();
 	p = xrealloc(*s, l1 + l2 + 1);
@@ -49,15 +54,17 @@ void add_to_strn(unsigned char **s, unsigned char *a)
 	*s = p;
 }
 
-void extend_str(unsigned char **s, int n)
+void
+extend_str(unsigned char **s, int n)
 {
-	size_t l = strlen(cast_const_char *s);
+	size_t l = strlen(cast_const_char * s);
 	if (((l | n) | (l + n + 1)) > INT_MAX)
 		overalloc();
 	*s = xrealloc(*s, l + n + 1);
 }
 
-void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
+void
+add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 {
 	unsigned char *p;
 	size_t old_length;
@@ -69,7 +76,8 @@ void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 
 	p = *s;
 	old_length = (unsigned)*l;
-	if (ll + old_length >= (unsigned)INT_MAX / 2 || ll + old_length < ll) overalloc();
+	if (ll + old_length >= (unsigned)INT_MAX / 2 || ll + old_length < ll)
+		overalloc();
 	new_length = old_length + ll;
 	*l = (int)new_length;
 	x = old_length ^ new_length;
@@ -90,24 +98,28 @@ void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 	memcpy(p + old_length, a, ll);
 }
 
-void add_to_str(unsigned char **s, int *l, unsigned char *a)
+void
+add_to_str(unsigned char **s, int *l, unsigned char *a)
 {
 	add_bytes_to_str(s, l, a, strlen(cast_const_char a));
 }
 
-void add_chr_to_str(unsigned char **s, int *l, unsigned char a)
+void
+add_chr_to_str(unsigned char **s, int *l, unsigned char a)
 {
 	add_bytes_to_str(s, l, &a, 1);
 }
 
-void add_unsigned_long_num_to_str(unsigned char **s, int *l, unsigned long n)
+void
+add_unsigned_long_num_to_str(unsigned char **s, int *l, unsigned long n)
 {
 	unsigned char a[64];
 	snprint(a, 64, n);
 	add_to_str(s, l, a);
 }
 
-void add_num_to_str(unsigned char **s, int *l, off_t n)
+void
+add_num_to_str(unsigned char **s, int *l, off_t n)
 {
 	unsigned char a[64];
 	if (n >= 0 && n < 1000) {
@@ -119,7 +131,7 @@ void add_num_to_str(unsigned char **s, int *l, off_t n)
 			goto d10;
 		}
 		if (sn >= 10) {
-			d10:
+d10:
 			*p++ = '0' + sn / 10;
 			sn %= 10;
 		}
@@ -131,7 +143,8 @@ void add_num_to_str(unsigned char **s, int *l, off_t n)
 	}
 }
 
-void add_knum_to_str(unsigned char **s, int *l, off_t n)
+void
+add_knum_to_str(unsigned char **s, int *l, off_t n)
 {
 	unsigned char a[13];
 	if (n && n / (1024 * 1024) * (1024 * 1024) == n) {
@@ -147,37 +160,46 @@ void add_knum_to_str(unsigned char **s, int *l, off_t n)
 	add_to_str(s, l, a);
 }
 
-long strtolx(unsigned char *c, unsigned char **end)
+long
+strtolx(unsigned char *c, unsigned char **end)
 {
 	char *end_c;
 	long l;
-	if (c[0] == '0' && upcase(c[1]) == 'X' && c[2]) l = strtol(cast_const_char(c + 2), &end_c, 16);
-	else l = strtol(cast_const_char c, &end_c, 10);
+	if (c[0] == '0' && upcase(c[1]) == 'X' && c[2])
+		l = strtol(cast_const_char(c + 2), &end_c, 16);
+	else
+		l = strtol(cast_const_char c, &end_c, 10);
 	*end = cast_uchar end_c;
 	if (upcase(**end) == 'K') {
 		(*end)++;
-		if (l < -INT_MAX / 1024) return -INT_MAX;
-		if (l > INT_MAX / 1024) return INT_MAX;
+		if (l < -INT_MAX / 1024)
+			return -INT_MAX;
+		if (l > INT_MAX / 1024)
+			return INT_MAX;
 		return l * 1024;
 	}
 	if (upcase(**end) == 'M') {
 		(*end)++;
-		if (l < -INT_MAX / (1024 * 1024)) return -INT_MAX;
-		if (l > INT_MAX / (1024 * 1024)) return INT_MAX;
+		if (l < -INT_MAX / (1024 * 1024))
+			return -INT_MAX;
+		if (l > INT_MAX / (1024 * 1024))
+			return INT_MAX;
 		return l * (1024 * 1024);
 	}
 	return l;
 }
 
 /* Copies at most dst_size chars into dst. Ensures null termination of dst. */
-void safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size)
+void
+safe_strncpy(unsigned char *dst, const unsigned char *src, size_t dst_size)
 {
 	dst[dst_size - 1] = 0;
 	strncpy(cast_char dst, cast_const_char src, dst_size - 1);
 }
 
 /* don't use strcasecmp because it depends on locale */
-int casestrcmp(const unsigned char *s1, const unsigned char *s2)
+int
+casestrcmp(const unsigned char *s1, const unsigned char *s2)
 {
 	while (1) {
 		unsigned char c1 = *s1;
@@ -187,7 +209,8 @@ int casestrcmp(const unsigned char *s1, const unsigned char *s2)
 		if (c1 != c2) {
 			return (int)c1 - (int)c2;
 		}
-		if (!*s1) break;
+		if (!*s1)
+			break;
 		s1++;
 		s2++;
 	}
@@ -197,35 +220,36 @@ int casestrcmp(const unsigned char *s1, const unsigned char *s2)
 /* case insensitive compare of 2 strings */
 /* comparison ends after len (or less) characters */
 /* return value: 1=strings differ, 0=strings are same */
-int casecmp(const unsigned char *c1, const unsigned char *c2, size_t len)
+int
+casecmp(const unsigned char *c1, const unsigned char *c2, size_t len)
 {
 	size_t i;
-	for (i = 0; i < len; i++) if (srch_cmp(c1[i], c2[i])) return 1;
+	for (i = 0; i < len; i++)
+		if (srch_cmp(c1[i], c2[i]))
+			return 1;
 	return 0;
 }
 
-int casestrstr(const unsigned char *h, const unsigned char *n)
+int
+casestrstr(const unsigned char *h, const unsigned char *n)
 {
 	const unsigned char *p;
 
-	for (p=h;*p;p++)
-	{
-		if (!srch_cmp(*p,*n))  /* same */
+	for (p = h; *p; p++) {
+		if (!srch_cmp(*p, *n)) /* same */
 		{
 			const unsigned char *q, *r;
-			for (q=n, r=p;*r&&*q;)
-			{
-				if (!srch_cmp(*q,*r)) {
+			for (q = n, r = p; *r && *q;) {
+				if (!srch_cmp(*q, *r)) {
 					r++;
-					q++;    /* same */
+					q++; /* same */
 				} else
 					break;
 			}
-			if (!*q) return 1;
+			if (!*q)
+				return 1;
 		}
 	}
 
 	return 0;
 }
-
-

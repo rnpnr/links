@@ -9,13 +9,13 @@
 #include "links.h"
 
 #if defined(evtimer_set) && !defined(timeout_set)
-#define timeout_set	evtimer_set
+	#define timeout_set evtimer_set
 #endif
 #if defined(evtimer_add) && !defined(timeout_add)
-#define timeout_add	evtimer_add
+	#define timeout_add evtimer_add
 #endif
 #if defined(evtimer_del) && !defined(timeout_del)
-#define timeout_del	evtimer_del
+	#define timeout_del evtimer_del
 #endif
 
 struct thread {
@@ -38,16 +38,15 @@ static fd_set x_write;
 static int w_max;
 
 struct timer {
-	list_entry_1st
-	uttime interval;
+	list_entry_1st uttime interval;
 	void (*func)(void *);
 	void *data;
 };
 
 static struct list_head timers = { &timers, &timers };
 
-
-void portable_sleep(unsigned msec)
+void
+portable_sleep(unsigned msec)
 {
 	struct timeval tv;
 	int rs;
@@ -58,7 +57,8 @@ void portable_sleep(unsigned msec)
 	unblock_signals();
 }
 
-static int can_do_io(int fd, int wr, int sec)
+static int
+can_do_io(int fd, int wr, int sec)
 {
 	fd_set fds;
 	struct timeval tv, *tvp;
@@ -72,13 +72,14 @@ static int can_do_io(int fd, int wr, int sec)
 	p.events = !wr ? POLLIN : POLLOUT;
 	EINTRLOOP(rs, poll(&p, 1, sec < 0 ? -1 : sec * 1000));
 	if (rs < 0)
-		die("poll for %s (%d) failed: %s", !wr ? "read" : "write", fd, strerror(errno));
+		die("poll for %s (%d) failed: %s", !wr ? "read" : "write", fd,
+		    strerror(errno));
 	if (!rs)
 		return 0;
 	if (p.revents & POLLNVAL)
 		goto fallback;
 	return 1;
- fallback:
+fallback:
 	if (sec >= 0) {
 		tv.tv_sec = sec;
 		tv.tv_usec = 0;
@@ -94,27 +95,31 @@ static int can_do_io(int fd, int wr, int sec)
 	else
 		EINTRLOOP(rs, select(fd + 1, NULL, &fds, NULL, tvp));
 	if (rs < 0)
-		die("select for %s (%d) failed: %s\n", !wr ? "read" : "write", fd, strerror(errno));
+		die("select for %s (%d) failed: %s\n", !wr ? "read" : "write",
+		    fd, strerror(errno));
 	return rs;
 }
 
-int can_write(int fd)
+int
+can_write(int fd)
 {
 	return can_do_io(fd, 1, 0);
 }
 
-int can_read_timeout(int fd, int sec)
+int
+can_read_timeout(int fd, int sec)
 {
 	return can_do_io(fd, 0, sec);
 }
 
-int can_read(int fd)
+int
+can_read(int fd)
 {
 	return can_do_io(fd, 0, 0);
 }
 
-
-int close_stderr(void)
+int
+close_stderr(void)
 {
 	int n, h, rs;
 	fflush(stderr);
@@ -138,7 +143,8 @@ fail1:
 	return -1;
 }
 
-void restore_stderr(int h)
+void
+restore_stderr(int h)
 {
 	int rs;
 	fflush(stderr);
@@ -148,8 +154,8 @@ void restore_stderr(int h)
 	EINTRLOOP(rs, close(h));
 }
 
-
-unsigned long select_info(int type)
+unsigned long
+select_info(int type)
 {
 	int i, j;
 	switch (type) {
@@ -168,18 +174,18 @@ unsigned long select_info(int type)
 }
 
 struct bottom_half {
-	list_entry_1st
-	void (*fn)(void *);
+	list_entry_1st void (*fn)(void *);
 	void *data;
 };
 
 static struct list_head bottom_halves = { &bottom_halves, &bottom_halves };
 
-void register_bottom_half(void (*fn)(void *), void *data)
+void
+register_bottom_half(void (*fn)(void *), void *data)
 {
 	struct bottom_half *bh = NULL;
 	struct list_head *lbh;
-	foreach(struct bottom_half, bh, lbh, bottom_halves)
+	foreach (struct bottom_half, bh, lbh, bottom_halves)
 		if (bh->fn == fn && bh->data == data)
 			return;
 	bh = xmalloc(sizeof(struct bottom_half));
@@ -188,11 +194,12 @@ void register_bottom_half(void (*fn)(void *), void *data)
 	add_to_list(bottom_halves, bh);
 }
 
-void unregister_bottom_half(void (*fn)(void *), void *data)
+void
+unregister_bottom_half(void (*fn)(void *), void *data)
 {
 	struct bottom_half *bh = NULL;
 	struct list_head *lbh;
-	foreach(struct bottom_half, bh, lbh, bottom_halves)
+	foreach (struct bottom_half, bh, lbh, bottom_halves)
 		if (bh->fn == fn && bh->data == data) {
 			del_from_list(bh);
 			free(bh);
@@ -200,30 +207,33 @@ void unregister_bottom_half(void (*fn)(void *), void *data)
 		}
 }
 
-void check_bottom_halves(void)
+void
+check_bottom_halves(void)
 {
 	struct bottom_half *bh;
 	void (*fn)(void *);
 	void *data;
-	rep:
-	if (list_empty(bottom_halves)) return;
+rep:
+	if (list_empty(bottom_halves))
+		return;
 	bh = list_struct(bottom_halves.prev, struct bottom_half);
 	fn = bh->fn;
 	data = bh->data;
 	del_from_list(bh);
 	free(bh);
-	pr(fn(data)) {
-	};
+	pr(fn(data)){};
 	goto rep;
 }
 
-#define CHK_BH if (!list_empty(bottom_halves)) check_bottom_halves()
+#define CHK_BH                                                                 \
+	if (!list_empty(bottom_halves))                                        \
+	check_bottom_halves()
 
-
-static void restrict_fds(void)
+static void
+restrict_fds(void)
 {
 #if defined(RLIMIT_OFILE) && !defined(RLIMIT_NOFILE)
-#define RLIMIT_NOFILE RLIMIT_OFILE
+	#define RLIMIT_NOFILE RLIMIT_OFILE
 #endif
 #if defined(RLIMIT_NOFILE)
 	struct rlimit limit;
@@ -245,26 +255,29 @@ int sh_line;
 static int event_enabled = 0;
 
 #ifndef HAVE_EVENT_GET_STRUCT_EVENT_SIZE
-#define sizeof_struct_event		sizeof(struct event)
+	#define sizeof_struct_event sizeof(struct event)
 #else
-#define sizeof_struct_event		(event_get_struct_event_size())
+	#define sizeof_struct_event (event_get_struct_event_size())
 #endif
 
-static inline struct event *timer_event(struct timer *tm)
+static inline struct event *
+timer_event(struct timer *tm)
 {
 	return (struct event *)((unsigned char *)tm - sizeof_struct_event);
 }
 
 static struct event_base *event_base;
 
-static void event_callback(int h, short ev, void *data)
+static void
+event_callback(int h, short ev, void *data)
 {
 #ifndef EV_PERSIST
 	if (event_add((struct event *)data, NULL) == -1)
 		die("event_add: %s\n", strerror(errno));
 #endif
 	if (!(ev & EV_READ) == !(ev & EV_WRITE))
-		die("event_callback: invalid flags %d on handle %d\n", (int)ev, h);
+		die("event_callback: invalid flags %d on handle %d\n", (int)ev,
+		    h);
 	if (ev & EV_READ) {
 #if defined(HAVE_LIBEV)
 		/* Old versions of libev badly interact with fork and fire
@@ -272,7 +285,9 @@ static void event_callback(int h, short ev, void *data)
 		if (ev_version_major() < 4 && !can_read(h))
 			return;
 #endif
-		pr(threads[h].read_func(threads[h].data)) { }
+		pr(threads[h].read_func(threads[h].data))
+		{
+		}
 	} else {
 #if defined(HAVE_LIBEV)
 		/* Old versions of libev badly interact with fork and fire
@@ -280,20 +295,27 @@ static void event_callback(int h, short ev, void *data)
 		if (ev_version_major() < 4 && !can_write(h))
 			return;
 #endif
-		pr(threads[h].write_func(threads[h].data)) { }
+		pr(threads[h].write_func(threads[h].data))
+		{
+		}
 	}
 	CHK_BH;
 }
 
-static void timer_callback(int h, short ev, void *data)
+static void
+timer_callback(int h, short ev, void *data)
 {
 	struct timer *tm = data;
-	pr(tm->func(tm->data)) { }
+	pr(tm->func(tm->data))
+	{
+	}
 	kill_timer(tm);
 	CHK_BH;
 }
 
-static void set_event_for_action(int h, void (*func)(void *), struct event **evptr, short evtype)
+static void
+set_event_for_action(int h, void (*func)(void *), struct event **evptr,
+                     short evtype)
 {
 	if (func) {
 		if (!*evptr) {
@@ -303,25 +325,32 @@ static void set_event_for_action(int h, void (*func)(void *), struct event **evp
 			*evptr = xmalloc(sizeof_struct_event);
 			event_set(*evptr, h, evtype, event_callback, *evptr);
 			if (event_base_set(event_base, *evptr) == -1)
-				die("event_base_set: %s at %s:%d, handle %d\n", strerror(errno), sh_file, sh_line, h);
+				die("event_base_set: %s at %s:%d, handle %d\n",
+				    strerror(errno), sh_file, sh_line, h);
 		}
 		if (event_add(*evptr, NULL) == -1)
-			die("event_add: %s at %s:%d, handle %d\n", strerror(errno), sh_file, sh_line, h);
+			die("event_add: %s at %s:%d, handle %d\n",
+			    strerror(errno), sh_file, sh_line, h);
 	} else {
 		if (*evptr) {
 			if (event_del(*evptr) == -1)
-				die("event_del: %s at %s:%d, handle %d\n", strerror(errno), sh_file, sh_line, h);
+				die("event_del: %s at %s:%d, handle %d\n",
+				    strerror(errno), sh_file, sh_line, h);
 		}
 	}
 }
 
-static void set_events_for_handle(int h)
+static void
+set_events_for_handle(int h)
 {
-	set_event_for_action(h, threads[h].read_func, &threads[h].read_event, EV_READ);
-	set_event_for_action(h, threads[h].write_func, &threads[h].write_event, EV_WRITE);
+	set_event_for_action(h, threads[h].read_func, &threads[h].read_event,
+	                     EV_READ);
+	set_event_for_action(h, threads[h].write_func, &threads[h].write_event,
+	                     EV_WRITE);
 }
 
-static void set_event_for_timer(struct timer *tm)
+static void
+set_event_for_timer(struct timer *tm)
 {
 	struct timeval tv;
 	struct event *ev = timer_event(tm);
@@ -340,7 +369,8 @@ static void set_event_for_timer(struct timer *tm)
 		die("timeout_add: %s\n", strerror(errno));
 }
 
-static void enable_libevent(void)
+static void
+enable_libevent(void)
 {
 	int i;
 	struct timer *tm = NULL;
@@ -359,18 +389,21 @@ static void enable_libevent(void)
 	for (i = 0; i < w_max; i++)
 		set_events_for_handle(i);
 
-	foreach(struct timer, tm, ltm, timers)
+	foreach (struct timer, tm, ltm, timers)
 		set_event_for_timer(tm);
 }
 
-static void terminate_libevent(void)
+static void
+terminate_libevent(void)
 {
 	int i;
 	if (event_enabled) {
 		for (i = 0; i < n_threads; i++) {
-			set_event_for_action(i, NULL, &threads[i].read_event, EV_READ);
+			set_event_for_action(i, NULL, &threads[i].read_event,
+			                     EV_READ);
 			free(threads[i].read_event);
-			set_event_for_action(i, NULL, &threads[i].write_event, EV_WRITE);
+			set_event_for_action(i, NULL, &threads[i].write_event,
+			                     EV_WRITE);
 			free(threads[i].write_event);
 		}
 		event_base_free(event_base);
@@ -378,7 +411,8 @@ static void terminate_libevent(void)
 	}
 }
 
-static void do_event_loop(int flags)
+static void
+do_event_loop(int flags)
 {
 	int e;
 	e = event_base_loop(event_base, flags);
@@ -386,10 +420,12 @@ static void do_event_loop(int flags)
 		die("event_base_loop: %s\n", strerror(errno));
 }
 
-void add_event_string(unsigned char **s, int *l, struct terminal *term)
+void
+add_event_string(unsigned char **s, int *l, struct terminal *term)
 {
 	if (!event_enabled)
-		add_to_str(s, l, get_text_translation(TEXT_(T_SELECT_SYSCALL), term));
+		add_to_str(s, l,
+		           get_text_translation(TEXT_(T_SELECT_SYSCALL), term));
 	if (!event_enabled)
 		add_to_str(s, l, cast_uchar " (");
 #if defined(HAVE_LIBEV)
@@ -400,14 +436,15 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 	add_chr_to_str(s, l, ' ');
 	{
 #if defined(HAVE_LIBEV)
-				/* old libev report bogus version */
-		if (!casestrcmp(cast_uchar event_get_version(), cast_uchar "EV_VERSION_MAJOR.EV_VERSION_MINOR")) {
+		/* old libev report bogus version */
+		if (!casestrcmp(cast_uchar event_get_version(), cast_uchar
+		                "EV_VERSION_MAJOR.EV_VERSION_MINOR")) {
 			add_num_to_str(s, l, ev_version_major());
 			add_chr_to_str(s, l, '.');
 			add_num_to_str(s, l, ev_version_minor());
 		} else
 #endif
-		add_to_str(s, l, cast_uchar event_get_version());
+			add_to_str(s, l, cast_uchar event_get_version());
 	}
 	if (!event_enabled) {
 		add_chr_to_str(s, l, ' ');
@@ -419,15 +456,15 @@ void add_event_string(unsigned char **s, int *l, struct terminal *term)
 	}
 }
 
-
 static uttime last_time;
 
-static void check_timers(void)
+static void
+check_timers(void)
 {
 	uttime interval = get_time() - last_time;
 	struct timer *t = NULL;
 	struct list_head *lt;
-	foreach(struct timer, t, lt, timers) {
+	foreach (struct timer, t, lt, timers) {
 		if (t->interval < interval)
 			t->interval = 0;
 		else
@@ -444,7 +481,8 @@ static void check_timers(void)
 	last_time += interval;
 }
 
-struct timer *install_timer(uttime t, void (*func)(void *), void *data)
+struct timer *
+install_timer(uttime t, void (*func)(void *), void *data)
 {
 	struct timer *tm;
 	unsigned char *q = xmalloc(sizeof_struct_event + sizeof(struct timer));
@@ -458,13 +496,16 @@ struct timer *install_timer(uttime t, void (*func)(void *), void *data)
 	} else {
 		struct timer *tt = NULL;
 		struct list_head *ltt;
-		foreach(struct timer, tt, ltt, timers) if (tt->interval >= t) break;
+		foreach (struct timer, tt, ltt, timers)
+			if (tt->interval >= t)
+				break;
 		add_before_list_entry(ltt, &tm->list_entry);
 	}
 	return tm;
 }
 
-void kill_timer(struct timer *tm)
+void
+kill_timer(struct timer *tm)
 {
 	del_from_list(tm);
 	if (event_enabled)
@@ -479,14 +520,17 @@ void (*get_handler(int fd, int tp))(void *)
 	if (fd >= w_max)
 		return NULL;
 	switch (tp) {
-	case H_READ:	return threads[fd].read_func;
-	case H_WRITE:	return threads[fd].write_func;
+	case H_READ:
+		return threads[fd].read_func;
+	case H_WRITE:
+		return threads[fd].write_func;
 	}
 	die("get_handler: bad type %d\n", tp);
 	return NULL;
 }
 
-void *get_handler_data(int fd)
+void *
+get_handler_data(int fd)
 {
 	if (fd < 0)
 		die("get_handler: handle %d\n", fd);
@@ -495,29 +539,36 @@ void *get_handler_data(int fd)
 	return threads[fd].data;
 }
 
-void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func)(void *), void *data)
+void
+set_handlers_file_line(int fd, void (*read_func)(void *),
+                       void (*write_func)(void *), void *data)
 {
 	if (fd < 0)
 		goto invl;
 	if (!event_enabled)
 		if (fd >= (int)FD_SETSIZE) {
-			die("too big handle %d at %s:%d\n", fd, sh_file, sh_line);
+			die("too big handle %d at %s:%d\n", fd, sh_file,
+			    sh_line);
 			return;
 		}
 	if (fd >= n_threads) {
-		if ((unsigned)fd > (unsigned)INT_MAX / sizeof(struct thread) - 1)
+		if ((unsigned)fd
+		    > (unsigned)INT_MAX / sizeof(struct thread) - 1)
 			overalloc();
 		threads = xrealloc(threads, (fd + 1) * sizeof(struct thread));
-		memset(threads + n_threads, 0, (fd + 1 - n_threads) * sizeof(struct thread));
+		memset(threads + n_threads, 0,
+		       (fd + 1 - n_threads) * sizeof(struct thread));
 		n_threads = fd + 1;
 	}
-	if (threads[fd].read_func == read_func && threads[fd].write_func == write_func && threads[fd].data == data)
+	if (threads[fd].read_func == read_func
+	    && threads[fd].write_func == write_func && threads[fd].data == data)
 		return;
 	threads[fd].read_func = read_func;
 	threads[fd].write_func = write_func;
 	threads[fd].data = data;
 	if (read_func || write_func) {
-		if (fd >= w_max) w_max = fd + 1;
+		if (fd >= w_max)
+			w_max = fd + 1;
 	} else if (fd == w_max - 1) {
 		int i;
 		for (i = fd - 1; i >= 0; i--)
@@ -529,12 +580,14 @@ void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func
 		set_events_for_handle(fd);
 		return;
 	}
-	if (read_func) FD_SET(fd, &w_read);
+	if (read_func)
+		FD_SET(fd, &w_read);
 	else {
 		FD_CLR(fd, &w_read);
 		FD_CLR(fd, &x_read);
 	}
-	if (write_func) FD_SET(fd, &w_write);
+	if (write_func)
+		FD_SET(fd, &w_write);
 	else {
 		FD_CLR(fd, &w_write);
 		FD_CLR(fd, &x_write);
@@ -542,10 +595,12 @@ void set_handlers_file_line(int fd, void (*read_func)(void *), void (*write_func
 	return;
 
 invl:
-	die("invalid set_handlers call at %s:%d: %d, %p, %p, %p\n", sh_file, sh_line, fd, read_func, write_func, data);
+	die("invalid set_handlers call at %s:%d: %d, %p, %p, %p\n", sh_file,
+	    sh_line, fd, read_func, write_func, data);
 }
 
-void clear_events(int h, int blocking)
+void
+clear_events(int h, int blocking)
 {
 #if !defined(O_NONBLOCK) && !defined(FIONBIO)
 	blocking = 1;
@@ -554,17 +609,19 @@ void clear_events(int h, int blocking)
 		unsigned char c[64];
 		int rd;
 		EINTRLOOP(rd, (int)read(h, c, sizeof c));
-		if (rd != sizeof c) break;
+		if (rd != sizeof c)
+			break;
 	}
 }
 
 #if defined(NSIG) && NSIG > 32
-#define NUM_SIGNALS	NSIG
+	#define NUM_SIGNALS NSIG
 #else
-#define NUM_SIGNALS	32
+	#define NUM_SIGNALS 32
 #endif
 
-static void clear_events_ptr(void *handle)
+static void
+clear_events_ptr(void *handle)
 {
 	clear_events((int)(long)handle, 0);
 }
@@ -581,19 +638,22 @@ static volatile struct signal_handler signal_handlers[NUM_SIGNALS];
 static pid_t signal_pid;
 int signal_pipe[2];
 
-static void got_signal(int sig)
+static void
+got_signal(int sig)
 {
 	void (*fn)(void *);
 	int sv_errno = errno;
-		/*fprintf(stderr, "ERROR: signal number: %d\n", sig);*/
+	/*fprintf(stderr, "ERROR: signal number: %d\n", sig);*/
 
 	/* if we get signal from a forked child, don't do anything */
-	if (getpid() != signal_pid) goto ret;
+	if (getpid() != signal_pid)
+		goto ret;
 
 	if (sig >= NUM_SIGNALS || sig < 0)
 		goto ret;
 	fn = signal_handlers[sig].fn;
-	if (!fn) goto ret;
+	if (!fn)
+		goto ret;
 	if (signal_handlers[sig].critical) {
 		fn(signal_handlers[sig].data);
 		goto ret;
@@ -603,13 +663,14 @@ static void got_signal(int sig)
 		int wr;
 		EINTRLOOP(wr, (int)write(signal_pipe[1], "", 1));
 	}
- ret:
+ret:
 	errno = sv_errno;
 }
 
 static struct sigaction sa_zero;
 
-void install_signal_handler(int sig, void (*fn)(void *), void *data, int critical)
+void
+install_signal_handler(int sig, void (*fn)(void *), void *data, int critical)
 {
 	int rs;
 	struct sigaction sa = sa_zero;
@@ -617,8 +678,10 @@ void install_signal_handler(int sig, void (*fn)(void *), void *data, int critica
 		die("bad signal number: %d\n", sig);
 		return;
 	}
-	if (!fn) sa.sa_handler = SIG_IGN;
-	else sa.sa_handler = (void (*)(int))got_signal;
+	if (!fn)
+		sa.sa_handler = SIG_IGN;
+	else
+		sa.sa_handler = (void (*)(int))got_signal;
 	sigfillset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	if (!fn)
@@ -630,7 +693,8 @@ void install_signal_handler(int sig, void (*fn)(void *), void *data, int critica
 		EINTRLOOP(rs, sigaction(sig, &sa, NULL));
 }
 
-void interruptible_signal(int sig, int in)
+void
+interruptible_signal(int sig, int in)
 {
 	struct sigaction sa = sa_zero;
 	int rs;
@@ -638,23 +702,28 @@ void interruptible_signal(int sig, int in)
 		die("bad signal number: %d\n", sig);
 		return;
 	}
-	if (!signal_handlers[sig].fn) return;
+	if (!signal_handlers[sig].fn)
+		return;
 	sa.sa_handler = (void (*)(int))got_signal;
 	sigfillset(&sa.sa_mask);
-	if (!in) sa.sa_flags = SA_RESTART;
+	if (!in)
+		sa.sa_flags = SA_RESTART;
 	EINTRLOOP(rs, sigaction(sig, &sa, NULL));
 }
 
 static sigset_t sig_old_mask;
 static int sig_unblock = 0;
 
-void block_signals(int except1, int except2)
+void
+block_signals(int except1, int except2)
 {
 	int rs;
 	sigset_t mask;
 	sigfillset(&mask);
-	if (except1) sigdelset(&mask, except1);
-	if (except2) sigdelset(&mask, except2);
+	if (except1)
+		sigdelset(&mask, except1);
+	if (except2)
+		sigdelset(&mask, except2);
 #ifdef SIGILL
 	sigdelset(&mask, SIGILL);
 #endif
@@ -671,10 +740,12 @@ void block_signals(int except1, int except2)
 	sigdelset(&mask, SIGBUS);
 #endif
 	EINTRLOOP(rs, sigprocmask(SIG_BLOCK, &mask, &sig_old_mask));
-	if (!rs) sig_unblock = 1;
+	if (!rs)
+		sig_unblock = 1;
 }
 
-void unblock_signals(void)
+void
+unblock_signals(void)
 {
 	int rs;
 	if (sig_unblock) {
@@ -683,7 +754,8 @@ void unblock_signals(void)
 	}
 }
 
-static int check_signals(void)
+static int
+check_signals(void)
 {
 	int r = 0;
 	int i;
@@ -691,8 +763,10 @@ static int check_signals(void)
 		if (signal_mask[i]) {
 			signal_mask[i] = 0;
 			if (signal_handlers[i].fn) {
-				pr(signal_handlers[i].fn(signal_handlers[i].data)) {
-}
+				pr(signal_handlers[i].fn(
+				    signal_handlers[i].data))
+				{
+				}
 			}
 			CHK_BH;
 			r = 1;
@@ -701,29 +775,33 @@ static int check_signals(void)
 }
 
 #ifdef SIGCHLD
-static void sigchld(void *p)
+static void
+sigchld(void *p)
 {
 	pid_t pid;
-#ifndef WNOHANG
+	#ifndef WNOHANG
 	EINTRLOOP(pid, wait(NULL));
-#else
+	#else
 	do {
 		EINTRLOOP(pid, waitpid(-1, NULL, WNOHANG));
 	} while (pid > 0);
-#endif
+	#endif
 }
 
-void set_sigcld(void)
+void
+set_sigcld(void)
 {
 	install_signal_handler(SIGCHLD, sigchld, NULL, 1);
 }
 #else
-void set_sigcld(void)
+void
+set_sigcld(void)
 {
 }
 #endif
 
-void reinit_child(void)
+void
+reinit_child(void)
 {
 	signal_pid = getpid();
 	if (event_enabled) {
@@ -734,7 +812,8 @@ void reinit_child(void)
 
 int terminate_loop = 0;
 
-void select_loop(void (*init)(void))
+void
+select_loop(void (*init)(void))
 {
 
 	memset(&sa_zero, 0, sizeof sa_zero);
@@ -750,7 +829,8 @@ void select_loop(void (*init)(void))
 		die("can't create pipe for signal handling\n");
 	set_nonblock(signal_pipe[0]);
 	set_nonblock(signal_pipe[1]);
-	set_handlers(signal_pipe[0], clear_events_ptr, NULL, (void *)(long)signal_pipe[0]);
+	set_handlers(signal_pipe[0], clear_events_ptr, NULL,
+	             (void *)(long)signal_pipe[0]);
 	init();
 	CHK_BH;
 	enable_libevent();
@@ -763,58 +843,69 @@ void select_loop(void (*init)(void))
 			do_event_loop(EVLOOP_NONBLOCK);
 			check_signals();
 			redraw_all_terminals();
-			if (terminate_loop) break;
+			if (terminate_loop)
+				break;
 			do_event_loop(EVLOOP_ONCE);
 		}
 	} else
 
-	while (!terminate_loop) {
-		volatile int n;	/* volatile because of setjmp */
-		int i;
-		struct timeval tv;
-		struct timeval *tm = NULL;
-		check_signals();
-		check_timers();
-		redraw_all_terminals();
-		if (!list_empty(timers)) {
-			uttime tt = list_struct(timers.next, struct timer)->interval + 1;
-				tv.tv_sec = tt / 1000 < INT_MAX ? (int)(tt / 1000) : INT_MAX;
+		while (!terminate_loop) {
+			volatile int n; /* volatile because of setjmp */
+			int i;
+			struct timeval tv;
+			struct timeval *tm = NULL;
+			check_signals();
+			check_timers();
+			redraw_all_terminals();
+			if (!list_empty(timers)) {
+				uttime tt =
+				    list_struct(timers.next, struct timer)
+					->interval
+				    + 1;
+				tv.tv_sec = tt / 1000 < INT_MAX
+				                ? (int)(tt / 1000)
+				                : INT_MAX;
 				tv.tv_usec = (tt % 1000) * 1000;
 				tm = &tv;
-		}
-		memcpy(&x_read, &w_read, sizeof(fd_set));
-		memcpy(&x_write, &w_write, sizeof(fd_set));
-		if (terminate_loop) break;
-		if ((n = select(w_max, &x_read, &x_write, NULL, tm)) < 0) {
-			if (errno != EINTR)
-				die("select: %s\n", strerror(errno));
-			continue;
-		}
-		check_signals();
-		check_timers();
-		i = -1;
-		while (n > 0 && ++i < w_max) {
-			int k = 0;
-			if (FD_ISSET(i, &x_read)) {
-				if (threads[i].read_func) {
-					pr(threads[i].read_func(threads[i].data)) continue;
-					CHK_BH;
-				}
-				k = 1;
 			}
-			if (FD_ISSET(i, &x_write)) {
-				if (threads[i].write_func) {
-					pr(threads[i].write_func(threads[i].data)) continue;
-					CHK_BH;
-				}
-				k = 1;
+			memcpy(&x_read, &w_read, sizeof(fd_set));
+			memcpy(&x_write, &w_write, sizeof(fd_set));
+			if (terminate_loop)
+				break;
+			if ((n = select(w_max, &x_read, &x_write, NULL, tm))
+			    < 0) {
+				if (errno != EINTR)
+					die("select: %s\n", strerror(errno));
+				continue;
 			}
-			n -= k;
+			check_signals();
+			check_timers();
+			i = -1;
+			while (n > 0 && ++i < w_max) {
+				int k = 0;
+				if (FD_ISSET(i, &x_read)) {
+					if (threads[i].read_func) {
+						pr(threads[i].read_func(
+						    threads[i].data)) continue;
+						CHK_BH;
+					}
+					k = 1;
+				}
+				if (FD_ISSET(i, &x_write)) {
+					if (threads[i].write_func) {
+						pr(threads[i].write_func(
+						    threads[i].data)) continue;
+						CHK_BH;
+					}
+					k = 1;
+				}
+				n -= k;
+			}
 		}
-	}
 }
 
-void terminate_select(void)
+void
+terminate_select(void)
 {
 	terminate_libevent();
 	free(threads);

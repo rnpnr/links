@@ -8,60 +8,78 @@
 
 #include "links.h"
 
-static void setrwx(unsigned m, unsigned char *p)
+static void
+setrwx(unsigned m, unsigned char *p)
 {
-	if (m & S_IRUSR) p[0] = 'r';
-	if (m & S_IWUSR) p[1] = 'w';
-	if (m & S_IXUSR) p[2] = 'x';
+	if (m & S_IRUSR)
+		p[0] = 'r';
+	if (m & S_IWUSR)
+		p[1] = 'w';
+	if (m & S_IXUSR)
+		p[2] = 'x';
 }
 
-static void setst(unsigned m, unsigned char *p)
+static void
+setst(unsigned m, unsigned char *p)
 {
 #ifdef S_ISUID
 	if (m & S_ISUID) {
 		p[2] = 'S';
-		if (m & S_IXUSR) p[2] = 's';
+		if (m & S_IXUSR)
+			p[2] = 's';
 	}
 #endif
 #ifdef S_ISGID
 	if (m & S_ISGID) {
 		p[5] = 'S';
-		if (m & S_IXGRP) p[5] = 's';
+		if (m & S_IXGRP)
+			p[5] = 's';
 	}
 #endif
 #ifdef S_ISVTX
 	if (m & S_ISVTX) {
 		p[8] = 'T';
-		if (m & S_IXOTH) p[8] = 't';
+		if (m & S_IXOTH)
+			p[8] = 't';
 	}
 #endif
 }
 
-static void stat_mode(unsigned char **p, int *l, struct stat *stp)
+static void
+stat_mode(unsigned char **p, int *l, struct stat *stp)
 {
 	unsigned char c = '?';
 	unsigned char rwx[10] = "---------";
 	if (stp) {
-		if (0) {}
+		if (0) {
+		}
 #ifdef S_ISBLK
-		else if (S_ISBLK(stp->st_mode)) c = 'b';
+		else if (S_ISBLK(stp->st_mode))
+			c = 'b';
 #endif
 #ifdef S_ISCHR
-		else if (S_ISCHR(stp->st_mode)) c = 'c';
+		else if (S_ISCHR(stp->st_mode))
+			c = 'c';
 #endif
-		else if (S_ISDIR(stp->st_mode)) c = 'd';
-		else if (S_ISREG(stp->st_mode)) c = '-';
+		else if (S_ISDIR(stp->st_mode))
+			c = 'd';
+		else if (S_ISREG(stp->st_mode))
+			c = '-';
 #ifdef S_ISFIFO
-		else if (S_ISFIFO(stp->st_mode)) c = 'p';
+		else if (S_ISFIFO(stp->st_mode))
+			c = 'p';
 #endif
 #ifdef S_ISLNK
-		else if (S_ISLNK(stp->st_mode)) c = 'l';
+		else if (S_ISLNK(stp->st_mode))
+			c = 'l';
 #endif
 #ifdef S_ISSOCK
-		else if (S_ISSOCK(stp->st_mode)) c = 's';
+		else if (S_ISSOCK(stp->st_mode))
+			c = 's';
 #endif
 #ifdef S_ISNWK
-		else if (S_ISNWK(stp->st_mode)) c = 'n';
+		else if (S_ISNWK(stp->st_mode))
+			c = 'n';
 #endif
 	}
 	add_chr_to_str(p, l, c);
@@ -76,7 +94,8 @@ static void stat_mode(unsigned char **p, int *l, struct stat *stp)
 	add_chr_to_str(p, l, ' ');
 }
 
-static void stat_links(unsigned char **p, int *l, struct stat *stp)
+static void
+stat_links(unsigned char **p, int *l, struct stat *stp)
 {
 	unsigned char lnk[64];
 	if (!stp)
@@ -93,7 +112,8 @@ static unsigned char last_user[64];
 static int last_gid = -1;
 static unsigned char last_group[64];
 
-static void stat_user(unsigned char **p, int *l, struct stat *stp, int g)
+static void
+stat_user(unsigned char **p, int *l, struct stat *stp, int g)
 {
 	struct passwd *pwd;
 	struct group *grp;
@@ -106,27 +126,34 @@ static void stat_user(unsigned char **p, int *l, struct stat *stp, int g)
 	}
 	id = !g ? stp->st_uid : stp->st_gid;
 	pp = !g ? last_user : last_group;
-	if (!g && id == last_uid && last_uid != -1) goto a;
-	if (g && id == last_gid && last_gid != -1) goto a;
+	if (!g && id == last_uid && last_uid != -1)
+		goto a;
+	if (g && id == last_gid && last_gid != -1)
+		goto a;
 	if (!g) {
 		ENULLLOOP(pwd, getpwuid(id));
-		if (!pwd || !pwd->pw_name) sprintf(cast_char pp, "%d", id);
-		else sprintf(cast_char pp, "%.8s", pwd->pw_name);
+		if (!pwd || !pwd->pw_name)
+			sprintf(cast_char pp, "%d", id);
+		else
+			sprintf(cast_char pp, "%.8s", pwd->pw_name);
 		last_uid = id;
 	} else {
 		ENULLLOOP(grp, getgrgid(id));
-		if (!grp || !grp->gr_name) sprintf(cast_char pp, "%d", id);
-		else sprintf(cast_char pp, "%.8s", grp->gr_name);
+		if (!grp || !grp->gr_name)
+			sprintf(cast_char pp, "%d", id);
+		else
+			sprintf(cast_char pp, "%.8s", grp->gr_name);
 		last_gid = id;
 	}
- a:
+a:
 	add_to_str(p, l, pp);
 	for (i = strlen(cast_const_char pp); i < 8; i++)
 		add_chr_to_str(p, l, ' ');
 	add_chr_to_str(p, l, ' ');
 }
 
-static void stat_size(unsigned char **p, int *l, struct stat *stp)
+static void
+stat_size(unsigned char **p, int *l, struct stat *stp)
 {
 	unsigned char num[64];
 	const int digits = 8;
@@ -141,7 +168,8 @@ static void stat_size(unsigned char **p, int *l, struct stat *stp)
 	add_chr_to_str(p, l, ' ');
 }
 
-static void stat_date(unsigned char **p, int *l, struct stat *stp)
+static void
+stat_date(unsigned char **p, int *l, struct stat *stp)
 {
 	time_t current_time;
 	time_t when;
@@ -158,25 +186,29 @@ static void stat_date(unsigned char **p, int *l, struct stat *stp)
 	}
 	when = stp->st_mtime;
 	when_local = localtime(&when);
-	if ((ulonglong)current_time > (ulonglong)when + 6L * 30L * 24L * 60L * 60L
-	|| (ulonglong)current_time < (ulonglong)when - 60L * 60L)
+	if ((ulonglong)current_time
+	        > (ulonglong)when + 6L * 30L * 24L * 60L * 60L
+	    || (ulonglong)current_time < (ulonglong)when - 60L * 60L)
 		fmt = fmt1;
 	else
 		fmt = fmt2;
- again:
+again:
 	wr = strftime(cast_char str, 13, cast_const_char fmt, when_local);
-	if (wr && strstr(cast_const_char str, " e ") && ((e = cast_uchar strchr(cast_const_char fmt, 'e')))) {
+	if (wr && strstr(cast_const_char str, " e ")
+	    && ((e = cast_uchar strchr(cast_const_char fmt, 'e')))) {
 		*e = 'd';
 		goto again;
 	}
-	set_empty:
-	while (wr < 12) str[wr++] = ' ';
+set_empty:
+	while (wr < 12)
+		str[wr++] = ' ';
 	str[12] = 0;
 	add_to_str(p, l, str);
 	add_chr_to_str(p, l, ' ');
 }
 
-static unsigned char *get_filename(unsigned char *url)
+static unsigned char *
+get_filename(unsigned char *url)
 {
 	unsigned char *p, *m;
 	int ml;
@@ -193,18 +225,24 @@ struct dirs {
 	unsigned char *f;
 };
 
-static int comp_de(const void *d1_, const void *d2_)
+static int
+comp_de(const void *d1_, const void *d2_)
 {
 	const struct dirs *d1 = (const struct dirs *)d1_;
 	const struct dirs *d2 = (const struct dirs *)d2_;
-	if (d1->f[0] == '.' && d1->f[1] == '.' && !d1->f[2]) return -1;
-	if (d2->f[0] == '.' && d2->f[1] == '.' && !d2->f[2]) return 1;
-	if (d1->s[0] == 'd' && d2->s[0] != 'd') return -1;
-	if (d1->s[0] != 'd' && d2->s[0] == 'd') return 1;
+	if (d1->f[0] == '.' && d1->f[1] == '.' && !d1->f[2])
+		return -1;
+	if (d2->f[0] == '.' && d2->f[1] == '.' && !d2->f[2])
+		return 1;
+	if (d1->s[0] == 'd' && d2->s[0] != 'd')
+		return -1;
+	if (d1->s[0] != 'd' && d2->s[0] == 'd')
+		return 1;
 	return strcmp(cast_const_char d1->f, cast_const_char d2->f);
 }
 
-void file_func(struct connection *c)
+void
+file_func(struct connection *c)
 {
 	struct cache_entry *e;
 	unsigned char *file, *name, *head = NULL;
@@ -240,7 +278,8 @@ void file_func(struct connection *c)
 	if (h == -1) {
 		int er = errno;
 		d = c_opendir(name);
-		if (d) goto dir;
+		if (d)
+			goto dir;
 		free(name);
 		setcstate(c, get_error_from_errno(er));
 		abort_connection(c);
@@ -261,10 +300,11 @@ void file_func(struct connection *c)
 			abort_connection(c);
 			return;
 		}
- dir:
+dir:
 		dir = NULL;
 		dirl = 0;
-		if (name[0] && !dir_sep(name[strlen(cast_const_char name) - 1])) {
+		if (name[0]
+		    && !dir_sep(name[strlen(cast_const_char name) - 1])) {
 			if (!c->cache) {
 				if (get_connection_cache_entry(c)) {
 					free(name);
@@ -289,11 +329,14 @@ void file_func(struct connection *c)
 		fl = 0;
 		add_to_str(&file, &fl, cast_uchar "<html><head><title>");
 		flo = fl;
-		add_conv_str(&file, &fl, name, (int)strlen(cast_const_char name), -1);
+		add_conv_str(&file, &fl, name,
+		             (int)strlen(cast_const_char name), -1);
 		convert_file_charset(&file, &fl, flo);
-		add_to_str(&file, &fl, cast_uchar "</title></head><body><h2>Directory ");
+		add_to_str(&file, &fl,
+		           cast_uchar "</title></head><body><h2>Directory ");
 		flo = fl;
-		add_conv_str(&file, &fl, name, (int)strlen(cast_const_char name), -1);
+		add_conv_str(&file, &fl, name,
+		             (int)strlen(cast_const_char name), -1);
 		convert_file_charset(&file, &fl, flo);
 		add_to_str(&file, &fl, cast_uchar "</h2>\n<pre>");
 		while (1) {
@@ -302,11 +345,15 @@ void file_func(struct connection *c)
 			int l;
 			unsigned char *n;
 			ENULLLOOP(de, (void *)readdir(d));
-			if (!de) break;
-			if (!strcmp(cast_const_char de->d_name, ".")) continue;
+			if (!de)
+				break;
+			if (!strcmp(cast_const_char de->d_name, "."))
+				continue;
 			if (!strcmp(cast_const_char de->d_name, "..")) {
 				unsigned char *n = name;
-				if (strspn(cast_const_char n, dir_sep('\\') ? "/\\" : "/") == strlen(cast_const_char n))
+				if (strspn(cast_const_char n,
+				           dir_sep('\\') ? "/\\" : "/")
+				    == strlen(cast_const_char n))
 					continue;
 			}
 			if ((unsigned)dirl > INT_MAX / sizeof(struct dirs) - 1)
@@ -318,8 +365,10 @@ void file_func(struct connection *c)
 			n = stracpy(name);
 			add_to_strn(&n, cast_uchar de->d_name);
 			EINTRLOOP(rs, lstat(cast_const_char n, &stt));
-			if (rs) stp = NULL;
-			else stp = &stt;
+			if (rs)
+				stp = NULL;
+			else
+				stp = &stt;
 			free(n);
 			stat_mode(p, &l, stp);
 			stat_links(p, &l, stp);
@@ -331,7 +380,7 @@ void file_func(struct connection *c)
 		closedir(d);
 		if (dirl)
 			qsort(dir, dirl, sizeof(struct dirs),
-				(int (*)(const void *, const void *))comp_de);
+			      (int (*)(const void *, const void *))comp_de);
 		for (i = 0; i < dirl; i++) {
 			char *lnk = NULL;
 			if (dir[i].s[0] == 'l') {
@@ -348,18 +397,20 @@ void file_func(struct connection *c)
 					buf = xmalloc(size);
 					EINTRLOOP(r, readlink(n, buf, size));
 				} while (r == size);
-				if (r == -1) goto yyy;
+				if (r == -1)
+					goto yyy;
 				buf[r] = 0;
 				lnk = buf;
 				goto xxx;
- yyy:
+yyy:
 				free(buf);
- xxx:
+xxx:
 				free(n);
 			}
 			add_to_str(&file, &fl, dir[i].s);
 			add_to_str(&file, &fl, cast_uchar "<a href=\"./");
-			add_conv_str(&file, &fl, dir[i].f, (int)strlen(cast_const_char dir[i].f), 1);
+			add_conv_str(&file, &fl, dir[i].f,
+			             (int)strlen(cast_const_char dir[i].f), 1);
 			if (dir[i].s[0] == 'd')
 				add_chr_to_str(&file, &fl, '/');
 			else if (lnk) {
@@ -373,7 +424,8 @@ void file_func(struct connection *c)
 			}
 			add_to_str(&file, &fl, cast_uchar "\">");
 			flo = fl;
-			add_conv_str(&file, &fl, dir[i].f, (int)strlen(cast_const_char dir[i].f), 0);
+			add_conv_str(&file, &fl, dir[i].f,
+			             (int)strlen(cast_const_char dir[i].f), 0);
 			convert_file_charset(&file, &fl, flo);
 			add_to_str(&file, &fl, cast_uchar "</a>");
 			if (lnk) {
@@ -405,12 +457,14 @@ void file_func(struct connection *c)
 		if (!file) {
 			EINTRLOOP(rs, close(h));
 			setcstate(c, S_OUT_OF_MEM);
-			abort_connection(c); return;
+			abort_connection(c);
+			return;
 		}
 		if ((r = hard_read(h, file, (int)stt.st_size)) != stt.st_size) {
 			free(file);
 			EINTRLOOP(rs, close(h));
-			setcstate(c, r == -1 ? get_error_from_errno(errno) : S_FILE_ERROR);
+			setcstate(c, r == -1 ? get_error_from_errno(errno)
+			                     : S_FILE_ERROR);
 			abort_connection(c);
 			return;
 		}
@@ -439,7 +493,7 @@ void file_func(struct connection *c)
 	}
 	truncate_entry(e, fl, 1);
 	free(file);
- end:
+end:
 	c->cache->incomplete = 0;
 	setcstate(c, S__OK);
 	abort_connection(c);

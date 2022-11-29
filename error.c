@@ -5,7 +5,8 @@
 
 #include "links.h"
 
-void *mem_calloc(size_t size)
+void *
+mem_calloc(size_t size)
 {
 	void *p;
 	if (!size)
@@ -15,10 +16,12 @@ void *mem_calloc(size_t size)
 	return p;
 }
 
-unsigned char *memacpy(const unsigned char *src, size_t len)
+unsigned char *
+memacpy(const unsigned char *src, size_t len)
 {
 	unsigned char *m;
-	if (!(len + 1)) overalloc();
+	if (!(len + 1))
+		overalloc();
 	m = xmalloc(len + 1);
 	if (len)
 		memcpy(m, src, len);
@@ -26,7 +29,9 @@ unsigned char *memacpy(const unsigned char *src, size_t len)
 	return m;
 }
 
-unsigned char *stracpy(const unsigned char *src)
+unsigned char *
+stracpy(const unsigned char *src)
 {
-	return src ? memacpy(src, src != DUMMY ? strlen((char *)src) : 0) : NULL;
+	return src ? memacpy(src, src != DUMMY ? strlen((char *)src) : 0)
+	           : NULL;
 }

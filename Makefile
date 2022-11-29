@@ -59,6 +59,8 @@ $(OBJ): config.h config.mk
 links: $(OBJ)
 	$(CC) -o $@ $(OBJ) $(LDFLAGS)
 
+format:
+	clang-format -i $(SRC) links.h os_dep.h setup.h
 clean:
 	rm -f *.o links
 

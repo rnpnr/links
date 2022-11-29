@@ -11,28 +11,33 @@
 
 /* DECLARATIONS */
 
-static void assoc_edit_item(struct dialog_data *, struct list *, void (*)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *, unsigned char);
+static void assoc_edit_item(struct dialog_data *, struct list *,
+                            void (*)(struct dialog_data *, struct list *,
+                                     struct list *, struct list_description *),
+                            struct list *, unsigned char);
 static void assoc_copy_item(struct list *, struct list *);
 static struct list *assoc_new_item(void *);
 static void assoc_delete_item(struct list *);
-static struct list *assoc_find_item(struct list *start, unsigned char *str, int direction);
+static struct list *assoc_find_item(struct list *start, unsigned char *str,
+                                    int direction);
 static unsigned char *assoc_type_item(struct terminal *, struct list *, int);
-
 
 struct list assoc = { init_list_1st(&assoc.list_entry) 0, -1, NULL };
 
-static struct history assoc_search_history = { 0, { &assoc_search_history.items, &assoc_search_history.items } };
+static struct history assoc_search_history = {
+	0, {&assoc_search_history.items, &assoc_search_history.items}
+};
 
 struct assoc_ok_struct {
-	void (*fn)(struct dialog_data *, struct list *, struct list *, struct list_description *);
+	void (*fn)(struct dialog_data *, struct list *, struct list *,
+	           struct list_description *);
 	struct list *data;
 	struct dialog_data *dlg;
 };
 
-
-static struct list_description assoc_ld={
-	0,  /* 0= flat; 1=tree */
-	&assoc,  /* list */
+static struct list_description assoc_ld = {
+	0,      /* 0= flat; 1=tree */
+	&assoc, /* list */
 	assoc_new_item,
 	assoc_edit_item,
 	NULL,
@@ -41,24 +46,28 @@ static struct list_description assoc_ld={
 	assoc_type_item,
 	assoc_find_item,
 	&assoc_search_history,
-	0,		/* this is set in init_assoc function */
-	15,  /* # of items in main window */
+	0,  /* this is set in init_assoc function */
+	15, /* # of items in main window */
 	T_ASSOCIATION,
 	T_ASSOCIATIONS_ALREADY_IN_USE,
 	T_ASSOCIATIONS_MANAGER,
 	T_DELETE_ASSOCIATION,
-	0,	/* no button */
-	NULL,	/* no button */
-	NULL,	/* no save*/
+	0,    /* no button */
+	NULL, /* no button */
+	NULL, /* no save*/
 
-	NULL,NULL,0,0,  /* internal vars */
+	NULL,
+	NULL,
+	0,
+	0, /* internal vars */
 	0, /* modified */
 	NULL,
 	NULL,
 	1,
 };
 
-static struct list *assoc_new_item(void *ignore)
+static struct list *
+assoc_new_item(void *ignore)
 {
 	struct assoc *neww;
 
@@ -75,7 +84,8 @@ static struct list *assoc_new_item(void *ignore)
 	return &neww->head;
 }
 
-static void assoc_delete_item(struct list *data)
+static void
+assoc_delete_item(struct list *data)
 {
 	struct assoc *del = get_struct(data, struct assoc, head);
 
@@ -87,7 +97,8 @@ static void assoc_delete_item(struct list *data)
 	free(del);
 }
 
-static void assoc_copy_item(struct list *in, struct list *out)
+static void
+assoc_copy_item(struct list *in, struct list *out)
 {
 	struct assoc *item_in = get_struct(in, struct assoc, head);
 	struct assoc *item_out = get_struct(out, struct assoc, head);
@@ -111,22 +122,27 @@ static void assoc_copy_item(struct list *in, struct list *out)
 
 /* allocate string and print association into it */
 /* x: 0=type all, 1=type title only */
-static unsigned char *assoc_type_item(struct terminal *term, struct list *data, int x)
+static unsigned char *
+assoc_type_item(struct terminal *term, struct list *data, int x)
 {
 	unsigned char *txt, *txt1;
 	struct assoc *item;
 
-	if (data == &assoc) return stracpy(get_text_translation(TEXT_(T_ASSOCIATIONS), term));
+	if (data == &assoc)
+		return stracpy(
+		    get_text_translation(TEXT_(T_ASSOCIATIONS), term));
 
 	item = get_struct(data, struct assoc, head);
 	txt = stracpy(cast_uchar "");
-	if (item->system != SYSTEM_ID) add_to_strn(&txt, cast_uchar "XX ");
+	if (item->system != SYSTEM_ID)
+		add_to_strn(&txt, cast_uchar "XX ");
 	add_to_strn(&txt, item->label);
 	add_to_strn(&txt, cast_uchar ": ");
 	add_to_strn(&txt, item->ct);
 	if (!x) {
 		add_to_strn(&txt, cast_uchar " -> ");
-		if (item->prog) add_to_strn(&txt, item->prog);
+		if (item->prog)
+			add_to_strn(&txt, item->prog);
 	}
 	txt1 = convert(assoc_ld.codepage, term_charset(term), txt, NULL);
 	free(txt);
@@ -134,13 +150,14 @@ static unsigned char *assoc_type_item(struct terminal *term, struct list *data, 
 	return txt1;
 }
 
-void menu_assoc_manager(struct terminal *term, void *fcp, void *ses_)
+void
+menu_assoc_manager(struct terminal *term, void *fcp, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
-	create_list_window(&assoc_ld,&assoc, term, ses);
+	create_list_window(&assoc_ld, &assoc, term, ses);
 }
 
-static unsigned char * const ct_msg[] = {
+static unsigned char *const ct_msg[] = {
 	TEXT_(T_LABEL),
 	TEXT_(T_CONTENT_TYPES),
 	TEXT_(T_PROGRAM__IS_REPLACED_WITH_FILE_NAME),
@@ -152,7 +169,8 @@ static unsigned char * const ct_msg[] = {
 	TEXT_(T_ACCEPT_FTP),
 };
 
-static void assoc_edit_item_fn(struct dialog_data *dlg)
+static void
+assoc_edit_item_fn(struct dialog_data *dlg)
 {
 	struct terminal *term = dlg->win->term;
 	int max = 0, min = 0;
@@ -172,39 +190,60 @@ static void assoc_edit_item_fn(struct dialog_data *dlg)
 	max_buttons_width(term, dlg->items + 3 + p, 2, &max);
 	min_buttons_width(term, dlg->items + 3 + p, 2, &min);
 	w = term->x * 9 / 10 - 2 * DIALOG_LB;
-	if (w > max) w = max;
-	if (w < min) w = min;
-	if (w > term->x - 2 * DIALOG_LB) w = term->x - 2 * DIALOG_LB;
-	if (w < 1) w = 1;
+	if (w > max)
+		w = max;
+	if (w < min)
+		w = min;
+	if (w > term->x - 2 * DIALOG_LB)
+		w = term->x - 2 * DIALOG_LB;
+	if (w < 1)
+		w = 1;
 	rw = 0;
-	dlg_format_text_and_field(dlg, NULL, get_text_translation(ct_msg[0], term), &dlg->items[0], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(
+	    dlg, NULL, get_text_translation(ct_msg[0], term), &dlg->items[0], 0,
+	    &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_text_and_field(dlg, NULL, get_text_translation(ct_msg[1], term), &dlg->items[1], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(
+	    dlg, NULL, get_text_translation(ct_msg[1], term), &dlg->items[1], 0,
+	    &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_text_and_field(dlg, NULL, get_text_translation(ct_msg[2], term), &dlg->items[2], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(
+	    dlg, NULL, get_text_translation(ct_msg[2], term), &dlg->items[2], 0,
+	    &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_group(dlg, NULL, ct_msg + 3, dlg->items + 3, p, 0, &y, w, &rw);
+	dlg_format_group(dlg, NULL, ct_msg + 3, dlg->items + 3, p, 0, &y, w,
+	                 &rw);
 	y++;
-	dlg_format_buttons(dlg, NULL, dlg->items + 3 + p, 2, 0, &y, w, &rw, AL_CENTER);
+	dlg_format_buttons(dlg, NULL, dlg->items + 3 + p, 2, 0, &y, w, &rw,
+	                   AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	dlg_format_text_and_field(dlg, term, ct_msg[0], &dlg->items[0], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, term, ct_msg[0], &dlg->items[0],
+	                          dlg->x + DIALOG_LB, &y, w, NULL,
+	                          COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_text_and_field(dlg, term, ct_msg[1], &dlg->items[1], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, term, ct_msg[1], &dlg->items[1],
+	                          dlg->x + DIALOG_LB, &y, w, NULL,
+	                          COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_text_and_field(dlg, term, ct_msg[2], &dlg->items[2], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, term, ct_msg[2], &dlg->items[2],
+	                          dlg->x + DIALOG_LB, &y, w, NULL,
+	                          COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_group(dlg, term, ct_msg + 3, &dlg->items[3], p, dlg->x + DIALOG_LB, &y, w, NULL);
+	dlg_format_group(dlg, term, ct_msg + 3, &dlg->items[3], p,
+	                 dlg->x + DIALOG_LB, &y, w, NULL);
 	y++;
-	dlg_format_buttons(dlg, term, &dlg->items[3 + p], 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
+	dlg_format_buttons(dlg, term, &dlg->items[3 + p], 2, dlg->x + DIALOG_LB,
+	                   &y, w, NULL, AL_CENTER);
 }
 
 /* Puts url and title into the bookmark item */
-static void assoc_edit_done(void *data)
+static void
+assoc_edit_done(void *data)
 {
 	struct dialog *d = (struct dialog *)data;
 	struct assoc *item = (struct assoc *)d->udata;
@@ -216,24 +255,28 @@ static void assoc_edit_done(void *data)
 	ct = label + MAX_STR_LEN;
 	prog = ct + MAX_STR_LEN;
 
-	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, label, NULL);
+	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, label,
+	              NULL);
 	free(item->label);
 	item->label = txt;
 
-	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, ct, NULL);
+	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, ct,
+	              NULL);
 	free(item->ct);
 	item->ct = txt;
 
-	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, prog, NULL);
+	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, prog,
+	              NULL);
 	free(item->prog);
 	item->prog = txt;
 
 	s->fn(s->dlg, s->data, &item->head, &assoc_ld);
-	d->udata = NULL;  /* for abort function */
+	d->udata = NULL; /* for abort function */
 }
 
 /* destroys an item, this function is called when edit window is aborted */
-static void assoc_edit_abort(struct dialog_data *data)
+static void
+assoc_edit_abort(struct dialog_data *data)
 {
 	struct dialog *dlg = data->dlg;
 	struct assoc *item = (struct assoc *)dlg->udata;
@@ -243,7 +286,11 @@ static void assoc_edit_abort(struct dialog_data *data)
 		assoc_delete_item(&item->head);
 }
 
-static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_fn)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *ok_arg, unsigned char dlg_title)
+static void
+assoc_edit_item(struct dialog_data *dlg, struct list *data,
+                void (*ok_fn)(struct dialog_data *, struct list *,
+                              struct list *, struct list_description *),
+                struct list *ok_arg, unsigned char dlg_title)
 {
 	int p;
 	struct assoc *neww = get_struct(data, struct assoc, head);
@@ -252,7 +299,8 @@ static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	struct assoc_ok_struct *s;
 	unsigned char *ct, *prog, *label;
 
-	d = mem_calloc(sizeof(struct dialog) + 11 * sizeof(struct dialog_item) + 3 * MAX_STR_LEN);
+	d = mem_calloc(sizeof(struct dialog) + 11 * sizeof(struct dialog_item)
+	               + 3 * MAX_STR_LEN);
 
 	label = (unsigned char *)&d->items[12];
 	ct = label + MAX_STR_LEN;
@@ -269,16 +317,16 @@ static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	s->dlg = dlg;
 
 	switch (dlg_title) {
-		case TITLE_EDIT:
-			d->title = TEXT_(T_EDIT_ASSOCIATION);
-			break;
+	case TITLE_EDIT:
+		d->title = TEXT_(T_EDIT_ASSOCIATION);
+		break;
 
-		case TITLE_ADD:
-			d->title = TEXT_(T_ADD_ASSOCIATION);
-			break;
+	case TITLE_ADD:
+		d->title = TEXT_(T_ADD_ASSOCIATION);
+		break;
 
-		default:
-			internal("Unsupported dialog title.\n");
+	default:
+		internal("Unsupported dialog title.\n");
 	}
 
 	d->udata = neww;
@@ -330,13 +378,15 @@ static void assoc_edit_item(struct dialog_data *dlg, struct list *data, void (*o
 	do_dialog(term, d, getml(d, NULL));
 }
 
-static int assoc_test_entry(struct list *e, unsigned char *str)
+static int
+assoc_test_entry(struct list *e, unsigned char *str)
 {
 	struct assoc *a = get_struct(e, struct assoc, head);
 	return casestrstr(a->label, str) || casestrstr(a->ct, str);
 }
 
-static struct list *assoc_find_item(struct list *s, unsigned char *str, int direction)
+static struct list *
+assoc_find_item(struct list *s, unsigned char *str, int direction)
 {
 	struct list *e;
 
@@ -357,26 +407,27 @@ static struct list *assoc_find_item(struct list *s, unsigned char *str, int dire
 	return NULL;
 }
 
-
-void update_assoc(struct assoc *neww)
+void
+update_assoc(struct assoc *neww)
 {
 	struct assoc *repl;
 	struct list *r = NULL;
 	struct list_head *lr;
 	if (!neww->label[0] || !neww->ct[0] || !neww->prog[0])
 		return;
-	foreach(struct list, r, lr, assoc.list_entry) {
+	foreach (struct list, r, lr, assoc.list_entry) {
 		repl = get_struct(r, struct assoc, head);
-		if (!strcmp(cast_const_char repl->label, cast_const_char neww->label)
-		&& !strcmp(cast_const_char repl->ct, cast_const_char neww->ct)
-		&& !strcmp(cast_const_char repl->prog, cast_const_char neww->prog)
-		&& repl->block == neww->block
-		&& repl->cons == neww->cons
-		&& repl->xwin == neww->xwin
-		&& repl->ask == neww->ask
-		&& repl->accept_http == neww->accept_http
-		&& repl->accept_ftp == neww->accept_ftp
-		&& repl->system == neww->system) {
+		if (!strcmp(cast_const_char repl->label,
+		            cast_const_char neww->label)
+		    && !strcmp(cast_const_char repl->ct,
+		               cast_const_char neww->ct)
+		    && !strcmp(cast_const_char repl->prog,
+		               cast_const_char neww->prog)
+		    && repl->block == neww->block && repl->cons == neww->cons
+		    && repl->xwin == neww->xwin && repl->ask == neww->ask
+		    && repl->accept_http == neww->accept_http
+		    && repl->accept_ftp == neww->accept_ftp
+		    && repl->system == neww->system) {
 			del_from_list(&repl->head);
 			add_to_list(assoc.list_entry, &repl->head);
 			return;
@@ -400,21 +451,26 @@ void update_assoc(struct assoc *neww)
 /*------------------------ EXTENSIONS -----------------------*/
 
 /* DECLARATIONS */
-static void ext_edit_item(struct dialog_data *, struct list *, void (*)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *, unsigned char);
+static void ext_edit_item(struct dialog_data *, struct list *,
+                          void (*)(struct dialog_data *, struct list *,
+                                   struct list *, struct list_description *),
+                          struct list *, unsigned char);
 static void ext_copy_item(struct list *, struct list *);
 static struct list *ext_new_item(void *);
 static void ext_delete_item(struct list *);
-static struct list *ext_find_item(struct list *start, unsigned char *str, int direction);
+static struct list *ext_find_item(struct list *start, unsigned char *str,
+                                  int direction);
 static unsigned char *ext_type_item(struct terminal *, struct list *, int);
 
 struct list extensions = { init_list_1st(&extensions.list_entry) 0, -1, NULL };
 
-static struct history ext_search_history = { 0, { &ext_search_history.items, &ext_search_history.items } };
+static struct history ext_search_history = {
+	0, {&ext_search_history.items, &ext_search_history.items}
+};
 
-
-static struct list_description ext_ld={
-	0,  /* 0= flat; 1=tree */
-	&extensions,  /* list */
+static struct list_description ext_ld = {
+	0,           /* 0= flat; 1=tree */
+	&extensions, /* list */
 	ext_new_item,
 	ext_edit_item,
 	NULL,
@@ -423,28 +479,28 @@ static struct list_description ext_ld={
 	ext_type_item,
 	ext_find_item,
 	&ext_search_history,
-	0,		/* this is set in init_assoc function */
-	15,  /* # of items in main window */
+	0,  /* this is set in init_assoc function */
+	15, /* # of items in main window */
 	T_eXTENSION,
 	T_EXTENSIONS_ALREADY_IN_USE,
 	T_EXTENSIONS_MANAGER,
 	T_DELETE_EXTENSION,
-	0,	/* no button */
-	NULL,	/* no button */
-	NULL,	/* no save*/
+	0,    /* no button */
+	NULL, /* no button */
+	NULL, /* no save*/
 
-	NULL,NULL,0,0,  /* internal vars */
+	NULL,
+	NULL,
+	0,
+	0, /* internal vars */
 	0, /* modified */
 	NULL,
 	NULL,
 	0,
 };
 
-
-
-
-
-static struct list *ext_new_item(void *ignore)
+static struct list *
+ext_new_item(void *ignore)
 {
 	struct extension *neww;
 
@@ -455,8 +511,8 @@ static struct list *ext_new_item(void *ignore)
 	return &neww->head;
 }
 
-
-static void ext_delete_item(struct list *data)
+static void
+ext_delete_item(struct list *data)
 {
 	struct extension *del = get_struct(data, struct extension, head);
 
@@ -467,8 +523,8 @@ static void ext_delete_item(struct list *data)
 	free(del);
 }
 
-
-static void ext_copy_item(struct list *in, struct list *out)
+static void
+ext_copy_item(struct list *in, struct list *out)
 {
 	struct extension *item_in = get_struct(in, struct extension, head);
 	struct extension *item_out = get_struct(out, struct extension, head);
@@ -480,16 +536,17 @@ static void ext_copy_item(struct list *in, struct list *out)
 	item_out->ct = stracpy(item_in->ct);
 }
 
-
 /* allocate string and print extension into it */
 /* x: 0=type all, 1=type title only */
-static unsigned char *ext_type_item(struct terminal *term, struct list *data, int x)
+static unsigned char *
+ext_type_item(struct terminal *term, struct list *data, int x)
 {
 	unsigned char *txt, *txt1;
 	struct extension *item;
 
 	if (data == &extensions)
-		return stracpy(get_text_translation(TEXT_(T_FILE_EXTENSIONS), term));
+		return stracpy(
+		    get_text_translation(TEXT_(T_FILE_EXTENSIONS), term));
 
 	item = get_struct(data, struct extension, head);
 	txt = stracpy(item->ext);
@@ -501,19 +558,20 @@ static unsigned char *ext_type_item(struct terminal *term, struct list *data, in
 	return txt1;
 }
 
-
-void menu_ext_manager(struct terminal *term, void *fcp, void *ses_)
+void
+menu_ext_manager(struct terminal *term, void *fcp, void *ses_)
 {
 	struct session *ses = (struct session *)ses_;
 	create_list_window(&ext_ld, &extensions, term, ses);
 }
 
-static unsigned char * const ext_msg[] = {
+static unsigned char *const ext_msg[] = {
 	TEXT_(T_EXTENSION_S),
 	TEXT_(T_CONTENT_TYPE),
 };
 
-static void ext_edit_item_fn(struct dialog_data *dlg)
+static void
+ext_edit_item_fn(struct dialog_data *dlg)
 {
 	struct terminal *term = dlg->win->term;
 	int max = 0, min = 0;
@@ -535,29 +593,37 @@ static void ext_edit_item_fn(struct dialog_data *dlg)
 	if (w < 1)
 		w = 1;
 	rw = 0;
-	dlg_format_text_and_field(dlg, NULL, ext_msg[0], &dlg->items[0], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, NULL, ext_msg[0], &dlg->items[0], 0, &y,
+	                          w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_text_and_field(dlg, NULL, ext_msg[1], &dlg->items[1], 0, &y, w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, NULL, ext_msg[1], &dlg->items[1], 0, &y,
+	                          w, &rw, COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_buttons(dlg, NULL, dlg->items + 2, 2, 0, &y, w, &rw, AL_CENTER);
+	dlg_format_buttons(dlg, NULL, dlg->items + 2, 2, 0, &y, w, &rw,
+	                   AL_CENTER);
 	w = rw;
 	dlg->xw = w + 2 * DIALOG_LB;
 	dlg->yw = y + 2 * DIALOG_TB;
 	center_dlg(dlg);
 	draw_dlg(dlg);
 	y = dlg->y + DIALOG_TB;
-	dlg_format_text_and_field(dlg, term, ext_msg[0], &dlg->items[0], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, term, ext_msg[0], &dlg->items[0],
+	                          dlg->x + DIALOG_LB, &y, w, NULL,
+	                          COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_text_and_field(dlg, term, ext_msg[1], &dlg->items[1], dlg->x + DIALOG_LB, &y, w, NULL, COLOR_DIALOG_TEXT, AL_LEFT);
+	dlg_format_text_and_field(dlg, term, ext_msg[1], &dlg->items[1],
+	                          dlg->x + DIALOG_LB, &y, w, NULL,
+	                          COLOR_DIALOG_TEXT, AL_LEFT);
 	y++;
-	dlg_format_buttons(dlg, term, &dlg->items[2], 2, dlg->x + DIALOG_LB, &y, w, NULL, AL_CENTER);
+	dlg_format_buttons(dlg, term, &dlg->items[2], 2, dlg->x + DIALOG_LB, &y,
+	                   w, NULL, AL_CENTER);
 }
 
-
 /* Puts url and title into the bookmark item */
-static void ext_edit_done(void *data)
+static void
+ext_edit_done(void *data)
 {
-	struct dialog *d = (struct dialog*)data;
+	struct dialog *d = (struct dialog *)data;
 	struct extension *item = (struct extension *)d->udata;
 	struct assoc_ok_struct *s = (struct assoc_ok_struct *)d->udata2;
 	unsigned char *txt;
@@ -566,21 +632,23 @@ static void ext_edit_done(void *data)
 	ext = (unsigned char *)&d->items[5];
 	ct = ext + MAX_STR_LEN;
 
-	txt = convert(term_charset(s->dlg->win->term), ext_ld.codepage,ext, NULL);
+	txt = convert(term_charset(s->dlg->win->term), ext_ld.codepage, ext,
+	              NULL);
 	free(item->ext);
 	item->ext = txt;
 
-	txt = convert(term_charset(s->dlg->win->term), ext_ld.codepage,ct, NULL);
+	txt =
+	    convert(term_charset(s->dlg->win->term), ext_ld.codepage, ct, NULL);
 	free(item->ct);
-	item->ct=txt;
+	item->ct = txt;
 
 	s->fn(s->dlg, s->data, &item->head, &ext_ld);
-	d->udata = NULL;  /* for abort function */
+	d->udata = NULL; /* for abort function */
 }
 
-
 /* destroys an item, this function is called when edit window is aborted */
-static void ext_edit_abort(struct dialog_data *data)
+static void
+ext_edit_abort(struct dialog_data *data)
 {
 	struct dialog *dlg = data->dlg;
 	struct extension *item = (struct extension *)dlg->udata;
@@ -590,8 +658,11 @@ static void ext_edit_abort(struct dialog_data *data)
 		ext_delete_item(&item->head);
 }
 
-
-static void ext_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_fn)(struct dialog_data *, struct list *, struct list *, struct list_description *), struct list *ok_arg, unsigned char dlg_title)
+static void
+ext_edit_item(struct dialog_data *dlg, struct list *data,
+              void (*ok_fn)(struct dialog_data *, struct list *, struct list *,
+                            struct list_description *),
+              struct list *ok_arg, unsigned char dlg_title)
 {
 	struct extension *neww = get_struct(data, struct extension, head);
 	struct terminal *term = dlg->win->term;
@@ -600,7 +671,8 @@ static void ext_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_
 	unsigned char *ext;
 	unsigned char *ct;
 
-	d = mem_calloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item) + 2 * MAX_STR_LEN);
+	d = mem_calloc(sizeof(struct dialog) + 4 * sizeof(struct dialog_item)
+	               + 2 * MAX_STR_LEN);
 
 	ext = (unsigned char *)&d->items[5];
 	ct = ext + MAX_STR_LEN;
@@ -653,14 +725,15 @@ static void ext_edit_item(struct dialog_data *dlg, struct list *data, void (*ok_
 	do_dialog(term, d, getml(d, NULL));
 }
 
-
-static int ext_test_entry(struct list *e, unsigned char *str)
+static int
+ext_test_entry(struct list *e, unsigned char *str)
 {
 	struct extension *ext = get_struct(e, struct extension, head);
 	return casestrstr(ext->ext, str) || casestrstr(ext->ct, str);
 }
 
-static struct list *ext_find_item(struct list *s, unsigned char *str, int direction)
+static struct list *
+ext_find_item(struct list *s, unsigned char *str, int direction)
 {
 	struct list *e;
 
@@ -681,18 +754,20 @@ static struct list *ext_find_item(struct list *s, unsigned char *str, int direct
 	return NULL;
 }
 
-
-void update_ext(struct extension *neww)
+void
+update_ext(struct extension *neww)
 {
 	struct extension *repl;
 	struct list *r = NULL;
 	struct list_head *lr;
 	if (!neww->ext[0] || !neww->ct[0])
 		return;
-	foreach(struct list, r, lr, extensions.list_entry) {
+	foreach (struct list, r, lr, extensions.list_entry) {
 		repl = get_struct(r, struct extension, head);
-		if (!strcmp(cast_const_char repl->ext, cast_const_char neww->ext)
-		&& !strcmp(cast_const_char repl->ct, cast_const_char neww->ct)) {
+		if (!strcmp(cast_const_char repl->ext,
+		            cast_const_char neww->ext)
+		    && !strcmp(cast_const_char repl->ct,
+		               cast_const_char neww->ct)) {
 			del_from_list(&repl->head);
 			add_to_list(extensions.list_entry, &repl->head);
 			return;
@@ -705,14 +780,16 @@ void update_ext(struct extension *neww)
 	add_to_list(extensions.list_entry, &repl->head);
 }
 
-void update_prog(struct list_head *l, unsigned char *p, int s)
+void
+update_prog(struct list_head *l, unsigned char *p, int s)
 {
 	struct protocol_program *repl = NULL;
 	struct list_head *lrepl;
-	foreach(struct protocol_program, repl, lrepl, *l) if (repl->system == s) {
-		free(repl->prog);
-		goto ss;
-	}
+	foreach (struct protocol_program, repl, lrepl, *l)
+		if (repl->system == s) {
+			free(repl->prog);
+			goto ss;
+		}
 	repl = xmalloc(sizeof(struct protocol_program));
 	add_to_list(*l, repl);
 	repl->system = s;
@@ -721,24 +798,31 @@ ss:
 	safe_strncpy(repl->prog, p, MAX_STR_LEN);
 }
 
-unsigned char *get_prog(struct list_head *l)
+unsigned char *
+get_prog(struct list_head *l)
 {
 	struct protocol_program *repl = NULL;
 	struct list_head *lrepl;
-	foreach(struct protocol_program, repl, lrepl, *l) if (repl->system == SYSTEM_ID) return repl->prog;
+	foreach (struct protocol_program, repl, lrepl, *l)
+		if (repl->system == SYSTEM_ID)
+			return repl->prog;
 	update_prog(l, cast_uchar "", SYSTEM_ID);
-	foreach(struct protocol_program, repl, lrepl, *l) if (repl->system == SYSTEM_ID) return repl->prog;
+	foreach (struct protocol_program, repl, lrepl, *l)
+		if (repl->system == SYSTEM_ID)
+			return repl->prog;
 	internal("get_prog: program was not added");
-	return cast_uchar "";;
+	return cast_uchar "";
+	;
 }
 
-
 /* creates default extensions if extension list is empty */
-void create_initial_extensions(void)
+void
+create_initial_extensions(void)
 {
 	struct extension ext;
 
-	if (!list_empty(extensions.list_entry)) return;
+	if (!list_empty(extensions.list_entry))
+		return;
 
 	/* here you can add any default extension you want */
 	ext.ext = cast_uchar "xpm";
@@ -865,7 +949,8 @@ void create_initial_extensions(void)
 
 /* --------------------------- PROG -----------------------------*/
 
-static int is_in_list(unsigned char *list, unsigned char *str, int l)
+static int
+is_in_list(unsigned char *list, unsigned char *str, int l)
 {
 	unsigned char *l2, *l3;
 	if (!l)
@@ -875,8 +960,10 @@ rep:
 		list++;
 	if (!*list)
 		return 0;
-	for (l2 = list; *l2 && *l2 != ','; l2++);
-	for (l3 = l2 - 1; l3 >= list && *l3 <= ' '; l3--);
+	for (l2 = list; *l2 && *l2 != ','; l2++)
+		;
+	for (l3 = l2 - 1; l3 >= list && *l3 <= ' '; l3--)
+		;
 	l3++;
 	if (l3 - list == l && !casecmp(str, list, l))
 		return 1;
@@ -887,7 +974,8 @@ rep:
 }
 
 /* FIXME */
-static char *canonical_compressed_ext(char *ext, char *ext_end)
+static char *
+canonical_compressed_ext(char *ext, char *ext_end)
 {
 	size_t len;
 	if (!ext_end)
@@ -919,7 +1007,8 @@ static char *canonical_compressed_ext(char *ext, char *ext_end)
 }
 
 /* FIXME */
-unsigned char *get_compress_by_extension(char *ext, char *ext_end)
+unsigned char *
+get_compress_by_extension(char *ext, char *ext_end)
 {
 	size_t len;
 	char *x;
@@ -957,7 +1046,8 @@ unsigned char *get_compress_by_extension(char *ext, char *ext_end)
 	return NULL;
 }
 
-unsigned char *get_content_type_by_extension(unsigned char *url)
+unsigned char *
+get_content_type_by_extension(unsigned char *url)
 {
 	struct list *l = NULL;
 	struct list_head *ll;
@@ -967,24 +1057,26 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 	extl = 0;
 	if (!(ct = get_url_data(url)))
 		ct = url;
-	for (eod = ct; *eod && !end_of_dir(url, *eod); eod++);
+	for (eod = ct; *eod && !end_of_dir(url, *eod); eod++)
+		;
 	for (; ct < eod; ct++)
 		if (*ct == '.') {
 			if (ext)
-				if (get_compress_by_extension((char *)(ct + 1), (char *)eod))
+				if (get_compress_by_extension((char *)(ct + 1),
+				                              (char *)eod))
 					break;
 			ext = ct + 1;
 		} else if (dir_sep(*ct))
 			ext = NULL;
 	if (ext)
 		while (ext[extl] && ext[extl] != '.' && !dir_sep(ext[extl])
-		&& !end_of_dir(url, ext[extl]))
+		       && !end_of_dir(url, ext[extl]))
 			extl++;
 	if ((extl == 3 && !casecmp(ext, cast_uchar "htm", 3))
-	|| (extl == 4 && !casecmp(ext, cast_uchar "html", 4))
-	|| (extl == 5 && !casecmp(ext, cast_uchar "xhtml", 5)))
+	    || (extl == 4 && !casecmp(ext, cast_uchar "html", 4))
+	    || (extl == 5 && !casecmp(ext, cast_uchar "xhtml", 5)))
 		return stracpy(cast_uchar "text/html");
-	foreach(struct list, l, ll, extensions.list_entry) {
+	foreach (struct list, l, ll, extensions.list_entry) {
 		struct extension *e = get_struct(l, struct extension, head);
 		unsigned char *fname = NULL;
 		if (!(ct = get_url_data(url)))
@@ -998,18 +1090,20 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 		} else {
 			int fnlen = 0;
 			int x;
-			while (fname[fnlen] && !end_of_dir(url, fname[fnlen])) fnlen++;
+			while (fname[fnlen] && !end_of_dir(url, fname[fnlen]))
+				fnlen++;
 			for (x = 0; x < fnlen; x++)
 				if (fname[x] == '.')
-					if (is_in_list(e->ext, fname + x + 1, fnlen - x - 1))
+					if (is_in_list(e->ext, fname + x + 1,
+					               fnlen - x - 1))
 						return stracpy(e->ct);
 		}
 	}
 
 	if ((extl == 3 && !casecmp(ext, cast_uchar "jpg", 3))
-	|| (extl == 4 && !casecmp(ext, cast_uchar "pjpg", 4))
-	|| (extl == 4 && !casecmp(ext, cast_uchar "jpeg", 4))
-	|| (extl == 5 && !casecmp(ext, cast_uchar "pjpeg", 5)))
+	    || (extl == 4 && !casecmp(ext, cast_uchar "pjpg", 4))
+	    || (extl == 4 && !casecmp(ext, cast_uchar "jpeg", 4))
+	    || (extl == 5 && !casecmp(ext, cast_uchar "pjpeg", 5)))
 		return stracpy(cast_uchar "image/jpeg");
 	if ((extl == 3 && !casecmp(ext, cast_uchar "png", 3)))
 		return stracpy(cast_uchar "image/png");
@@ -1018,13 +1112,13 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 	if ((extl == 3 && !casecmp(ext, cast_uchar "xbm", 3)))
 		return stracpy(cast_uchar "image/x-xbitmap");
 	if ((extl == 3 && !casecmp(ext, cast_uchar "tif", 3))
-	|| (extl == 4 && !casecmp(ext, cast_uchar "tiff", 4)))
+	    || (extl == 4 && !casecmp(ext, cast_uchar "tiff", 4)))
 		return stracpy(cast_uchar "image/tiff");
 	exxt = init_str();
 	el = 0;
 	add_to_str(&exxt, &el, cast_uchar "application/x-");
 	add_bytes_to_str(&exxt, &el, ext, extl);
-	foreach(struct list, l, ll, assoc.list_entry) {
+	foreach (struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
 		if (is_in_list(a->ct, exxt, el))
 			return exxt;
@@ -1033,7 +1127,9 @@ unsigned char *get_content_type_by_extension(unsigned char *url)
 	return NULL;
 }
 
-static unsigned char *get_content_type_by_header_and_extension(unsigned char *head, unsigned char *url)
+static unsigned char *
+get_content_type_by_header_and_extension(unsigned char *head,
+                                         unsigned char *url)
 {
 	unsigned char *ct, *file;
 	ct = get_content_type_by_extension(url);
@@ -1049,14 +1145,15 @@ static unsigned char *get_content_type_by_header_and_extension(unsigned char *he
 	return NULL;
 }
 
-static unsigned char *get_extension_by_content_type(unsigned char *ct)
+static unsigned char *
+get_extension_by_content_type(unsigned char *ct)
 {
 	struct list *l = NULL;
 	struct list_head *ll;
 	unsigned char *x, *y;
 	if (is_html_type(ct))
 		return stracpy(cast_uchar "html");
-	foreach(struct list, l, ll, extensions.list_entry) {
+	foreach (struct list, l, ll, extensions.list_entry) {
 		struct extension *e = get_struct(l, struct extension, head);
 		if (!casestrcmp(e->ct, ct)) {
 			x = stracpy(e->ext);
@@ -1066,67 +1163,69 @@ static unsigned char *get_extension_by_content_type(unsigned char *ct)
 		}
 	}
 	if (!casestrcmp(ct, cast_uchar "image/jpeg")
-	|| !casestrcmp(ct, cast_uchar "image/jpg")
-	|| !casestrcmp(ct, cast_uchar "image/jpe")
-	|| !casestrcmp(ct, cast_uchar "image/pjpe")
-	|| !casestrcmp(ct, cast_uchar "image/pjpeg")
-	|| !casestrcmp(ct, cast_uchar "image/pjpg"))
+	    || !casestrcmp(ct, cast_uchar "image/jpg")
+	    || !casestrcmp(ct, cast_uchar "image/jpe")
+	    || !casestrcmp(ct, cast_uchar "image/pjpe")
+	    || !casestrcmp(ct, cast_uchar "image/pjpeg")
+	    || !casestrcmp(ct, cast_uchar "image/pjpg"))
 		return stracpy(cast_uchar "jpg");
 	if (!casestrcmp(ct, cast_uchar "image/png")
-	|| !casestrcmp(ct, cast_uchar "image/x-png"))
+	    || !casestrcmp(ct, cast_uchar "image/x-png"))
 		return stracpy(cast_uchar "png");
 	if (!casestrcmp(ct, cast_uchar "image/gif"))
 		return stracpy(cast_uchar "gif");
 	if (!casestrcmp(ct, cast_uchar "image/x-bitmap"))
 		return stracpy(cast_uchar "xbm");
 	if (!casestrcmp(ct, cast_uchar "image/tiff")
-	|| !casestrcmp(ct, cast_uchar "image/tif"))
+	    || !casestrcmp(ct, cast_uchar "image/tif"))
 		return stracpy(cast_uchar "tiff");
-	if (!casestrcmp(ct, cast_uchar "image/svg") 
-	|| !casestrcmp(ct, cast_uchar "image/svg+xml"))
+	if (!casestrcmp(ct, cast_uchar "image/svg")
+	    || !casestrcmp(ct, cast_uchar "image/svg+xml"))
 		return stracpy(cast_uchar "svg");
 	if (!cmpbeg(ct, cast_uchar "application/x-")) {
 		x = ct + strlen("application/x-");
 		if (casestrcmp(x, cast_uchar "z")
-		&& casestrcmp(x, cast_uchar "gz")
-		&& casestrcmp(x, cast_uchar "gzip")
-		&& casestrcmp(x, cast_uchar "br")
-		&& casestrcmp(x, cast_uchar "bz2")
-		&& casestrcmp(x, cast_uchar "bzip2")
-		&& casestrcmp(x, cast_uchar "lzma")
-		&& casestrcmp(x, cast_uchar "lzma2")
-		&& casestrcmp(x, cast_uchar "xz")
-		&& casestrcmp(x, cast_uchar "lz")
-		&& !strchr(cast_const_char x, '-')
-		&& strlen(cast_const_char x) <= 4)
+		    && casestrcmp(x, cast_uchar "gz")
+		    && casestrcmp(x, cast_uchar "gzip")
+		    && casestrcmp(x, cast_uchar "br")
+		    && casestrcmp(x, cast_uchar "bz2")
+		    && casestrcmp(x, cast_uchar "bzip2")
+		    && casestrcmp(x, cast_uchar "lzma")
+		    && casestrcmp(x, cast_uchar "lzma2")
+		    && casestrcmp(x, cast_uchar "xz")
+		    && casestrcmp(x, cast_uchar "lz")
+		    && !strchr(cast_const_char x, '-')
+		    && strlen(cast_const_char x) <= 4)
 			return stracpy(x);
 	}
 	return NULL;
 }
 
-static unsigned char *get_content_encoding_from_content_type(unsigned char *ct)
+static unsigned char *
+get_content_encoding_from_content_type(unsigned char *ct)
 {
 	if (!casestrcmp(ct, cast_uchar "application/x-gzip")
-	|| !casestrcmp(ct, cast_uchar "application/x-tgz")
-	|| !casestrcmp(ct, cast_uchar "application/x-gtar"))
+	    || !casestrcmp(ct, cast_uchar "application/x-tgz")
+	    || !casestrcmp(ct, cast_uchar "application/x-gtar"))
 		return cast_uchar "gzip";
 	if (!casestrcmp(ct, cast_uchar "application/x-br"))
 		return cast_uchar "br";
 	if (!casestrcmp(ct, cast_uchar "application/x-bzip2")
-	|| !casestrcmp(ct, cast_uchar "application/x-bzip"))
+	    || !casestrcmp(ct, cast_uchar "application/x-bzip"))
 		return cast_uchar "bzip2";
 	if (!casestrcmp(ct, cast_uchar "application/x-lzma"))
 		return cast_uchar "lzma";
 	if (!casestrcmp(ct, cast_uchar "application/x-lzma2")
-	|| !casestrcmp(ct, cast_uchar "application/x-xz"))
+	    || !casestrcmp(ct, cast_uchar "application/x-xz"))
 		return cast_uchar "lzma2";
 	if (!casestrcmp(ct, cast_uchar "application/x-lz")
-	|| !casestrcmp(ct, cast_uchar "application/x-lzip"))
+	    || !casestrcmp(ct, cast_uchar "application/x-lzip"))
 		return cast_uchar "lzip";
 	return NULL;
 }
 
-unsigned char *get_content_type(unsigned char *head, unsigned char *url)
+unsigned char *
+get_content_type(unsigned char *head, unsigned char *url)
 {
 	unsigned char *ct;
 	int code;
@@ -1136,21 +1235,24 @@ unsigned char *get_content_type(unsigned char *head, unsigned char *url)
 			*s = 0;
 		while (*ct && ct[strlen(cast_const_char ct) - 1] <= ' ')
 			ct[strlen(cast_const_char ct) - 1] = 0;
-		if (*ct == '"' && ct[1] && ct[strlen(cast_const_char ct) - 1] == '"') {
+		if (*ct == '"' && ct[1]
+		    && ct[strlen(cast_const_char ct) - 1] == '"') {
 			memmove(ct, ct + 1, strlen(cast_const_char ct));
 			ct[strlen(cast_const_char ct) - 1] = 0;
 		}
 		if (!casestrcmp(ct, cast_uchar "text/plain")
-		|| !casestrcmp(ct, cast_uchar "application/octet-stream")
-		|| !casestrcmp(ct, cast_uchar "application/octetstream")
-		|| !casestrcmp(ct, cast_uchar "application/octet_stream")
-		|| !casestrcmp(ct, cast_uchar "application/binary")
-		|| !casestrcmp(ct, cast_uchar "application/x-www-form-urlencoded")
-		|| get_content_encoding_from_content_type(ct)) {
+		    || !casestrcmp(ct, cast_uchar "application/octet-stream")
+		    || !casestrcmp(ct, cast_uchar "application/octetstream")
+		    || !casestrcmp(ct, cast_uchar "application/octet_stream")
+		    || !casestrcmp(ct, cast_uchar "application/binary")
+		    || !casestrcmp(ct, cast_uchar
+		                   "application/x-www-form-urlencoded")
+		    || get_content_encoding_from_content_type(ct)) {
 			unsigned char *ctt;
 			if (!get_http_code(head, &code, NULL) && code >= 300)
 				goto no_code_by_extension;
-			ctt = get_content_type_by_header_and_extension(head, url);
+			ctt =
+			    get_content_type_by_header_and_extension(head, url);
 			if (ctt) {
 				free(ct);
 				return ctt;
@@ -1167,10 +1269,12 @@ no_code_by_extension:
 	ct = get_content_type_by_header_and_extension(head, url);
 	if (ct)
 		return ct;
-	return !force_html ? stracpy(cast_uchar "text/plain") : stracpy(cast_uchar "text/html");
+	return !force_html ? stracpy(cast_uchar "text/plain")
+	                   : stracpy(cast_uchar "text/html");
 }
 
-unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int just_ce)
+unsigned char *
+get_content_encoding(unsigned char *head, unsigned char *url, int just_ce)
 {
 	unsigned char *ce, *ct, *ext;
 	char *extd;
@@ -1199,19 +1303,21 @@ unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int
 		return NULL;
 	if (!(ext = get_url_data(url)))
 		ext = url;
-	for (u = ext; *u; u++) if (end_of_dir(url, *u))
-		goto skip_ext;
+	for (u = ext; *u; u++)
+		if (end_of_dir(url, *u))
+			goto skip_ext;
 	extd = strrchr((char *)ext, '.');
 	if (extd) {
 		ce = get_compress_by_extension(extd + 1, strchr(extd + 1, 0));
 		if (ce)
 			return stracpy(ce);
 	}
-	skip_ext:
+skip_ext:
 	if ((ext = get_filename_from_header(head))) {
 		extd = strrchr((char *)ext, '.');
 		if (extd) {
-			ce = get_compress_by_extension(extd + 1, strchr(extd + 1, 0));
+			ce = get_compress_by_extension(extd + 1,
+			                               strchr(extd + 1, 0));
 			if (ce) {
 				free(ext);
 				return stracpy(ce);
@@ -1222,13 +1328,14 @@ unsigned char *get_content_encoding(unsigned char *head, unsigned char *url, int
 	return NULL;
 }
 
-unsigned char *encoding_2_extension(unsigned char *encoding)
+unsigned char *
+encoding_2_extension(unsigned char *encoding)
 {
 	if (!casestrcmp(encoding, cast_uchar "gzip")
-	|| !casestrcmp(encoding, cast_uchar "x-gzip"))
+	    || !casestrcmp(encoding, cast_uchar "x-gzip"))
 		return cast_uchar "gz";
 	if (!casestrcmp(encoding, cast_uchar "compress")
-	|| !casestrcmp(encoding, cast_uchar "x-compress"))
+	    || !casestrcmp(encoding, cast_uchar "x-compress"))
 		return cast_uchar "Z";
 	if (!casestrcmp(encoding, cast_uchar "bzip2"))
 		return cast_uchar "bz2";
@@ -1242,17 +1349,19 @@ unsigned char *encoding_2_extension(unsigned char *encoding)
 }
 
 /* returns field with associations */
-struct assoc *get_type_assoc(struct terminal *term, unsigned char *type, int *n)
+struct assoc *
+get_type_assoc(struct terminal *term, unsigned char *type, int *n)
 {
 	struct assoc *assoc_array;
 	struct list *l = NULL;
 	struct list_head *ll;
 	int count = 0;
-	foreach(struct list, l, ll, assoc.list_entry) {
+	foreach (struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
 		if (a->system == SYSTEM_ID
-		&& (term->environment & ENV_XWIN ? a->xwin : a->cons)
-		&& is_in_list(a->ct, type, (int)strlen(cast_const_char type))) {
+		    && (term->environment & ENV_XWIN ? a->xwin : a->cons)
+		    && is_in_list(a->ct, type,
+		                  (int)strlen(cast_const_char type))) {
 			if (count == INT_MAX)
 				overalloc();
 			count++;
@@ -1265,31 +1374,36 @@ struct assoc *get_type_assoc(struct terminal *term, unsigned char *type, int *n)
 		overalloc();
 	assoc_array = xmalloc(count * sizeof(struct assoc));
 	count = 0;
-	foreach(struct list, l, ll, assoc.list_entry) {
+	foreach (struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
 		if (a->system == SYSTEM_ID
-		&& (term->environment & ENV_XWIN ? a->xwin : a->cons)
-		&& is_in_list(a->ct, type, (int)strlen(cast_const_char type)))
+		    && (term->environment & ENV_XWIN ? a->xwin : a->cons)
+		    && is_in_list(a->ct, type,
+		                  (int)strlen(cast_const_char type)))
 			assoc_array[count++] = *a;
 	}
 	return assoc_array;
 }
 
-int is_html_type(unsigned char *ct)
+int
+is_html_type(unsigned char *ct)
 {
-	return	!casestrcmp(ct, cast_uchar "text/html") ||
-		!casestrcmp(ct, cast_uchar "text-html") ||
-		!casestrcmp(ct, cast_uchar "text/x-server-parsed-html") ||
-		!casestrcmp(ct, cast_uchar "text/xml") ||
-		!casecmp(ct, cast_uchar "application/xhtml", strlen("application/xhtml"));
+	return !casestrcmp(ct, cast_uchar "text/html")
+	       || !casestrcmp(ct, cast_uchar "text-html")
+	       || !casestrcmp(ct, cast_uchar "text/x-server-parsed-html")
+	       || !casestrcmp(ct, cast_uchar "text/xml")
+	       || !casecmp(ct, cast_uchar "application/xhtml",
+	                   strlen("application/xhtml"));
 }
 
-unsigned char *get_filename_from_header(unsigned char *head)
+unsigned char *
+get_filename_from_header(unsigned char *head)
 {
 	int extended = 0;
 	unsigned char *ct, *x, *y, *codepage;
 	int ly;
-	if ((ct = parse_http_header(head, cast_uchar "Content-Disposition", NULL))) {
+	if ((ct = parse_http_header(head, cast_uchar "Content-Disposition",
+	                            NULL))) {
 		x = parse_header_param(ct, cast_uchar "filename*", 1);
 		if (x)
 			extended = 1;
@@ -1323,7 +1437,7 @@ ret_x:
 		ap1 = cast_uchar strchr(cast_const_char x, '\'');
 		if (!ap1)
 			goto no_extended;
-		ap2 = cast_uchar strchr(cast_const_char (ap1 + 1), '\'');
+		ap2 = cast_uchar strchr(cast_const_char(ap1 + 1), '\'');
 		if (ap2)
 			ap2++;
 		else
@@ -1351,7 +1465,8 @@ no_extended:
 	return x;
 }
 
-unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, int tmp)
+unsigned char *
+get_filename_from_url(unsigned char *url, unsigned char *head, int tmp)
 {
 	int ll = 0;
 	unsigned char *u, *s, *e, *f, *x, *ww;
@@ -1383,7 +1498,7 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 		}
 		free(ct);
 	}
-	no_ct:
+no_ct:
 	if (!*want_ext) {
 		x = cast_uchar strrchr(cast_const_char f, '.');
 		if (x) {
@@ -1400,45 +1515,59 @@ unsigned char *get_filename_from_url(unsigned char *url, unsigned char *head, in
 			if (ct1)
 				free(ct1);
 			else if (x) {
-				unsigned char *w = cast_uchar strrchr(cast_const_char want_ext, '.');
-				if (w && (ww = (unsigned char *)canonical_compressed_ext((char *)(w + 1), NULL)) && !casestrcmp(x, ww))
+				unsigned char *w = cast_uchar strrchr(
+				    cast_const_char want_ext, '.');
+				if (w
+				    && (ww = (unsigned char *)
+				            canonical_compressed_ext(
+						(char *)(w + 1), NULL))
+				    && !casestrcmp(x, ww))
 					goto skip_want_ext;
 				if (w && !casestrcmp(w + 1, x))
 					goto skip_want_ext;
 				add_to_strn(&want_ext, cast_uchar ".");
 				add_to_strn(&want_ext, x);
-				skip_want_ext:;
+skip_want_ext:;
 			}
-		} else
-			if (x) {
-				if (strlen(cast_const_char x) + 1 < strlen(cast_const_char f)
-				&& f[strlen(cast_const_char f) - strlen(cast_const_char x) - 1] == '.'
-				&& !casestrcmp(f + strlen(cast_const_char f) - strlen(cast_const_char x), x)) {
-					f[strlen(cast_const_char f) - strlen(cast_const_char x) - 1] = 0;
-				}
+		} else if (x) {
+			if (strlen(cast_const_char x) + 1
+			        < strlen(cast_const_char f)
+			    && f[strlen(cast_const_char f)
+			         - strlen(cast_const_char x) - 1]
+			           == '.'
+			    && !casestrcmp(f + strlen(cast_const_char f)
+			                       - strlen(cast_const_char x),
+			                   x)) {
+				f[strlen(cast_const_char f)
+				  - strlen(cast_const_char x) - 1] = 0;
 			}
+		}
 		free(ct);
 	}
 	if (strlen(cast_const_char want_ext) > strlen(cast_const_char f)
-	|| casestrcmp(want_ext, f + strlen(cast_const_char f) - strlen(cast_const_char want_ext))) {
+	    || casestrcmp(want_ext, f + strlen(cast_const_char f)
+	                                - strlen(cast_const_char want_ext))) {
 		x = cast_uchar strrchr(cast_const_char f, '.');
-		if (x && (ww = (unsigned char *)canonical_compressed_ext((char *)(x + 1), NULL)) && want_ext[0] == '.'
-		&& !casestrcmp(want_ext + 1, ww))
+		if (x
+		    && (ww = (unsigned char *)canonical_compressed_ext(
+			    (char *)(x + 1), NULL))
+		    && want_ext[0] == '.' && !casestrcmp(want_ext + 1, ww))
 			goto skip_tgz_2;
 		if (x)
 			*x = 0;
 		add_to_strn(&f, want_ext);
-		skip_tgz_2:;
+skip_tgz_2:;
 	}
 	free(want_ext);
 	return f;
 }
 
-void free_types(void)
+void
+free_types(void)
 {
 	struct list *l = NULL;
 	struct list_head *ll;
-	foreach(struct list, l, ll, assoc.list_entry) {
+	foreach (struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
 		free(a->ct);
 		free(a->prog);
@@ -1447,7 +1576,7 @@ void free_types(void)
 		del_from_list(&a->head);
 		free(a);
 	}
-	foreach(struct list, l, ll, extensions.list_entry) {
+	foreach (struct list, l, ll, extensions.list_entry) {
 		struct extension *e = get_struct(l, struct extension, head);
 		free(e->ext);
 		free(e->ct);
@@ -1459,4 +1588,3 @@ void free_types(void)
 	free_history(ext_search_history);
 	free_history(assoc_search_history);
 }
-

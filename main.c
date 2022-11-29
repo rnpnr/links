@@ -12,9 +12,9 @@
 #include <string.h>
 
 #ifdef __OpenBSD__
-#include <unistd.h>
+	#include <unistd.h>
 #else
-#define pledge(a,b) 0
+	#define pledge(a, b) 0
 #endif
 
 #include "links.h"
@@ -68,7 +68,8 @@ xrealloc(void *p, size_t len)
 	return p;
 }
 
-static void sig_intr(void *t_)
+static void
+sig_intr(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
 	if (!t) {
@@ -80,19 +81,22 @@ static void sig_intr(void *t_)
 	}
 }
 
-static void sig_ctrl_c(void *t_)
+static void
+sig_ctrl_c(void *t_)
 {
 	if (!is_blocked())
 		kbd_ctrl_c();
 }
 
-static void sig_ign(void *x)
+static void
+sig_ign(void *x)
 {
 }
 
 static struct timer *fg_poll_timer = NULL;
 
-void sig_tstp(void *t_)
+void
+sig_tstp(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
 	pid_t pid, newpid;
@@ -114,11 +118,13 @@ void sig_tstp(void *t_)
 		int rr;
 		EINTRLOOP(rr, kill(newpid, SIGKILL));
 	}
-	if (fg_poll_timer != NULL) kill_timer(fg_poll_timer);
+	if (fg_poll_timer != NULL)
+		kill_timer(fg_poll_timer);
 	fg_poll_timer = install_timer(FG_POLL_TIME, poll_fg, t);
 }
 
-static void poll_fg(void *t_)
+static void
+poll_fg(void *t_)
 {
 	struct terminal *t = (struct terminal *)t_;
 	int r;
@@ -132,12 +138,14 @@ static void poll_fg(void *t_)
 	}
 }
 
-void sig_cont(void *t_)
+void
+sig_cont(void *t_)
 {
 	unblock_itrm(1);
 }
 
-static void handle_basic_signals(struct terminal *term)
+static void
+handle_basic_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, sig_intr, term, 0);
 	install_signal_handler(SIGINT, sig_ctrl_c, term, 0);
@@ -147,7 +155,8 @@ static void handle_basic_signals(struct terminal *term)
 	install_signal_handler(SIGCONT, sig_cont, term, 0);
 }
 
-void unhandle_terminal_signals(struct terminal *term)
+void
+unhandle_terminal_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
 	install_signal_handler(SIGINT, NULL, NULL, 0);
@@ -161,7 +170,8 @@ void unhandle_terminal_signals(struct terminal *term)
 	}
 }
 
-static void unhandle_basic_signals(struct terminal *term)
+static void
+unhandle_basic_signals(struct terminal *term)
 {
 	install_signal_handler(SIGHUP, NULL, NULL, 0);
 	install_signal_handler(SIGINT, NULL, NULL, 0);
@@ -177,7 +187,8 @@ static void unhandle_basic_signals(struct terminal *term)
 
 int terminal_pipe[2] = { -1, -1 };
 
-int attach_terminal(void *info, int len)
+int
+attach_terminal(void *info, int len)
 {
 	struct terminal *term;
 	set_nonblock(terminal_pipe[0]);
@@ -185,7 +196,9 @@ int attach_terminal(void *info, int len)
 	handle_trm(terminal_pipe[1], info, len);
 	free(info);
 	if ((term = init_term(terminal_pipe[0], 1, win_func))) {
-		handle_basic_signals(term);	/* OK, this is race condition, but it must be so; GPM installs it's own buggy TSTP handler */
+		handle_basic_signals(
+		    term); /* OK, this is race condition, but it must be so; GPM
+		              installs it's own buggy TSTP handler */
 		return terminal_pipe[1];
 	}
 	close_socket(&terminal_pipe[0]);
@@ -196,36 +209,51 @@ int attach_terminal(void *info, int len)
 static struct object_request *dump_obj;
 static off_t dump_pos;
 
-static void end_dump(struct object_request *r, void *p)
+static void
+end_dump(struct object_request *r, void *p)
 {
 	struct cache_entry *ce;
-	if (!r->state || (r->state == 1 && dmp != D_SOURCE)) return;
+	if (!r->state || (r->state == 1 && dmp != D_SOURCE))
+		return;
 	ce = r->ce;
 	if (dmp == D_SOURCE) {
 		if (ce) {
 			struct fragment *frag = NULL;
 			struct list_head *lfrag;
-			nextfrag:
-			foreach(struct fragment, frag, lfrag, ce->frag) if (frag->offset <= dump_pos && frag->offset + frag->length > dump_pos) {
-				off_t l;
-				int w;
-				l = frag->length - (dump_pos - frag->offset);
-				if (l >= INT_MAX)
-					l = INT_MAX;
-				w = hard_write(1, frag->data + dump_pos - frag->offset, (int)l);
-				if (w != l) {
+nextfrag:
+			foreach (struct fragment, frag, lfrag, ce->frag)
+				if (frag->offset <= dump_pos
+				    && frag->offset + frag->length > dump_pos) {
+					off_t l;
+					int w;
+					l = frag->length
+					    - (dump_pos - frag->offset);
+					if (l >= INT_MAX)
+						l = INT_MAX;
+					w = hard_write(1,
+					               frag->data + dump_pos
+					                   - frag->offset,
+					               (int)l);
+					if (w != l) {
+						detach_object_connection(
+						    r, dump_pos);
+						if (w < 0)
+							fprintf(
+							    stderr,
+							    "Error writing to "
+							    "stdout: %s.\n",
+							    strerror(errno));
+						else
+							fprintf(stderr,
+							        "Can't write "
+							        "to stdout.\n");
+						retval = RET_ERROR;
+						goto terminate;
+					}
+					dump_pos += w;
 					detach_object_connection(r, dump_pos);
-					if (w < 0)
-						fprintf(stderr, "Error writing to stdout: %s.\n", strerror(errno));
-					else
-						fprintf(stderr, "Can't write to stdout.\n");
-					retval = RET_ERROR;
-					goto terminate;
+					goto nextfrag;
 				}
-				dump_pos += w;
-				detach_object_connection(r, dump_pos);
-				goto nextfrag;
-			}
 		}
 		if (r->state >= 0)
 			return;
@@ -245,15 +273,19 @@ static void end_dump(struct object_request *r, void *p)
 		o.plain = 0;
 		o.frames = 0;
 		o.framename = cast_uchar "";
-		if (!casecmp(r->url, cast_uchar "file://", 7) && !o.hard_assume) {
+		if (!casecmp(r->url, cast_uchar "file://", 7)
+		    && !o.hard_assume) {
 			o.assume_cp = 0;
 		}
-		if (!(fd->f_data = cached_format_html(fd, r, r->url, &o, NULL, 0))) goto term_1;
+		if (!(fd->f_data =
+		          cached_format_html(fd, r, r->url, &o, NULL, 0)))
+			goto term_1;
 		if ((err = dump_to_file(fd->f_data, 1))) {
-			fprintf(stderr, "Error writing to stdout: %s.\n", get_err_msg(err));
+			fprintf(stderr, "Error writing to stdout: %s.\n",
+			        get_err_msg(err));
 			retval = RET_ERROR;
 		}
-		term_1:
+term_1:
 		reinit_f_data_c(fd);
 		free(fd);
 	}
@@ -263,11 +295,12 @@ static void end_dump(struct object_request *r, void *p)
 		retval = RET_ERROR;
 		goto terminate;
 	}
-	terminate:
+terminate:
 	terminate_loop = 1;
 }
 
-static void init(void)
+static void
+init(void)
 {
 	void *info;
 	int len;
@@ -275,9 +308,11 @@ static void init(void)
 
 	initialize_all_subsystems();
 
-/* OS/2 has some stupid bug and the pipe must be created before socket :-/ */
+	/* OS/2 has some stupid bug and the pipe must be created before socket
+	 * :-/ */
 	if (c_pipe(terminal_pipe)) {
-		fatal_exit("ERROR: can't create pipe for internal communication");
+		fatal_exit(
+		    "ERROR: can't create pipe for internal communication");
 	}
 	if (!(u = parse_options(g_argc - 1, g_argv + 1))) {
 		retval = RET_SYNTAX;
@@ -288,9 +323,9 @@ static void init(void)
 	if (proxies.only_proxies)
 		reset_settings_for_tor();
 	if (!u) {
-		ttt:
+ttt:
 		initialize_all_subsystems_2();
-		tttt:
+tttt:
 		terminate_loop = 1;
 		return;
 	}
@@ -301,7 +336,8 @@ static void init(void)
 		create_initial_extensions();
 		load_url_history();
 		initialize_all_subsystems_2();
-		info = create_session_info(base_session, u, default_target, &len);
+		info =
+		    create_session_info(base_session, u, default_target, &len);
 		if (attach_terminal(info, len) < 0)
 			fatal_exit("Could not open initial session");
 	} else {
@@ -310,21 +346,25 @@ static void init(void)
 		close_socket(&terminal_pipe[0]);
 		close_socket(&terminal_pipe[1]);
 		if (!*u) {
-			fprintf(stderr, "URL expected after %s\n", dmp == D_DUMP ? "-dump" : "-source");
+			fprintf(stderr, "URL expected after %s\n",
+			        dmp == D_DUMP ? "-dump" : "-source");
 			retval = RET_SYNTAX;
 			goto tttt;
 		}
 		uu = stracpy(u);
-		if (!(uuu = translate_url(uu, wd = get_cwd()))) uuu = stracpy(uu);
+		if (!(uuu = translate_url(uu, wd = get_cwd())))
+			uuu = stracpy(uu);
 		free(uu);
-		request_object(NULL, uuu, NULL, PRI_MAIN, NC_RELOAD, ALLOW_ALL, end_dump, NULL, &dump_obj);
+		request_object(NULL, uuu, NULL, PRI_MAIN, NC_RELOAD, ALLOW_ALL,
+		               end_dump, NULL, &dump_obj);
 		free(uuu);
 		free(wd);
 	}
 }
 
 /* Is called before gaphics driver init */
-static void initialize_all_subsystems(void)
+static void
+initialize_all_subsystems(void)
 {
 	set_sigcld();
 	init_home();
@@ -335,12 +375,14 @@ static void initialize_all_subsystems(void)
 }
 
 /* Is called sometimes after and sometimes before graphics driver init */
-static void initialize_all_subsystems_2(void)
+static void
+initialize_all_subsystems_2(void)
 {
 	init_fcache();
 }
 
-static void terminate_all_subsystems(void)
+static void
+terminate_all_subsystems(void)
 {
 	check_bottom_halves();
 	abort_all_downloads();

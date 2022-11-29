@@ -1,0 +1,36 @@
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: Left
+AlignConsecutiveBitFields:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+AlignEscapedNewlines: Right
+AlignOperands: Align
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterDefinitionReturnType: true
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Linux
+ColumnLimit: 80
+Cpp11BracedListStyle: false
+ForEachMacros: [foreach, foreachfrom, foreachbackfrom, foreachback]
+IndentGotoLabels: false
+IndentPPDirectives: BeforeHash
+IndentWidth: 8
+MaxEmptyLinesToKeep: 1
+PointerAlignment: Right
+ReflowComments: true
+SpaceAfterCStyleCast: false
+TabWidth: 8
+UseCRLF: false
+UseTab: AlignWithSpaces
+...

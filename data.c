@@ -1,18 +1,25 @@
 #include "links.h"
 
-static void base64_decode(unsigned char **d, int *dl, unsigned char *s, int sl)
+static void
+base64_decode(unsigned char **d, int *dl, unsigned char *s, int sl)
 {
 	int bits = 0;
 	unsigned tmp = 0;
 	for (; sl > 0; s++, sl--) {
 		unsigned char val;
 		unsigned char c = *s;
-		if (c >= 'A' && c <= 'Z') val = c - 'A';
-		else if (c >= 'a' && c <= 'z') val = c - 'a' + 26;
-		else if (c >= '0' && c <= '9') val = c - '0' + 52;
-		else if (c == '+') val = 62;
-		else if (c == '/') val = 63;
-		else continue;
+		if (c >= 'A' && c <= 'Z')
+			val = c - 'A';
+		else if (c >= 'a' && c <= 'z')
+			val = c - 'a' + 26;
+		else if (c >= '0' && c <= '9')
+			val = c - '0' + 52;
+		else if (c == '+')
+			val = 62;
+		else if (c == '/')
+			val = 63;
+		else
+			continue;
 		tmp <<= 6;
 		tmp |= val;
 		bits += 6;
@@ -24,7 +31,8 @@ static void base64_decode(unsigned char **d, int *dl, unsigned char *s, int sl)
 	}
 }
 
-void data_func(struct connection *c)
+void
+data_func(struct connection *c)
 {
 	unsigned char *data, *flags, *mime, *str;
 	size_t length;
@@ -37,13 +45,14 @@ void data_func(struct connection *c)
 
 	flags = cast_uchar strchr(cast_const_char c->url, ':');
 	if (!flags) {
-		bad_url:
+bad_url:
 		setcstate(c, S_BAD_URL);
 		abort_connection(c);
 		return;
 	}
 	flags++;
-	while (*flags == '/') flags++;
+	while (*flags == '/')
+		flags++;
 
 	length = strcspn(cast_const_char flags, ";,");
 	mime = memacpy(flags, length);

@@ -4,15 +4,21 @@
 
 int decompressed_cache_size = 0;
 
-static int display_error(struct terminal *term, unsigned char *msg, int *errp)
+static int
+display_error(struct terminal *term, unsigned char *msg, int *errp)
 {
-	if (errp) *errp = 1;
-	if (!term) return 0;
-	if (!errp) if (find_msg_box(term, msg, NULL, NULL)) return 0;
+	if (errp)
+		*errp = 1;
+	if (!term)
+		return 0;
+	if (!errp)
+		if (find_msg_box(term, msg, NULL, NULL))
+			return 0;
 	return 1;
 }
 
-static void decoder_memory_init(unsigned char **p, size_t *size, off_t init_length)
+static void
+decoder_memory_init(unsigned char **p, size_t *size, off_t init_length)
 {
 	if (init_length > 0 && init_length < INT_MAX)
 		*size = (int)init_length;
@@ -21,7 +27,8 @@ static void decoder_memory_init(unsigned char **p, size_t *size, off_t init_leng
 	*p = xmalloc(*size);
 }
 
-static int decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize)
+static int
+decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize)
 {
 	size_t add = size / 4 + 1;
 	if (size + add < size) {
@@ -35,10 +42,13 @@ static int decoder_memory_expand(unsigned char **p, size_t size, size_t *addsize
 	return 0;
 }
 
-static void decompress_error(struct terminal *term, struct cache_entry *ce, unsigned char *lib, unsigned char *msg, int *errp)
+static void
+decompress_error(struct terminal *term, struct cache_entry *ce,
+                 unsigned char *lib, unsigned char *msg, int *errp)
 {
 	unsigned char *u, *server;
-	if ((u = parse_http_header(ce->head, cast_uchar "Content-Encoding", NULL))) {
+	if ((u = parse_http_header(ce->head, cast_uchar "Content-Encoding",
+	                           NULL))) {
 		free(u);
 		if ((server = get_host_name(ce->url))) {
 			add_blacklist_entry(server, BL_NO_COMPRESSION);
@@ -49,12 +59,13 @@ static void decompress_error(struct terminal *term, struct cache_entry *ce, unsi
 		return;
 	u = display_url(term, ce->url, 1);
 	msg_box(term, getml(u, NULL), TEXT_(T_DECOMPRESSION_ERROR), AL_CENTER,
-		TEXT_(T_ERROR_DECOMPRESSING_), u, TEXT_(T__wITH_), lib,
-		cast_uchar ": ", msg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL),
-		msg_box_null, B_ENTER | B_ESC);
+	        TEXT_(T_ERROR_DECOMPRESSING_), u, TEXT_(T__wITH_), lib,
+	        cast_uchar ": ", msg, MSG_BOX_END, NULL, 1, TEXT_(T_CANCEL),
+	        msg_box_null, B_ENTER | B_ESC);
 }
 
-static int decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, int *errp)
+static int
+decode_gzip(struct terminal *term, struct cache_entry *ce, int defl, int *errp)
 {
 	unsigned char err;
 	unsigned char memory_error;
@@ -105,26 +116,30 @@ init_failed:
 			goto init_failed;
 		}
 		decompress_error(term, ce, cast_uchar "zlib",
-			z.msg ? (unsigned char *)z.msg
-			: (unsigned char *)"Invalid parameter", errp);
+		                 z.msg ? (unsigned char *)z.msg
+		                       : (unsigned char *)"Invalid parameter",
+		                 errp);
 		err = 1;
 		goto after_inflateend;
 	case Z_VERSION_ERROR:
 		decompress_error(term, ce, cast_uchar "zlib",
-			z.msg ? (unsigned char *)z.msg
-			: (unsigned char *)"Bad zlib version", errp);
+		                 z.msg ? (unsigned char *)z.msg
+		                       : (unsigned char *)"Bad zlib version",
+		                 errp);
 		err = 1;
 		goto after_inflateend;
 	default:
-		decompress_error(term, ce, cast_uchar "zlib",
-			z.msg ? (unsigned char *)z.msg
-			: (unsigned char *)"Unknown return value on inflateInit2",
-			errp);
+		decompress_error(
+		    term, ce, cast_uchar "zlib",
+		    z.msg ? (unsigned char *)z.msg
+			  : (unsigned char
+		                 *)"Unknown return value on inflateInit2",
+		    errp);
 		err = 1;
 		goto after_inflateend;
 	}
 	offset = 0;
-	foreach(struct fragment, f, lf, ce->frag) {
+	foreach (struct fragment, f, lf, ce->frag) {
 		if (f->offset != offset)
 			break;
 		z.next_in = f->data;
@@ -149,14 +164,15 @@ repeat_frag:
 				goto finish;
 			if (head[0] != 0x1f || head[1] != 0x8b) {
 				decompress_error(term, ce, cast_uchar "zlib",
-					TEXT_(T_COMPRESSED_ERROR), errp);
+				                 TEXT_(T_COMPRESSED_ERROR),
+				                 errp);
 				err = 1;
 				goto finish;
 			}
 			if (head[2] != 8 || head[3] & 0xe0) {
-				decompress_error(term, ce, cast_uchar "zlib",
-					TEXT_(T_UNKNOWN_COMPRESSION_METHOD),
-					errp);
+				decompress_error(
+				    term, ce, cast_uchar "zlib",
+				    TEXT_(T_UNKNOWN_COMPRESSION_METHOD), errp);
 				err = 1;
 				goto finish;
 			}
@@ -168,12 +184,14 @@ repeat_frag:
 			if (head[3] & 0x08)
 				do {
 					headlen++;
-					if (headlen >= z.avail_in) goto finish;
+					if (headlen >= z.avail_in)
+						goto finish;
 				} while (head[headlen - 1]);
 			if (head[3] & 0x10)
 				do {
 					headlen++;
-					if (headlen >= z.avail_in) goto finish;
+					if (headlen >= z.avail_in)
+						goto finish;
 				} while (head[headlen - 1]);
 			if (head[3] & 0x01) {
 				headlen += 2;
@@ -185,7 +203,7 @@ repeat_frag:
 			skip_gzip_header = 0;
 		}
 		r = inflate(&z, f->list_entry.next == &ce->frag ? Z_SYNC_FLUSH
-							: Z_NO_FLUSH);
+		                                                : Z_NO_FLUSH);
 		switch (r) {
 		case Z_OK:
 		case Z_BUF_ERROR:
@@ -194,7 +212,9 @@ repeat_frag:
 			r = inflateEnd(&z);
 			if (r != Z_OK)
 				goto end_failed;
-			r = inflateInit2(&z, old_zlib ? -15 : defl ? 15 : 15 + 16);
+			r = inflateInit2(&z, old_zlib ? -15
+			                     : defl   ? 15
+			                              : 15 + 16);
 			if (r != Z_OK) {
 				old_zlib = 0;
 				goto init_failed;
@@ -212,15 +232,18 @@ repeat_frag:
 				goto init_again;
 			}
 			decompress_error(term, ce, cast_uchar "zlib",
-				z.msg ? (unsigned char *)z.msg
-				: TEXT_(T_COMPRESSED_ERROR), errp);
+			                 z.msg ? (unsigned char *)z.msg
+			                       : TEXT_(T_COMPRESSED_ERROR),
+			                 errp);
 			err = 1;
 			goto finish;
 		case Z_STREAM_ERROR:
-			decompress_error(term, ce, cast_uchar "zlib",
-				z.msg ? (unsigned char *)z.msg
+			decompress_error(
+			    term, ce, cast_uchar "zlib",
+			    z.msg
+				? (unsigned char *)z.msg
 				: (unsigned char *)"Internal error on inflate",
-				errp);
+			    errp);
 			err = 1;
 			goto finish;
 		case Z_MEM_ERROR:
@@ -228,10 +251,12 @@ repeat_frag:
 			err = 1;
 			goto finish;
 		default:
-			decompress_error(term, ce, cast_uchar "zlib",
-				z.msg ? (unsigned char *)z.msg
-				: (unsigned char *)"Unknown return value on inflate",
-				errp);
+			decompress_error(
+			    term, ce, cast_uchar "zlib",
+			    z.msg ? (unsigned char *)z.msg
+				  : (unsigned char
+			                 *)"Unknown return value on inflate",
+			    errp);
 			err = 1;
 			break;
 		}
@@ -259,10 +284,11 @@ end_failed:
 	case Z_OK:
 		break;
 	case Z_STREAM_ERROR:
-		decompress_error(term, ce, cast_uchar "zlib",
-			z.msg ? (unsigned char *)z.msg
-			: (unsigned char *)"Internal error on inflateEnd",
-			errp);
+		decompress_error(
+		    term, ce, cast_uchar "zlib",
+		    z.msg ? (unsigned char *)z.msg
+			  : (unsigned char *)"Internal error on inflateEnd",
+		    errp);
 		err = 1;
 		break;
 	case Z_MEM_ERROR:
@@ -270,11 +296,14 @@ end_failed:
 		err = 1;
 		break;
 	default:
-		decompress_error(term, ce, cast_uchar "zlib",
-		z.msg ? (unsigned char *)z.msg
-		: (unsigned char *)"Unknown return value on inflateEnd", errp);
-				err = 1;
-				break;
+		decompress_error(
+		    term, ce, cast_uchar "zlib",
+		    z.msg
+			? (unsigned char *)z.msg
+			: (unsigned char *)"Unknown return value on inflateEnd",
+		    errp);
+		err = 1;
+		break;
 	}
 after_inflateend:
 	if (memory_error) {
@@ -282,8 +311,9 @@ after_inflateend:
 		if (out_of_memory())
 			goto retry_after_memory_error;
 		decompress_error(term, ce, cast_uchar "zlib",
-			z.msg ? (unsigned char *)z.msg
-			: TEXT_(T_OUT_OF_MEMORY), errp);
+		                 z.msg ? (unsigned char *)z.msg
+		                       : TEXT_(T_OUT_OF_MEMORY),
+		                 errp);
 		return 1;
 	}
 	if (err && (unsigned char *)z.next_out == p) {
@@ -297,7 +327,9 @@ after_inflateend:
 	return 0;
 }
 
-int get_file_by_term(struct terminal *term, struct cache_entry *ce, unsigned char **start, size_t *len, int *errp)
+int
+get_file_by_term(struct terminal *term, struct cache_entry *ce,
+                 unsigned char **start, size_t *len, int *errp)
 {
 	unsigned char *enc;
 	struct fragment *fr;
@@ -317,8 +349,8 @@ return_decompressed:
 	enc = get_content_encoding(ce->head, ce->url, 0);
 	if (enc) {
 		if (!casestrcmp(enc, cast_uchar "gzip")
-		|| !casestrcmp(enc, cast_uchar "x-gzip")
-		|| !casestrcmp(enc, cast_uchar "deflate")) {
+		    || !casestrcmp(enc, cast_uchar "x-gzip")
+		    || !casestrcmp(enc, cast_uchar "deflate")) {
 			int defl = !casestrcmp(enc, cast_uchar "deflate");
 			free(enc);
 			if (decode_gzip(term, ce, defl, errp))
@@ -334,9 +366,9 @@ uncompressed:
 		if (display_error(term, TEXT_(T_ERROR), errp)) {
 			unsigned char *u = display_url(term, ce->url, 1);
 			msg_box(term, getml(u, NULL), TEXT_(T_ERROR), AL_CENTER,
-				TEXT_(T_ERROR_LOADING), cast_uchar " ", u,
-				cast_uchar ":\n\n", msg, MSG_BOX_END, NULL, 1,
-				TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+			        TEXT_(T_ERROR_LOADING), cast_uchar " ", u,
+			        cast_uchar ":\n\n", msg, MSG_BOX_END, NULL, 1,
+			        TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
 		}
 	}
 	if (list_empty(ce->frag))
@@ -349,7 +381,8 @@ uncompressed:
 	return 0;
 }
 
-int get_file(struct object_request *o, unsigned char **start, size_t *len)
+int
+get_file(struct object_request *o, unsigned char **start, size_t *len)
 {
 	struct terminal *term;
 	*start = NULL;
@@ -360,13 +393,15 @@ int get_file(struct object_request *o, unsigned char **start, size_t *len)
 	return get_file_by_term(term, o->ce, start, len, NULL);
 }
 
-void free_decompressed_data(struct cache_entry *e)
+void
+free_decompressed_data(struct cache_entry *e)
 {
 	if (e->decompressed) {
 		if (decompressed_cache_size < e->decompressed_len)
-			internal("free_decompressed_data: decompressed_cache_size underflow %lu, %lu",
-			(unsigned long)decompressed_cache_size,
-			(unsigned long)e->decompressed_len);
+			internal("free_decompressed_data: "
+			         "decompressed_cache_size underflow %lu, %lu",
+			         (unsigned long)decompressed_cache_size,
+			         (unsigned long)e->decompressed_len);
 		decompressed_cache_size -= e->decompressed_len;
 		e->decompressed_len = 0;
 		free(e->decompressed);
@@ -374,7 +409,8 @@ void free_decompressed_data(struct cache_entry *e)
 	}
 }
 
-void add_compress_methods(unsigned char **s, int *l)
+void
+add_compress_methods(unsigned char **s, int *l)
 {
 	add_to_str(s, l, cast_uchar "ZLIB");
 #ifdef zlib_version
