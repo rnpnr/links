@@ -38,7 +38,8 @@ static fd_set x_write;
 static int w_max;
 
 struct timer {
-	list_entry_1st uttime interval;
+	list_entry_1st;
+	uttime interval;
 	void (*func)(void *);
 	void *data;
 };
@@ -174,7 +175,8 @@ select_info(int type)
 }
 
 struct bottom_half {
-	list_entry_1st void (*fn)(void *);
+	list_entry_1st;
+	void (*fn)(void *);
 	void *data;
 };
 

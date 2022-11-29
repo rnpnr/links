@@ -18,7 +18,8 @@ struct list_head all_cookies = { &all_cookies, &all_cookies };
 struct list_head c_domains = { &c_domains, &c_domains };
 
 struct c_server {
-	list_entry_1st int accpt;
+	list_entry_1st;
+	int accpt;
 	unsigned char server[1];
 };
 

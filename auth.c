@@ -5,7 +5,8 @@
 static struct list_head auth = { &auth, &auth };
 
 struct http_auth {
-	list_entry_1st unsigned char *host;
+	list_entry_1st;
+	unsigned char *host;
 	int port;
 	unsigned char *realm;
 	unsigned char *user;

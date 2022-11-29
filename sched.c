@@ -17,7 +17,8 @@ tcount netcfg_stamp = 0;
 struct list_head queue = { &queue, &queue };
 
 struct h_conn {
-	list_entry_1st unsigned char *host;
+	list_entry_1st;
+	unsigned char *host;
 	int conn;
 };
 
@@ -1145,7 +1146,8 @@ is_entry_used(struct cache_entry *e)
 }
 
 struct blacklist_entry {
-	list_entry_1st int flags;
+	list_entry_1st;
+	int flags;
 	unsigned char host[1];
 };
 

@@ -27,7 +27,8 @@
 static SSL_CTX *contexts = NULL;
 
 struct session_cache_entry {
-	list_entry_1st uttime absolute_time;
+	list_entry_1st;
+	uttime absolute_time;
 	SSL_CTX *ctx;
 	SSL_SESSION *session;
 	int port;

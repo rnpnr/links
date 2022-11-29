@@ -1686,7 +1686,8 @@ has_form_submit(struct f_data *f, struct form_control *form)
 }
 
 struct submitted_value {
-	list_entry_1st int type;
+	list_entry_1st;
+	int type;
 	unsigned char *name;
 	unsigned char *value;
 	void *file_content;

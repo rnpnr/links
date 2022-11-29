@@ -6,7 +6,8 @@
 #include "links.h"
 
 struct cache_upcall {
-	list_entry_1st int (*upcall)(int);
+	list_entry_1st;
+	int (*upcall)(int);
 	unsigned char flags;
 	unsigned char name[1];
 };

@@ -227,7 +227,7 @@ list_size(struct list_head *l)
 	return n;
 }
 
-#define list_entry_1st   struct list_head list_entry;
+#define list_entry_1st   struct list_head list_entry
 #define init_list_1st(x) { (x), (x) },
 
 #define WHITECHAR(x)                                                           \
@@ -499,7 +499,8 @@ void init_dns(void);
 /* cache.c */
 
 struct cache_entry {
-	list_entry_1st unsigned char *head;
+	list_entry_1st;
+	unsigned char *head;
 	int http_code;
 	unsigned char *redirect;
 	off_t length;
@@ -522,7 +523,8 @@ struct cache_entry {
 };
 
 struct fragment {
-	list_entry_1st off_t offset;
+	list_entry_1st;
+	off_t offset;
 	off_t length;
 	off_t real_length;
 	unsigned char data[1];
@@ -582,7 +584,8 @@ struct remaining_info {
 struct conn_info;
 
 struct connection {
-	list_entry_1st tcount count;
+	list_entry_1st;
+	tcount count;
 	unsigned char *url;
 	unsigned char *prev_url; /* allocated string with referrer or NULL */
 	int running;
@@ -624,7 +627,8 @@ extern tcount netcfg_stamp;
 extern struct list_head queue;
 
 struct k_conn {
-	list_entry_1st void (*protocol)(struct connection *);
+	list_entry_1st;
+	void (*protocol)(struct connection *);
 	unsigned char *host;
 	int port;
 	int conn;
@@ -699,7 +703,8 @@ enum ses_sig {
 };
 
 struct status {
-	list_entry_1st struct connection *c;
+	list_entry_1st;
+	struct connection *c;
 	struct cache_entry *ce;
 	int state;
 	int prev_error;
@@ -835,7 +840,8 @@ void kill_buffer_data(struct read_buffer *, int);
 /* cookies.c */
 
 struct cookie {
-	list_entry_1st unsigned char *name, *value;
+	list_entry_1st;
+	unsigned char *name, *value;
 	unsigned char *server;
 	unsigned char *path, *domain;
 	time_t expires; /* zero means undefined */
@@ -843,7 +849,8 @@ struct cookie {
 };
 
 struct c_domain {
-	list_entry_1st unsigned char domain[1];
+	list_entry_1st;
+	unsigned char domain[1];
 };
 
 extern struct list_head all_cookies;
@@ -1041,8 +1048,8 @@ enum evh {
 };
 
 struct window {
-	list_entry_1st void (*handler)(struct window *, struct links_event *,
-	                               int fwd);
+	list_entry_1st;
+	void (*handler)(struct window *, struct links_event *, int fwd);
 	void *data;
 	int xp, yp;
 	struct terminal *term;
@@ -1060,7 +1067,8 @@ struct window {
 struct term_spec;
 
 struct terminal {
-	list_entry_1st tcount count;
+	list_entry_1st;
+	tcount count;
 
 	int x;
 	int y;
@@ -1098,7 +1106,8 @@ struct terminal {
 };
 
 struct term_spec {
-	list_entry_1st unsigned char term[MAX_TERM_LEN];
+	list_entry_1st;
+	unsigned char term[MAX_TERM_LEN];
 	int mode;
 	int m11_hack;
 	int restrict_852;
@@ -1212,7 +1221,8 @@ int attach_terminal(void *, int);
 #define O_OK         -3
 
 struct object_request {
-	list_entry_1st int refcount;
+	list_entry_1st;
+	int refcount;
 	tcount count;
 	tcount term;
 	struct status stat;
@@ -1316,7 +1326,8 @@ enum fc {
 struct menu_item;
 
 struct form_control {
-	list_entry_1st int form_num; /* cislo formulare */
+	list_entry_1st;
+	int form_num;   /* cislo formulare */
 	int ctrl_num;   /* identifikace polozky v ramci formulare */
 	int g_ctrl_num; /* identifikace polozky mezi vsemi polozkami (poradi v
 	                   poli form_info) */
@@ -1397,7 +1408,8 @@ struct link_bg {
 };
 
 struct tag {
-	list_entry_1st int x;
+	list_entry_1st;
+	int x;
 	int y;
 	unsigned char name[1];
 };
@@ -1500,7 +1512,8 @@ ds2do(struct document_setup *ds, struct document_options *doo, int col)
 }
 
 struct node {
-	list_entry_1st int x, y;
+	list_entry_1st;
+	int x, y;
 	int xw, yw;
 };
 
@@ -1547,7 +1560,8 @@ struct additional_files {
 };
 
 struct additional_file {
-	list_entry_1st struct object_request *rq;
+	list_entry_1st;
+	struct object_request *rq;
 	tcount use_tag;
 	tcount use_tag2;
 	int need_reparse;
@@ -1556,7 +1570,8 @@ struct additional_file {
 };
 
 struct f_data {
-	list_entry_1st struct session *ses;
+	list_entry_1st;
+	struct session *ses;
 	struct f_data_c *fd;
 	struct object_request *rq;
 	tcount use_tag;
@@ -1620,7 +1635,8 @@ struct view_state {
 struct location;
 
 struct f_data_c {
-	list_entry_1st struct f_data_c *parent;
+	list_entry_1st;
+	struct f_data_c *parent;
 	struct session *ses;
 	struct location *loc;
 	struct view_state *vs;
@@ -1662,7 +1678,8 @@ struct f_data_c {
 };
 
 struct location {
-	list_entry_1st struct location *parent;
+	list_entry_1st;
+	struct location *parent;
 	unsigned char *name; /* frame name */
 	unsigned char *url;
 	unsigned char *prev_url;    /* allocated string with referrer */
@@ -1680,7 +1697,8 @@ struct kbdprefix {
 };
 
 struct download {
-	list_entry_1st unsigned char *url;
+	list_entry_1st;
+	unsigned char *url;
 	struct status stat;
 	unsigned char decompress;
 	unsigned char *cwd;
@@ -1702,7 +1720,8 @@ struct download {
 extern struct list_head downloads;
 
 struct session {
-	list_entry_1st struct list_head history; /* struct location */
+	list_entry_1st;
+	struct list_head history; /* struct location */
 	struct list_head forward_history;
 	struct terminal *term;
 	struct window *win;
@@ -1878,7 +1897,8 @@ struct mainmenu {
 };
 
 struct history_item {
-	list_entry_1st unsigned char str[1];
+	list_entry_1st;
+	unsigned char str[1];
 };
 
 struct history {
@@ -2301,7 +2321,8 @@ struct par_attrib {
 };
 
 struct html_element {
-	list_entry_1st struct text_attrib attr;
+	list_entry_1st;
+	struct text_attrib attr;
 	struct par_attrib parattr;
 #define INVISIBLE        1
 #define INVISIBLE_SCRIPT 2
@@ -2524,7 +2545,8 @@ void load_url_history(void);
 void save_url_history(void);
 
 struct driver_param {
-	list_entry_1st int kbd_codepage;
+	list_entry_1st;
+	int kbd_codepage;
 	int palette_mode;
 	unsigned char *param;
 	unsigned char shell_term[MAX_STR_LEN];
@@ -2655,7 +2677,8 @@ extern struct document_setup dds;
 enum title { TITLE_EDIT, TITLE_ADD };
 
 struct list {
-	list_entry_1st unsigned char type;
+	list_entry_1st;
+	unsigned char type;
 	/*
 	 * bit 0: 0=item, 1=directory
 	 * bit 1: directory is open (1)/closed (0); for item unused
@@ -2767,7 +2790,8 @@ struct extension {
 };
 
 struct protocol_program {
-	list_entry_1st unsigned char *prog;
+	list_entry_1st;
+	unsigned char *prog;
 	int system;
 };
 

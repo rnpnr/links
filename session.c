@@ -109,9 +109,9 @@ static const struct s_msg_dsc msg_dsc[] = {
 };
 
 struct strerror_val {
-	list_entry_1st
+	list_entry_1st;
 #ifdef REORDER_LIST_ENTRIES
-	    unsigned char pad;
+	unsigned char pad;
 #endif
 	unsigned char msg[1];
 };

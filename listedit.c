@@ -57,8 +57,8 @@
  * -							zavri adresar
  * mezera						toggle adresar
  * ins, *, 8, i						toggle oznacit
- * ?, /, N, n						hledani nahoru, dolu, znova,
- * znova na druhou stranu
+ * ?, /, N, n						hledani nahoru, dolu,
+ * znova, znova na druhou stranu
  */
 
 /*

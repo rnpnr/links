@@ -1760,7 +1760,8 @@ ret2:
 }
 
 struct table_cache_entry {
-	list_entry_1st struct table_cache_entry *hash_next;
+	list_entry_1st;
+	struct table_cache_entry *hash_next;
 	unsigned char *start;
 	unsigned char *end;
 	int align;
