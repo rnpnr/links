@@ -68,6 +68,17 @@ xrealloc(void *p, size_t len)
 	return p;
 }
 
+void *
+xreallocarray(void *o, size_t n, size_t s)
+{
+	void *p;
+
+	if (!(p = reallocarray(o, n, s)))
+		die("reallocarray: %s\n", strerror(errno));
+
+	return p;
+}
+
 static void
 sig_intr(void *t_)
 {
