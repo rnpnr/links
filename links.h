@@ -247,8 +247,10 @@ enum ci {
 
 /* string.c */
 
+int cmpbeg(const unsigned char *str, const unsigned char *b);
 int snprint(unsigned char *s, int n, int num);
 int snzprint(unsigned char *s, int n, off_t num);
+int xstrcmp(const unsigned char *s1, const unsigned char *s2);
 void add_to_strn(unsigned char **s, unsigned char *a);
 void extend_str(unsigned char **s, int n);
 
@@ -272,52 +274,9 @@ long strtolx(unsigned char *c, unsigned char **end);
 
 void safe_strncpy(unsigned char *dst, const unsigned char *src,
                   size_t dst_size);
-/* case insensitive compare of 2 strings */
-/* comparison ends after len (or less) characters */
-/* return value: 1=strings differ, 0=strings are same */
-static inline unsigned
-upcase(unsigned a)
-{
-	if (a >= 'a' && a <= 'z')
-		a -= 0x20;
-	return a;
-}
-static inline unsigned
-locase(unsigned a)
-{
-	if (a >= 'A' && a <= 'Z')
-		a += 0x20;
-	return a;
-}
-static inline int
-srch_cmp(unsigned char c1, unsigned char c2)
-{
-	return upcase(c1) != upcase(c2);
-}
 int casestrcmp(const unsigned char *s1, const unsigned char *s2);
 int casecmp(const unsigned char *c1, const unsigned char *c2, size_t len);
 int casestrstr(const unsigned char *h, const unsigned char *n);
-static inline int
-xstrcmp(const unsigned char *s1, const unsigned char *s2)
-{
-	if (!s1 && !s2)
-		return 0;
-	if (!s1)
-		return -1;
-	if (!s2)
-		return 1;
-	return strcmp(cast_const_char s1, cast_const_char s2);
-}
-
-static inline int
-cmpbeg(const unsigned char *str, const unsigned char *b)
-{
-	while (*str && upcase(*str) == upcase(*b)) {
-		str++;
-		b++;
-	}
-	return !!*b;
-}
 
 /* os_dep.c */
 
@@ -2117,11 +2076,12 @@ struct conv_table {
 };
 
 struct conv_table *get_translation_table(const int, const int);
-static inline int
-is_entity_terminator(unsigned char c)
-{
-	return c <= ' ' || c == ';' || c == '&' || c == '/' || c == '?';
-}
+
+#define is_entity_terminator(c)                                                \
+	(c <= ' ' || c == ';' || c == '&' || c == '/' || c == '?')
+
+unsigned int locase(unsigned int a);
+unsigned int upcase(unsigned int a);
 int get_entity_number(unsigned char *st, int l);
 unsigned char *get_entity_string(unsigned char *, int);
 unsigned char *convert_string(struct conv_table *, unsigned char *, int,

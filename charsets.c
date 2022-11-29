@@ -49,6 +49,22 @@ static const unsigned char strings[256][2] = {
 	"\374", "\375", "\376", "\377",
 };
 
+unsigned int
+locase(unsigned int a)
+{
+	if (a >= 'A' && a <= 'Z')
+		a += 0x20;
+	return a;
+}
+
+unsigned int
+upcase(unsigned int a)
+{
+	if (a >= 'a' && a <= 'z')
+		a -= 0x20;
+	return a;
+}
+
 unsigned char *
 u2cp(int u)
 {

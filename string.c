@@ -7,6 +7,37 @@
 
 #include "links.h"
 
+/* case insensitive compare of 2 strings */
+/* comparison ends after len (or less) characters */
+/* return value: 1=strings differ, 0=strings are same */
+static inline int
+srch_cmp(unsigned char c1, unsigned char c2)
+{
+	return upcase(c1) != upcase(c2);
+}
+
+int
+cmpbeg(const unsigned char *str, const unsigned char *b)
+{
+	while (*str && upcase(*str) == upcase(*b)) {
+		str++;
+		b++;
+	}
+	return !!*b;
+}
+
+int
+xstrcmp(const unsigned char *s1, const unsigned char *s2)
+{
+	if (!s1 && !s2)
+		return 0;
+	if (!s1)
+		return -1;
+	if (!s2)
+		return 1;
+	return strcmp(cast_const_char s1, cast_const_char s2);
+}
+
 int
 snprint(unsigned char *s, int n, int num)
 {
