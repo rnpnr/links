@@ -278,14 +278,14 @@ handle_socks(void *c_)
 	int wr;
 	setcstate(c, S_SOCKS_NEG);
 	set_connection_timeout(c);
-	add_bytes_to_str(&command, &len, cast_uchar "\004\001", 2);
+	len = add_bytes_to_str(&command, len, cast_uchar "\004\001", 2);
 	add_chr_to_str(&command, &len, b->l.target_port >> 8);
 	add_chr_to_str(&command, &len, b->l.target_port);
-	add_bytes_to_str(&command, &len, cast_uchar "\000\000\000\001", 4);
+	len = add_bytes_to_str(&command, len, cast_uchar "\000\000\000\001", 4);
 	if (strchr(c->socks_proxy, '@'))
-		add_bytes_to_str(&command, &len,
-		                 (unsigned char *)c->socks_proxy,
-		                 strcspn(c->socks_proxy, "@"));
+		len = add_bytes_to_str(&command, len,
+		                       (unsigned char *)c->socks_proxy,
+		                       strcspn(c->socks_proxy, "@"));
 	add_chr_to_str(&command, &len, 0);
 	if (!(host = get_host_name(c->url))) {
 		free(command);

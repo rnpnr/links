@@ -1409,7 +1409,7 @@ subst_file(unsigned char *prog, unsigned char *file, int cyg_subst)
 		int p;
 		for (p = 0; prog[p] && prog[p] != '%'; p++)
 			;
-		add_bytes_to_str(&n, &l, prog, p);
+		l = add_bytes_to_str(&n, l, prog, p);
 		prog += p;
 		if (*prog == '%') {
 			if (cyg_subst) {
@@ -3332,12 +3332,11 @@ create_session_info(int cp, unsigned char *url, unsigned char *framename,
 		l1 = 0;
 
 	i = NULL;
-	*ll = 0;
-	add_bytes_to_str(&i, ll, (unsigned char *)&cp, sizeof(int));
-	add_bytes_to_str(&i, ll, (unsigned char *)&l, sizeof(int));
-	add_bytes_to_str(&i, ll, (unsigned char *)&l1, sizeof(int));
-	add_bytes_to_str(&i, ll, url, l);
-	add_bytes_to_str(&i, ll, framename, l1);
+	*ll = add_bytes_to_str(&i, 0, (unsigned char *)&cp, sizeof(int));
+	*ll = add_bytes_to_str(&i, *ll, (unsigned char *)&l, sizeof(int));
+	*ll = add_bytes_to_str(&i, *ll, (unsigned char *)&l1, sizeof(int));
+	*ll = add_bytes_to_str(&i, *ll, url, l);
+	*ll = add_bytes_to_str(&i, *ll, framename, l1);
 	return i;
 }
 

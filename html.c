@@ -2434,7 +2434,7 @@ abort:
 			add_to_str(&lbl, &lbl_l, q);
 			free(q);
 		}
-		add_bytes_to_str(&vlbl, &vlbl_l, s, l);
+		vlbl_l = add_bytes_to_str(&vlbl, vlbl_l, s, l);
 	}
 	if (eof - html >= 2 && (html[1] == '!' || html[1] == '?')) {
 		html = skip_comment(html, eof);
@@ -3731,7 +3731,7 @@ se4:
 			free(*menu);
 			return -1;
 		}
-		add_bytes_to_str(&label, &lblen, s, ss - s);
+		lblen = add_bytes_to_str(&label, lblen, s, ss - s);
 		s = ss;
 		if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 			s = skip_comment(s, eof);
@@ -3930,7 +3930,7 @@ xse:
 		while (s < eof && *s != '<')
 xsp:
 			s++;
-		add_bytes_to_str(title, &tlen, s1, s - s1);
+		tlen = add_bytes_to_str(title, tlen, s1, s - s1);
 		if (s >= eof)
 			goto se;
 		if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {

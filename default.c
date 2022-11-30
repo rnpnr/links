@@ -240,7 +240,7 @@ read_config_file(unsigned char *name)
 		for (i = 0; i < r; i++)
 			if (!cfg_buffer[i])
 				cfg_buffer[i] = ' ';
-		add_bytes_to_str(&s, &l, cfg_buffer, r);
+		l = add_bytes_to_str(&s, l, cfg_buffer, r);
 	}
 	free(cfg_buffer);
 	if (r == -1) {
@@ -618,8 +618,7 @@ str_wr(struct option *o, unsigned char **s, int *l)
 	add_nm(o, s, l);
 	if (strlen(cast_const_char o->ptr) + 1 > (size_t)o->max) {
 		unsigned char *s1 = NULL;
-		int l1 = 0;
-		add_bytes_to_str(&s1, &l1, o->ptr, o->max - 1);
+		add_bytes_to_str(&s1, 0, o->ptr, o->max - 1);
 		add_quoted_to_str(s, l, s1);
 		free(s1);
 	} else

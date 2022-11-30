@@ -414,8 +414,7 @@ free_u_ret_up:
 	if (!data)
 		data = u;
 	r = NULL;
-	rl = 0;
-	add_bytes_to_str(&r, &rl, u, post_seq - u);
+	rl = add_bytes_to_str(&r, 0, u, post_seq - u);
 	q = strlen((char *)data);
 	if (q && (data[q - 1] == '&' || data[q - 1] == '?'))
 		;
@@ -490,7 +489,7 @@ match:
 	res = NULL;
 	l = 0;
 	add_to_str(&res, &l, cast_uchar patterns[i].result1);
-	add_bytes_to_str(&res, &l, id, id_end - id);
+	l = add_bytes_to_str(&res, l, id, id_end - id);
 	add_to_str(&res, &l, cast_uchar patterns[i].result2);
 	free(n);
 	return res;
@@ -582,8 +581,7 @@ insert_wd(unsigned char **up, unsigned char *cwd)
 	}
 	free(host);
 	url = NULL;
-	url_l = 0;
-	add_bytes_to_str(&url, &url_l, u, 7);
+	url_l = add_bytes_to_str(&url, 0, u, 7);
 	for (cw = cwd; *cw; cw++) {
 		unsigned char c = *cw;
 		if (c < ' ' || c == '%' || c >= 127) {
@@ -1264,7 +1262,7 @@ next_host_elem:
 		}
 	}
 
-	add_bytes_to_str(&p, &pl, host, l);
+	pl = add_bytes_to_str(&p, pl, host, l);
 
 advance_host:
 	if (l != len) {
@@ -1297,8 +1295,7 @@ idn_encode_url(unsigned char *url, int decode)
 		return NULL;
 
 	p = NULL;
-	pl = 0;
-	add_bytes_to_str(&p, &pl, url, host - url);
+	pl = add_bytes_to_str(&p, 0, url, host - url);
 	add_to_str(&p, &pl, h);
 	add_to_str(&p, &pl, host + holen);
 	free(h);

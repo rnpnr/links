@@ -94,34 +94,35 @@ extend_str(unsigned char **s, int n)
 	*s = xrealloc(*s, l + n + 1);
 }
 
-void
-add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
+/* returns: new text length excluding the 0 byte */
+size_t
+add_bytes_to_str(unsigned char **s, size_t sl, unsigned char *a, size_t al)
 {
 	unsigned char *p = *s;
-	size_t ol = *l;
+	size_t ol = sl;
 
-	if (!ll)
-		return;
+	if (al == 0)
+		return ol;
 
-	*l = *l + ll;
-
-	p = xreallocarray(p, *l + 1, sizeof(unsigned char));
-	p[*l] = 0;
-	memcpy(p + ol, a, ll);
-
+	sl += al;
+	p = xreallocarray(p, sl + 1, sizeof(unsigned char));
+	p[sl] = 0;
+	memcpy(p + ol, a, al);
 	*s = p;
+
+	return sl;
 }
 
 void
 add_to_str(unsigned char **s, int *l, unsigned char *a)
 {
-	add_bytes_to_str(s, l, a, strlen(cast_const_char a));
+	*l = add_bytes_to_str(s, *l, a, strlen(cast_const_char a));
 }
 
 void
 add_chr_to_str(unsigned char **s, int *l, unsigned char a)
 {
-	add_bytes_to_str(s, l, &a, 1);
+	*l = add_bytes_to_str(s, *l, &a, 1);
 }
 
 void
@@ -150,7 +151,7 @@ d10:
 			sn %= 10;
 		}
 		*p++ = '0' + sn;
-		add_bytes_to_str(s, l, a, p - a);
+		*l = add_bytes_to_str(s, *l, a, p - a);
 	} else {
 		snzprint(a, 64, n);
 		add_to_str(s, l, a);

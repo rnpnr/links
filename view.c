@@ -1930,7 +1930,7 @@ bnd:
 			    bound_ptrs, (nbound_ptrs + ALLOC_GR) * sizeof(int));
 		}
 		bound_ptrs[nbound_ptrs++] = *len;
-		add_bytes_to_str(data, len, bound, BL);
+		*len = add_bytes_to_str(data, *len, bound, BL);
 		if (flg)
 			break;
 		add_to_str(data, len,
@@ -2006,8 +2006,8 @@ bnd:
 						goto error;
 					}
 					if (rd)
-						add_bytes_to_str(data, len,
-						                 buffer, rd);
+						*len = add_bytes_to_str(
+						    data, *len, buffer, rd);
 				} while (rd);
 				EINTRLOOP(rs, close(fh));
 			}
@@ -2143,7 +2143,7 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 		else {
 			add_to_str(&go, &l,
 			           cast_uchar "multipart/form-data; boundary=");
-			add_bytes_to_str(&go, &l, bound, BL);
+			l = add_bytes_to_str(&go, l, bound, BL);
 			add_to_str(&go, &l, cast_uchar "\n");
 		}
 		for (i = 0; i < len; i++) {
@@ -2179,9 +2179,9 @@ get_link_url(struct session *ses, struct f_data_c *f, struct link *l,
 		                        + strlen(cast_const_char l->where) - 4),
 			"?0,0")) {
 			unsigned char *nu = NULL;
-			int ll = 0;
-			add_bytes_to_str(&nu, &ll, l->where,
-			                 strlen(cast_const_char l->where) - 3);
+			int ll = add_bytes_to_str(
+			    &nu, 0, l->where,
+			    strlen(cast_const_char l->where) - 3);
 			add_num_to_str(&nu, &ll, ismap_x);
 			add_chr_to_str(&nu, &ll, ',');
 			add_num_to_str(&nu, &ll, ismap_y);

@@ -321,7 +321,8 @@ http_bad_url:
 		              &u_host_len, NULL, NULL, NULL, NULL, NULL))
 			goto http_bad_url;
 		u2 = NULL;
-		add_bytes_to_str(&u2, &u2_len, u, u_host + u_host_len - u);
+		u2_len =
+		    add_bytes_to_str(&u2, u2_len, u, u_host + u_host_len - u);
 		add_to_str(&u2, &u2_len, proxies.dns_append);
 		add_to_str(&u2, &u2_len, u_host + u_host_len);
 	}
@@ -658,7 +659,7 @@ add_post_header(unsigned char **hdr, int *l, unsigned char **post)
 		unsigned char *pd = cast_uchar strchr((char *)*post, '\n');
 		if (pd) {
 			add_to_str(hdr, l, cast_uchar "Content-Type: ");
-			add_bytes_to_str(hdr, l, *post, pd - *post);
+			*l = add_bytes_to_str(hdr, *l, *post, pd - *post);
 			add_to_str(hdr, l, cast_uchar "\r\n");
 			*post = pd + 1;
 		}
@@ -690,8 +691,8 @@ add_extra_options(unsigned char **hdr, int *l)
 					free(x);
 					new_hdr = NULL;
 					new_l = 0;
-					add_bytes_to_str(&new_hdr, &new_l, *hdr,
-					                 v - *hdr);
+					new_l = add_bytes_to_str(
+					    &new_hdr, new_l, *hdr, v - *hdr);
 					while (*++c == ' ')
 						;
 					add_to_str(&new_hdr, &new_l, c);

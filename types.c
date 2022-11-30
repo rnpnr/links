@@ -1117,7 +1117,7 @@ get_content_type_by_extension(unsigned char *url)
 	exxt = NULL;
 	el = 0;
 	add_to_str(&exxt, &el, cast_uchar "application/x-");
-	add_bytes_to_str(&exxt, &el, ext, extl);
+	el = add_bytes_to_str(&exxt, el, ext, extl);
 	foreach (struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
 		if (is_in_list(a->ct, exxt, el))

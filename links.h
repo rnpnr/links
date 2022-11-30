@@ -255,7 +255,7 @@ int xstrcmp(const unsigned char *s1, const unsigned char *s2);
 void add_to_strn(unsigned char **s, unsigned char *a);
 void extend_str(unsigned char **s, int n);
 
-void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll);
+size_t add_bytes_to_str(unsigned char **, size_t, unsigned char *, size_t);
 void add_to_str(unsigned char **s, int *l, unsigned char *a);
 void add_chr_to_str(unsigned char **s, int *l, unsigned char a);
 void add_unsigned_num_to_str(unsigned char **s, int *l, off_t n);
