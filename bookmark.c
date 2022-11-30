@@ -695,7 +695,7 @@ convert_to_entity_string(unsigned char *str)
 	unsigned char *dst, *p;
 	int dstl;
 
-	dst = init_str();
+	dst = NULL;
 	dstl = 0;
 
 	for (p = str; *p; p++)
@@ -740,7 +740,7 @@ save_bookmarks(struct session *ses)
 
 	if (!bookmark_ld.modified)
 		return;
-	data = init_str();
+	data = NULL;
 	l = 0;
 	add_to_str(&data, &l,
 	           cast_uchar "<HTML>\n"

@@ -255,15 +255,6 @@ int xstrcmp(const unsigned char *s1, const unsigned char *s2);
 void add_to_strn(unsigned char **s, unsigned char *a);
 void extend_str(unsigned char **s, int n);
 
-static inline unsigned char *
-init_str()
-{
-	unsigned char *p;
-
-	p = mem_calloc(1L);
-	return p;
-}
-
 void add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll);
 void add_to_str(unsigned char **s, int *l, unsigned char *a);
 void add_chr_to_str(unsigned char **s, int *l, unsigned char a);

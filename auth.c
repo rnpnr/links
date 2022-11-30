@@ -111,7 +111,7 @@ try_next:
 		goto try_next;
 	}
 	q++;
-	r = init_str();
+	r = NULL;
 	l = 0;
 	while (*q && *q != '"') {
 		if (*q == '\\' && !*++q)
@@ -133,7 +133,7 @@ auth_from_url(unsigned char *url, int proxy)
 	password = get_pass(url);
 	if (user && *user && password) {
 		unsigned char *e = basic_encode(user, password);
-		r = init_str();
+		r = NULL;
 		if (proxy)
 			add_to_str(&r, &l, cast_uchar "Proxy-");
 		add_to_str(&r, &l, cast_uchar "Authorization: Basic ");
@@ -184,7 +184,7 @@ get_auth_string(unsigned char *url, int proxy)
 			    && !memcmp(data, a->directory,
 			               strlen(cast_const_char a->directory))) {
 skip_dir_check:
-				r = init_str();
+				r = NULL;
 				if (proxy)
 					add_to_str(&r, &l, cast_uchar "Proxy-");
 				add_to_str(&r, &l,

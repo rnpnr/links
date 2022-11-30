@@ -24,7 +24,7 @@ get_system_name(void)
 		memset(&name, 0, sizeof name);
 		EINTRLOOP(rs, uname(&name));
 		if (!rs) {
-			unsigned char *str = init_str();
+			unsigned char *str = NULL;
 			int l = 0;
 			add_to_str(&str, &l, cast_uchar name.sysname);
 			add_chr_to_str(&str, &l, ' ');
@@ -109,7 +109,7 @@ get_token(unsigned char **line)
 	while (**line == ' ' || **line == 9)
 		(*line)++;
 	if (**line) {
-		for (s = init_str(); **line; (*line)++) {
+		for (s = NULL; **line; (*line)++) {
 			if (escape)
 				escape = 0;
 			else if (**line == '\\') {
@@ -209,7 +209,7 @@ f:
 static unsigned char *
 create_config_string(struct option *options)
 {
-	unsigned char *s = init_str();
+	unsigned char *s = NULL;
 	int l = 0;
 	int i;
 	add_to_str(&s, &l,
@@ -233,7 +233,7 @@ read_config_file(unsigned char *name)
 	h = c_open(name, O_RDONLY | O_NOCTTY);
 	if (h == -1)
 		return NULL;
-	s = init_str();
+	s = NULL;
 	cfg_buffer = xmalloc(page_size);
 	while ((r = hard_read(h, cfg_buffer, page_size)) > 0) {
 		int i;
@@ -262,7 +262,7 @@ write_to_config_file(unsigned char *name, unsigned char *c, int do_sync)
 	int rs, err;
 try_new_count:
 	tmp_namel = 0;
-	tmp_name = init_str();
+	tmp_name = NULL;
 	add_to_str(&tmp_name, &tmp_namel, name);
 	for (w = tmp_namel - 1; w >= 0; w--) {
 		if (dir_sep(tmp_name[w]))
@@ -617,7 +617,7 @@ str_wr(struct option *o, unsigned char **s, int *l)
 {
 	add_nm(o, s, l);
 	if (strlen(cast_const_char o->ptr) + 1 > (size_t)o->max) {
-		unsigned char *s1 = init_str();
+		unsigned char *s1 = NULL;
 		int l1 = 0;
 		add_bytes_to_str(&s1, &l1, o->ptr, o->max - 1);
 		add_quoted_to_str(s, l, s1);
@@ -997,7 +997,7 @@ gen_cmd(struct option *o, unsigned char ***argv, int *argc)
 	unsigned char *r;
 	if (!*argc)
 		return cast_uchar "Parameter expected";
-	e = init_str();
+	e = NULL;
 	l = 0;
 	add_quoted_to_str(&e, &l, **argv);
 	r = o->rd_cfg ? o->rd_cfg(o, e) : 0;
@@ -1493,7 +1493,7 @@ save_url_history(void)
 		return;
 	history_file = stracpy(links_home);
 	add_to_strn(&history_file, cast_uchar "links.his");
-	hs = init_str();
+	hs = NULL;
 	hsl = 0;
 	foreachback (struct history_item, hi, lhi, goto_url_history.items) {
 		if (!*hi->str || hi->str[0] == ' '

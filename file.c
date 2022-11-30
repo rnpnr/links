@@ -214,7 +214,7 @@ get_filename(unsigned char *url)
 	int ml;
 	for (p = url + 7; *p && *p != POST_CHAR; p++)
 		;
-	m = init_str();
+	m = NULL;
 	ml = 0;
 	add_conv_str(&m, &ml, url + 7, (int)(p - url - 7), -2);
 	return m;
@@ -325,7 +325,7 @@ dir:
 		}
 		last_uid = -1;
 		last_gid = -1;
-		file = init_str();
+		file = NULL;
 		fl = 0;
 		add_to_str(&file, &fl, cast_uchar "<html><head><title>");
 		flo = fl;
@@ -360,7 +360,7 @@ dir:
 				overalloc();
 			dir = xrealloc(dir, (dirl + 1) * sizeof(struct dirs));
 			dir[dirl].f = stracpy(cast_uchar de->d_name);
-			*(p = &dir[dirl++].s) = init_str();
+			*(p = &dir[dirl++].s) = NULL;
 			l = 0;
 			n = stracpy(name);
 			add_to_strn(&n, cast_uchar de->d_name);

@@ -54,7 +54,7 @@ menu_version(void *term_)
 			maxlen = tl;
 	}
 
-	s = init_str();
+	s = NULL;
 	l = 0;
 	text_ptr = version_texts;
 
@@ -310,7 +310,7 @@ resource_info(struct terminal *term, struct refresh *r2)
 	r->fn = resource_info;
 	r->timer = NULL;
 	l = 0;
-	a = init_str();
+	a = NULL;
 
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_RESOURCES), term));
 	add_to_str(&a, &l, cast_uchar ": ");
@@ -2571,7 +2571,7 @@ query_file(struct session *ses, unsigned char *url, unsigned char *head,
 	free(fc);
 	check_filename(&file);
 
-	def = init_str();
+	def = NULL;
 	add_to_str(&def, &dfl, download_dir);
 	if (*def && !dir_sep(def[strlen(cast_const_char def) - 1]))
 		add_chr_to_str(&def, &dfl, '/');

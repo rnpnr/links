@@ -272,7 +272,7 @@ handle_socks(void *c_)
 {
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
-	unsigned char *command = init_str();
+	unsigned char *command = NULL;
 	int len = 0;
 	unsigned char *host;
 	int wr;

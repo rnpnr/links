@@ -123,7 +123,7 @@ find_tag(struct f_data *f, unsigned char *name)
 	struct list_head *ltag;
 	unsigned char *tt;
 	int ll;
-	tt = init_str();
+	tt = NULL;
 	ll = 0;
 	add_conv_str(&tt, &ll, name, (int)strlen(cast_const_char name), -2);
 	foreachback (struct tag, tag, ltag, f->tags)
@@ -1315,7 +1315,7 @@ dump_to_file(struct f_data *fd, int h)
 		for (i = 0; i < fd->nlinks; i++) {
 			struct form_control *fc;
 			struct link *lnk = &fd->links[i];
-			unsigned char *s = init_str();
+			unsigned char *s = NULL;
 			int l = 0;
 			add_num_to_str(&s, &l, i + 1);
 			add_to_str(&s, &l, cast_uchar ". ");
@@ -1712,7 +1712,7 @@ static unsigned char *
 encode_textarea(unsigned char *t)
 {
 	int len = 0;
-	unsigned char *o = init_str();
+	unsigned char *o = NULL;
 	for (; *t; t++) {
 		if (*t != '\n')
 			add_chr_to_str(&o, &len, *t);
@@ -1790,7 +1790,7 @@ fi_rep:
 				}
 				add_to_strn(&sub->name, fi ? cast_uchar ".x"
 				                           : cast_uchar ".y");
-				sub->value = init_str();
+				sub->value = NULL;
 				svl = 0;
 				add_num_to_str(&sub->value, &svl,
 				               fi ? ismap_x : ismap_y);
@@ -1879,7 +1879,7 @@ encode_controls(struct list_head *l, unsigned char **data, int *len,
 	int lst = 0;
 	unsigned char *p2;
 	*len = 0;
-	*data = init_str();
+	*data = NULL;
 	foreach (struct submitted_value, sv, lsv, *l) {
 		unsigned char *p = sv->value;
 		if (lst)
@@ -1917,7 +1917,7 @@ encode_multipart(struct session *ses, struct list_head *l, unsigned char **data,
 	int rs;
 	memset(bound, 'x', BL);
 	*len = 0;
-	*data = init_str();
+	*data = NULL;
 	foreach (struct submitted_value, sv, lsv, *l) {
 		unsigned char *ct;
 bnd:
@@ -2133,7 +2133,7 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 	} else {
 		int l = 0;
 		int i;
-		go = init_str();
+		go = NULL;
 		add_to_str(&go, &l, form->action);
 		add_chr_to_str(&go, &l, POST_CHAR);
 		if (form->method == FM_POST)
@@ -2178,7 +2178,7 @@ get_link_url(struct session *ses, struct f_data_c *f, struct link *l,
 			cast_const_char(l->where
 		                        + strlen(cast_const_char l->where) - 4),
 			"?0,0")) {
-			unsigned char *nu = init_str();
+			unsigned char *nu = NULL;
 			int ll = 0;
 			add_bytes_to_str(&nu, &ll, l->where,
 			                 strlen(cast_const_char l->where) - 3);
@@ -3873,7 +3873,7 @@ send_open_in_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 			return;
 		}
 
-		p = init_str();
+		p = NULL;
 		pl = 0;
 
 		add_to_str(&p, &pl, cast_uchar "-base-session ");
@@ -3908,7 +3908,7 @@ send_open_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 	    *(int (*const *)(struct terminal *, unsigned char *,
 	                     unsigned char *))open_window_;
 	struct session *ses = ses_;
-	unsigned char *p = init_str();
+	unsigned char *p = NULL;
 	int pl = 0;
 	unsigned char *path;
 	add_to_str(&p, &pl, cast_uchar "-base-session ");
@@ -4187,7 +4187,7 @@ print_current_titlex(struct f_data_c *fd, int w)
 	if (!fd || !fd->vs || !fd->f_data)
 		return NULL;
 	w -= 1;
-	p = init_str();
+	p = NULL;
 	if (fd->yw < fd->f_data->y) {
 		int pp, pe;
 		if (fd->yw) {
@@ -4215,10 +4215,13 @@ print_current_titlex(struct f_data_c *fd, int w)
 	}
 	if (!fd->f_data->title)
 		return p;
-	m = init_str();
+	m = NULL;
 	add_to_str(&m, &ml, fd->f_data->title);
 	mul = strlen((char *)m);
-	pul = strlen((char *)p);
+	if (p != NULL)
+		pul = strlen((char *)p);
+	else
+		pul = 0;
 	if (mul + pul > w) {
 		unsigned char *mm;
 		if ((mul = w - pul) < 0)
@@ -4227,7 +4230,8 @@ print_current_titlex(struct f_data_c *fd, int w)
 			;
 		ml = (int)(mm - m);
 	}
-	add_to_str(&m, &ml, p);
+	if (p != NULL)
+		add_to_str(&m, &ml, p);
 	free(p);
 	return m;
 }
@@ -4248,7 +4252,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 	l = &fd->f_data->links[fd->vs->current_link];
 	if (l->type == L_LINK) {
 		if (!l->where && l->where_img) {
-			m = init_str();
+			m = NULL;
 			ll = 0;
 			if (l->img_alt) {
 				unsigned char *txt;
@@ -4271,7 +4275,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 		}
 		if (l->where && strlen(cast_const_char l->where) >= 4
 		    && !casecmp(l->where, cast_uchar "MAP@", 4)) {
-			m = init_str();
+			m = NULL;
 			ll = 0;
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_USEMAP), term));
@@ -4292,7 +4296,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 		return NULL;
 	if (l->type == L_BUTTON) {
 		if (l->form->type == FC_BUTTON) {
-			m = init_str();
+			m = NULL;
 			ll = 0;
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_BUTTON), term));
@@ -4305,7 +4309,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 		}
 		if (!l->form->action)
 			return NULL;
-		m = init_str();
+		m = NULL;
 		ll = 0;
 		if (l->form->method == FM_GET)
 			add_to_str(&m, &ll,
@@ -4321,7 +4325,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 	}
 	if (l->type == L_CHECKBOX || l->type == L_SELECT || l->type == L_FIELD
 	    || l->type == L_AREA) {
-		m = init_str();
+		m = NULL;
 		ll = 0;
 		switch (l->form->type) {
 		case FC_RADIO:
@@ -4360,7 +4364,6 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 			                                term));
 			break;
 		default:
-			free(m);
 			return NULL;
 		}
 		if (l->form->name && l->form->name[0]) {
@@ -4425,7 +4428,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 	l = &fd->f_data->links[fd->vs->current_link];
 	if (l->type == L_LINK) {
 		unsigned char *spc;
-		m = init_str();
+		m = NULL;
 		ll = 0;
 		if (l->where && strlen(cast_const_char l->where) >= 4
 		    && !casecmp(l->where, cast_uchar "MAP@", 4)) {
@@ -4479,7 +4482,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		return NULL;
 	if (l->type == L_BUTTON) {
 		if (l->form->type == FC_BUTTON) {
-			m = init_str();
+			m = NULL;
 			ll = 0;
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_BUTTON), term));
@@ -4492,7 +4495,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		}
 		if (!l->form->action)
 			return NULL;
-		m = init_str();
+		m = NULL;
 		ll = 0;
 		if (l->form->method == FM_GET)
 			add_to_str(&m, &ll,
@@ -4508,7 +4511,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 	}
 	if (l->type == L_CHECKBOX || l->type == L_SELECT || l->type == L_FIELD
 	    || l->type == L_AREA) {
-		m = init_str();
+		m = NULL;
 		ll = 0;
 		switch (l->form->type) {
 		case FC_RADIO:
@@ -4547,7 +4550,6 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 			                                term));
 			break;
 		default:
-			free(m);
 			return NULL;
 		}
 		if (l->form->name && l->form->name[0]) {
@@ -4615,7 +4617,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		        TEXT_(T_OK), msg_box_null, B_ENTER | B_ESC);
 		return;
 	}
-	s = init_str();
+	s = NULL;
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_URL), term));
 	add_to_str(&s, &l, cast_uchar ": ");
 	a = display_url(term, lo->url, 1);

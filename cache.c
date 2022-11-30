@@ -144,7 +144,7 @@ get_connection_cache_entry(struct connection *c)
 	if (!*c->socks_proxy && !is_proxy_url(c->url)
 	    && c->last_lookup_state.addr.n) {
 		unsigned char *a;
-		unsigned char *s = init_str();
+		unsigned char *s = NULL;
 		int l = 0;
 		a = print_address(&c->last_lookup_state.addr
 		                       .a[c->last_lookup_state.addr_index]);

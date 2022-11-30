@@ -180,7 +180,7 @@ verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 			int num = sk_X509_num(certs);
 			int i;
 			char *last_ca = NULL;
-			unsigned char *cas = init_str();
+			unsigned char *cas = NULL;
 			int casl = 0;
 			for (i = num - 1; i >= 0; i--) {
 				char space[3072];
@@ -249,7 +249,7 @@ unsigned char *
 get_cipher_string(links_ssl *ssl)
 {
 	const char *version, *cipher;
-	unsigned char *s = init_str();
+	unsigned char *s = NULL;
 	int l = 0;
 
 	add_num_to_str(&s, &l, SSL_get_cipher_bits(ssl->ssl, NULL));

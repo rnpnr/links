@@ -431,7 +431,7 @@ charset_upcase_string(unsigned char **chp, int cp)
 unsigned char *
 unicode_upcase_string(unsigned char *ch)
 {
-	unsigned char *r = init_str();
+	unsigned char *r = NULL;
 	unsigned int c;
 	int rl = 0;
 	for (;;) {

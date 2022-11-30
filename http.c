@@ -263,7 +263,7 @@ http_send_header(struct connection *c)
 	                      && !casecmp(host, cast_uchar "https://", 8);
 	if (c->ssl)
 		proxy = 0;
-	hdr = init_str();
+	hdr = NULL;
 	if (!host) {
 http_bad_url:
 		free(hdr);
@@ -320,7 +320,7 @@ http_bad_url:
 		if (parse_url(u, NULL, NULL, NULL, NULL, NULL, &u_host,
 		              &u_host_len, NULL, NULL, NULL, NULL, NULL))
 			goto http_bad_url;
-		u2 = init_str();
+		u2 = NULL;
 		add_bytes_to_str(&u2, &u2_len, u, u_host + u_host_len - u);
 		add_to_str(&u2, &u2_len, proxies.dns_append);
 		add_to_str(&u2, &u2_len, u_host + u_host_len);
@@ -534,7 +534,7 @@ add_accept_charset(unsigned char **hdr, int *l,
 	if (!accept_charset) {
 		unsigned char *cs, *ac;
 		int aclen = 0;
-		ac = init_str();
+		ac = NULL;
 		cs = get_cp_mime_name(0);
 		if (aclen)
 			add_chr_to_str(&ac, &aclen, ',');
@@ -688,7 +688,7 @@ add_extra_options(unsigned char **hdr, int *l)
 					unsigned char *new_hdr;
 					int new_l;
 					free(x);
-					new_hdr = init_str();
+					new_hdr = NULL;
 					new_l = 0;
 					add_bytes_to_str(&new_hdr, &new_l, *hdr,
 					                 v - *hdr);

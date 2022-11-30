@@ -218,7 +218,7 @@ static unsigned char *
 get_stat_msg(struct status *stat, struct terminal *term)
 {
 	if (stat->state == S_TRANS && stat->prg->elapsed / 100) {
-		unsigned char *m = init_str();
+		unsigned char *m = NULL;
 		int l = 0;
 		add_to_str(&m, &l,
 		           get_text_translation(TEXT_(T_RECEIVED), term));
@@ -410,7 +410,7 @@ unhx(unsigned char a)
 unsigned char *
 encode_url(unsigned char *url)
 {
-	unsigned char *u = init_str();
+	unsigned char *u = NULL;
 	int l = 0;
 	add_to_str(&u, &l, cast_uchar "+++");
 	for (; *url; url++) {
@@ -433,7 +433,7 @@ decode_url(unsigned char *url)
 	if (casecmp(url, cast_uchar "+++", 3))
 		return stracpy(url);
 	url += 3;
-	u = init_str();
+	u = NULL;
 	l = 0;
 	for (; *url; url++) {
 		if (*url != '+' || unhx(url[1]) == -1 || unhx(url[2]) == -1)
@@ -626,7 +626,7 @@ download_percentage(struct download *down, int pad)
 	struct status *stat = &down->stat;
 	if (stat->state != S_TRANS || !test_percentage(stat))
 		return stracpy(cast_uchar "");
-	s = init_str();
+	s = NULL;
 	l = 0;
 	perc = download_meter(100, stat);
 	if (pad) {
@@ -655,7 +655,7 @@ download_window_function(struct dialog_data *dlg)
 	down->win = dlg->win;
 	if (stat->state == S_TRANS && stat->prg->elapsed / 100) {
 		int l = 0;
-		m = init_str();
+		m = NULL;
 		t = 1;
 		add_to_str(&m, &l,
 		           get_text_translation(TEXT_(T_RECEIVED), term));
@@ -1381,7 +1381,7 @@ get_temp_name(unsigned char *url, unsigned char *head)
 	nm = cast_uchar tempnam(cast_const_char directory, "links");
 	if (!nm)
 		return NULL;
-	name = init_str();
+	name = NULL;
 	nl = 0;
 	add_to_str(&name, &nl, nm);
 	free(nm);
@@ -1403,7 +1403,7 @@ subst_file(unsigned char *prog, unsigned char *file, int cyg_subst)
 {
 	unsigned char *orig_prog = prog;
 	unsigned char *nn;
-	unsigned char *n = init_str();
+	unsigned char *n = NULL;
 	int l = 0;
 	while (*prog) {
 		int p;
@@ -1539,7 +1539,7 @@ format_html(struct f_data_c *fd, struct object_request *rq, unsigned char *url,
 			   len = INT_MAX;
 		   f->uncacheable = 1;
 		   if (opt->plain == 2) {
-			   start = init_str();
+			   start = NULL;
 			   stl = 0;
 			   add_to_str(&start, &stl, cast_uchar "<img src=\"");
 			   add_to_str(&start, &stl, f->rq->ce->url);
@@ -3331,7 +3331,7 @@ create_session_info(int cp, unsigned char *url, unsigned char *framename,
 	if (framename && !strcmp(cast_const_char framename, "_blank"))
 		l1 = 0;
 
-	i = init_str();
+	i = NULL;
 	*ll = 0;
 	add_bytes_to_str(&i, ll, (unsigned char *)&cp, sizeof(int));
 	add_bytes_to_str(&i, ll, (unsigned char *)&l, sizeof(int));

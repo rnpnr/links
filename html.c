@@ -266,7 +266,7 @@ get_url_val(unsigned char *e, unsigned char *name)
 	return a;
 
 need_convert:
-	c = init_str();
+	c = NULL;
 	l = 0;
 	for (p = a; *p; p++)
 		add_to_str(&c, &l, encode_utf_8(*p));
@@ -2132,7 +2132,7 @@ html_option(unsigned char *a)
 		unsigned char *name;
 		int namelen;
 		int l = 0;
-		val = init_str();
+		val = NULL;
 		p = find_element_end(a);
 rrrr:
 		while (p < eoff && WHITECHAR(*p))
@@ -2512,9 +2512,9 @@ abort:
 			free(vx);
 		}
 		if (!v || !vx) {
-			lbl = init_str();
+			lbl = NULL;
 			lbl_l = 0;
-			vlbl = init_str();
+			vlbl = NULL;
 			vlbl_l = 0;
 			nnmi = !!vx;
 		}
@@ -3661,7 +3661,7 @@ get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof,
 	struct menu_item *nm;
 	int nmenu = 0;
 	int i;
-	unsigned char *hd = init_str();
+	unsigned char *hd = NULL;
 	int hdl = 0;
 	struct conv_table *ct;
 	if (head)
@@ -3718,7 +3718,7 @@ sp2:
 		goto sp2;
 	if (namelen == 1 && !casecmp(name, cast_uchar "A", 1)) {
 		unsigned char *ss;
-		label = init_str();
+		label = NULL;
 		lblen = 0;
 se3:
 		ss = s;
@@ -3889,7 +3889,7 @@ scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 	if (pre_wrap)
 		*pre_wrap = 0;
 	if (title)
-		*title = init_str();
+		*title = NULL;
 	add_chr_to_str(head, hdl, '\n');
 se:
 	while (s < eof && *s != '<')

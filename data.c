@@ -99,7 +99,7 @@ bad_url:
 	}
 	free(mime);
 
-	str = init_str();
+	str = NULL;
 	strl = 0;
 
 	add_conv_str(&str, &strl, data, (int)strlen(cast_const_char data), -2);
@@ -107,7 +107,7 @@ bad_url:
 	if (!base64) {
 		r = add_fragment(e, 0, str, strl);
 	} else {
-		unsigned char *b64 = init_str();
+		unsigned char *b64 = NULL;
 		int b64l = 0;
 
 		base64_decode(&b64, &b64l, str, strl);

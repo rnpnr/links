@@ -684,7 +684,7 @@ redraw_screen(struct terminal *term)
 	struct term_spec *s;
 	if (!term->dirty || (term->master && is_blocked()))
 		return;
-	a = init_str();
+	a = NULL;
 	s = term->spec;
 	for (y = 0; y < term->y; y++) {
 		if (!memcmp(&term->screen[p], &term->last_screen[p],
@@ -1047,7 +1047,7 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 					    rs, unlink(cast_const_char delet));
 				return;
 			}
-			param = init_str();
+			param = NULL;
 			paraml = 0;
 			add_chr_to_str(&param, &paraml, fg);
 			add_to_str(&param, &paraml, path);
@@ -1077,7 +1077,7 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 	} else {
 		unsigned char *data;
 		int datal;
-		data = init_str();
+		data = NULL;
 		datal = 0;
 		add_chr_to_str(&data, &datal, 0);
 		add_chr_to_str(&data, &datal, fg);
@@ -1095,7 +1095,7 @@ do_terminal_function(struct terminal *term, unsigned char code,
 {
 	unsigned char *x_data;
 	int x_datal;
-	x_data = init_str();
+	x_data = NULL;
 	x_datal = 0;
 	add_chr_to_str(&x_data, &x_datal, code);
 	add_to_str(&x_data, &x_datal, data);

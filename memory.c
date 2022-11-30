@@ -54,7 +54,7 @@ free_all_caches(void)
 		}
 	} while (a & ST_SOMETHING_FREED);
 	if (!(b & ST_CACHE_EMPTY)) {
-		unsigned char *m = init_str();
+		unsigned char *m = NULL;
 		int l = 0;
 		foreach (struct cache_upcall, c, lc, cache_upcalls)
 			if (!(c->upcall(SH_FREE_ALL) & ST_CACHE_EMPTY)) {

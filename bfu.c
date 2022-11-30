@@ -2178,7 +2178,7 @@ msg_box_fn(struct dialog_data *dlg)
 	int w, rw;
 	int y = 0;
 	unsigned char **ptr;
-	unsigned char *text = init_str();
+	unsigned char *text = NULL;
 	int textl = 0;
 	for (ptr = dlg->dlg->udata; *ptr; ptr++)
 		add_to_str(&text, &textl, get_text_translation(*ptr, term));

@@ -633,7 +633,7 @@ html_tag(struct f_data *f, unsigned char *t, int x, int y)
 	int ll;
 	if (!f)
 		return;
-	tt = init_str();
+	tt = NULL;
 	ll = 0;
 	add_conv_str(&tt, &ll, t, (int)strlen(cast_const_char t), -2);
 	sl = strlen(cast_const_char tt);
@@ -1399,7 +1399,7 @@ really_format_html(struct cache_entry *ce, unsigned char *start,
 	screen->use_tag = ce->count;
 	startf = start;
 	eofff = end;
-	head = init_str();
+	head = NULL;
 	hdl = 0;
 	if (ce->head)
 		add_to_str(&head, &hdl, ce->head);

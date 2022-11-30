@@ -1114,7 +1114,7 @@ get_content_type_by_extension(unsigned char *url)
 	if ((extl == 3 && !casecmp(ext, cast_uchar "tif", 3))
 	    || (extl == 4 && !casecmp(ext, cast_uchar "tiff", 4)))
 		return stracpy(cast_uchar "image/tiff");
-	exxt = init_str();
+	exxt = NULL;
 	el = 0;
 	add_to_str(&exxt, &el, cast_uchar "application/x-");
 	add_bytes_to_str(&exxt, &el, ext, extl);
@@ -1447,7 +1447,7 @@ ret_x:
 	}
 
 no_extended:
-	y = init_str();
+	y = NULL;
 	ly = 0;
 	add_conv_str(&y, &ly, x, (int)strlen(cast_const_char x), -2);
 	free(x);
@@ -1483,7 +1483,7 @@ get_filename_from_url(unsigned char *url, unsigned char *head, int tmp)
 		if (dir_sep(*e))
 			s = e + 1;
 	ll = 0;
-	f = init_str();
+	f = NULL;
 	add_conv_str(&f, &ll, s, (int)(e - s), -2);
 	if (!(ct = parse_http_header(head, cast_uchar "Content-Type", NULL)))
 		goto no_ct;
