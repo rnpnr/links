@@ -105,11 +105,7 @@ add_bytes_to_str(unsigned char **s, int *l, unsigned char *a, size_t ll)
 
 	*l = *l + ll;
 
-	/* FIXME: Hack, behaves like init_str() fn */
-	if (ol == 0)
-		p = xreallocarray(p, *l + 1, sizeof(unsigned char));
-	else
-		p = xreallocarray(p, *l, sizeof(unsigned char));
+	p = xreallocarray(p, *l + 1, sizeof(unsigned char));
 	p[*l] = 0;
 	memcpy(p + ol, a, ll);
 
