@@ -273,20 +273,20 @@ handle_socks(void *c_)
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
 	unsigned char *command = NULL;
-	int len = 0;
+	int len;
 	unsigned char *host;
 	int wr;
 	setcstate(c, S_SOCKS_NEG);
 	set_connection_timeout(c);
-	len = add_bytes_to_str(&command, len, cast_uchar "\004\001", 2);
-	add_chr_to_str(&command, &len, b->l.target_port >> 8);
-	add_chr_to_str(&command, &len, b->l.target_port);
+	len = add_bytes_to_str(&command, 0, cast_uchar "\004\001", 2);
+	len = add_chr_to_str(&command, len, b->l.target_port >> 8);
+	len = add_chr_to_str(&command, len, b->l.target_port);
 	len = add_bytes_to_str(&command, len, cast_uchar "\000\000\000\001", 4);
 	if (strchr(c->socks_proxy, '@'))
 		len = add_bytes_to_str(&command, len,
 		                       (unsigned char *)c->socks_proxy,
 		                       strcspn(c->socks_proxy, "@"));
-	add_chr_to_str(&command, &len, 0);
+	len = add_chr_to_str(&command, len, 0);
 	if (!(host = get_host_name(c->url))) {
 		free(command);
 		setcstate(c, S_INTERNAL);
@@ -295,7 +295,7 @@ handle_socks(void *c_)
 	}
 	add_to_str(&command, &len, host);
 	add_to_str(&command, &len, c->dns_append);
-	add_chr_to_str(&command, &len, 0);
+	len = add_chr_to_str(&command, len, 0);
 	free(host);
 	if (b->socks_byte_count >= len) {
 		free(command);

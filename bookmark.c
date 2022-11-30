@@ -720,7 +720,7 @@ convert_to_entity_string(unsigned char *str)
 			break;
 
 		default:
-			add_chr_to_str(&dst, &dstl, *p);
+			dstl = add_chr_to_str(&dst, dstl, *p);
 		}
 	return dst;
 }

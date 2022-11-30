@@ -35,7 +35,7 @@ add_and_pad(unsigned char **s, int *l, struct terminal *term,
 	add_to_str(s, l, x);
 	add_to_str(s, l, cast_uchar ":  ");
 	while (len++ < maxlen)
-		add_chr_to_str(s, l, ' ');
+		*l = add_chr_to_str(s, *l, ' ');
 }
 
 static void
@@ -68,11 +68,11 @@ menu_version(void *term_)
 
 	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_MEMORY), term));
-	add_chr_to_str(&s, &l, ' ');
+	l = add_chr_to_str(&s, l, ' ');
 	add_num_to_str(&s, &l, sizeof(void *) * 8);
 	add_to_str(&s, &l, cast_uchar "-bit, ");
 	add_to_str(&s, &l, get_text_translation(TEXT_(T_FILE_SIZE), term));
-	add_chr_to_str(&s, &l, ' ');
+	l = add_chr_to_str(&s, l, ' ');
 	add_num_to_str(&s, &l, sizeof(off_t) * 8 /*- ((off_t)-1 < 0)*/);
 	add_to_str(&s, &l, cast_uchar "-bit");
 	add_to_str(&s, &l, cast_uchar "\n");
@@ -315,11 +315,11 @@ resource_info(struct terminal *term, struct refresh *r2)
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_RESOURCES), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, select_info(CI_FILES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_HANDLES), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, select_info(CI_TIMERS));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_TIMERS), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
@@ -329,38 +329,38 @@ resource_info(struct terminal *term, struct refresh *r2)
 	                             connect_info(CI_FILES)
 	                                 - connect_info(CI_CONNECTING)
 	                                 - connect_info(CI_TRANSFER));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_WAITING), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, connect_info(CI_CONNECTING));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_CONNECTING), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, connect_info(CI_TRANSFER));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_tRANSFERRING), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, connect_info(CI_KEEP));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_KEEPALIVE), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_MEMORY_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_BYTES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_BYTES), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_FILES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_FILES), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_LOCKED));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_LOADING));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOADING), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
@@ -368,15 +368,15 @@ resource_info(struct terminal *term, struct refresh *r2)
 	           get_text_translation(TEXT_(T_DECOMPRESSED_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_BYTES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_BYTES), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_FILES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_FILES), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_LOCKED));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
@@ -385,27 +385,27 @@ resource_info(struct terminal *term, struct refresh *r2)
 	    get_text_translation(TEXT_(T_FORMATTED_DOCUMENT_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, formatted_info(CI_FILES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_DOCUMENTS), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, formatted_info(CI_LOCKED));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
 	add_to_str(&a, &l, cast_uchar ".\n");
 
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_DNS_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, dns_info(CI_FILES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_SERVERS), term));
 	add_to_str(&a, &l, cast_uchar ", ");
 	add_to_str(&a, &l,
 	           get_text_translation(TEXT_(T_TLS_SESSION_CACHE), term));
 	add_to_str(&a, &l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, session_info(CI_FILES));
-	add_chr_to_str(&a, &l, ' ');
+	l = add_chr_to_str(&a, l, ' ');
 	add_to_str(&a, &l, get_text_translation(TEXT_(T_SERVERS), term));
-	add_chr_to_str(&a, &l, '.');
+	l = add_chr_to_str(&a, l, '.');
 
 	if (r2
 	    && !strcmp(
@@ -2574,7 +2574,7 @@ query_file(struct session *ses, unsigned char *url, unsigned char *head,
 	def = NULL;
 	add_to_str(&def, &dfl, download_dir);
 	if (*def && !dir_sep(def[strlen(cast_const_char def) - 1]))
-		add_chr_to_str(&def, &dfl, '/');
+		dfl = add_chr_to_str(&def, dfl, '/');
 	add_to_str(&def, &dfl, file);
 	free(file);
 

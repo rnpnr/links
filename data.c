@@ -25,7 +25,7 @@ base64_decode(unsigned char **d, int *dl, unsigned char *s, int sl)
 		bits += 6;
 		if (bits >= 8) {
 			bits -= 8;
-			add_chr_to_str(d, dl, tmp >> bits);
+			*dl = add_chr_to_str(d, *dl, tmp >> bits);
 			tmp &= (1 << bits) - 1;
 		}
 	}

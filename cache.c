@@ -153,8 +153,8 @@ get_connection_cache_entry(struct connection *c)
 		if (c->last_lookup_state.addr.n > 1) {
 			int i, d = 0;
 			if (l)
-				add_chr_to_str(&s, &l, ' ');
-			add_chr_to_str(&s, &l, '(');
+				l = add_chr_to_str(&s, l, ' ');
+			l = add_chr_to_str(&s, l, '(');
 			for (i = 0; i < c->last_lookup_state.addr.n; i++) {
 				if (i == c->last_lookup_state.addr_index)
 					continue;
@@ -168,7 +168,7 @@ get_connection_cache_entry(struct connection *c)
 					d = 1;
 				}
 			}
-			add_chr_to_str(&s, &l, ')');
+			l = add_chr_to_str(&s, l, ')');
 		}
 		e->ip_address = s;
 	}

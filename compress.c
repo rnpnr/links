@@ -416,6 +416,6 @@ add_compress_methods(unsigned char **s, int *l)
 #ifdef zlib_version
 	add_to_str(s, l, cast_uchar " (");
 	add_to_str(s, l, (unsigned char *)zlib_version);
-	add_chr_to_str(s, l, ')');
+	*l = add_chr_to_str(s, *l, ')');
 #endif
 }

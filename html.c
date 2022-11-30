@@ -2139,7 +2139,7 @@ rrrr:
 			p++;
 		while (p < eoff && !WHITECHAR(*p) && *p != '<') {
 pppp:
-			add_chr_to_str(&val, &l, *p);
+			l = add_chr_to_str(&val, l, *p);
 			p++;
 		}
 		r = p;
@@ -3890,7 +3890,7 @@ scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 		*pre_wrap = 0;
 	if (title)
 		*title = NULL;
-	add_chr_to_str(head, hdl, '\n');
+	*hdl = add_chr_to_str(head, *hdl, '\n');
 se:
 	while (s < eof && *s != '<')
 sp:

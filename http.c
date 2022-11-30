@@ -233,7 +233,7 @@ add_url_to_str(unsigned char **str, int *l, unsigned char *url)
 			sprintf((char *)esc, "%%%02X", (int)*sp);
 			add_to_str(str, l, esc);
 		} else
-			add_chr_to_str(str, l, *sp);
+			*l = add_chr_to_str(str, *l, *sp);
 	}
 }
 
@@ -293,7 +293,7 @@ http_bad_url:
 		h = get_port_str(host);
 		if (!h)
 			h = stracpy(cast_uchar "443");
-		add_chr_to_str(&hdr, &l, ':');
+		l = add_chr_to_str(&hdr, l, ':');
 		add_to_str(&hdr, &l, h);
 		free(h);
 		goto added_connect;
@@ -304,7 +304,7 @@ http_bad_url:
 		c->unrestartable = 2;
 	}
 	if (!proxy) {
-		add_chr_to_str(&hdr, &l, '/');
+		l = add_chr_to_str(&hdr, l, '/');
 		u = get_url_data(host);
 	} else
 		u = host;
@@ -350,7 +350,7 @@ added_connect:
 		free(h);
 		if ((h = get_port_str(host))) {
 			if (strcmp(cast_char h, c->ssl ? "443" : "80")) {
-				add_chr_to_str(&hdr, &l, ':');
+				l = add_chr_to_str(&hdr, l, ':');
 				add_to_str(&hdr, &l, h);
 			}
 			free(h);
@@ -390,7 +390,7 @@ added_connect:
 			                      : 0;
 			if (h2 < 0 || h2 >= 16)
 				h2 = 0;
-			add_chr_to_str(&hdr, &l, h1 * 16 + h2);
+			l = add_chr_to_str(&hdr, l, h1 * 16 + h2);
 			post += 2;
 		}
 	}
@@ -538,7 +538,7 @@ add_accept_charset(unsigned char **hdr, int *l,
 		ac = NULL;
 		cs = get_cp_mime_name(0);
 		if (aclen)
-			add_chr_to_str(&ac, &aclen, ',');
+			aclen = add_chr_to_str(&ac, aclen, ',');
 		else
 			add_to_str(&ac, &aclen, cast_uchar "Accept-Charset: ");
 		add_to_str(&ac, &aclen, cs);

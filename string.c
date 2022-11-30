@@ -119,10 +119,10 @@ add_to_str(unsigned char **s, int *l, unsigned char *a)
 	*l = add_bytes_to_str(s, *l, a, strlen(cast_const_char a));
 }
 
-void
-add_chr_to_str(unsigned char **s, int *l, unsigned char a)
+size_t
+add_chr_to_str(unsigned char **s, size_t sl, unsigned char a)
 {
-	*l = add_bytes_to_str(s, *l, &a, 1);
+	return add_bytes_to_str(s, sl, &a, 1);
 }
 
 void

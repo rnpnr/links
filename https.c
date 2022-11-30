@@ -256,11 +256,11 @@ get_cipher_string(links_ssl *ssl)
 	add_to_str(&s, &l, (unsigned char *)"-bit");
 
 	if ((version = SSL_get_version(ssl->ssl))) {
-		add_chr_to_str(&s, &l, ' ');
+		l = add_chr_to_str(&s, l, ' ');
 		add_to_str(&s, &l, (unsigned char *)version);
 	}
 	if ((cipher = SSL_get_cipher_name(ssl->ssl))) {
-		add_chr_to_str(&s, &l, ' ');
+		l = add_chr_to_str(&s, l, ' ');
 		add_to_str(&s, &l, (unsigned char *)cipher);
 	}
 	return s;

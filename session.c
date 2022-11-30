@@ -184,13 +184,13 @@ add_xnum_to_str(unsigned char **s, int *l, off_t n)
 	}
 	add_num_to_str(s, l, n);
 	if (n < 10 && d != -1) {
-		add_chr_to_str(s, l, '.');
+		*l = add_chr_to_str(s, *l, '.');
 		add_num_to_str(s, l, d);
 	}
-	add_chr_to_str(s, l, ' ');
+	*l = add_chr_to_str(s, *l, ' ');
 	if (suff)
-		add_chr_to_str(s, l, suff);
-	add_chr_to_str(s, l, 'B');
+		*l = add_chr_to_str(s, *l, suff);
+	*l = add_chr_to_str(s, *l, 'B');
 }
 
 static void
@@ -222,20 +222,20 @@ get_stat_msg(struct status *stat, struct terminal *term)
 		int l = 0;
 		add_to_str(&m, &l,
 		           get_text_translation(TEXT_(T_RECEIVED), term));
-		add_chr_to_str(&m, &l, ' ');
+		l = add_chr_to_str(&m, l, ' ');
 		add_xnum_to_str(&m, &l, stat->prg->pos);
 		if (stat->prg->size >= 0) {
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			add_to_str(&m, &l,
 			           get_text_translation(TEXT_(T_OF), term));
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			add_xnum_to_str(&m, &l, stat->prg->size);
 		}
 		add_to_str(&m, &l, cast_uchar ", ");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
 			add_to_str(&m, &l,
 			           get_text_translation(TEXT_(T_AVG), term));
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 		}
 		add_xnum_to_str(&m, &l,
 		                stat->prg->loaded * 10
@@ -245,7 +245,7 @@ get_stat_msg(struct status *stat, struct terminal *term)
 			add_to_str(&m, &l, cast_uchar ", ");
 			add_to_str(&m, &l,
 			           get_text_translation(TEXT_(T_CUR), term));
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			add_xnum_to_str(
 			    &m, &l,
 			    stat->prg->cur_loaded
@@ -415,11 +415,11 @@ encode_url(unsigned char *url)
 	add_to_str(&u, &l, cast_uchar "+++");
 	for (; *url; url++) {
 		if (is_safe_in_shell(*url) && *url != '+')
-			add_chr_to_str(&u, &l, *url);
+			l = add_chr_to_str(&u, l, *url);
 		else {
-			add_chr_to_str(&u, &l, '+');
-			add_chr_to_str(&u, &l, hx(*url >> 4));
-			add_chr_to_str(&u, &l, hx(*url & 0xf));
+			l = add_chr_to_str(&u, l, '+');
+			l = add_chr_to_str(&u, l, hx(*url >> 4));
+			l = add_chr_to_str(&u, l, hx(*url & 0xf));
 		}
 	}
 	return u;
@@ -437,10 +437,10 @@ decode_url(unsigned char *url)
 	l = 0;
 	for (; *url; url++) {
 		if (*url != '+' || unhx(url[1]) == -1 || unhx(url[2]) == -1)
-			add_chr_to_str(&u, &l, *url);
+			l = add_chr_to_str(&u, l, *url);
 		else {
-			add_chr_to_str(&u, &l,
-			               (unhx(url[1]) << 4) + unhx(url[2]));
+			l = add_chr_to_str(&u, l,
+			                   (unhx(url[1]) << 4) + unhx(url[2]));
 			url += 2;
 		}
 	}
@@ -631,12 +631,12 @@ download_percentage(struct download *down, int pad)
 	perc = download_meter(100, stat);
 	if (pad) {
 		if (perc < 10)
-			add_chr_to_str(&s, &l, ' ');
+			l = add_chr_to_str(&s, l, ' ');
 		if (perc < 100)
-			add_chr_to_str(&s, &l, ' ');
+			l = add_chr_to_str(&s, l, ' ');
 	}
 	add_num_to_str(&s, &l, perc);
-	add_chr_to_str(&s, &l, '%');
+	l = add_chr_to_str(&s, l, '%');
 	return s;
 }
 
@@ -659,15 +659,15 @@ download_window_function(struct dialog_data *dlg)
 		t = 1;
 		add_to_str(&m, &l,
 		           get_text_translation(TEXT_(T_RECEIVED), term));
-		add_chr_to_str(&m, &l, ' ');
+		l = add_chr_to_str(&m, l, ' ');
 		add_xnum_to_str(&m, &l, stat->prg->pos);
 		if (stat->prg->size >= 0) {
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			add_to_str(&m, &l,
 			           get_text_translation(TEXT_(T_OF), term));
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			add_xnum_to_str(&m, &l, stat->prg->size);
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 		}
 		add_to_str(&m, &l, cast_uchar "\n");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
@@ -677,7 +677,7 @@ download_window_function(struct dialog_data *dlg)
 		else
 			add_to_str(&m, &l,
 			           get_text_translation(TEXT_(T_SPEED), term));
-		add_chr_to_str(&m, &l, ' ');
+		l = add_chr_to_str(&m, l, ' ');
 		add_xnum_to_str(&m, &l,
 		                (long long)stat->prg->loaded * 10
 		                    / (stat->prg->elapsed / 100));
@@ -687,7 +687,7 @@ download_window_function(struct dialog_data *dlg)
 			add_to_str(
 			    &m, &l,
 			    get_text_translation(TEXT_(T_CURRENT_SPEED), term));
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			add_xnum_to_str(
 			    &m, &l,
 			    stat->prg->cur_loaded
@@ -697,14 +697,14 @@ download_window_function(struct dialog_data *dlg)
 		add_to_str(&m, &l, cast_uchar "\n");
 		add_to_str(&m, &l,
 		           get_text_translation(TEXT_(T_ELAPSED_TIME), term));
-		add_chr_to_str(&m, &l, ' ');
+		l = add_chr_to_str(&m, l, ' ');
 		add_time_to_str(&m, &l, stat->prg->elapsed / 1000);
 		if (stat->prg->size >= 0 && stat->prg->loaded > 0) {
 			add_to_str(&m, &l, cast_uchar ", ");
 			add_to_str(&m, &l,
 			           get_text_translation(TEXT_(T_ESTIMATED_TIME),
 			                                term));
-			add_chr_to_str(&m, &l, ' ');
+			l = add_chr_to_str(&m, l, ' ');
 			/*add_time_to_str(&m, &l, stat->prg->elapsed / 1000 *
 			 * stat->prg->size / stat->prg->loaded * 1000 -
 			 * stat->prg->elapsed);*/

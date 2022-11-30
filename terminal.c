@@ -594,9 +594,9 @@ static unsigned char frame_vt100[49] =
 	{                                                                      \
 		add_to_str(&a, &l, cast_uchar "\033[");                        \
 		add_num_to_str(&a, &l, (y) + 1 + term->top_margin);            \
-		add_chr_to_str(&a, &l, ';');                                   \
+		l = add_chr_to_str(&a, l, ';');                                \
 		add_num_to_str(&a, &l, (x) + 1 + term->left_margin);           \
-		add_chr_to_str(&a, &l, 'H');                                   \
+		l = add_chr_to_str(&a, l, 'H');                                \
 		n_chars = 0;                                                   \
 	}
 
@@ -636,11 +636,11 @@ static unsigned char frame_vt100[49] =
 				add_to_str(&a, &l, cast_uchar ";7");           \
 			if (attrib & 0100)                                     \
 				add_to_str(&a, &l, cast_uchar ";1");           \
-			add_chr_to_str(&a, &l, 'm');                           \
+			l = add_chr_to_str(&a, l, 'm');                        \
 		}                                                              \
 		if (c >= ' ' && c != 127 && c != 155) {                        \
 			if (c < 128 || frm) {                                  \
-				add_chr_to_str(&a, &l, (unsigned char)c);      \
+				l = add_chr_to_str(&a, l, (unsigned char)c);   \
 			} else {                                               \
 				/*                                             \
 				 * Linux UTF-8 console is broken and doesn't   \
@@ -653,9 +653,9 @@ static unsigned char frame_vt100[49] =
 				r = u2cp(c);                                   \
 				if (!(r && r[0] >= 32 && r[0] < 127 && !r[1])) \
 					r = cast_uchar "*";                    \
-				add_chr_to_str(&a, &l, r[0]);                  \
+				l = add_chr_to_str(&a, l, r[0]);               \
 				if (cx + 1 < term->x)                          \
-					add_chr_to_str(&a, &l, 8);             \
+					l = add_chr_to_str(&a, l, 8);          \
 				else                                           \
 					SETPOS(cx, y);                         \
 				add_to_str(&a, &l, encode_utf_8(c));           \
@@ -663,9 +663,9 @@ static unsigned char frame_vt100[49] =
 				print_next = 1;                                \
 			}                                                      \
 		} else if (!c || c == 1)                                       \
-			add_chr_to_str(&a, &l, ' ');                           \
+			l = add_chr_to_str(&a, l, ' ');                        \
 		else                                                           \
-			add_chr_to_str(&a, &l, '.');                           \
+			l = add_chr_to_str(&a, l, '.');                        \
 		cx++;                                                          \
 		n_chars++;                                                     \
 	}
@@ -749,9 +749,9 @@ pc:
 		term->lcy = term->cy;
 		add_to_str(&a, &l, cast_uchar "\033[");
 		add_num_to_str(&a, &l, term->cy + 1 + term->top_margin);
-		add_chr_to_str(&a, &l, ';');
+		l = add_chr_to_str(&a, l, ';');
 		add_num_to_str(&a, &l, term->cx + 1 + term->left_margin);
-		add_chr_to_str(&a, &l, 'H');
+		l = add_chr_to_str(&a, l, 'H');
 	}
 	hard_write(term->fdout, a, l);
 	free(a);
@@ -1048,10 +1048,9 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 				return;
 			}
 			param = NULL;
-			paraml = 0;
-			add_chr_to_str(&param, &paraml, fg);
+			paraml = add_chr_to_str(&param, 0, fg);
 			add_to_str(&param, &paraml, path);
-			add_chr_to_str(&param, &paraml, 0);
+			paraml = add_chr_to_str(&param, paraml, 0);
 			add_to_str(&param, &paraml, delet);
 			if (fg == 1)
 				block_itrm(term->fdin);
@@ -1078,11 +1077,10 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 		unsigned char *data;
 		int datal;
 		data = NULL;
-		datal = 0;
-		add_chr_to_str(&data, &datal, 0);
-		add_chr_to_str(&data, &datal, fg);
+		datal = add_chr_to_str(&data, 0, 0);
+		datal = add_chr_to_str(&data, datal, fg);
 		add_to_str(&data, &datal, path);
-		add_chr_to_str(&data, &datal, 0);
+		datal = add_chr_to_str(&data, datal, 0);
 		add_to_str(&data, &datal, delet);
 		hard_write(term->fdout, data, datal + 1);
 		free(data);
@@ -1096,8 +1094,7 @@ do_terminal_function(struct terminal *term, unsigned char code,
 	unsigned char *x_data;
 	int x_datal;
 	x_data = NULL;
-	x_datal = 0;
-	add_chr_to_str(&x_data, &x_datal, code);
+	x_datal = add_chr_to_str(&x_data, 0, code);
 	add_to_str(&x_data, &x_datal, data);
 	exec_on_terminal(term, NULL, x_data, 0);
 	free(x_data);

@@ -116,7 +116,7 @@ try_next:
 	while (*q && *q != '"') {
 		if (*q == '\\' && !*++q)
 			break;
-		add_chr_to_str(&r, &l, *q++);
+		l = add_chr_to_str(&r, l, *q++);
 	}
 	free(h);
 	return r;

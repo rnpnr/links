@@ -1715,7 +1715,7 @@ encode_textarea(unsigned char *t)
 	unsigned char *o = NULL;
 	for (; *t; t++) {
 		if (*t != '\n')
-			add_chr_to_str(&o, &len, *t);
+			len = add_chr_to_str(&o, len, *t);
 		else
 			add_to_str(&o, &len, cast_uchar "\r\n");
 	}
@@ -1859,9 +1859,9 @@ encode_string(unsigned char *name, unsigned char **data, int *len)
 {
 	for (; *name; name++) {
 		if (*name == ' ')
-			add_chr_to_str(data, len, '+');
+			*len = add_chr_to_str(data, *len, '+');
 		else if (safe_char(*name))
-			add_chr_to_str(data, len, *name);
+			*len = add_chr_to_str(data, *len, *name);
 		else {
 			unsigned char n[4];
 			sprintf(cast_char n, "%%%02X", *name);
@@ -1883,11 +1883,11 @@ encode_controls(struct list_head *l, unsigned char **data, int *len,
 	foreach (struct submitted_value, sv, lsv, *l) {
 		unsigned char *p = sv->value;
 		if (lst)
-			add_chr_to_str(data, len, '&');
+			*len = add_chr_to_str(data, *len, '&');
 		else
 			lst = 1;
 		encode_string(sv->name, data, len);
-		add_chr_to_str(data, len, '=');
+		*len = add_chr_to_str(data, *len, '=');
 		if (sv->type == FC_TEXT || sv->type == FC_PASSWORD
 		    || sv->type == FC_TEXTAREA)
 			p2 = convert(cp_from, cp_to, p, NULL);
@@ -2135,7 +2135,7 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 		int i;
 		go = NULL;
 		add_to_str(&go, &l, form->action);
-		add_chr_to_str(&go, &l, POST_CHAR);
+		l = add_chr_to_str(&go, l, POST_CHAR);
 		if (form->method == FM_POST)
 			add_to_str(&go, &l,
 			           cast_uchar
@@ -2183,7 +2183,7 @@ get_link_url(struct session *ses, struct f_data_c *f, struct link *l,
 			    &nu, 0, l->where,
 			    strlen(cast_const_char l->where) - 3);
 			add_num_to_str(&nu, &ll, ismap_x);
-			add_chr_to_str(&nu, &ll, ',');
+			ll = add_chr_to_str(&nu, ll, ',');
 			add_num_to_str(&nu, &ll, ismap_y);
 			return nu;
 		}
@@ -3878,7 +3878,7 @@ send_open_in_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 
 		add_to_str(&p, &pl, cast_uchar "-base-session ");
 		add_num_to_str(&p, &pl, ses->id);
-		add_chr_to_str(&p, &pl, ' ');
+		pl = add_chr_to_str(&p, pl, ' ');
 
 		if (ses->wtd_target && *ses->wtd_target) {
 			unsigned char *tgt = stracpy(ses->wtd_target);
@@ -3886,7 +3886,7 @@ send_open_in_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 			check_shell_security(&tgt);
 			add_to_str(&p, &pl, cast_uchar "-target ");
 			add_to_str(&p, &pl, tgt);
-			add_chr_to_str(&p, &pl, ' ');
+			pl = add_chr_to_str(&p, pl, ' ');
 			free(tgt);
 		}
 		enc_url = encode_url(ses->dn_url);
@@ -4200,7 +4200,7 @@ print_current_titlex(struct f_data_c *fd, int w)
 		if (fd->vs->view_pos + fd->yw >= fd->f_data->y)
 			pp = pe;
 		if (fd->f_data->title)
-			add_chr_to_str(&p, &pl, ' ');
+			pl = add_chr_to_str(&p, pl, ' ');
 		add_to_str(
 		    &p, &pl,
 		    get_text_translation(TEXT_(T_PAGE_P), fd->ses->term));
@@ -4266,7 +4266,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 				add_to_str(
 				    &m, &ll,
 				    get_text_translation(TEXT_(T_IMAGE), term));
-				add_chr_to_str(&m, &ll, ' ');
+				ll = add_chr_to_str(&m, ll, ' ');
 				d = display_url(term, l->where_img, 1);
 				add_to_str(&m, &ll, d);
 				free(d);
@@ -4279,7 +4279,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 			ll = 0;
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_USEMAP), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			d = display_url(term, l->where + 4, 1);
 			add_to_str(&m, &ll, d);
 			free(d);
@@ -4319,7 +4319,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 			add_to_str(
 			    &m, &ll,
 			    get_text_translation(TEXT_(T_POST_FORM_TO), term));
-		add_chr_to_str(&m, &ll, ' ');
+		ll = add_chr_to_str(&m, ll, ' ');
 		add_to_str(&m, &ll, l->form->action);
 		goto p;
 	}
@@ -4370,7 +4370,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_NAME), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			add_to_str(&m, &ll, l->form->name);
 		}
 		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
@@ -4378,7 +4378,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_VALUE), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			add_to_str(&m, &ll, l->form->default_value);
 		}
 		/* pri enteru se bude posilat vzdycky   -- Brain */
@@ -4388,7 +4388,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 			add_to_str(
 			    &m, &ll,
 			    get_text_translation(TEXT_(T_HIT_ENTER_TO), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			if (l->form->method == FM_GET)
 				add_to_str(&m, &ll,
 				           get_text_translation(
@@ -4397,7 +4397,7 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 				add_to_str(&m, &ll,
 				           get_text_translation(
 					       TEXT_(T_POST_TO), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			add_to_str(&m, &ll, l->form->action);
 		}
 		goto p;
@@ -4434,7 +4434,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		    && !casecmp(l->where, cast_uchar "MAP@", 4)) {
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_USEMAP), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			d = display_url(term, l->where + 4, 1);
 			add_to_str(&m, &ll, d);
 			free(d);
@@ -4461,7 +4461,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 			d = display_url(term, l->where_img, 1);
 			add_to_str(&m, &ll, d);
 			free(d);
-			add_chr_to_str(&m, &ll, '\'');
+			ll = add_chr_to_str(&m, ll, '\'');
 
 			if (l->img_alt) {
 				unsigned char *txt;
@@ -4471,7 +4471,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 				    convert(fd->f_data->cp, fd->f_data->opt.cp,
 				            l->img_alt, &fd->f_data->opt);
 				add_to_str(&m, &ll, txt);
-				add_chr_to_str(&m, &ll, '\'');
+				ll = add_chr_to_str(&m, ll, '\'');
 				free(txt);
 			}
 			goto p;
@@ -4505,7 +4505,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 			add_to_str(
 			    &m, &ll,
 			    get_text_translation(TEXT_(T_POST_FORM_TO), term));
-		add_chr_to_str(&m, &ll, ' ');
+		ll = add_chr_to_str(&m, ll, ' ');
 		add_to_str(&m, &ll, l->form->action);
 		goto p;
 	}
@@ -4556,7 +4556,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_NAME), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			add_to_str(&m, &ll, l->form->name);
 		}
 		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
@@ -4564,7 +4564,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 			add_to_str(&m, &ll, cast_uchar ", ");
 			add_to_str(&m, &ll,
 			           get_text_translation(TEXT_(T_VALUE), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			add_to_str(&m, &ll, l->form->default_value);
 		}
 		/* pri enteru se bude posilat vzdycky   -- Brain */
@@ -4574,7 +4574,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 			add_to_str(
 			    &m, &ll,
 			    get_text_translation(TEXT_(T_HIT_ENTER_TO), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			if (l->form->method == FM_GET)
 				add_to_str(&m, &ll,
 				           get_text_translation(
@@ -4583,7 +4583,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 				add_to_str(&m, &ll,
 				           get_text_translation(
 					       TEXT_(T_POST_TO), term));
-			add_chr_to_str(&m, &ll, ' ');
+			ll = add_chr_to_str(&m, ll, ' ');
 			add_to_str(&m, &ll, l->form->action);
 		}
 		goto p;
@@ -4650,13 +4650,13 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			if (enc) {
 				add_to_str(&s, &l, cast_uchar " (");
 				add_num_to_str(&s, &l, ce->length);
-				add_chr_to_str(&s, &l, ' ');
+				l = add_chr_to_str(&s, l, ' ');
 				add_to_str(&s, &l,
 				           get_text_translation(
 					       TEXT_(T_COMPRESSED_WITH), term));
-				add_chr_to_str(&s, &l, ' ');
+				l = add_chr_to_str(&s, l, ' ');
 				add_to_str(&s, &l, enc);
-				add_chr_to_str(&s, &l, ')');
+				l = add_chr_to_str(&s, l, ')');
 				free(enc);
 			}
 		} else {
@@ -4667,7 +4667,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			add_to_str(
 			    &s, &l,
 			    get_text_translation(TEXT_(T_INCOMPLETE), term));
-			add_chr_to_str(&s, &l, ')');
+			l = add_chr_to_str(&s, l, ')');
 		}
 		if (frame->f_data->ass >= 0) {
 			add_to_str(&s, &l, cast_uchar "\n");
@@ -4681,7 +4681,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 				add_to_str(&s, &l,
 				           get_text_translation(
 					       TEXT_(T_ASSUMED), term));
-				add_chr_to_str(&s, &l, ')');
+				l = add_chr_to_str(&s, l, ')');
 			}
 			if (frame->f_data->ass == 2) {
 				add_to_str(&s, &l, cast_uchar " (");
@@ -4689,7 +4689,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 				           get_text_translation(
 					       TEXT_(T_IGNORING_SERVER_SETTING),
 					       term));
-				add_chr_to_str(&s, &l, ')');
+				l = add_chr_to_str(&s, l, ')');
 			}
 		}
 		if (ce->head && ce->head[0] != '\n' && ce->head[0] != '\r'

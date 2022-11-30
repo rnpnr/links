@@ -419,9 +419,9 @@ free_u_ret_up:
 	if (q && (data[q - 1] == '&' || data[q - 1] == '?'))
 		;
 	else if (strchr((char *)data, '?'))
-		add_chr_to_str(&r, &rl, '&');
+		rl = add_chr_to_str(&r, rl, '&');
 	else
-		add_chr_to_str(&r, &rl, '?');
+		rl = add_chr_to_str(&r, rl, '?');
 	add_to_str(&r, &rl, cast_uchar "_escaped_fragment_=");
 	for (; *dp; dp++) {
 		unsigned char c = *dp;
@@ -431,7 +431,7 @@ free_u_ret_up:
 			sprintf((char *)h, "%%%02X", c);
 			add_to_str(&r, &rl, h);
 		} else
-			add_chr_to_str(&r, &rl, c);
+			rl = add_chr_to_str(&r, rl, c);
 	}
 	add_to_str(&r, &rl, post_seq);
 	free(u);
@@ -589,10 +589,10 @@ insert_wd(unsigned char **up, unsigned char *cwd)
 			sprintf((char *)h, "%%%02X", (unsigned)c & 0xff);
 			add_to_str(&url, &url_l, h);
 		} else
-			add_chr_to_str(&url, &url_l, c);
+			url_l = add_chr_to_str(&url, url_l, c);
 	}
 	if (!dir_sep(cwd[strlen((char *)cwd) - 1]))
-		add_chr_to_str(&url, &url_l, '/');
+		url_l = add_chr_to_str(&url, url_l, '/');
 	add_to_str(&url, &url_l, u + 7);
 	free(u);
 	*up = url;
@@ -914,13 +914,13 @@ add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll,
 		if (chr == ' ' && (!encode_special || encode_special == -1))
 			add_to_str(s, l, cast_uchar "&nbsp;");
 		else if (accept_char(chr) || encode_special == -2)
-			add_chr_to_str(s, l, chr);
+			*l = add_chr_to_str(s, *l, chr);
 		else if (chr == 10 || chr == 13) {
 			continue;
 		} else {
 			add_to_str(s, l, cast_uchar "&#");
 			add_num_to_str(s, l, (int)chr);
-			add_chr_to_str(s, l, ';');
+			*l = add_chr_to_str(s, *l, ';');
 		}
 	}
 }
@@ -1045,7 +1045,7 @@ puny_encode(unsigned char *s, int len)
 	ni = 0;
 	for (i = 0; i < uni_l; i++)
 		if (uni[i] < 128) {
-			add_chr_to_str(&res, &res_l, uni[i]);
+			res_l = add_chr_to_str(&res, res_l, uni[i]);
 			ni++;
 		}
 
@@ -1056,7 +1056,7 @@ puny_encode(unsigned char *s, int len)
 	}
 
 	if (res_l != xn_l)
-		add_chr_to_str(&res, &res_l, '-');
+		res_l = add_chr_to_str(&res, res_l, '-');
 
 	puny_init(&st, ni);
 
@@ -1086,15 +1086,16 @@ puny_encode(unsigned char *s, int len)
 				while (1) {
 					unsigned t = puny_threshold(&st);
 					if (n < t) {
-						add_chr_to_str(&res, &res_l,
-						               puny_chrenc(n));
+						res_l = add_chr_to_str(
+						    &res, res_l,
+						    puny_chrenc(n));
 						break;
 					} else {
 						unsigned d =
 						    (n - t) % (puny_base - t);
 						n = (n - t) / (puny_base - t);
-						add_chr_to_str(
-						    &res, &res_l,
+						res_l = add_chr_to_str(
+						    &res, res_l,
 						    puny_chrenc(d + t));
 					}
 				}
@@ -1266,7 +1267,7 @@ next_host_elem:
 
 advance_host:
 	if (l != len) {
-		add_chr_to_str(&p, &pl, host[l]);
+		pl = add_chr_to_str(&p, pl, host[l]);
 		host += l + 1;
 		len -= l + 1;
 		goto next_host_elem;

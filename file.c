@@ -82,7 +82,7 @@ stat_mode(unsigned char **p, int *l, struct stat *stp)
 			c = 'n';
 #endif
 	}
-	add_chr_to_str(p, l, c);
+	*l = add_chr_to_str(p, *l, c);
 	if (stp) {
 		unsigned mode = stp->st_mode;
 		setrwx(mode << 0, &rwx[0]);
@@ -91,7 +91,7 @@ stat_mode(unsigned char **p, int *l, struct stat *stp)
 		setst(mode, rwx);
 	}
 	add_to_str(p, l, rwx);
-	add_chr_to_str(p, l, ' ');
+	*l = add_chr_to_str(p, *l, ' ');
 }
 
 static void
@@ -148,8 +148,8 @@ stat_user(unsigned char **p, int *l, struct stat *stp, int g)
 a:
 	add_to_str(p, l, pp);
 	for (i = strlen(cast_const_char pp); i < 8; i++)
-		add_chr_to_str(p, l, ' ');
-	add_chr_to_str(p, l, ' ');
+		*l = add_chr_to_str(p, *l, ' ');
+	*l = add_chr_to_str(p, *l, ' ');
 }
 
 static void
@@ -163,9 +163,9 @@ stat_size(unsigned char **p, int *l, struct stat *stp)
 	else
 		snzprint(num, sizeof num, stp->st_size);
 	for (i = strlen(cast_const_char num); i < digits; i++)
-		add_chr_to_str(p, l, ' ');
+		*l = add_chr_to_str(p, *l, ' ');
 	add_to_str(p, l, num);
-	add_chr_to_str(p, l, ' ');
+	*l = add_chr_to_str(p, *l, ' ');
 }
 
 static void
@@ -204,7 +204,7 @@ set_empty:
 		str[wr++] = ' ';
 	str[12] = 0;
 	add_to_str(p, l, str);
-	add_chr_to_str(p, l, ' ');
+	*l = add_chr_to_str(p, *l, ' ');
 }
 
 static unsigned char *
@@ -412,14 +412,14 @@ xxx:
 			add_conv_str(&file, &fl, dir[i].f,
 			             (int)strlen(cast_const_char dir[i].f), 1);
 			if (dir[i].s[0] == 'd')
-				add_chr_to_str(&file, &fl, '/');
+				fl = add_chr_to_str(&file, fl, '/');
 			else if (lnk) {
 				struct stat st;
 				unsigned char *n = stracpy(name);
 				add_to_strn(&n, dir[i].f);
 				EINTRLOOP(rs, stat(cast_const_char n, &st));
 				if (!rs && S_ISDIR(st.st_mode))
-					add_chr_to_str(&file, &fl, '/');
+					fl = add_chr_to_str(&file, fl, '/');
 				free(n);
 			}
 			add_to_str(&file, &fl, cast_uchar "\">");
