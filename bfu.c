@@ -7,6 +7,8 @@
 
 #include "links.h"
 
+unsigned char m_bar = 0;
+
 static void menu_func(struct window *, struct links_event *, int);
 static void mainmenu_func(struct window *, struct links_event *, int);
 
@@ -83,12 +85,10 @@ freeml(struct memory_list *ml)
 }
 
 static inline int
-txtlen(struct terminal *term, unsigned char *s)
+txtlen(unsigned char *s)
 {
 	return strlen((char *)s);
 }
-
-unsigned char m_bar = 0;
 
 static unsigned
 select_hotkey(struct terminal *term, unsigned char *text, unsigned char *hotkey,
@@ -195,10 +195,9 @@ count_menu_size(struct terminal *term, struct menu *menu)
 	int my;
 	for (my = 0; my < menu->ni; my++) {
 		int s;
-		s = txtlen(term,
-		           get_text_translation(menu->items[my].text, term))
-		    + txtlen(term, get_text_translation(
-				       get_rtext(menu->items[my].rtext), term))
+		s = txtlen(get_text_translation(menu->items[my].text, term))
+		    + txtlen(get_text_translation(
+			get_rtext(menu->items[my].rtext), term))
 		    + MENU_HOTKEY_SPACE
 		          * (get_text_translation(
 				 get_rtext(menu->items[my].rtext), term)[0]
@@ -329,9 +328,6 @@ display_menu_txt(struct terminal *term, void *menu_)
 	}
 }
 
-static int menu_oldview = -1;
-static int menu_oldsel = -1;
-
 static void
 menu_func(struct window *win, struct links_event *ev, int fwd)
 {
@@ -403,13 +399,10 @@ del:
 				int s = ev->y - menu->y - 1 + menu->view;
 				if (s >= 0 && s < menu->ni
 				    && menu->items[s].hotkey != M_BAR) {
-					menu_oldview = menu->view;
-					menu_oldsel = menu->selected;
 					menu->selected = s;
 					scroll_menu(menu, 0);
 					draw_to_window(win, display_menu_txt,
 					               menu);
-					menu_oldview = menu_oldsel = -1;
 					if ((ev->b & BM_ACT) == B_UP)
 						select_menu(win->term, menu);
 				}
@@ -450,8 +443,6 @@ mm:
 			delete_window_ev(win, ev);
 			break;
 		}
-		menu_oldview = menu->view;
-		menu_oldsel = menu->selected;
 		if (ev->x == KBD_UP)
 			scroll_menu(menu, -1);
 		else if (ev->x == KBD_DOWN)
@@ -491,12 +482,9 @@ mm:
 			}
 		}
 		draw_to_window(win, display_menu_txt, menu);
-		if (s || ev->x == KBD_ENTER || ev->x == ' ') {
+		if (s || ev->x == KBD_ENTER || ev->x == ' ')
 enter:
-			menu_oldview = menu_oldsel = -1;
 			select_menu(win->term, menu);
-		}
-		menu_oldview = menu_oldsel = -1;
 		break;
 	case EV_ABORT:
 		if (menu->items->free_i) {
@@ -652,7 +640,7 @@ mainmenu_func(struct window *win, struct links_event *ev, int fwd)
 				int o = p;
 				unsigned char *tmptext = get_text_translation(
 				    menu->items[i].text, win->term);
-				p += txtlen(win->term, tmptext) + 4;
+				p += txtlen(tmptext) + 4;
 				if (ev->x >= o && ev->x < p) {
 					menu->selected = i;
 					draw_to_window(win, display_mainmenu,
@@ -1787,8 +1775,7 @@ max_buttons_width(struct terminal *term, struct dialog_item_data *butt, int n,
 	int w = -2;
 	int i;
 	for (i = 0; i < n; i++)
-		w += txtlen(term,
-		            get_text_translation((butt++)->item->text, term))
+		w += txtlen(get_text_translation((butt++)->item->text, term))
 		     + 6;
 	if (w > *width)
 		*width = w;
@@ -1800,8 +1787,7 @@ min_buttons_width(struct terminal *term, struct dialog_item_data *butt, int n,
 {
 	int i;
 	for (i = 0; i < n; i++) {
-		int w = txtlen(term,
-		               get_text_translation((butt++)->item->text, term))
+		int w = txtlen(get_text_translation((butt++)->item->text, term))
 		        + 4;
 		if (w > *width)
 			*width = w;
@@ -1839,10 +1825,9 @@ dlg_format_buttons(struct dialog_data *dlg, struct terminal *term,
 			for (i = i1; i < i2; i++) {
 				butt[i].x = p;
 				butt[i].y = *y;
-				p += (butt[i].l = txtlen(dlg->win->term,
-				                         get_text_translation(
-							     butt[i].item->text,
-							     dlg->win->term))
+				p += (butt[i].l = txtlen(get_text_translation(
+						      butt[i].item->text,
+						      dlg->win->term))
 				                  + 4)
 				     + 2;
 			}
@@ -1943,11 +1928,10 @@ max_group_width(struct terminal *term, unsigned char *const *texts,
 		int wx =
 		    item->item->type == D_CHECKBOX ? 4
 		    : item->item->type == D_BUTTON
-			? txtlen(term,
-		                 get_text_translation(item->item->text, term))
+			? txtlen(get_text_translation(item->item->text, term))
 			      + 4
 			: item->item->dlen;
-		wx += txtlen(term, get_text_translation(texts[0], term)) + 1;
+		wx += txtlen(get_text_translation(texts[0], term)) + 1;
 		if (n)
 			wx++;
 		ww += wx;
@@ -1966,11 +1950,10 @@ min_group_width(struct terminal *term, unsigned char *const *texts,
 		int wx =
 		    item->item->type == D_CHECKBOX ? 4
 		    : item->item->type == D_BUTTON
-			? txtlen(term,
-		                 get_text_translation(item->item->text, term))
+			? txtlen(get_text_translation(item->item->text, term))
 			      + 4
 			: item->item->dlen + 1;
-		wx += txtlen(term, get_text_translation(texts[0], term));
+		wx += txtlen(get_text_translation(texts[0], term));
 		if (wx > *w)
 			*w = wx;
 		texts++;
@@ -1987,15 +1970,13 @@ dlg_format_group(struct dialog_data *dlg, struct terminal *term,
 	while (n--) {
 		int wx = item->item->type == D_CHECKBOX ? 3
 		         : item->item->type == D_BUTTON
-		             ? txtlen(dlg->win->term,
-		                      get_text_translation(item->item->text,
+		             ? txtlen(get_text_translation(item->item->text,
 		                                           dlg->win->term))
 		                   + 4
 		             : item->item->dlen;
 		int sl;
 		if (get_text_translation(texts[0], dlg->win->term)[0])
 			sl = txtlen(
-				 dlg->win->term,
 				 get_text_translation(texts[0], dlg->win->term))
 			     + 1;
 		else
