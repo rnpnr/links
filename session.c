@@ -1939,12 +1939,10 @@ html_interpret(struct f_data_c *fd, int report_status)
 	}
 	memset(&o, 0, sizeof(struct document_options));
 	ds2do(&fd->ses->ds, &o, fd->ses->term->spec->col);
-	if (!casecmp(fd->loc->url, cast_uchar "file://", 7) && !o.hard_assume) {
-		o.assume_cp = term_charset(fd->ses->term);
-	}
-	if (fd->parent && fd->parent->f_data && !o.hard_assume) {
+	if (!casecmp(fd->loc->url, cast_uchar "file://", 7) && !o.hard_assume)
+		o.assume_cp = 0;
+	if (fd->parent && fd->parent->f_data && !o.hard_assume)
 		o.assume_cp = fd->parent->f_data->cp;
-	}
 	o.gamma_stamp = 0;
 	o.plain = fd->vs->plain;
 	if (o.plain == 1 && !o.break_long_lines) {
@@ -1964,7 +1962,7 @@ html_interpret(struct f_data_c *fd, int report_status)
 			o.col = fd->ses->term->spec->col;
 		else
 			o.col = 0;
-		o.cp = term_charset(fd->ses->term);
+		o.cp = 0;
 	} else {
 		o.col = 3;
 		o.cp = 0;
@@ -3109,7 +3107,7 @@ void
 goto_url(void *ses_, unsigned char *url)
 {
 	struct session *ses = (struct session *)ses_;
-	unsigned char *u = convert(term_charset(ses->term), 0, url, NULL);
+	unsigned char *u = convert(0, 0, url, NULL);
 	goto_url_utf8(ses, u);
 	free(u);
 }
@@ -3153,8 +3151,8 @@ ses_imgmap(struct session *ses)
 	d_opt = &fd->f_data->opt;
 	if (get_image_map(ses->rq->ce->head, start, start + len,
 	                  ses->goto_position, &menu, &ml, ses->imgmap_href_base,
-	                  ses->imgmap_target_base, term_charset(ses->term),
-	                  ses->ds.assume_cp, ses->ds.hard_assume, 0)) {
+	                  ses->imgmap_target_base, 0, ses->ds.assume_cp,
+	                  ses->ds.hard_assume, 0)) {
 		ses_abort_1st_state_loading(ses);
 		return;
 	}

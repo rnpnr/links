@@ -119,13 +119,10 @@ auth_ok(struct dialog_data *dlg, struct dialog_item_data *item)
 		get_dialog_data(dlg);
 		ses = list_struct(dlg->win->term->windows.prev, struct window)
 		          ->data;
-		get_convert_table(
-		    rq->ce_internal->head, term_charset(dlg->win->term),
-		    ses->ds.assume_cp, &net_cp, NULL, ses->ds.hard_assume);
-		uid =
-		    convert(term_charset(dlg->win->term), net_cp, a->uid, NULL);
-		passwd = convert(term_charset(dlg->win->term), net_cp,
-		                 a->passwd, NULL);
+		get_convert_table(rq->ce_internal->head, 0, ses->ds.assume_cp,
+		                  &net_cp, NULL, ses->ds.hard_assume);
+		uid = convert(0, net_cp, a->uid, NULL);
+		passwd = convert(0, net_cp, a->passwd, NULL);
 		add_auth(rq->url, a->realm, uid, passwd, a->proxy);
 		free(uid);
 		free(passwd);
@@ -151,9 +148,8 @@ auth_window(struct object_request *rq, unsigned char *realm)
 	if (!(term = find_terminal(rq->term)))
 		return -1;
 	ses = list_struct(term->windows.prev, struct window)->data;
-	get_convert_table(rq->ce_internal->head, term_charset(term),
-	                  ses->ds.assume_cp, &net_cp, NULL,
-	                  ses->ds.hard_assume);
+	get_convert_table(rq->ce_internal->head, 0, ses->ds.assume_cp, &net_cp,
+	                  NULL, ses->ds.hard_assume);
 	if (rq->ce_internal->http_code == 407) {
 		unsigned char *h = get_proxy_string(rq->url);
 		if (!h)
@@ -171,7 +167,7 @@ auth_window(struct object_request *rq, unsigned char *realm)
 			free(port);
 		}
 	}
-	urealm = convert(term_charset(term), net_cp, realm, NULL);
+	urealm = convert(0, net_cp, realm, NULL);
 	d = xmalloc(
 	    sizeof(struct dialog) + 5 * sizeof(struct dialog_item)
 	    + sizeof(struct auth_dialog)

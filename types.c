@@ -144,7 +144,7 @@ assoc_type_item(struct terminal *term, struct list *data, int x)
 		if (item->prog)
 			add_to_strn(&txt, item->prog);
 	}
-	txt1 = convert(assoc_ld.codepage, term_charset(term), txt, NULL);
+	txt1 = convert(assoc_ld.codepage, 0, txt, NULL);
 	free(txt);
 
 	return txt1;
@@ -255,18 +255,15 @@ assoc_edit_done(void *data)
 	ct = label + MAX_STR_LEN;
 	prog = ct + MAX_STR_LEN;
 
-	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, label,
-	              NULL);
+	txt = convert(0, assoc_ld.codepage, label, NULL);
 	free(item->label);
 	item->label = txt;
 
-	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, ct,
-	              NULL);
+	txt = convert(0, assoc_ld.codepage, ct, NULL);
 	free(item->ct);
 	item->ct = txt;
 
-	txt = convert(term_charset(s->dlg->win->term), assoc_ld.codepage, prog,
-	              NULL);
+	txt = convert(0, assoc_ld.codepage, prog, NULL);
 	free(item->prog);
 	item->prog = txt;
 
@@ -552,7 +549,7 @@ ext_type_item(struct terminal *term, struct list *data, int x)
 	txt = stracpy(item->ext);
 	add_to_strn(&txt, cast_uchar ": ");
 	add_to_strn(&txt, item->ct);
-	txt1 = convert(assoc_ld.codepage, term_charset(term), txt, NULL);
+	txt1 = convert(assoc_ld.codepage, 0, txt, NULL);
 	free(txt);
 
 	return txt1;
@@ -632,13 +629,11 @@ ext_edit_done(void *data)
 	ext = (unsigned char *)&d->items[5];
 	ct = ext + MAX_STR_LEN;
 
-	txt = convert(term_charset(s->dlg->win->term), ext_ld.codepage, ext,
-	              NULL);
+	txt = convert(0, ext_ld.codepage, ext, NULL);
 	free(item->ext);
 	item->ext = txt;
 
-	txt =
-	    convert(term_charset(s->dlg->win->term), ext_ld.codepage, ct, NULL);
+	txt = convert(0, ext_ld.codepage, ct, NULL);
 	free(item->ct);
 	item->ct = txt;
 

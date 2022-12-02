@@ -1061,7 +1061,7 @@ list_search_for_back(void *rd_, unsigned char *str)
 		return;
 
 	free(ld->search_word);
-	ld->search_word = to_utf8_upcase(str, term_charset(rd->dlg->win->term));
+	ld->search_word = to_utf8_upcase(str, 0);
 	ld->search_direction = -1;
 
 	list_find_next(rd, ld->search_direction);
@@ -1079,7 +1079,7 @@ list_search_for(void *rd_, unsigned char *str)
 		return;
 
 	free(ld->search_word);
-	ld->search_word = to_utf8_upcase(str, term_charset(rd->dlg->win->term));
+	ld->search_word = to_utf8_upcase(str, 0);
 	ld->search_direction = 1;
 
 	list_find_next(rd, ld->search_direction);

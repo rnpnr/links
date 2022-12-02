@@ -600,7 +600,6 @@ cont:;
 static int
 get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 {
-	int utf8 = term_charset(scr->ses->term) == 0;
 	struct f_data *f = scr->f_data;
 	int xp = scr->xp;
 	int yp = scr->yp;
@@ -633,18 +632,12 @@ get_searched(struct f_data_c *scr, struct point **pt, int *pl)
 c:
 			continue;
 		}
-		if (!utf8) {
-			for (i = 1; i < l; i++)
-				if (f->search_chr[s1 + i] != w[i])
-					goto c;
-		} else {
-			ww = w;
-			for (i = 0; i < l; i++) {
-				unsigned cc;
-				GET_UTF_8(ww, cc);
-				if (f->search_chr[s1 + i] != cc)
-					goto c;
-			}
+		ww = w;
+		for (i = 0; i < l; i++) {
+			unsigned cc;
+			GET_UTF_8(ww, cc);
+			if (f->search_chr[s1 + i] != cc)
+				goto c;
 		}
 		for (i = 0; i < l; i++) {
 			struct search *sr = search_lookup(f, s1 + i);
@@ -961,14 +954,10 @@ draw_form_entry(struct terminal *t, struct f_data_c *f, struct link *l)
 			s = cast_uchar "";
 		for (i = 0; i < l->n; i++) {
 			unsigned chr;
-			if (!*s) {
+			if (!*s)
 				chr = '_';
-			} else {
-				if (!term_charset(t)) {
-					GET_UTF_8(s, chr);
-				} else
-					chr = *s++;
-			}
+			else
+				GET_UTF_8(s, chr);
 			x = l->pos[i].x + xp - vx;
 			y = l->pos[i].y + yp - vy;
 			if (x >= xp && y >= yp && x < xp + xw && y < yp + yw)
@@ -1957,9 +1946,7 @@ bnd:
 						           cast_uchar
 						           "; charset=");
 						add_to_str(data, len,
-						           get_cp_mime_name(
-							       term_charset(
-								   ses->term)));
+						           get_cp_mime_name(0));
 					}
 					free(ct);
 				}
@@ -2098,7 +2085,7 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 	if (!form->action)
 		return NULL;
 	get_succesful_controls(f, form, &submit);
-	cp_from = term_charset(ses->term);
+	cp_from = 0;
 	cp_to = f->f_data->cp;
 	if (form->method == FM_GET || form->method == FM_POST)
 		encode_controls(&submit, &data, &len, cp_from, cp_to);
@@ -2970,7 +2957,7 @@ search_for_back(void *ses_, unsigned char *str)
 	free(ses->search_word);
 	ses->search_word = stracpy(str);
 	clr_spaces(ses->search_word, 0);
-	charset_upcase_string(&ses->search_word, term_charset(ses->term));
+	charset_upcase_string(&ses->search_word, 0);
 	free(ses->last_search_word);
 	ses->last_search_word = stracpy(ses->search_word);
 	ses->search_direction = -1;
@@ -2987,7 +2974,7 @@ search_for(void *ses_, unsigned char *str)
 	free(ses->search_word);
 	ses->search_word = stracpy(str);
 	clr_spaces(ses->search_word, 0);
-	charset_upcase_string(&ses->search_word, term_charset(ses->term));
+	charset_upcase_string(&ses->search_word, 0);
 	free(ses->last_search_word);
 	ses->last_search_word = stracpy(ses->search_word);
 	ses->search_direction = 1;
@@ -3965,7 +3952,7 @@ save_url(void *ses_, unsigned char *url)
 {
 	struct session *ses = (struct session *)ses_;
 	unsigned char *u1, *u2;
-	u1 = convert(term_charset(ses->term), 0, url, NULL);
+	u1 = convert(0, 0, url, NULL);
 	u2 = translate_url(u1, ses->term->cwd);
 	free(u1);
 	if (!u2) {

@@ -1054,7 +1054,7 @@ check_proxy_noproxy(struct dialog_data *dlg, struct dialog_item_data *di,
                     int (*save)(int, unsigned char *, unsigned char *))
 {
 	unsigned char *result = xmalloc(MAX_STR_LEN);
-	if (save(term_charset(dlg->win->term), result, di->cdata)) {
+	if (save(0, result, di->cdata)) {
 		free(result);
 		msg_box(dlg->win->term, NULL, TEXT_(T_BAD_STRING), AL_CENTER,
 		        TEXT_(T_BAD_PROXY_SYNTAX), MSG_BOX_END, NULL, 1,
@@ -1081,15 +1081,14 @@ static int
 proxy_ok_dialog(struct dialog_data *dlg, struct dialog_item_data *di)
 {
 	struct terminal *term = dlg->win->term;
-	int charset = term_charset(term);
 	int op = proxies.only_proxies;
 	int r = ok_dialog(dlg, di);
 	if (r)
 		return r;
-	save_proxy(charset, proxies.http_proxy, http_proxy);
-	save_proxy(charset, proxies.https_proxy, https_proxy);
-	save_proxy(charset, proxies.socks_proxy, socks_proxy);
-	save_noproxy_list(charset, proxies.no_proxy, no_proxy);
+	save_proxy(0, proxies.http_proxy, http_proxy);
+	save_proxy(0, proxies.https_proxy, https_proxy);
+	save_proxy(0, proxies.socks_proxy, socks_proxy);
+	save_noproxy_list(0, proxies.no_proxy, no_proxy);
 
 	if (!proxies.only_proxies) {
 		/* parsing duplicated in make_connection */

@@ -83,14 +83,6 @@ freeml(struct memory_list *ml)
 }
 
 static inline int
-is_utf_8(struct terminal *term)
-{
-	if (!term_charset(term))
-		return 1;
-	return 0;
-}
-
-static inline int
 txtlen(struct terminal *term, unsigned char *s)
 {
 	return strlen((char *)s);
@@ -107,7 +99,7 @@ select_hotkey(struct terminal *term, unsigned char *text, unsigned char *hotkey,
 		return 0;
 	if (text) {
 		text = stracpy(get_text_translation(text, term));
-		charset_upcase_string(&text, term_charset(term));
+		charset_upcase_string(&text, 0);
 	}
 	hotkey = get_text_translation(hotkey, term);
 	while (1) {
@@ -115,7 +107,7 @@ select_hotkey(struct terminal *term, unsigned char *text, unsigned char *hotkey,
 		c = GET_TERM_CHAR(term, &hotkey);
 		if (!c)
 			break;
-		c = charset_upcase(c, term_charset(term));
+		c = charset_upcase(c, 0);
 		for (i = 0; i < n; i++)
 			if (hotkeys[i] == c)
 				continue;
@@ -317,7 +309,7 @@ display_menu_txt(struct terminal *term, void *menu_)
 				if (!c)
 					break;
 				if (!h
-				    && charset_upcase(c, term_charset(term))
+				    && charset_upcase(c, 0)
 				           == menu->hotkeys[p]) {
 					h = 1;
 					set_char(term, menu->x + x + 2, s, c,
@@ -490,8 +482,7 @@ mm:
 		} else if (ev->x > ' ') {
 			int i;
 			for (i = 0; i < menu->ni; i++) {
-				if (charset_upcase(ev->x,
-				                   term_charset(win->term))
+				if (charset_upcase(ev->x, 0)
 				    == menu->hotkeys[i]) {
 					menu->selected = i;
 					scroll_menu(menu, 0);
@@ -584,9 +575,7 @@ display_mainmenu(struct terminal *term, void *menu_)
 			c = GET_TERM_CHAR(term, &tmptext);
 			if (!c)
 				break;
-			if (!s
-			    && charset_upcase(c, term_charset(term))
-			           == menu->hotkeys[i]) {
+			if (!s && charset_upcase(c, 0) == menu->hotkeys[i]) {
 				s = 1;
 				set_char(term, p, 0, c, COLOR_MAINMENU_HOTKEY);
 			} else {
@@ -713,8 +702,7 @@ go_right:
 			int i;
 			s = 1;
 			for (i = 0; i < menu->ni; i++) {
-				if (charset_upcase(ev->x,
-				                   term_charset(win->term))
+				if (charset_upcase(ev->x, 0)
 				    == menu->hotkeys[i]) {
 					menu->selected = i;
 					s = 2;
@@ -927,7 +915,7 @@ static unsigned char *
 dlg_get_history_string(struct terminal *term, struct history_item *hi, int l)
 {
 	unsigned char *s;
-	int ch = term_charset(term);
+	int ch = 0;
 	s = convert(0, ch, hi->str, NULL);
 	if (strlen(cast_const_char s) >= (size_t)l)
 		s[l - 1] = 0;
@@ -987,26 +975,19 @@ dlg_mouse(struct dialog_data *dlg, struct dialog_item_data *di,
 	case D_FIELD_PASS:
 		if (ev->y != di->y || ev->x < di->x || ev->x >= di->x + di->l)
 			return 0;
-		if (!is_utf_8(dlg->win->term)) {
-			if ((size_t)(di->cpos = di->vpos + ev->x - di->x)
-			    > strlen(cast_const_char di->cdata))
-				di->cpos =
-				    (int)strlen(cast_const_char di->cdata);
-		} else {
-			int p, u;
-			unsigned char *t = di->cdata;
-			p = di->x - di->vpos;
-			while (1) {
-				di->cpos = (int)(t - di->cdata);
-				if (!*t)
-					break;
-				GET_UTF_8(t, u);
-				if (!u)
-					continue;
-				p++;
-				if (p > ev->x)
-					break;
-			}
+		int p, u;
+		unsigned char *t = di->cdata;
+		p = di->x - di->vpos;
+		while (1) {
+			di->cpos = (int)(t - di->cdata);
+			if (!*t)
+				break;
+			GET_UTF_8(t, u);
+			if (!u)
+				continue;
+			p++;
+			if (p > ev->x)
+				break;
 		}
 		if (dlg->selected != di - dlg->items) {
 			x_display_dlg_item(dlg, &dlg->items[dlg->selected], 0);
@@ -1243,28 +1224,18 @@ dialog_func(struct window *win, struct links_event *ev, int fwd)
 			if (ev->x == KBD_RIGHT) {
 				if ((size_t)di->cpos
 				    < strlen(cast_const_char di->cdata)) {
-					if (!is_utf_8(term))
-						di->cpos++;
-					else {
-						int u;
-						unsigned char *p =
-						    di->cdata + di->cpos;
-						GET_UTF_8(p, u);
-						di->cpos = (int)(p - di->cdata);
-					}
+					int u;
+					unsigned char *p = di->cdata + di->cpos;
+					GET_UTF_8(p, u);
+					di->cpos = (int)(p - di->cdata);
 				}
 				goto dsp_f;
 			}
 			if (ev->x == KBD_LEFT) {
 				if (di->cpos > 0) {
-					if (!is_utf_8(term))
-						di->cpos--;
-					else {
-						unsigned char *p =
-						    di->cdata + di->cpos;
-						BACK_UTF_8(p, di->cdata);
-						di->cpos = (int)(p - di->cdata);
-					}
+					unsigned char *p = di->cdata + di->cpos;
+					BACK_UTF_8(p, di->cdata);
+					di->cpos = (int)(p - di->cdata);
 				}
 				goto dsp_f;
 			}
@@ -1281,13 +1252,7 @@ dialog_func(struct window *win, struct links_event *ev, int fwd)
 			}
 			if (ev->x >= ' ' && !(ev->y & (KBD_CTRL | KBD_ALT))) {
 				unsigned char *u;
-				unsigned char p[2] = { 0, 0 };
-				if (!is_utf_8(term)) {
-					p[0] = (unsigned char)ev->x;
-					u = p;
-				} else {
-					u = encode_utf_8(ev->x);
-				}
+				u = encode_utf_8(ev->x);
 				if (strlen(cast_const_char di->cdata)
 				        + strlen(cast_const_char u)
 				    < (size_t)di->item->dlen) {
@@ -1307,17 +1272,15 @@ dialog_func(struct window *win, struct links_event *ev, int fwd)
 			if (ev->x == KBD_BS) {
 				if (di->cpos) {
 					int s = 1;
-					if (is_utf_8(term)) {
-						unsigned u;
-						unsigned char *p, *pp;
-						p = di->cdata;
+					unsigned u;
+					unsigned char *p, *pp;
+					p = di->cdata;
 a:
-						pp = p;
-						GET_UTF_8(p, u);
-						if (p < di->cdata + di->cpos)
-							goto a;
-						s = (int)(p - pp);
-					}
+					pp = p;
+					GET_UTF_8(p, u);
+					if (p < di->cdata + di->cpos)
+						goto a;
+					s = (int)(p - pp);
 					memmove(
 					    di->cdata + di->cpos - s,
 					    di->cdata + di->cpos,
@@ -1332,15 +1295,10 @@ a:
 				if ((size_t)di->cpos
 				    < strlen(cast_const_char di->cdata)) {
 					int s = 1;
-					if (is_utf_8(term)) {
-						unsigned u;
-						unsigned char *p =
-						    di->cdata + di->cpos;
-						GET_UTF_8(p, u);
-						s = (int)(p
-						          - (di->cdata
-						             + di->cpos));
-					}
+					unsigned u;
+					unsigned char *p = di->cdata + di->cpos;
+					GET_UTF_8(p, u);
+					s = (int)(p - (di->cdata + di->cpos));
 					memmove(
 					    di->cdata + di->cpos,
 					    di->cdata + di->cpos + s,
@@ -1448,9 +1406,8 @@ gh:
 				    dlg->dlg->items[i].text, term);
 				if (dlg->dlg->items[i].type == D_BUTTON
 				    && charset_upcase(GET_TERM_CHAR(term, &tx),
-				                      term_charset(term))
-				           == charset_upcase(
-					       ev->x, term_charset(term)))
+				                      0)
+				           == charset_upcase(ev->x, 0))
 					goto sel;
 			}
 		if (ev->x == KBD_ENTER) {
@@ -1745,14 +1702,9 @@ max_text_width(struct terminal *term, unsigned char *text, int *width,
 	do {
 		int c = 0;
 		while (*text && *text != '\n') {
-			if (!is_utf_8(term)) {
-				text++;
-				c++;
-			} else {
-				int u;
-				GET_UTF_8(text, u);
-				c++;
-			}
+			int u;
+			GET_UTF_8(text, u);
+			c++;
 		}
 		if (c > *width)
 			*width = c;
@@ -1767,14 +1719,9 @@ min_text_width(struct terminal *term, unsigned char *text, int *width,
 	do {
 		int c = 0;
 		while (*text && *text != '\n' && *text != ' ') {
-			if (!is_utf_8(term)) {
-				text++;
-				c++;
-			} else {
-				int u;
-				GET_UTF_8(text, u);
-				c++;
-			}
+			int u;
+			GET_UTF_8(text, u);
+			c++;
 		}
 		if (c > *width)
 			*width = c;
@@ -2302,7 +2249,7 @@ add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 	if (!h || !t || !*t)
 		return;
 	if (term)
-		s = convert(term_charset(term), 0, t, NULL);
+		s = convert(0, 0, t, NULL);
 	else
 		s = t;
 	l = strlen(cast_const_char s);
