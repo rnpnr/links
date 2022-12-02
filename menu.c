@@ -987,7 +987,7 @@ save_proxy(int charset, unsigned char *result, unsigned char *proxy)
 		return 0;
 	}
 
-	proxy = convert(charset, 0, proxy, NULL);
+	proxy = stracpy(proxy);
 
 	url = stracpy(cast_uchar "proxy://");
 	add_to_strn(&url, proxy);
@@ -1033,7 +1033,7 @@ save_noproxy_list(int charset, unsigned char *result,
 {
 	unsigned char *res;
 
-	noproxy_list = convert(charset, 0, noproxy_list, NULL);
+	noproxy_list = stracpy(noproxy_list);
 	res = idn_encode_host(noproxy_list,
 	                      (int)strlen(cast_const_char noproxy_list),
 	                      cast_uchar ".,", 0);

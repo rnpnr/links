@@ -129,14 +129,14 @@ bookmark_default_value(struct session *ses, unsigned char type)
 	zelena->title = NULL;
 	if (get_current_url(ses, txt, MAX_STR_LEN)) {
 		if (ses->screen->f_data) {
-			zelena->url = convert(0, 0, txt, NULL);
+			zelena->url = stracpy(txt);
 			clr_white(zelena->url);
 		} else
 			zelena->url = stracpy(txt);
 	}
 	/* ses->screen->f_data must exist here */
 	if (get_current_title(ses->screen, txt, MAX_STR_LEN)) {
-		zelena->title = convert(0, 0, txt, NULL);
+		zelena->title = stracpy(txt);
 		clr_white(zelena->title);
 	}
 
@@ -231,11 +231,11 @@ bookmark_edit_done(void *data)
 	url = title + MAX_STR_LEN;
 
 	free(item->title);
-	item->title = convert(0, 0, title, NULL);
+	item->title = stracpy(title);
 	clr_white(item->title);
 
 	free(item->url);
-	item->url = convert(0, 0, url, NULL);
+	item->url = stracpy(url);
 	clr_white(item->url);
 
 	s->fn(s->dlg, s->data, &item->head, &bookmark_ld);
@@ -285,12 +285,12 @@ bookmark_edit_item(struct dialog_data *dlg, struct list *data,
 	title = (unsigned char *)&d->items[a];
 	url = title + MAX_STR_LEN;
 
-	txt = convert(0, 0, item->title, NULL);
+	txt = stracpy(item->title);
 	clr_white(txt);
 	safe_strncpy(title, txt, MAX_STR_LEN);
 	free(txt);
 
-	txt = convert(0, 0, item->url, NULL);
+	txt = stracpy(item->url);
 	clr_white(txt);
 	safe_strncpy(url, txt, MAX_STR_LEN);
 	free(txt);
@@ -392,7 +392,7 @@ bookmark_type_item(struct terminal *term, struct list *data, int x)
 		add_to_strn(&txt, cast_uchar ")");
 	}
 
-	txt1 = convert(0, 0, txt, NULL);
+	txt1 = stracpy(txt);
 	clr_white(txt1);
 	free(txt);
 	return txt1;
@@ -494,7 +494,7 @@ add_bookmark(unsigned char *title, unsigned char *url, int depth)
 	dop = mem_calloc(sizeof(struct document_options));
 	dop->cp = 0;
 
-	b->title = convert(0, 0, title, dop);
+	b->title = stracpy(title);
 	clr_white(b->title);
 
 	if (url) {

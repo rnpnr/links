@@ -1877,11 +1877,7 @@ encode_controls(struct list_head *l, unsigned char **data, int *len,
 			lst = 1;
 		encode_string(sv->name, data, len);
 		*len = add_chr_to_str(data, *len, '=');
-		if (sv->type == FC_TEXT || sv->type == FC_PASSWORD
-		    || sv->type == FC_TEXTAREA)
-			p2 = convert(cp_from, cp_to, p, NULL);
-		else
-			p2 = stracpy(p);
+		p2 = stracpy(p);
 		encode_string(p2, data, len);
 		free(p2);
 	}
@@ -1953,11 +1949,7 @@ bnd:
 		}
 		add_to_str(data, len, cast_uchar "\r\n\r\n");
 		if (sv->type != FC_FILE_UPLOAD) {
-			if (sv->type == FC_TEXT || sv->type == FC_PASSWORD
-			    || sv->type == FC_TEXTAREA)
-				p = convert(cp_from, cp_to, sv->value, NULL);
-			else
-				p = stracpy(sv->value);
+			p = stracpy(sv->value);
 			add_to_str(data, len, p);
 			free(p);
 		} else {
@@ -3952,7 +3944,7 @@ save_url(void *ses_, unsigned char *url)
 {
 	struct session *ses = (struct session *)ses_;
 	unsigned char *u1, *u2;
-	u1 = convert(0, 0, url, NULL);
+	u1 = stracpy(url);
 	u2 = translate_url(u1, ses->term->cwd);
 	free(u1);
 	if (!u2) {

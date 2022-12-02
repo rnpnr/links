@@ -448,7 +448,7 @@ unsigned char *
 to_utf8_upcase(unsigned char *str, int cp)
 {
 	unsigned char *str1, *str2;
-	str1 = convert(cp, 0, str, NULL);
+	str1 = stracpy(str);
 	str2 = unicode_upcase_string(str1);
 	free(str1);
 	return str2;

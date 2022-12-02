@@ -144,7 +144,7 @@ assoc_type_item(struct terminal *term, struct list *data, int x)
 		if (item->prog)
 			add_to_strn(&txt, item->prog);
 	}
-	txt1 = convert(assoc_ld.codepage, 0, txt, NULL);
+	txt1 = stracpy(txt);
 	free(txt);
 
 	return txt1;
@@ -255,15 +255,15 @@ assoc_edit_done(void *data)
 	ct = label + MAX_STR_LEN;
 	prog = ct + MAX_STR_LEN;
 
-	txt = convert(0, assoc_ld.codepage, label, NULL);
+	txt = stracpy(label);
 	free(item->label);
 	item->label = txt;
 
-	txt = convert(0, assoc_ld.codepage, ct, NULL);
+	txt = stracpy(ct);
 	free(item->ct);
 	item->ct = txt;
 
-	txt = convert(0, assoc_ld.codepage, prog, NULL);
+	txt = stracpy(prog);
 	free(item->prog);
 	item->prog = txt;
 
@@ -538,7 +538,7 @@ ext_copy_item(struct list *in, struct list *out)
 static unsigned char *
 ext_type_item(struct terminal *term, struct list *data, int x)
 {
-	unsigned char *txt, *txt1;
+	unsigned char *txt;
 	struct extension *item;
 
 	if (data == &extensions)
@@ -549,10 +549,8 @@ ext_type_item(struct terminal *term, struct list *data, int x)
 	txt = stracpy(item->ext);
 	add_to_strn(&txt, cast_uchar ": ");
 	add_to_strn(&txt, item->ct);
-	txt1 = convert(assoc_ld.codepage, 0, txt, NULL);
-	free(txt);
 
-	return txt1;
+	return txt;
 }
 
 void
@@ -629,11 +627,11 @@ ext_edit_done(void *data)
 	ext = (unsigned char *)&d->items[5];
 	ct = ext + MAX_STR_LEN;
 
-	txt = convert(0, ext_ld.codepage, ext, NULL);
+	txt = stracpy(ext);
 	free(item->ext);
 	item->ext = txt;
 
-	txt = convert(0, ext_ld.codepage, ct, NULL);
+	txt = stracpy(ct);
 	free(item->ct);
 	item->ct = txt;
 
@@ -1446,15 +1444,9 @@ no_extended:
 	ly = 0;
 	add_conv_str(&y, &ly, x, (int)strlen(cast_const_char x), -2);
 	free(x);
-	x = y;
-
 	free(codepage);
 
-	y = convert(0, 0, x, NULL);
-	free(x);
-	x = y;
-
-	for (y = x; *y; y++)
+	for (x = y; *y; y++)
 		if (dir_sep(*y))
 			*y = '-';
 	return x;

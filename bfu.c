@@ -916,7 +916,7 @@ dlg_get_history_string(struct terminal *term, struct history_item *hi, int l)
 {
 	unsigned char *s;
 	int ch = 0;
-	s = convert(0, ch, hi->str, NULL);
+	s = stracpy(hi->str);
 	if (strlen(cast_const_char s) >= (size_t)l)
 		s[l - 1] = 0;
 	if (!ch) {
@@ -2242,23 +2242,16 @@ msg_box(struct terminal *term, struct memory_list *ml, unsigned char *title,
 void
 add_to_history(struct terminal *term, struct history *h, unsigned char *t)
 {
-	unsigned char *s;
 	struct history_item *hi, *hs = NULL;
 	struct list_head *lhs;
 	size_t l;
 	if (!h || !t || !*t)
 		return;
-	if (term)
-		s = convert(0, 0, t, NULL);
-	else
-		s = t;
-	l = strlen(cast_const_char s);
+	l = strlen(cast_const_char t);
 	if (l > INT_MAX - sizeof(struct history_item))
 		overalloc();
 	hi = xmalloc(sizeof(struct history_item) + l);
-	memcpy(hi->str, s, l + 1);
-	if (term)
-		free(s);
+	memcpy(hi->str, t, l + 1);
 	if (term)
 		foreach (struct history_item, hs, lhs, h->items)
 			if (!strcmp(cast_const_char hs->str,

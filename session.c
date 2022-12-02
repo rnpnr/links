@@ -3107,7 +3107,7 @@ void
 goto_url(void *ses_, unsigned char *url)
 {
 	struct session *ses = (struct session *)ses_;
-	unsigned char *u = convert(0, 0, url, NULL);
+	unsigned char *u = stracpy(url);
 	goto_url_utf8(ses, u);
 	free(u);
 }

@@ -449,7 +449,7 @@ get_clipboard_text(struct terminal *term)
 {
 	if (!clipboard)
 		return NULL;
-	return convert(0, 0, clipboard, NULL);
+	return stracpy(clipboard);
 }
 
 /* links -> clipboard */
@@ -457,7 +457,7 @@ void
 set_clipboard_text(struct terminal *term, unsigned char *data)
 {
 	free(clipboard);
-	clipboard = convert(0, 0, data, NULL);
+	clipboard = stracpy(data);
 }
 
 int

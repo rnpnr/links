@@ -121,8 +121,8 @@ auth_ok(struct dialog_data *dlg, struct dialog_item_data *item)
 		          ->data;
 		get_convert_table(rq->ce_internal->head, 0, ses->ds.assume_cp,
 		                  &net_cp, NULL, ses->ds.hard_assume);
-		uid = convert(0, net_cp, a->uid, NULL);
-		passwd = convert(0, net_cp, a->passwd, NULL);
+		uid = stracpy(a->uid);
+		passwd = stracpy(a->passwd);
 		add_auth(rq->url, a->realm, uid, passwd, a->proxy);
 		free(uid);
 		free(passwd);
@@ -167,7 +167,7 @@ auth_window(struct object_request *rq, unsigned char *realm)
 			free(port);
 		}
 	}
-	urealm = convert(0, net_cp, realm, NULL);
+	urealm = stracpy(realm);
 	d = xmalloc(
 	    sizeof(struct dialog) + 5 * sizeof(struct dialog_item)
 	    + sizeof(struct auth_dialog)
