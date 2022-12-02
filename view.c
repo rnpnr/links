@@ -48,15 +48,6 @@ create_vs(void)
 	return vs;
 }
 
-/* FIXME: remove */
-static void
-free_form_state(struct form_state *fs)
-{
-	free_format_text_cache_entry(fs);
-	if (fs->string)
-		free(fs->string);
-}
-
 void
 destroy_vs(struct view_state *vs)
 {
@@ -812,7 +803,8 @@ find_form_state(struct f_data_c *f, struct form_control *form)
 	    && fs->g_ctrl_num == form->g_ctrl_num
 	    && /*fs->position == form->position &&*/ fs->type == form->type)
 		return fs;
-	free_form_state(fs);
+	free_format_text_cache_entry(fs);
+	free(fs->string);
 	memset(fs, 0, sizeof(struct form_state));
 	fs->form_num = form->form_num;
 	fs->ctrl_num = form->ctrl_num;
@@ -1860,8 +1852,7 @@ encode_string(unsigned char *name, unsigned char **data, int *len)
 }
 
 static void
-encode_controls(struct list_head *l, unsigned char **data, int *len,
-                int cp_from, int cp_to)
+encode_controls(struct list_head *l, unsigned char **data, int *len)
 {
 	struct submitted_value *sv = NULL;
 	struct list_head *lsv;
@@ -1888,7 +1879,7 @@ encode_controls(struct list_head *l, unsigned char **data, int *len,
 
 static void
 encode_multipart(struct session *ses, struct list_head *l, unsigned char **data,
-                 int *len, unsigned char *bound, int cp_from, int cp_to)
+                 int *len, unsigned char *bound)
 {
 	int errn;
 	int *bound_ptrs = NULL;
@@ -2065,7 +2056,6 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 	unsigned char bound[BL];
 	int len;
 	unsigned char *go = NULL;
-	int cp_from, cp_to;
 	if (!form)
 		return NULL;
 	if (form->type == FC_RESET) {
@@ -2077,13 +2067,10 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 	if (!form->action)
 		return NULL;
 	get_succesful_controls(f, form, &submit);
-	cp_from = 0;
-	cp_to = f->f_data->cp;
 	if (form->method == FM_GET || form->method == FM_POST)
-		encode_controls(&submit, &data, &len, cp_from, cp_to);
+		encode_controls(&submit, &data, &len);
 	else
-		encode_multipart(ses, &submit, &data, &len, bound, cp_from,
-		                 cp_to);
+		encode_multipart(ses, &submit, &data, &len, bound);
 	if (!data)
 		goto ff;
 	if (!casecmp(form->action, cast_uchar "javascript:", 11)) {
@@ -4011,8 +3998,7 @@ save_as(struct terminal *term, void *xxx, void *ses_)
 	}
 	query_file(ses, ses->dn_url, head, start_download, NULL,
 	           DOWNLOAD_CONTINUE);
-	if (head)
-		free(head);
+	free(head);
 }
 
 static void
