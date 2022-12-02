@@ -1079,11 +1079,7 @@ struct term_spec {
 extern struct list_head term_specs;
 extern struct list_head terminals;
 
-static inline int
-term_charset(struct terminal *term)
-{
-	return 0;
-}
+#define term_charset(a) 0
 
 int hard_write(int, const unsigned char *, int);
 int hard_read(int, unsigned char *, int);
@@ -1423,15 +1419,6 @@ struct document_options {
 	int real_cp; /* codepage of document. Does not really belong here. Must
 	                not be compared. Used only in get_attr_val */
 };
-
-static inline void
-color2rgb(struct rgb *rgb, int color)
-{
-	memset(rgb, 0, sizeof(struct rgb));
-	rgb->r = (color >> 16) & 0xff;
-	rgb->g = (color >> 8) & 0xff;
-	rgb->b = color & 0xff;
-}
 
 static inline void
 ds2do(struct document_setup *ds, struct document_options *doo, int col)
