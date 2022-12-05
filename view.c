@@ -113,10 +113,8 @@ find_tag(struct f_data *f, unsigned char *name)
 	struct tag *tag = NULL;
 	struct list_head *ltag;
 	unsigned char *tt;
-	int ll;
 	tt = NULL;
-	ll = 0;
-	add_conv_str(&tt, &ll, name, (int)strlen(cast_const_char name), -2);
+	add_conv_str(&tt, 0, name, (int)strlen(cast_const_char name), -2);
 	foreachback (struct tag, tag, ltag, f->tags)
 		if (!casestrcmp(tag->name, tt)
 		    || (tag->name[0] == '#'
@@ -1297,31 +1295,32 @@ dump_to_file(struct f_data *fd, int h)
 			struct form_control *fc;
 			struct link *lnk = &fd->links[i];
 			unsigned char *s = NULL;
-			int l = 0;
-			add_num_to_str(&s, &l, i + 1);
-			add_to_str(&s, &l, cast_uchar ". ");
+			size_t l;
+			l = add_num_to_str(&s, 0, i + 1);
+			l = add_to_str(&s, l, cast_uchar ". ");
 			if (lnk->where) {
-				add_to_str(&s, &l, lnk->where);
+				l = add_to_str(&s, l, lnk->where);
 			} else if (lnk->where_img) {
-				add_to_str(&s, &l, cast_uchar "Image: ");
-				add_to_str(&s, &l, lnk->where_img);
+				l = add_to_str(&s, l, cast_uchar "Image: ");
+				l = add_to_str(&s, l, lnk->where_img);
 			} else if (lnk->type == L_BUTTON) {
 				fc = lnk->form;
 				if (fc->type == FC_RESET)
-					add_to_str(&s, &l,
-					           cast_uchar "Reset form");
+					l = add_to_str(&s, l,
+					               cast_uchar "Reset form");
 				else if (fc->type == FC_BUTTON || !fc->action)
-					add_to_str(&s, &l, cast_uchar "Button");
+					l = add_to_str(&s, l,
+					               cast_uchar "Button");
 				else {
 					if (fc->method == FM_GET)
-						add_to_str(&s, &l,
-						           cast_uchar
-						           "Submit form: ");
+						l = add_to_str(&s, l,
+						               cast_uchar
+						               "Submit form: ");
 					else
-						add_to_str(&s, &l,
-						           cast_uchar
-						           "Post form: ");
-					add_to_str(&s, &l, fc->action);
+						l = add_to_str(&s, l,
+						               cast_uchar
+						               "Post form: ");
+					l = add_to_str(&s, l, fc->action);
 				}
 			} else if (lnk->type == L_CHECKBOX
 			           || lnk->type == L_SELECT
@@ -1330,52 +1329,53 @@ dump_to_file(struct f_data *fd, int h)
 				fc = lnk->form;
 				switch (fc->type) {
 				case FC_RADIO:
-					add_to_str(&s, &l,
-					           cast_uchar "Radio button");
+					l = add_to_str(
+					    &s, l, cast_uchar "Radio button");
 					break;
 				case FC_CHECKBOX:
-					add_to_str(&s, &l,
-					           cast_uchar "Checkbox");
+					l = add_to_str(&s, l,
+					               cast_uchar "Checkbox");
 					break;
 				case FC_SELECT:
-					add_to_str(&s, &l,
-					           cast_uchar "Select field");
+					l = add_to_str(
+					    &s, l, cast_uchar "Select field");
 					break;
 				case FC_TEXT:
-					add_to_str(&s, &l,
-					           cast_uchar "Text field");
+					l = add_to_str(&s, l,
+					               cast_uchar "Text field");
 					break;
 				case FC_TEXTAREA:
-					add_to_str(&s, &l,
-					           cast_uchar "Text area");
+					l = add_to_str(&s, l,
+					               cast_uchar "Text area");
 					break;
 				case FC_FILE_UPLOAD:
-					add_to_str(&s, &l,
-					           cast_uchar "File upload");
+					l = add_to_str(
+					    &s, l, cast_uchar "File upload");
 					break;
 				case FC_PASSWORD:
-					add_to_str(&s, &l,
-					           cast_uchar "Password field");
+					l = add_to_str(
+					    &s, l, cast_uchar "Password field");
 					break;
 				default:
 					goto unknown;
 				}
 				if (fc->name && fc->name[0]) {
-					add_to_str(&s, &l,
-					           cast_uchar ", Name ");
-					add_to_str(&s, &l, fc->name);
+					l = add_to_str(&s, l,
+					               cast_uchar ", Name ");
+					l = add_to_str(&s, l, fc->name);
 				}
 				if ((fc->type == FC_CHECKBOX
 				     || fc->type == FC_RADIO)
 				    && fc->default_value
 				    && fc->default_value[0]) {
-					add_to_str(&s, &l,
-					           cast_uchar ", Value ");
-					add_to_str(&s, &l, fc->default_value);
+					l = add_to_str(&s, l,
+					               cast_uchar ", Value ");
+					l = add_to_str(&s, l,
+					               fc->default_value);
 				}
 			}
 unknown:
-			add_to_str(&s, &l, cast_uchar "\n");
+			l = add_to_str(&s, l, cast_uchar "\n");
 			if ((retval = hard_write(h, s, l)) != l) {
 				free(s);
 				goto fail;
@@ -1692,13 +1692,13 @@ free_succesful_controls(struct list_head *submit)
 static unsigned char *
 encode_textarea(unsigned char *t)
 {
-	int len = 0;
+	size_t len = 0;
 	unsigned char *o = NULL;
 	for (; *t; t++) {
 		if (*t != '\n')
 			len = add_chr_to_str(&o, len, *t);
 		else
-			add_to_str(&o, &len, cast_uchar "\r\n");
+			len = add_to_str(&o, len, cast_uchar "\r\n");
 	}
 	return o;
 }
@@ -1729,7 +1729,6 @@ get_succesful_controls(struct f_data_c *f, struct form_control *fc,
 			                 && *form->default_value
 			             ? -1
 			             : 0;
-			int svl;
 			fs = find_form_state(f, form);
 			if ((form->type == FC_CHECKBOX
 			     || form->type == FC_RADIO)
@@ -1772,8 +1771,7 @@ fi_rep:
 				add_to_strn(&sub->name, fi ? cast_uchar ".x"
 				                           : cast_uchar ".y");
 				sub->value = NULL;
-				svl = 0;
-				add_num_to_str(&sub->value, &svl,
+				add_num_to_str(&sub->value, 0,
 				               fi ? ismap_x : ismap_y);
 				break;
 			default:
@@ -1835,51 +1833,53 @@ safe_char(unsigned char c)
 	       || (c >= 'a' && c <= 'z') || c == '.' || c == '-' || c == '_';
 }
 
-static void
-encode_string(unsigned char *name, unsigned char **data, int *len)
+static size_t
+encode_string(unsigned char *name, unsigned char **data, size_t len)
 {
 	for (; *name; name++) {
 		if (*name == ' ')
-			*len = add_chr_to_str(data, *len, '+');
+			len = add_chr_to_str(data, len, '+');
 		else if (safe_char(*name))
-			*len = add_chr_to_str(data, *len, *name);
+			len = add_chr_to_str(data, len, *name);
 		else {
 			unsigned char n[4];
 			sprintf(cast_char n, "%%%02X", *name);
-			add_to_str(data, len, n);
+			len = add_to_str(data, len, n);
 		}
 	}
+	return len;
 }
 
-static void
-encode_controls(struct list_head *l, unsigned char **data, int *len)
+static size_t
+encode_controls(struct list_head *l, unsigned char **data)
 {
 	struct submitted_value *sv = NULL;
 	struct list_head *lsv;
 	int lst = 0;
 	unsigned char *p2;
-	*len = 0;
+	size_t len = 0;
 	*data = NULL;
 	foreach (struct submitted_value, sv, lsv, *l) {
 		unsigned char *p = sv->value;
 		if (lst)
-			*len = add_chr_to_str(data, *len, '&');
+			len = add_chr_to_str(data, len, '&');
 		else
 			lst = 1;
-		encode_string(sv->name, data, len);
-		*len = add_chr_to_str(data, *len, '=');
+		len = encode_string(sv->name, data, len);
+		len = add_chr_to_str(data, len, '=');
 		p2 = stracpy(p);
-		encode_string(p2, data, len);
+		len = encode_string(p2, data, len);
 		free(p2);
 	}
+	return len;
 }
 
 #define BL  56
 #define BL1 27
 
-static void
+static size_t
 encode_multipart(struct session *ses, struct list_head *l, unsigned char **data,
-                 int *len, unsigned char *bound)
+                 unsigned char *bound)
 {
 	int errn;
 	int *bound_ptrs = NULL;
@@ -1892,12 +1892,12 @@ encode_multipart(struct session *ses, struct list_head *l, unsigned char **data,
 	unsigned char *p;
 	int rs;
 	memset(bound, 'x', BL);
-	*len = 0;
+	size_t len = 0;
 	*data = NULL;
 	foreach (struct submitted_value, sv, lsv, *l) {
 		unsigned char *ct;
 bnd:
-		add_to_str(data, len, cast_uchar "--");
+		len = add_to_str(data, len, cast_uchar "--");
 		if (!(nbound_ptrs & (ALLOC_GR - 1))) {
 			if ((unsigned)nbound_ptrs
 			    > INT_MAX / sizeof(int) - ALLOC_GR)
@@ -1905,43 +1905,44 @@ bnd:
 			bound_ptrs = xrealloc(
 			    bound_ptrs, (nbound_ptrs + ALLOC_GR) * sizeof(int));
 		}
-		bound_ptrs[nbound_ptrs++] = *len;
-		*len = add_bytes_to_str(data, *len, bound, BL);
+		bound_ptrs[nbound_ptrs++] = len;
+		len = add_bytes_to_str(data, len, bound, BL);
 		if (flg)
 			break;
-		add_to_str(data, len,
-		           cast_uchar
-		           "\r\nContent-Disposition: form-data; name=\"");
-		add_to_str(data, len, sv->name);
-		add_to_str(data, len, cast_uchar "\"");
+		len = add_to_str(data, len,
+		                 cast_uchar
+		                 "\r\nContent-Disposition: form-data; name=\"");
+		len = add_to_str(data, len, sv->name);
+		len = add_to_str(data, len, cast_uchar "\"");
 		if (sv->type == FC_FILE_UPLOAD) {
-			add_to_str(data, len, cast_uchar "; filename=\"");
-			add_to_str(data, len, strip_file_name(sv->value));
+			len = add_to_str(data, len, cast_uchar "; filename=\"");
+			len = add_to_str(data, len, strip_file_name(sv->value));
 			/* It sends bad data if the file name contains ", but
 			   Netscape does the same */
-			add_to_str(data, len, cast_uchar "\"");
+			len = add_to_str(data, len, cast_uchar "\"");
 			if (*sv->value)
 				if ((ct = get_content_type(NULL, sv->value))) {
-					add_to_str(data, len,
-					           cast_uchar
-					           "\r\nContent-Type: ");
-					add_to_str(data, len, ct);
+					len = add_to_str(data, len,
+					                 cast_uchar
+					                 "\r\nContent-Type: ");
+					len = add_to_str(data, len, ct);
 					if (strlen(cast_const_char ct) >= 4
 					    && !casecmp(ct, cast_uchar "text",
 					                4)) {
-						add_to_str(data, len,
-						           cast_uchar
-						           "; charset=");
-						add_to_str(data, len,
-						           get_cp_mime_name(0));
+						len = add_to_str(data, len,
+						                 cast_uchar
+						                 "; charset=");
+						len = add_to_str(
+						    data, len,
+						    get_cp_mime_name(0));
 					}
 					free(ct);
 				}
 		}
-		add_to_str(data, len, cast_uchar "\r\n\r\n");
+		len = add_to_str(data, len, cast_uchar "\r\n\r\n");
 		if (sv->type != FC_FILE_UPLOAD) {
 			p = stracpy(sv->value);
-			add_to_str(data, len, p);
+			len = add_to_str(data, len, p);
 			free(p);
 		} else {
 			int fh, rd;
@@ -1976,23 +1977,23 @@ bnd:
 						goto error;
 					}
 					if (rd)
-						*len = add_bytes_to_str(
-						    data, *len, buffer, rd);
+						len = add_bytes_to_str(
+						    data, len, buffer, rd);
 				} while (rd);
 				EINTRLOOP(rs, close(fh));
 			}
 		}
-		add_to_str(data, len, cast_uchar "\r\n");
+		len = add_to_str(data, len, cast_uchar "\r\n");
 	}
 	if (!flg) {
 		flg = 1;
 		goto bnd;
 	}
-	add_to_str(data, len, cast_uchar "--\r\n");
+	len = add_to_str(data, len, cast_uchar "--\r\n");
 	memset(bound, '-', BL1);
 	memset(bound + BL1, '0', BL - BL1);
 again:
-	for (i = 0; i <= *len - BL; i++) {
+	for (i = 0; i <= len - BL; i++) {
 		for (j = 0; j < BL; j++)
 			if ((*data)[i + j] != bound[j])
 				goto nb;
@@ -2010,7 +2011,7 @@ nb:;
 	for (i = 0; i < nbound_ptrs; i++)
 		memcpy(*data + bound_ptrs[i], bound, BL);
 	free(bound_ptrs);
-	return;
+	return len;
 
 error:
 	free(bound_ptrs);
@@ -2023,7 +2024,7 @@ error:
 	        TEXT_(T_COULD_NOT_GET_FILE), cast_uchar " ", m1,
 	        cast_uchar ": ", m2, MSG_BOX_END, (void *)ses, 1,
 	        TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
-	return;
+	return len;
 
 not_allowed:
 	free(bound_ptrs);
@@ -2032,6 +2033,7 @@ not_allowed:
 	msg_box(ses->term, NULL, TEXT_(T_ERROR_WHILE_POSTING_FORM), AL_CENTER,
 	        TEXT_(T_READING_FILES_IS_NOT_ALLOWED), MSG_BOX_END, (void *)ses,
 	        1, TEXT_(T_CANCEL), msg_box_null, B_ENTER | B_ESC);
+	return len;
 }
 
 void
@@ -2068,9 +2070,9 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 		return NULL;
 	get_succesful_controls(f, form, &submit);
 	if (form->method == FM_GET || form->method == FM_POST)
-		encode_controls(&submit, &data, &len);
+		len = encode_controls(&submit, &data);
 	else
-		encode_multipart(ses, &submit, &data, &len, bound);
+		len = encode_multipart(ses, &submit, &data, bound);
 	if (!data)
 		goto ff;
 	if (!casecmp(form->action, cast_uchar "javascript:", 11)) {
@@ -2097,25 +2099,26 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 			free(pos);
 		}
 	} else {
-		int l = 0;
+		size_t l;
 		int i;
 		go = NULL;
-		add_to_str(&go, &l, form->action);
+		l = add_to_str(&go, 0, form->action);
 		l = add_chr_to_str(&go, l, POST_CHAR);
 		if (form->method == FM_POST)
-			add_to_str(&go, &l,
-			           cast_uchar
-			           "application/x-www-form-urlencoded\n");
+			l = add_to_str(&go, l,
+			               cast_uchar
+			               "application/x-www-form-urlencoded\n");
 		else {
-			add_to_str(&go, &l,
-			           cast_uchar "multipart/form-data; boundary=");
+			l = add_to_str(&go, l,
+			               cast_uchar
+			               "multipart/form-data; boundary=");
 			l = add_bytes_to_str(&go, l, bound, BL);
-			add_to_str(&go, &l, cast_uchar "\n");
+			l = add_to_str(&go, l, cast_uchar "\n");
 		}
 		for (i = 0; i < len; i++) {
 			unsigned char p[3];
 			sprintf(cast_char p, "%02x", (int)data[i]);
-			add_to_str(&go, &l, p);
+			l = add_to_str(&go, l, p);
 		}
 	}
 x:
@@ -2145,12 +2148,12 @@ get_link_url(struct session *ses, struct f_data_c *f, struct link *l,
 		                        + strlen(cast_const_char l->where) - 4),
 			"?0,0")) {
 			unsigned char *nu = NULL;
-			int ll = add_bytes_to_str(
+			size_t ll = add_bytes_to_str(
 			    &nu, 0, l->where,
 			    strlen(cast_const_char l->where) - 3);
-			add_num_to_str(&nu, &ll, ismap_x);
+			ll = add_num_to_str(&nu, ll, ismap_x);
 			ll = add_chr_to_str(&nu, ll, ',');
-			add_num_to_str(&nu, &ll, ismap_y);
+			ll = add_num_to_str(&nu, ll, ismap_y);
 			return nu;
 		}
 		return stracpy(l->where);
@@ -3828,7 +3831,7 @@ send_open_in_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 	free(ses->dn_url);
 	if ((ses->dn_url = get_link_url(ses, fd, l, NULL))) {
 		unsigned char *p;
-		int pl;
+		size_t pl;
 		unsigned char *enc_url;
 		unsigned char *path;
 
@@ -3840,23 +3843,21 @@ send_open_in_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 		}
 
 		p = NULL;
-		pl = 0;
-
-		add_to_str(&p, &pl, cast_uchar "-base-session ");
-		add_num_to_str(&p, &pl, ses->id);
+		pl = add_to_str(&p, 0, cast_uchar "-base-session ");
+		pl = add_num_to_str(&p, pl, ses->id);
 		pl = add_chr_to_str(&p, pl, ' ');
 
 		if (ses->wtd_target && *ses->wtd_target) {
 			unsigned char *tgt = stracpy(ses->wtd_target);
 
 			check_shell_security(&tgt);
-			add_to_str(&p, &pl, cast_uchar "-target ");
-			add_to_str(&p, &pl, tgt);
+			pl = add_to_str(&p, pl, cast_uchar "-target ");
+			pl = add_to_str(&p, pl, tgt);
 			pl = add_chr_to_str(&p, pl, ' ');
 			free(tgt);
 		}
 		enc_url = encode_url(ses->dn_url);
-		add_to_str(&p, &pl, enc_url);
+		pl = add_to_str(&p, pl, enc_url);
 		free(enc_url);
 		path = escape_path(g_argv[0]);
 		if (open_window(term, path, p))
@@ -3875,10 +3876,10 @@ send_open_new_xterm(struct terminal *term, void *open_window_, void *ses_)
 	                     unsigned char *))open_window_;
 	struct session *ses = ses_;
 	unsigned char *p = NULL;
-	int pl = 0;
+	size_t pl;
 	unsigned char *path;
-	add_to_str(&p, &pl, cast_uchar "-base-session ");
-	add_num_to_str(&p, &pl, ses->id);
+	pl = add_to_str(&p, 0, cast_uchar "-base-session ");
+	pl = add_num_to_str(&p, pl, ses->id);
 	path = escape_path(g_argv[0]);
 	if (open_window(term, path, p))
 		cant_open_new_window(term);
@@ -4147,7 +4148,7 @@ static unsigned char *
 print_current_titlex(struct f_data_c *fd, int w)
 {
 	int mul, pul;
-	int ml = 0, pl = 0;
+	size_t ml = 0, pl = 0;
 	unsigned char *m, *p;
 	if (!fd || !fd->vs || !fd->f_data)
 		return NULL;
@@ -4166,22 +4167,22 @@ print_current_titlex(struct f_data_c *fd, int w)
 			pp = pe;
 		if (fd->f_data->title)
 			pl = add_chr_to_str(&p, pl, ' ');
-		add_to_str(
-		    &p, &pl,
+		pl = add_to_str(
+		    &p, pl,
 		    get_text_translation(TEXT_(T_PAGE_P), fd->ses->term));
-		add_num_to_str(&p, &pl, pp);
-		add_to_str(
-		    &p, &pl,
+		pl = add_num_to_str(&p, pl, pp);
+		pl = add_to_str(
+		    &p, pl,
 		    get_text_translation(TEXT_(T_PAGE_OF), fd->ses->term));
-		add_num_to_str(&p, &pl, pe);
-		add_to_str(
-		    &p, &pl,
+		pl = add_num_to_str(&p, pl, pe);
+		pl = add_to_str(
+		    &p, pl,
 		    get_text_translation(TEXT_(T_PAGE_CL), fd->ses->term));
 	}
 	if (!fd->f_data->title)
 		return p;
 	m = NULL;
-	add_to_str(&m, &ml, fd->f_data->title);
+	ml = add_to_str(&m, ml, fd->f_data->title);
 	mul = strlen((char *)m);
 	if (p != NULL)
 		pul = strlen((char *)p);
@@ -4196,7 +4197,7 @@ print_current_titlex(struct f_data_c *fd, int w)
 		ml = (int)(mm - m);
 	}
 	if (p != NULL)
-		add_to_str(&m, &ml, p);
+		ml = add_to_str(&m, ml, p);
 	free(p);
 	return m;
 }
@@ -4204,7 +4205,7 @@ print_current_titlex(struct f_data_c *fd, int w)
 static unsigned char *
 print_current_linkx(struct f_data_c *fd, struct terminal *term)
 {
-	int ll = 0;
+	size_t ll = 0;
 	struct link *l;
 	unsigned char *d;
 	unsigned char *m = NULL;
@@ -4225,15 +4226,15 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 				txt =
 				    convert(fd->f_data->cp, fd->f_data->opt.cp,
 				            l->img_alt, &fd->f_data->opt);
-				add_to_str(&m, &ll, txt);
+				ll = add_to_str(&m, ll, txt);
 				free(txt);
 			} else {
-				add_to_str(
-				    &m, &ll,
+				ll = add_to_str(
+				    &m, ll,
 				    get_text_translation(TEXT_(T_IMAGE), term));
 				ll = add_chr_to_str(&m, ll, ' ');
 				d = display_url(term, l->where_img, 1);
-				add_to_str(&m, &ll, d);
+				ll = add_to_str(&m, ll, d);
 				free(d);
 			}
 			goto p;
@@ -4242,11 +4243,12 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 		    && !casecmp(l->where, cast_uchar "MAP@", 4)) {
 			m = NULL;
 			ll = 0;
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_USEMAP), term));
+			ll = add_to_str(
+			    &m, ll,
+			    get_text_translation(TEXT_(T_USEMAP), term));
 			ll = add_chr_to_str(&m, ll, ' ');
 			d = display_url(term, l->where + 4, 1);
-			add_to_str(&m, &ll, d);
+			ll = add_to_str(&m, ll, d);
 			free(d);
 			goto p;
 		}
@@ -4262,9 +4264,8 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 	if (l->type == L_BUTTON) {
 		if (l->form->type == FC_BUTTON) {
 			m = NULL;
-			ll = 0;
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_BUTTON), term));
+			ll = add_to_str(
+			    &m, 0, get_text_translation(TEXT_(T_BUTTON), term));
 			goto p;
 		}
 		if (l->form->type == FC_RESET) {
@@ -4275,95 +4276,93 @@ print_current_linkx(struct f_data_c *fd, struct terminal *term)
 		if (!l->form->action)
 			return NULL;
 		m = NULL;
-		ll = 0;
 		if (l->form->method == FM_GET)
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_SUBMIT_FORM_TO),
-			                                term));
+			ll = add_to_str(&m, 0,
+			                get_text_translation(
+					    TEXT_(T_SUBMIT_FORM_TO), term));
 		else
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_POST_FORM_TO), term));
 		ll = add_chr_to_str(&m, ll, ' ');
-		add_to_str(&m, &ll, l->form->action);
+		ll = add_to_str(&m, ll, l->form->action);
 		goto p;
 	}
 	if (l->type == L_CHECKBOX || l->type == L_SELECT || l->type == L_FIELD
 	    || l->type == L_AREA) {
 		m = NULL;
-		ll = 0;
 		switch (l->form->type) {
 		case FC_RADIO:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_RADIO_BUTTON), term));
 			break;
 		case FC_CHECKBOX:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_CHECKBOX), term));
 			break;
 		case FC_SELECT:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_SELECT_FIELD), term));
 			break;
 		case FC_TEXT:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_TEXT_FIELD), term));
 			break;
 		case FC_TEXTAREA:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_TEXT_AREA), term));
 			break;
 		case FC_FILE_UPLOAD:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_FILE_UPLOAD), term));
 			break;
 		case FC_PASSWORD:
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_PASSWORD_FIELD),
-			                                term));
+			ll = add_to_str(&m, 0,
+			                get_text_translation(
+					    TEXT_(T_PASSWORD_FIELD), term));
 			break;
 		default:
 			return NULL;
 		}
 		if (l->form->name && l->form->name[0]) {
-			add_to_str(&m, &ll, cast_uchar ", ");
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_NAME), term));
+			ll = add_to_str(&m, ll, cast_uchar ", ");
+			ll = add_to_str(
+			    &m, ll, get_text_translation(TEXT_(T_NAME), term));
 			ll = add_chr_to_str(&m, ll, ' ');
-			add_to_str(&m, &ll, l->form->name);
+			ll = add_to_str(&m, ll, l->form->name);
 		}
 		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
 		    && l->form->default_value && l->form->default_value[0]) {
-			add_to_str(&m, &ll, cast_uchar ", ");
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_VALUE), term));
+			ll = add_to_str(&m, ll, cast_uchar ", ");
+			ll = add_to_str(
+			    &m, ll, get_text_translation(TEXT_(T_VALUE), term));
 			ll = add_chr_to_str(&m, ll, ' ');
-			add_to_str(&m, &ll, l->form->default_value);
+			ll = add_to_str(&m, ll, l->form->default_value);
 		}
 		/* pri enteru se bude posilat vzdycky   -- Brain */
 		if (l->type == L_FIELD && !has_form_submit(fd->f_data, l->form)
 		    && l->form->action) {
-			add_to_str(&m, &ll, cast_uchar ", ");
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(&m, ll, cast_uchar ", ");
+			ll = add_to_str(
+			    &m, ll,
 			    get_text_translation(TEXT_(T_HIT_ENTER_TO), term));
 			ll = add_chr_to_str(&m, ll, ' ');
 			if (l->form->method == FM_GET)
-				add_to_str(&m, &ll,
-				           get_text_translation(
-					       TEXT_(T_SUBMIT_TO), term));
+				ll = add_to_str(&m, ll,
+				                get_text_translation(
+						    TEXT_(T_SUBMIT_TO), term));
 			else
-				add_to_str(&m, &ll,
-				           get_text_translation(
-					       TEXT_(T_POST_TO), term));
+				ll = add_to_str(&m, ll,
+				                get_text_translation(
+						    TEXT_(T_POST_TO), term));
 			ll = add_chr_to_str(&m, ll, ' ');
-			add_to_str(&m, &ll, l->form->action);
+			ll = add_to_str(&m, ll, l->form->action);
 		}
 		goto p;
 	}
@@ -4380,7 +4379,7 @@ p:
 static unsigned char *
 print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 {
-	int ll = 0;
+	size_t ll = 0;
 	struct link *l;
 	unsigned char *d;
 	unsigned char *m = NULL;
@@ -4397,45 +4396,46 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		ll = 0;
 		if (l->where && strlen(cast_const_char l->where) >= 4
 		    && !casecmp(l->where, cast_uchar "MAP@", 4)) {
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_USEMAP), term));
+			ll = add_to_str(
+			    &m, ll,
+			    get_text_translation(TEXT_(T_USEMAP), term));
 			ll = add_chr_to_str(&m, ll, ' ');
 			d = display_url(term, l->where + 4, 1);
-			add_to_str(&m, &ll, d);
+			ll = add_to_str(&m, ll, d);
 			free(d);
 		} else if (l->where) {
 			d = display_url(term, l->where, 1);
-			add_to_str(&m, &ll, d);
+			ll = add_to_str(&m, ll, d);
 			free(d);
 		}
 		spc = stracpy((unsigned char *)"");
 		if (spc && *spc) {
-			add_to_str(&m, &ll, cast_uchar "\n");
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(&m, ll, cast_uchar "\n");
+			ll = add_to_str(
+			    &m, ll,
 			    get_text_translation(TEXT_(T_JAVASCRIPT), term));
-			add_to_str(&m, &ll, cast_uchar ": ");
-			add_to_str(&m, &ll, spc);
+			ll = add_to_str(&m, ll, cast_uchar ": ");
+			ll = add_to_str(&m, ll, spc);
 		}
 		free(spc);
 		if (l->where_img) {
-			add_to_str(&m, &ll, cast_uchar "\n");
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_IMAGE), term));
-			add_to_str(&m, &ll, cast_uchar ": src='");
+			ll = add_to_str(&m, ll, cast_uchar "\n");
+			ll = add_to_str(
+			    &m, ll, get_text_translation(TEXT_(T_IMAGE), term));
+			ll = add_to_str(&m, ll, cast_uchar ": src='");
 			d = display_url(term, l->where_img, 1);
-			add_to_str(&m, &ll, d);
+			ll = add_to_str(&m, ll, d);
 			free(d);
 			ll = add_chr_to_str(&m, ll, '\'');
 
 			if (l->img_alt) {
 				unsigned char *txt;
 
-				add_to_str(&m, &ll, cast_uchar " alt='");
+				ll = add_to_str(&m, ll, cast_uchar " alt='");
 				txt =
 				    convert(fd->f_data->cp, fd->f_data->opt.cp,
 				            l->img_alt, &fd->f_data->opt);
-				add_to_str(&m, &ll, txt);
+				ll = add_to_str(&m, ll, txt);
 				ll = add_chr_to_str(&m, ll, '\'');
 				free(txt);
 			}
@@ -4448,9 +4448,8 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 	if (l->type == L_BUTTON) {
 		if (l->form->type == FC_BUTTON) {
 			m = NULL;
-			ll = 0;
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_BUTTON), term));
+			ll = add_to_str(
+			    &m, 0, get_text_translation(TEXT_(T_BUTTON), term));
 			goto p;
 		}
 		if (l->form->type == FC_RESET) {
@@ -4461,95 +4460,93 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		if (!l->form->action)
 			return NULL;
 		m = NULL;
-		ll = 0;
 		if (l->form->method == FM_GET)
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_SUBMIT_FORM_TO),
-			                                term));
+			ll = add_to_str(&m, 0,
+			                get_text_translation(
+					    TEXT_(T_SUBMIT_FORM_TO), term));
 		else
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_POST_FORM_TO), term));
 		ll = add_chr_to_str(&m, ll, ' ');
-		add_to_str(&m, &ll, l->form->action);
+		ll = add_to_str(&m, ll, l->form->action);
 		goto p;
 	}
 	if (l->type == L_CHECKBOX || l->type == L_SELECT || l->type == L_FIELD
 	    || l->type == L_AREA) {
 		m = NULL;
-		ll = 0;
 		switch (l->form->type) {
 		case FC_RADIO:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_RADIO_BUTTON), term));
 			break;
 		case FC_CHECKBOX:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_CHECKBOX), term));
 			break;
 		case FC_SELECT:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_SELECT_FIELD), term));
 			break;
 		case FC_TEXT:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_TEXT_FIELD), term));
 			break;
 		case FC_TEXTAREA:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_TEXT_AREA), term));
 			break;
 		case FC_FILE_UPLOAD:
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(
+			    &m, 0,
 			    get_text_translation(TEXT_(T_FILE_UPLOAD), term));
 			break;
 		case FC_PASSWORD:
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_PASSWORD_FIELD),
-			                                term));
+			ll = add_to_str(&m, 0,
+			                get_text_translation(
+					    TEXT_(T_PASSWORD_FIELD), term));
 			break;
 		default:
 			return NULL;
 		}
 		if (l->form->name && l->form->name[0]) {
-			add_to_str(&m, &ll, cast_uchar ", ");
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_NAME), term));
+			ll = add_to_str(&m, ll, cast_uchar ", ");
+			ll = add_to_str(
+			    &m, ll, get_text_translation(TEXT_(T_NAME), term));
 			ll = add_chr_to_str(&m, ll, ' ');
-			add_to_str(&m, &ll, l->form->name);
+			ll = add_to_str(&m, ll, l->form->name);
 		}
 		if ((l->form->type == FC_CHECKBOX || l->form->type == FC_RADIO)
 		    && l->form->default_value && l->form->default_value[0]) {
-			add_to_str(&m, &ll, cast_uchar ", ");
-			add_to_str(&m, &ll,
-			           get_text_translation(TEXT_(T_VALUE), term));
+			ll = add_to_str(&m, ll, cast_uchar ", ");
+			ll = add_to_str(
+			    &m, ll, get_text_translation(TEXT_(T_VALUE), term));
 			ll = add_chr_to_str(&m, ll, ' ');
-			add_to_str(&m, &ll, l->form->default_value);
+			ll = add_to_str(&m, ll, l->form->default_value);
 		}
 		/* pri enteru se bude posilat vzdycky   -- Brain */
 		if (l->type == L_FIELD && !has_form_submit(fd->f_data, l->form)
 		    && l->form->action) {
-			add_to_str(&m, &ll, cast_uchar ", ");
-			add_to_str(
-			    &m, &ll,
+			ll = add_to_str(&m, ll, cast_uchar ", ");
+			ll = add_to_str(
+			    &m, ll,
 			    get_text_translation(TEXT_(T_HIT_ENTER_TO), term));
 			ll = add_chr_to_str(&m, ll, ' ');
 			if (l->form->method == FM_GET)
-				add_to_str(&m, &ll,
-				           get_text_translation(
-					       TEXT_(T_SUBMIT_TO), term));
+				ll = add_to_str(&m, ll,
+				                get_text_translation(
+						    TEXT_(T_SUBMIT_TO), term));
 			else
-				add_to_str(&m, &ll,
-				           get_text_translation(
-					       TEXT_(T_POST_TO), term));
+				ll = add_to_str(&m, ll,
+				                get_text_translation(
+						    TEXT_(T_POST_TO), term));
 			ll = add_chr_to_str(&m, ll, ' ');
-			add_to_str(&m, &ll, l->form->action);
+			ll = add_to_str(&m, ll, l->form->action);
 		}
 		goto p;
 	}
@@ -4574,7 +4571,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 {
 	struct cache_entry *ce;
 	unsigned char *s;
-	int l = 0;
+	int l;
 	unsigned char *a;
 	if (!lo || !frame || !frame->vs || !frame->f_data) {
 		msg_box(term, NULL, TEXT_(T_INFO), AL_LEFT,
@@ -4583,154 +4580,159 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		return;
 	}
 	s = NULL;
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_URL), term));
-	add_to_str(&s, &l, cast_uchar ": ");
+	l = add_to_str(&s, 0, get_text_translation(TEXT_(T_URL), term));
+	l = add_to_str(&s, l, cast_uchar ": ");
 	a = display_url(term, lo->url, 1);
-	add_to_str(&s, &l, a);
+	l = add_to_str(&s, l, a);
 	free(a);
 	if (!find_in_cache(lo->url, &ce)) {
 		unsigned char *start;
 		size_t len;
 		if (ce->ip_address) {
-			add_to_str(&s, &l, cast_uchar "\n");
+			l = add_to_str(&s, l, cast_uchar "\n");
 			if (!strchr(cast_const_char ce->ip_address, ' '))
-				add_to_str(&s, &l,
-				           get_text_translation(
-					       TEXT_(T_IP_ADDRESS), term));
+				l = add_to_str(&s, l,
+				               get_text_translation(
+						   TEXT_(T_IP_ADDRESS), term));
 			else
-				add_to_str(&s, &l,
-				           get_text_translation(
-					       TEXT_(T_IP_ADDRESSES), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, ce->ip_address);
+				l = add_to_str(
+				    &s, l,
+				    get_text_translation(TEXT_(T_IP_ADDRESSES),
+				                         term));
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, ce->ip_address);
 		}
-		add_to_str(&s, &l, cast_uchar "\n");
-		add_to_str(&s, &l, get_text_translation(TEXT_(T_SIZE), term));
-		add_to_str(&s, &l, cast_uchar ": ");
+		l = add_to_str(&s, l, cast_uchar "\n");
+		l = add_to_str(&s, l,
+		               get_text_translation(TEXT_(T_SIZE), term));
+		l = add_to_str(&s, l, cast_uchar ": ");
 		get_file_by_term(NULL, ce, &start, &len, NULL);
 		if (ce->decompressed) {
 			unsigned char *enc;
 			add_unsigned_long_num_to_str(&s, &l, len);
 			enc = get_content_encoding(ce->head, ce->url, 0);
 			if (enc) {
-				add_to_str(&s, &l, cast_uchar " (");
-				add_num_to_str(&s, &l, ce->length);
+				l = add_to_str(&s, l, cast_uchar " (");
+				l = add_num_to_str(&s, l, ce->length);
 				l = add_chr_to_str(&s, l, ' ');
-				add_to_str(&s, &l,
-				           get_text_translation(
-					       TEXT_(T_COMPRESSED_WITH), term));
+				l = add_to_str(
+				    &s, l,
+				    get_text_translation(
+					TEXT_(T_COMPRESSED_WITH), term));
 				l = add_chr_to_str(&s, l, ' ');
-				add_to_str(&s, &l, enc);
+				l = add_to_str(&s, l, enc);
 				l = add_chr_to_str(&s, l, ')');
 				free(enc);
 			}
 		} else {
-			add_num_to_str(&s, &l, ce->length);
+			l = add_num_to_str(&s, l, ce->length);
 		}
 		if (ce->incomplete) {
-			add_to_str(&s, &l, cast_uchar " (");
-			add_to_str(
-			    &s, &l,
+			l = add_to_str(&s, l, cast_uchar " (");
+			l = add_to_str(
+			    &s, l,
 			    get_text_translation(TEXT_(T_INCOMPLETE), term));
 			l = add_chr_to_str(&s, l, ')');
 		}
 		if (frame->f_data->ass >= 0) {
-			add_to_str(&s, &l, cast_uchar "\n");
-			add_to_str(
-			    &s, &l,
+			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_to_str(
+			    &s, l,
 			    get_text_translation(TEXT_(T_CODEPAGE), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, get_cp_name(frame->f_data->cp));
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, get_cp_name(frame->f_data->cp));
 			if (frame->f_data->ass == 1) {
-				add_to_str(&s, &l, cast_uchar " (");
-				add_to_str(&s, &l,
-				           get_text_translation(
-					       TEXT_(T_ASSUMED), term));
+				l = add_to_str(&s, l, cast_uchar " (");
+				l = add_to_str(&s, l,
+				               get_text_translation(
+						   TEXT_(T_ASSUMED), term));
 				l = add_chr_to_str(&s, l, ')');
 			}
 			if (frame->f_data->ass == 2) {
-				add_to_str(&s, &l, cast_uchar " (");
-				add_to_str(&s, &l,
-				           get_text_translation(
-					       TEXT_(T_IGNORING_SERVER_SETTING),
-					       term));
+				l = add_to_str(&s, l, cast_uchar " (");
+				l = add_to_str(
+				    &s, l,
+				    get_text_translation(
+					TEXT_(T_IGNORING_SERVER_SETTING),
+					term));
 				l = add_chr_to_str(&s, l, ')');
 			}
 		}
 		if (ce->head && ce->head[0] != '\n' && ce->head[0] != '\r'
 		    && (a = parse_http_header(
 			    ce->head, cast_uchar "Content-Type", NULL))) {
-			add_to_str(&s, &l, cast_uchar "\n");
-			add_to_str(
-			    &s, &l,
+			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_to_str(
+			    &s, l,
 			    get_text_translation(TEXT_(T_CONTENT_TYPE), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, a);
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, a);
 			free(a);
 		}
 		if ((a = parse_http_header(ce->head, cast_uchar "Server",
 		                           NULL))) {
-			add_to_str(&s, &l, cast_uchar "\n");
-			add_to_str(&s, &l,
-			           get_text_translation(TEXT_(T_SERVER), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, a);
+			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_to_str(
+			    &s, l, get_text_translation(TEXT_(T_SERVER), term));
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, a);
 			free(a);
 		}
 		if ((a = parse_http_header(ce->head, cast_uchar "Date",
 		                           NULL))) {
-			add_to_str(&s, &l, cast_uchar "\n");
-			add_to_str(&s, &l,
-			           get_text_translation(TEXT_(T_DATE), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, a);
+			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_to_str(
+			    &s, l, get_text_translation(TEXT_(T_DATE), term));
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, a);
 			free(a);
 		}
 		if ((a = parse_http_header(ce->head, cast_uchar "Last-Modified",
 		                           NULL))) {
-			add_to_str(&s, &l, cast_uchar "\n");
-			add_to_str(
-			    &s, &l,
+			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_to_str(
+			    &s, l,
 			    get_text_translation(TEXT_(T_LAST_MODIFIED), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, a);
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, a);
 			free(a);
 		}
 		if (ce->ssl_info) {
-			add_to_str(&s, &l, cast_uchar "\n");
-			add_to_str(
-			    &s, &l,
+			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_to_str(
+			    &s, l,
 			    get_text_translation(TEXT_(T_SSL_CIPHER), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, ce->ssl_info);
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, ce->ssl_info);
 		}
 		if (ce->ssl_authority) {
-			add_to_str(&s, &l, cast_uchar "\n");
+			l = add_to_str(&s, l, cast_uchar "\n");
 			if (strstr(cast_const_char ce->ssl_authority,
 			           cast_const_char CERT_RIGHT_ARROW))
-				add_to_str(&s, &l,
-				           get_text_translation(
-					       TEXT_(T_CERTIFICATE_AUTHORITIES),
-					       term));
+				l = add_to_str(
+				    &s, l,
+				    get_text_translation(
+					TEXT_(T_CERTIFICATE_AUTHORITIES),
+					term));
 			else
-				add_to_str(
-				    &s, &l,
+				l = add_to_str(
+				    &s, l,
 				    get_text_translation(
 					TEXT_(T_CERTIFICATE_AUTHORITY), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, ce->ssl_authority);
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, ce->ssl_authority);
 		}
 		ce->refcount--;
 	}
 	if ((a = print_current_linkx_plus(frame, term))) {
-		add_to_str(&s, &l, cast_uchar "\n\n");
+		l = add_to_str(&s, l, cast_uchar "\n\n");
 		if (*a != '\n') {
-			add_to_str(&s, &l,
-			           get_text_translation(TEXT_(T_LINK), term));
-			add_to_str(&s, &l, cast_uchar ": ");
-			add_to_str(&s, &l, a);
+			l = add_to_str(
+			    &s, l, get_text_translation(TEXT_(T_LINK), term));
+			l = add_to_str(&s, l, cast_uchar ": ");
+			l = add_to_str(&s, l, a);
 		} else
-			add_to_str(&s, &l, a + 1);
+			l = add_to_str(&s, l, a + 1);
 		free(a);
 	}
 	msg_box(term, getml(s, NULL), TEXT_(T_INFO), AL_LEFT, s, MSG_BOX_END,

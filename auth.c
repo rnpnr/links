@@ -126,7 +126,7 @@ static unsigned char *
 auth_from_url(unsigned char *url, int proxy)
 {
 	unsigned char *r = NULL;
-	int l = 0;
+	size_t l = 0;
 	unsigned char *user, *password;
 
 	user = get_user_name(url);
@@ -135,10 +135,10 @@ auth_from_url(unsigned char *url, int proxy)
 		unsigned char *e = basic_encode(user, password);
 		r = NULL;
 		if (proxy)
-			add_to_str(&r, &l, cast_uchar "Proxy-");
-		add_to_str(&r, &l, cast_uchar "Authorization: Basic ");
-		add_to_str(&r, &l, e);
-		add_to_str(&r, &l, cast_uchar "\r\n");
+			l = add_to_str(&r, l, cast_uchar "Proxy-");
+		l = add_to_str(&r, l, cast_uchar "Authorization: Basic ");
+		l = add_to_str(&r, l, e);
+		l = add_to_str(&r, l, cast_uchar "\r\n");
 		free(e);
 		free(user);
 		free(password);
@@ -157,7 +157,7 @@ get_auth_string(unsigned char *url, int proxy)
 	unsigned char *host;
 	int port;
 	unsigned char *r = NULL;
-	int l = 0;
+	size_t l = 0;
 	if (proxy && !is_proxy_url(url))
 		return NULL;
 	if (!(host = get_host_name(url)))
@@ -186,11 +186,12 @@ get_auth_string(unsigned char *url, int proxy)
 skip_dir_check:
 				r = NULL;
 				if (proxy)
-					add_to_str(&r, &l, cast_uchar "Proxy-");
-				add_to_str(&r, &l,
-				           cast_uchar "Authorization: Basic ");
-				add_to_str(&r, &l, a->user_password_encoded);
-				add_to_str(&r, &l, cast_uchar "\r\n");
+					l = add_to_str(&r, l,
+					               cast_uchar "Proxy-");
+				l = add_to_str(
+				    &r, l, cast_uchar "Authorization: Basic ");
+				l = add_to_str(&r, l, a->user_password_encoded);
+				l = add_to_str(&r, l, cast_uchar "\r\n");
 				goto have_passwd;
 			}
 		}

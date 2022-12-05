@@ -193,8 +193,8 @@ cookie_expired(struct cookie *c)
 	return c->expires && c->expires < t;
 }
 
-void
-add_cookies(unsigned char **s, int *l, unsigned char *url)
+size_t
+add_cookies(unsigned char **s, size_t l, unsigned char *url)
 {
 	int nc = 0;
 	struct c_domain *cd = NULL;
@@ -209,7 +209,7 @@ add_cookies(unsigned char **s, int *l, unsigned char *url)
 		if (is_in_domain(cd->domain, server))
 			goto ok;
 	free(server);
-	return;
+	return l;
 ok:
 	foreachback (struct cookie, c, lc, all_cookies)
 		if (is_in_domain(c->domain, server))
@@ -224,19 +224,21 @@ ok:
 				    && casecmp(url, cast_uchar "https://", 8))
 					continue;
 				if (!nc) {
-					add_to_str(s, l, cast_uchar "Cookie: ");
+					l = add_to_str(s, l,
+					               cast_uchar "Cookie: ");
 					nc = 1;
 				} else
-					add_to_str(s, l, cast_uchar "; ");
-				add_to_str(s, l, c->name);
+					l = add_to_str(s, l, cast_uchar "; ");
+				l = add_to_str(s, l, c->name);
 				if (c->value) {
-					*l = add_chr_to_str(s, *l, '=');
-					add_to_str(s, l, c->value);
+					l = add_chr_to_str(s, l, '=');
+					l = add_to_str(s, l, c->value);
 				}
 			}
 	if (nc)
-		add_to_str(s, l, cast_uchar "\r\n");
+		l = add_to_str(s, l, cast_uchar "\r\n");
 	free(server);
+	return l;
 }
 
 void

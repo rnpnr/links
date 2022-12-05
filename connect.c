@@ -273,7 +273,7 @@ handle_socks(void *c_)
 	struct connection *c = (struct connection *)c_;
 	struct conn_info *b = c->newconn;
 	unsigned char *command = NULL;
-	int len;
+	size_t len;
 	unsigned char *host;
 	int wr;
 	setcstate(c, S_SOCKS_NEG);
@@ -293,8 +293,8 @@ handle_socks(void *c_)
 		abort_connection(c);
 		return;
 	}
-	add_to_str(&command, &len, host);
-	add_to_str(&command, &len, c->dns_append);
+	len = add_to_str(&command, len, host);
+	len = add_to_str(&command, len, c->dns_append);
 	len = add_chr_to_str(&command, len, 0);
 	free(host);
 	if (b->socks_byte_count >= len) {

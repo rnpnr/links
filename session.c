@@ -164,8 +164,8 @@ have_error:
 	return s->msg;
 }
 
-static void
-add_xnum_to_str(unsigned char **s, int *l, off_t n)
+static size_t
+add_xnum_to_str(unsigned char **s, size_t l, off_t n)
 {
 	unsigned char suff = 0;
 	int d = -1;
@@ -182,36 +182,36 @@ add_xnum_to_str(unsigned char **s, int *l, off_t n)
 		d = (int)((n / 100) % 10);
 		n /= 1000;
 	}
-	add_num_to_str(s, l, n);
+	l = add_num_to_str(s, l, n);
 	if (n < 10 && d != -1) {
-		*l = add_chr_to_str(s, *l, '.');
+		l = add_chr_to_str(s, l, '.');
 		add_num_to_str(s, l, d);
 	}
-	*l = add_chr_to_str(s, *l, ' ');
+	l = add_chr_to_str(s, l, ' ');
 	if (suff)
-		*l = add_chr_to_str(s, *l, suff);
-	*l = add_chr_to_str(s, *l, 'B');
+		l = add_chr_to_str(s, l, suff);
+	return add_chr_to_str(s, l, 'B');
 }
 
-static void
-add_time_to_str(unsigned char **s, int *l, uttime t)
+static size_t
+add_time_to_str(unsigned char **s, size_t l, uttime t)
 {
 	unsigned char q[64];
 	if (t >= 86400) {
 		sprintf(cast_char q, "%lud ", (unsigned long)(t / 86400));
-		add_to_str(s, l, q);
+		l = add_to_str(s, l, q);
 	}
 	if (t >= 3600) {
 		t %= 86400;
 		sprintf(cast_char q, "%d:%02d", (int)(t / 3600),
 		        (int)(t / 60 % 60));
-		add_to_str(s, l, q);
+		l = add_to_str(s, l, q);
 	} else {
 		sprintf(cast_char q, "%d", (int)(t / 60));
-		add_to_str(s, l, q);
+		l = add_to_str(s, l, q);
 	}
 	sprintf(cast_char q, ":%02d", (int)(t % 60));
-	add_to_str(s, l, q);
+	return add_to_str(s, l, q);
 }
 
 static unsigned char *
@@ -219,38 +219,37 @@ get_stat_msg(struct status *stat, struct terminal *term)
 {
 	if (stat->state == S_TRANS && stat->prg->elapsed / 100) {
 		unsigned char *m = NULL;
-		int l = 0;
-		add_to_str(&m, &l,
-		           get_text_translation(TEXT_(T_RECEIVED), term));
+		size_t l;
+		l = add_to_str(&m, 0,
+		               get_text_translation(TEXT_(T_RECEIVED), term));
 		l = add_chr_to_str(&m, l, ' ');
-		add_xnum_to_str(&m, &l, stat->prg->pos);
+		l = add_xnum_to_str(&m, l, stat->prg->pos);
 		if (stat->prg->size >= 0) {
 			l = add_chr_to_str(&m, l, ' ');
-			add_to_str(&m, &l,
-			           get_text_translation(TEXT_(T_OF), term));
+			l = add_to_str(&m, l,
+			               get_text_translation(TEXT_(T_OF), term));
 			l = add_chr_to_str(&m, l, ' ');
-			add_xnum_to_str(&m, &l, stat->prg->size);
+			l = add_xnum_to_str(&m, l, stat->prg->size);
 		}
-		add_to_str(&m, &l, cast_uchar ", ");
+		l = add_to_str(&m, l, cast_uchar ", ");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
-			add_to_str(&m, &l,
-			           get_text_translation(TEXT_(T_AVG), term));
+			l = add_to_str(
+			    &m, l, get_text_translation(TEXT_(T_AVG), term));
 			l = add_chr_to_str(&m, l, ' ');
 		}
-		add_xnum_to_str(&m, &l,
-		                stat->prg->loaded * 10
-		                    / (stat->prg->elapsed / 100));
-		add_to_str(&m, &l, cast_uchar "/s");
+		l = add_xnum_to_str(
+		    &m, l, stat->prg->loaded * 10 / (stat->prg->elapsed / 100));
+		l = add_to_str(&m, l, cast_uchar "/s");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
-			add_to_str(&m, &l, cast_uchar ", ");
-			add_to_str(&m, &l,
-			           get_text_translation(TEXT_(T_CUR), term));
+			l = add_to_str(&m, l, cast_uchar ", ");
+			l = add_to_str(
+			    &m, l, get_text_translation(TEXT_(T_CUR), term));
 			l = add_chr_to_str(&m, l, ' ');
-			add_xnum_to_str(
-			    &m, &l,
+			l = add_xnum_to_str(
+			    &m, l,
 			    stat->prg->cur_loaded
 				/ (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
-			add_to_str(&m, &l, cast_uchar "/s");
+			l = add_to_str(&m, l, cast_uchar "/s");
 		}
 		return m;
 	}
@@ -411,8 +410,8 @@ unsigned char *
 encode_url(unsigned char *url)
 {
 	unsigned char *u = NULL;
-	int l = 0;
-	add_to_str(&u, &l, cast_uchar "+++");
+	size_t l;
+	l = add_to_str(&u, 0, cast_uchar "+++");
 	for (; *url; url++) {
 		if (is_safe_in_shell(*url) && *url != '+')
 			l = add_chr_to_str(&u, l, *url);
@@ -621,7 +620,7 @@ unsigned char *
 download_percentage(struct download *down, int pad)
 {
 	unsigned char *s;
-	int l;
+	size_t l;
 	int perc;
 	struct status *stat = &down->stat;
 	if (stat->state != S_TRANS || !test_percentage(stat))
@@ -635,7 +634,7 @@ download_percentage(struct download *down, int pad)
 		if (perc < 100)
 			l = add_chr_to_str(&s, l, ' ');
 	}
-	add_num_to_str(&s, &l, perc);
+	l = add_num_to_str(&s, l, perc);
 	l = add_chr_to_str(&s, l, '%');
 	return s;
 }
@@ -654,56 +653,56 @@ download_window_function(struct dialog_data *dlg)
 	redraw_below_window(dlg->win);
 	down->win = dlg->win;
 	if (stat->state == S_TRANS && stat->prg->elapsed / 100) {
-		int l = 0;
+		size_t l;
 		m = NULL;
 		t = 1;
-		add_to_str(&m, &l,
-		           get_text_translation(TEXT_(T_RECEIVED), term));
+		l = add_to_str(&m, 0,
+		               get_text_translation(TEXT_(T_RECEIVED), term));
 		l = add_chr_to_str(&m, l, ' ');
-		add_xnum_to_str(&m, &l, stat->prg->pos);
+		l = add_xnum_to_str(&m, l, stat->prg->pos);
 		if (stat->prg->size >= 0) {
 			l = add_chr_to_str(&m, l, ' ');
-			add_to_str(&m, &l,
-			           get_text_translation(TEXT_(T_OF), term));
+			l = add_to_str(&m, l,
+			               get_text_translation(TEXT_(T_OF), term));
 			l = add_chr_to_str(&m, l, ' ');
-			add_xnum_to_str(&m, &l, stat->prg->size);
+			l = add_xnum_to_str(&m, l, stat->prg->size);
 			l = add_chr_to_str(&m, l, ' ');
 		}
-		add_to_str(&m, &l, cast_uchar "\n");
+		l = add_to_str(&m, l, cast_uchar "\n");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
-			add_to_str(
-			    &m, &l,
+			l = add_to_str(
+			    &m, l,
 			    get_text_translation(TEXT_(T_AVERAGE_SPEED), term));
 		else
-			add_to_str(&m, &l,
-			           get_text_translation(TEXT_(T_SPEED), term));
+			l = add_to_str(
+			    &m, l, get_text_translation(TEXT_(T_SPEED), term));
 		l = add_chr_to_str(&m, l, ' ');
-		add_xnum_to_str(&m, &l,
-		                (long long)stat->prg->loaded * 10
-		                    / (stat->prg->elapsed / 100));
-		add_to_str(&m, &l, cast_uchar "/s");
+		l = add_xnum_to_str(&m, l,
+		                    (long long)stat->prg->loaded * 10
+		                        / (stat->prg->elapsed / 100));
+		l = add_to_str(&m, l, cast_uchar "/s");
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME) {
-			add_to_str(&m, &l, cast_uchar ", ");
-			add_to_str(
-			    &m, &l,
+			l = add_to_str(&m, l, cast_uchar ", ");
+			l = add_to_str(
+			    &m, l,
 			    get_text_translation(TEXT_(T_CURRENT_SPEED), term));
 			l = add_chr_to_str(&m, l, ' ');
-			add_xnum_to_str(
-			    &m, &l,
+			l = add_xnum_to_str(
+			    &m, l,
 			    stat->prg->cur_loaded
 				/ (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
-			add_to_str(&m, &l, cast_uchar "/s");
+			l = add_to_str(&m, l, cast_uchar "/s");
 		}
-		add_to_str(&m, &l, cast_uchar "\n");
-		add_to_str(&m, &l,
-		           get_text_translation(TEXT_(T_ELAPSED_TIME), term));
+		l = add_to_str(&m, l, cast_uchar "\n");
+		l = add_to_str(
+		    &m, l, get_text_translation(TEXT_(T_ELAPSED_TIME), term));
 		l = add_chr_to_str(&m, l, ' ');
-		add_time_to_str(&m, &l, stat->prg->elapsed / 1000);
+		l = add_time_to_str(&m, l, stat->prg->elapsed / 1000);
 		if (stat->prg->size >= 0 && stat->prg->loaded > 0) {
-			add_to_str(&m, &l, cast_uchar ", ");
-			add_to_str(&m, &l,
-			           get_text_translation(TEXT_(T_ESTIMATED_TIME),
-			                                term));
+			l = add_to_str(&m, l, cast_uchar ", ");
+			l = add_to_str(&m, l,
+			               get_text_translation(
+					   TEXT_(T_ESTIMATED_TIME), term));
 			l = add_chr_to_str(&m, l, ' ');
 			/*add_time_to_str(&m, &l, stat->prg->elapsed / 1000 *
 			 * stat->prg->size / stat->prg->loaded * 1000 -
@@ -711,8 +710,8 @@ download_window_function(struct dialog_data *dlg)
 			/*add_time_to_str(&m, &l, (stat->prg->size -
 			 * stat->prg->pos) / ((longlong)stat->prg->loaded * 10 /
 			 * (stat->prg->elapsed / 100)));*/
-			add_time_to_str(
-			    &m, &l,
+			l = add_time_to_str(
+			    &m, l,
 			    (uttime)((stat->prg->size - stat->prg->pos)
 			             / ((double)stat->prg->loaded * 1000
 			                / stat->prg->elapsed)));
@@ -1374,7 +1373,7 @@ no_suffix:
 static unsigned char *
 get_temp_name(unsigned char *url, unsigned char *head)
 {
-	int nl;
+	size_t nl;
 	unsigned char *name, *fn, *fnx;
 	unsigned char *nm;
 	unsigned char *directory = NULL;
@@ -1382,8 +1381,7 @@ get_temp_name(unsigned char *url, unsigned char *head)
 	if (!nm)
 		return NULL;
 	name = NULL;
-	nl = 0;
-	add_to_str(&name, &nl, nm);
+	nl = add_to_str(&name, 0, nm);
 	free(nm);
 	fn = get_filename_from_url(url, head, 1);
 	fnx = cast_uchar strchr(cast_const_char fn, '.');
@@ -1391,7 +1389,7 @@ get_temp_name(unsigned char *url, unsigned char *head)
 		unsigned char *s;
 		s = stracpy(fnx);
 		check_shell_security(&s);
-		add_to_str(&name, &nl, s);
+		nl = add_to_str(&name, nl, s);
 		free(s);
 	}
 	free(fn);
@@ -1404,7 +1402,7 @@ subst_file(unsigned char *prog, unsigned char *file, int cyg_subst)
 	unsigned char *orig_prog = prog;
 	unsigned char *nn;
 	unsigned char *n = NULL;
-	int l = 0;
+	size_t l = 0;
 	while (*prog) {
 		int p;
 		for (p = 0; prog[p] && prog[p] != '%'; p++)
@@ -1415,10 +1413,10 @@ subst_file(unsigned char *prog, unsigned char *file, int cyg_subst)
 			if (cyg_subst) {
 				unsigned char *conv =
 				    os_conv_to_external_path(file, orig_prog);
-				add_to_str(&n, &l, conv);
+				l = add_to_str(&n, l, conv);
 				free(conv);
 			} else
-				add_to_str(&n, &l, file);
+				l = add_to_str(&n, l, file);
 			prog++;
 		}
 	}
@@ -1540,10 +1538,10 @@ format_html(struct f_data_c *fd, struct object_request *rq, unsigned char *url,
 		   f->uncacheable = 1;
 		   if (opt->plain == 2) {
 			   start = NULL;
-			   stl = 0;
-			   add_to_str(&start, &stl, cast_uchar "<img src=\"");
-			   add_to_str(&start, &stl, f->rq->ce->url);
-			   add_to_str(&start, &stl, cast_uchar "\">");
+			   stl =
+			       add_to_str(&start, 0, cast_uchar "<img src=\"");
+			   stl = add_to_str(&start, stl, f->rq->ce->url);
+			   stl = add_to_str(&start, stl, cast_uchar "\">");
 			   len = stl;
 		   }
 		   really_format_html(f->rq->ce, start, start + len, f,

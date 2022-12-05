@@ -26,16 +26,17 @@ static unsigned char *const version_texts[] = {
 	NULL,
 };
 
-static void
-add_and_pad(unsigned char **s, int *l, struct terminal *term,
+static size_t
+add_and_pad(unsigned char **s, size_t l, struct terminal *term,
             unsigned char *str, int maxlen)
 {
 	unsigned char *x = get_text_translation(str, term);
-	int len = strlen((char *)x);
-	add_to_str(s, l, x);
-	add_to_str(s, l, cast_uchar ":  ");
+	size_t len = strlen((char *)x);
+	l = add_to_str(s, l, x);
+	l = add_to_str(s, l, cast_uchar ":  ");
 	while (len++ < maxlen)
-		*l = add_chr_to_str(s, *l, ' ');
+		l = add_chr_to_str(s, l, ' ');
+	return l;
 }
 
 static void
@@ -45,7 +46,7 @@ menu_version(void *term_)
 	int i;
 	int maxlen = 0;
 	unsigned char *s;
-	int l;
+	size_t l;
 	unsigned char *const *text_ptr;
 	for (i = 0; version_texts[i]; i++) {
 		unsigned char *t = get_text_translation(version_texts[i], term);
@@ -55,75 +56,75 @@ menu_version(void *term_)
 	}
 
 	s = NULL;
-	l = 0;
 	text_ptr = version_texts;
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, cast_uchar VERSION);
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_and_pad(&s, 0, term, *text_ptr++, maxlen);
+	l = add_to_str(&s, l, cast_uchar VERSION);
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, system_name);
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
+	l = add_to_str(&s, l, system_name);
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_MEMORY), term));
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
+	l = add_to_str(&s, l, get_text_translation(TEXT_(T_MEMORY), term));
 	l = add_chr_to_str(&s, l, ' ');
-	add_num_to_str(&s, &l, sizeof(void *) * 8);
-	add_to_str(&s, &l, cast_uchar "-bit, ");
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_FILE_SIZE), term));
+	l = add_num_to_str(&s, l, sizeof(void *) * 8);
+	l = add_to_str(&s, l, cast_uchar "-bit, ");
+	l = add_to_str(&s, l, get_text_translation(TEXT_(T_FILE_SIZE), term));
 	l = add_chr_to_str(&s, l, ' ');
-	add_num_to_str(&s, &l, sizeof(off_t) * 8 /*- ((off_t)-1 < 0)*/);
-	add_to_str(&s, &l, cast_uchar "-bit");
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_num_to_str(&s, l, sizeof(off_t) * 8 /*- ((off_t)-1 < 0)*/);
+	l = add_to_str(&s, l, cast_uchar "-bit");
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_event_string(&s, &l, term);
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
+	l = add_event_string(&s, l, term);
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	if (!support_ipv6)
-		add_to_str(
-		    &s, &l,
+		l = add_to_str(
+		    &s, l,
 		    get_text_translation(TEXT_(T_NOT_ENABLED_IN_SYSTEM), term));
 	else if (!ipv6_full_access())
-		add_to_str(
-		    &s, &l,
+		l = add_to_str(
+		    &s, l,
 		    get_text_translation(TEXT_(T_LOCAL_NETWORK_ONLY), term));
 	else
-		add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
-	add_to_str(&s, &l, cast_uchar "\n");
+		l = add_to_str(&s, l, get_text_translation(TEXT_(T_YES), term));
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_compress_methods(&s, &l);
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
+	l = add_compress_methods(&s, l);
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 #ifdef OPENSSL_VERSION
-	add_to_str(&s, &l, (unsigned char *)OpenSSL_version(OPENSSL_VERSION));
+	l = add_to_str(&s, l,
+	               (unsigned char *)OpenSSL_version(OPENSSL_VERSION));
 #else
-	add_to_str(&s, &l, (unsigned char *)SSLeay_version(SSLEAY_VERSION));
+	l = add_to_str(&s, l, (unsigned char *)SSLeay_version(SSLEAY_VERSION));
 #endif
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_YES), term));
-	add_to_str(&s, &l, cast_uchar "\n");
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
-	add_to_str(&s, &l, get_text_translation(TEXT_(T_NO), term));
-	add_to_str(&s, &l, cast_uchar "\n");
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
+	l = add_to_str(&s, l, get_text_translation(TEXT_(T_YES), term));
+	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
+	l = add_to_str(&s, l, get_text_translation(TEXT_(T_NO), term));
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	add_and_pad(&s, &l, term, *text_ptr++, maxlen);
+	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	if (links_home) {
 		unsigned char *native_home =
 		    os_conv_to_external_path(links_home, NULL);
-		add_to_str(&s, &l, native_home);
+		l = add_to_str(&s, l, native_home);
 		free(native_home);
 	} else
-		add_to_str(&s, &l, get_text_translation(TEXT_(T_NONE), term));
-	add_to_str(&s, &l, cast_uchar "\n");
+		l = add_to_str(&s, l,
+		               get_text_translation(TEXT_(T_NONE), term));
+	l = add_to_str(&s, l, cast_uchar "\n");
 
-	s[l - 1] = 0;
 	if (*text_ptr)
 		internal("menu_version: text mismatched");
 
@@ -309,102 +310,103 @@ resource_info(struct terminal *term, struct refresh *r2)
 	r->win = NULL;
 	r->fn = resource_info;
 	r->timer = NULL;
-	l = 0;
 	a = NULL;
 
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_RESOURCES), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, 0, get_text_translation(TEXT_(T_RESOURCES), term));
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, select_info(CI_FILES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_HANDLES), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_HANDLES), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, select_info(CI_TIMERS));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_TIMERS), term));
-	add_to_str(&a, &l, cast_uchar ".\n");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_TIMERS), term));
+	l = add_to_str(&a, l, cast_uchar ".\n");
 
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_CONNECTIONS), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_CONNECTIONS), term));
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l,
 	                             connect_info(CI_FILES)
 	                                 - connect_info(CI_CONNECTING)
 	                                 - connect_info(CI_TRANSFER));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_WAITING), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_WAITING), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, connect_info(CI_CONNECTING));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_CONNECTING), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_CONNECTING), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, connect_info(CI_TRANSFER));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_tRANSFERRING), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l,
+	               get_text_translation(TEXT_(T_tRANSFERRING), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, connect_info(CI_KEEP));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_KEEPALIVE), term));
-	add_to_str(&a, &l, cast_uchar ".\n");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_KEEPALIVE), term));
+	l = add_to_str(&a, l, cast_uchar ".\n");
 
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_MEMORY_CACHE), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, l,
+	               get_text_translation(TEXT_(T_MEMORY_CACHE), term));
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_BYTES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_BYTES), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_BYTES), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_FILES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_FILES), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_FILES), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_LOCKED));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_LOCKED), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, cache_info(CI_LOADING));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOADING), term));
-	add_to_str(&a, &l, cast_uchar ".\n");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_LOADING), term));
+	l = add_to_str(&a, l, cast_uchar ".\n");
 
-	add_to_str(&a, &l,
-	           get_text_translation(TEXT_(T_DECOMPRESSED_CACHE), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, l,
+	               get_text_translation(TEXT_(T_DECOMPRESSED_CACHE), term));
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_BYTES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_BYTES), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_BYTES), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_FILES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_FILES), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_FILES), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, decompress_info(CI_LOCKED));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
-	add_to_str(&a, &l, cast_uchar ".\n");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_LOCKED), term));
+	l = add_to_str(&a, l, cast_uchar ".\n");
 
-	add_to_str(
-	    &a, &l,
+	l = add_to_str(
+	    &a, l,
 	    get_text_translation(TEXT_(T_FORMATTED_DOCUMENT_CACHE), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, formatted_info(CI_FILES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_DOCUMENTS), term));
-	add_to_str(&a, &l, cast_uchar ", ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_DOCUMENTS), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
 	add_unsigned_long_num_to_str(&a, &l, formatted_info(CI_LOCKED));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_LOCKED), term));
-	add_to_str(&a, &l, cast_uchar ".\n");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_LOCKED), term));
+	l = add_to_str(&a, l, cast_uchar ".\n");
 
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_DNS_CACHE), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_DNS_CACHE), term));
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, dns_info(CI_FILES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_SERVERS), term));
-	add_to_str(&a, &l, cast_uchar ", ");
-	add_to_str(&a, &l,
-	           get_text_translation(TEXT_(T_TLS_SESSION_CACHE), term));
-	add_to_str(&a, &l, cast_uchar ": ");
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_SERVERS), term));
+	l = add_to_str(&a, l, cast_uchar ", ");
+	l = add_to_str(&a, l,
+	               get_text_translation(TEXT_(T_TLS_SESSION_CACHE), term));
+	l = add_to_str(&a, l, cast_uchar ": ");
 	add_unsigned_long_num_to_str(&a, &l, session_info(CI_FILES));
 	l = add_chr_to_str(&a, l, ' ');
-	add_to_str(&a, &l, get_text_translation(TEXT_(T_SERVERS), term));
+	l = add_to_str(&a, l, get_text_translation(TEXT_(T_SERVERS), term));
 	l = add_chr_to_str(&a, l, '.');
 
 	if (r2
@@ -2560,7 +2562,7 @@ query_file(struct session *ses, unsigned char *url, unsigned char *head,
            void (*cancel)(void *), int flags)
 {
 	unsigned char *fc, *file, *def;
-	int dfl = 0;
+	size_t dfl;
 	struct does_file_exist_s *h;
 
 	h = xmalloc(sizeof(struct does_file_exist_s));
@@ -2571,10 +2573,10 @@ query_file(struct session *ses, unsigned char *url, unsigned char *head,
 	check_filename(&file);
 
 	def = NULL;
-	add_to_str(&def, &dfl, download_dir);
+	dfl = add_to_str(&def, 0, download_dir);
 	if (*def && !dir_sep(def[strlen(cast_const_char def) - 1]))
 		dfl = add_chr_to_str(&def, dfl, '/');
-	add_to_str(&def, &dfl, file);
+	dfl = add_to_str(&def, dfl, file);
 	free(file);
 
 	h->fn = fn;

@@ -35,8 +35,7 @@ void
 data_func(struct connection *c)
 {
 	unsigned char *data, *flags, *mime, *str;
-	size_t length;
-	int strl;
+	size_t length, strl;
 	struct cache_entry *e;
 	int r;
 
@@ -100,9 +99,9 @@ bad_url:
 	free(mime);
 
 	str = NULL;
-	strl = 0;
 
-	add_conv_str(&str, &strl, data, (int)strlen(cast_const_char data), -2);
+	strl =
+	    add_conv_str(&str, 0, data, (int)strlen(cast_const_char data), -2);
 
 	if (!base64) {
 		r = add_fragment(e, 0, str, strl);

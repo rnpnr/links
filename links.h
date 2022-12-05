@@ -256,12 +256,12 @@ void add_to_strn(unsigned char **s, unsigned char *a);
 void extend_str(unsigned char **s, int n);
 
 size_t add_bytes_to_str(unsigned char **, size_t, unsigned char *, size_t);
-void add_to_str(unsigned char **s, int *l, unsigned char *a);
+size_t add_to_str(unsigned char **, size_t, unsigned char *);
 size_t add_chr_to_str(unsigned char **, size_t, unsigned char);
 void add_unsigned_num_to_str(unsigned char **s, int *l, off_t n);
 void add_unsigned_long_num_to_str(unsigned char **s, int *l, unsigned long n);
-void add_num_to_str(unsigned char **s, int *l, off_t n);
-void add_knum_to_str(unsigned char **s, int *l, off_t n);
+size_t add_num_to_str(unsigned char **s, size_t l, off_t n);
+size_t add_knum_to_str(unsigned char **s, size_t l, off_t n);
 long strtolx(unsigned char *c, unsigned char **end);
 
 void safe_strncpy(unsigned char *dst, const unsigned char *src,
@@ -381,7 +381,7 @@ void terminate_select(void);
 void register_bottom_half(void (*)(void *), void *);
 void unregister_bottom_half(void (*)(void *), void *);
 void check_bottom_halves(void);
-void add_event_string(unsigned char **, int *, struct terminal *);
+size_t add_event_string(unsigned char **, size_t, struct terminal *);
 struct timer;
 struct timer *install_timer(uttime, void (*)(void *), void *);
 void kill_timer(struct timer *);
@@ -753,8 +753,7 @@ unsigned char *join_urls(unsigned char *, unsigned char *);
 unsigned char *translate_url(unsigned char *, unsigned char *);
 unsigned char *extract_position(unsigned char *);
 int url_not_saveable(unsigned char *);
-void add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll,
-                  int encode_special);
+size_t add_conv_str(unsigned char **, size_t, unsigned char *, int, int);
 void convert_file_charset(unsigned char **s, int *l, int start_l);
 unsigned char *idn_encode_host(unsigned char *host, int len,
                                unsigned char *separator, int decode);
@@ -808,7 +807,7 @@ extern struct list_head all_cookies;
 extern struct list_head c_domains;
 
 int set_cookie(struct terminal *, unsigned char *, unsigned char *);
-void add_cookies(unsigned char **, int *, unsigned char *);
+size_t add_cookies(unsigned char **, size_t, unsigned char *);
 void init_cookies(void);
 void free_cookies(void);
 int is_in_domain(unsigned char *d, unsigned char *s);
@@ -1212,7 +1211,7 @@ int get_file_by_term(struct terminal *term, struct cache_entry *ce,
                      unsigned char **start, size_t *len, int *errp);
 int get_file(struct object_request *o, unsigned char **start, size_t *len);
 void free_decompressed_data(struct cache_entry *e);
-void add_compress_methods(unsigned char **s, int *l);
+size_t add_compress_methods(unsigned char **, size_t);
 
 /* session.c */
 
@@ -2326,9 +2325,9 @@ void parse_html(unsigned char *, unsigned char *,
 int get_image_map(unsigned char *, unsigned char *, unsigned char *,
                   unsigned char *a, struct menu_item **, struct memory_list **,
                   unsigned char *, unsigned char *, int, int, int, int gfx);
-void scan_http_equiv(unsigned char *, unsigned char *, unsigned char **, int *,
-                     unsigned char **, unsigned char **, unsigned char **,
-                     int *);
+size_t scan_http_equiv(unsigned char *, unsigned char *, unsigned char **,
+                       size_t, unsigned char **, unsigned char **,
+                       unsigned char **, int *);
 
 int decode_color(unsigned char *, struct rgb *);
 

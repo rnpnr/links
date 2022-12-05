@@ -55,12 +55,12 @@ free_all_caches(void)
 	} while (a & ST_SOMETHING_FREED);
 	if (!(b & ST_CACHE_EMPTY)) {
 		unsigned char *m = NULL;
-		int l = 0;
+		size_t l = 0;
 		foreach (struct cache_upcall, c, lc, cache_upcalls)
 			if (!(c->upcall(SH_FREE_ALL) & ST_CACHE_EMPTY)) {
 				if (l)
-					add_to_str(&m, &l, cast_uchar ", ");
-				add_to_str(&m, &l, c->name);
+					l = add_to_str(&m, l, cast_uchar ", ");
+				l = add_to_str(&m, l, c->name);
 			}
 		internal("could not release entries from caches: %s", m);
 		free(m);

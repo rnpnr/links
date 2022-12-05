@@ -691,31 +691,28 @@ save_only:
 static unsigned char *
 convert_to_entity_string(unsigned char *str)
 {
-	unsigned char *dst, *p;
-	int dstl;
-
-	dst = NULL;
-	dstl = 0;
+	unsigned char *dst, *p = NULL;
+	size_t dstl = 0;
 
 	for (p = str; *p; p++)
 		switch (*p) {
 		case '<':
-			add_to_str(&dst, &dstl, cast_uchar "&lt;");
+			dstl = add_to_str(&dst, dstl, cast_uchar "&lt;");
 			break;
 		case '>':
-			add_to_str(&dst, &dstl, cast_uchar "&gt;");
+			dstl = add_to_str(&dst, dstl, cast_uchar "&gt;");
 			break;
 
 		case '=':
-			add_to_str(&dst, &dstl, cast_uchar "&equals;");
+			dstl = add_to_str(&dst, dstl, cast_uchar "&equals;");
 			break;
 
 		case '&':
-			add_to_str(&dst, &dstl, cast_uchar "&amp;");
+			dstl = add_to_str(&dst, dstl, cast_uchar "&amp;");
 			break;
 
 		case '"':
-			add_to_str(&dst, &dstl, cast_uchar "&quot;");
+			dstl = add_to_str(&dst, dstl, cast_uchar "&quot;");
 			break;
 
 		default:
@@ -733,30 +730,30 @@ save_bookmarks(struct session *ses)
 	int depth;
 	int a;
 	unsigned char *data;
-	int l;
+	size_t l;
 	int err;
 	int rs;
 
 	if (!bookmark_ld.modified)
 		return;
 	data = NULL;
-	l = 0;
-	add_to_str(&data, &l,
-	           cast_uchar "<HTML>\n"
-	                      "<HEAD>\n"
-	                      "<!-- This is an automatically generated file.\n"
-	                      "It will be read and overwritten.\n"
-	                      "Do Not Edit! -->\n"
-	                      "<TITLE>Links bookmarks</TITLE>\n"
-	                      "</HEAD>\n"
-	                      "<H1>Links bookmarks</H1>\n\n"
-	                      "<DL><P>\n");
+	l = add_to_str(&data, 0,
+	               cast_uchar
+	               "<HTML>\n"
+	               "<HEAD>\n"
+	               "<!-- This is an automatically generated file.\n"
+	               "It will be read and overwritten.\n"
+	               "Do Not Edit! -->\n"
+	               "<TITLE>Links bookmarks</TITLE>\n"
+	               "</HEAD>\n"
+	               "<H1>Links bookmarks</H1>\n\n"
+	               "<DL><P>\n");
 	depth = 0;
 	foreach (struct list, li, lli, bookmarks.list_entry) {
 		struct bookmark_list *b =
 		    get_struct(li, struct bookmark_list, head);
 		for (a = b->head.depth; a < depth; a++)
-			add_to_str(&data, &l, cast_uchar "</DL>\n");
+			l = add_to_str(&data, l, cast_uchar "</DL>\n");
 		depth = b->head.depth;
 
 		if (b->head.type & 1) {
@@ -764,9 +761,9 @@ save_bookmarks(struct session *ses)
 			txt = stracpy(b->title);
 			clr_white(txt);
 			txt1 = convert_to_entity_string(txt);
-			add_to_str(&data, &l, cast_uchar "    <DT><H3>");
-			add_to_str(&data, &l, txt1);
-			add_to_str(&data, &l, cast_uchar "</H3>\n<DL>\n");
+			l = add_to_str(&data, l, cast_uchar "    <DT><H3>");
+			l = add_to_str(&data, l, txt1);
+			l = add_to_str(&data, l, cast_uchar "</H3>\n<DL>\n");
 			free(txt);
 			free(txt1);
 			depth++;
@@ -777,21 +774,22 @@ save_bookmarks(struct session *ses)
 			txt2 = stracpy(b->url);
 			clr_white(txt2);
 			txt11 = convert_to_entity_string(txt1);
-			add_to_str(&data, &l, cast_uchar "    <DT><A HREF=\"");
-			add_to_str(&data, &l, txt2);
-			add_to_str(&data, &l, cast_uchar "\">");
-			add_to_str(&data, &l, txt11);
-			add_to_str(&data, &l, cast_uchar "</A>\n");
+			l = add_to_str(&data, l,
+			               cast_uchar "    <DT><A HREF=\"");
+			l = add_to_str(&data, l, txt2);
+			l = add_to_str(&data, l, cast_uchar "\">");
+			l = add_to_str(&data, l, txt11);
+			l = add_to_str(&data, l, cast_uchar "</A>\n");
 			free(txt1);
 			free(txt2);
 			free(txt11);
 		}
 	}
 	for (a = 0; a < depth; a++)
-		add_to_str(&data, &l, cast_uchar "</DL>\n");
-	add_to_str(&data, &l,
-	           cast_uchar "</DL><P>\n"
-	                      "</HTML>\n");
+		l = add_to_str(&data, l, cast_uchar "</DL>\n");
+	l = add_to_str(&data, l,
+	               cast_uchar "</DL><P>\n"
+	                          "</HTML>\n");
 	err = write_to_config_file(bookmarks_file, data, 1);
 	free(data);
 	if (!err)

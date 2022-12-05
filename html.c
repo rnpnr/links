@@ -269,7 +269,7 @@ need_convert:
 	c = NULL;
 	l = 0;
 	for (p = a; *p; p++)
-		add_to_str(&c, &l, encode_utf_8(*p));
+		l = add_to_str(&c, l, encode_utf_8(*p));
 	free(a);
 	return c;
 }
@@ -2431,7 +2431,7 @@ abort:
 			l--;
 		q = convert_string(ct, s, l, d_opt);
 		if (q) {
-			add_to_str(&lbl, &lbl_l, q);
+			lbl_l = add_to_str(&lbl, lbl_l, q);
 			free(q);
 		}
 		vlbl_l = add_bytes_to_str(&vlbl, vlbl_l, s, l);
@@ -3662,11 +3662,11 @@ get_image_map(unsigned char *head, unsigned char *s, unsigned char *eof,
 	int nmenu = 0;
 	int i;
 	unsigned char *hd = NULL;
-	int hdl = 0;
+	size_t hdl = 0;
 	struct conv_table *ct;
 	if (head)
-		add_to_str(&hd, &hdl, head);
-	scan_http_equiv(s, eof, &hd, &hdl, NULL, NULL, NULL, NULL);
+		hdl = add_to_str(&hd, hdl, head);
+	hdl = scan_http_equiv(s, eof, &hd, hdl, NULL, NULL, NULL, NULL);
 	if (!gfx)
 		ct = get_convert_table(hd, to, def, NULL, NULL, hdef);
 	else
@@ -3874,9 +3874,9 @@ done:
 	return 0;
 }
 
-void
+size_t
 scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
-                int *hdl, unsigned char **title, unsigned char **background,
+                size_t hdl, unsigned char **title, unsigned char **background,
                 unsigned char **bgcolor, int *pre_wrap)
 {
 	unsigned char *name, *attr, *he, *c;
@@ -3890,13 +3890,13 @@ scan_http_equiv(unsigned char *s, unsigned char *eof, unsigned char **head,
 		*pre_wrap = 0;
 	if (title)
 		*title = NULL;
-	*hdl = add_chr_to_str(head, *hdl, '\n');
+	hdl = add_chr_to_str(head, hdl, '\n');
 se:
 	while (s < eof && *s != '<')
 sp:
 		s++;
 	if (s >= eof)
-		return;
+		return hdl;
 	if (eof - s >= 2 && (s[1] == '!' || s[1] == '?')) {
 		s = skip_comment(s, eof);
 		goto se;
@@ -3958,21 +3958,21 @@ xsp:
 	if (namelen != 4 || casecmp(name, cast_uchar "META", 4))
 		goto se;
 	if ((he = get_attr_val(attr, cast_uchar "charset"))) {
-		add_to_str(head, hdl, cast_uchar "Charset: ");
-		add_to_str(head, hdl, he);
-		add_to_str(head, hdl, cast_uchar "\r\n");
+		hdl = add_to_str(head, hdl, cast_uchar "Charset: ");
+		hdl = add_to_str(head, hdl, he);
+		hdl = add_to_str(head, hdl, cast_uchar "\r\n");
 		free(he);
 	}
 	if (!(he = get_attr_val(attr, cast_uchar "http-equiv")))
 		goto se;
 	c = get_attr_val(attr, cast_uchar "content");
-	add_to_str(head, hdl, he);
+	hdl = add_to_str(head, hdl, he);
 	if (c) {
-		add_to_str(head, hdl, cast_uchar ": ");
-		add_to_str(head, hdl, c);
+		hdl = add_to_str(head, hdl, cast_uchar ": ");
+		hdl = add_to_str(head, hdl, c);
 		free(c);
 	}
 	free(he);
-	add_to_str(head, hdl, cast_uchar "\r\n");
+	hdl = add_to_str(head, hdl, cast_uchar "\r\n");
 	goto se;
 }

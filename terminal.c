@@ -592,10 +592,10 @@ static unsigned char frame_vt100[49] =
 
 #define SETPOS(x, y)                                                           \
 	{                                                                      \
-		add_to_str(&a, &l, cast_uchar "\033[");                        \
-		add_num_to_str(&a, &l, (y) + 1 + term->top_margin);            \
+		l = add_to_str(&a, l, cast_uchar "\033[");                     \
+		l = add_num_to_str(&a, l, (y) + 1 + term->top_margin);         \
 		l = add_chr_to_str(&a, l, ';');                                \
-		add_num_to_str(&a, &l, (x) + 1 + term->left_margin);           \
+		l = add_num_to_str(&a, l, (x) + 1 + term->left_margin);        \
 		l = add_chr_to_str(&a, l, 'H');                                \
 		n_chars = 0;                                                   \
 	}
@@ -608,9 +608,11 @@ static unsigned char frame_vt100[49] =
 		if (s->mode == TERM_VT100) {                                   \
 			if (frm != mode) {                                     \
 				if (!(mode = frm))                             \
-					add_to_str(&a, &l, cast_uchar "\017"); \
+					l = add_to_str(&a, l,                  \
+					               cast_uchar "\017");     \
 				else                                           \
-					add_to_str(&a, &l, cast_uchar "\016"); \
+					l = add_to_str(&a, l,                  \
+					               cast_uchar "\016");     \
 			}                                                      \
 			if (frm && c >= 176 && c < 224)                        \
 				c = frame_vt100[c - 176];                      \
@@ -620,22 +622,22 @@ static unsigned char frame_vt100[49] =
 			A = (A & 070) | 7 * !(A & 020);                        \
 		if (A != attrib) {                                             \
 			attrib = A;                                            \
-			add_to_str(&a, &l, cast_uchar "\033[0");               \
+			l = add_to_str(&a, l, cast_uchar "\033[0");            \
 			if (s->col) {                                          \
 				unsigned char m[4];                            \
 				m[0] = ';';                                    \
 				m[1] = '3';                                    \
 				m[3] = 0;                                      \
 				m[2] = (attrib & 7) + '0';                     \
-				add_to_str(&a, &l, m);                         \
+				l = add_to_str(&a, l, m);                      \
 				m[1] = '4';                                    \
 				m[2] = ((attrib >> 3) & 7) + '0';              \
-				add_to_str(&a, &l, m);                         \
+				l = add_to_str(&a, l, m);                      \
 			} else if (getcompcode(attrib & 7)                     \
 			           < getcompcode(attrib >> 3 & 7))             \
-				add_to_str(&a, &l, cast_uchar ";7");           \
+				l = add_to_str(&a, l, cast_uchar ";7");        \
 			if (attrib & 0100)                                     \
-				add_to_str(&a, &l, cast_uchar ";1");           \
+				l = add_to_str(&a, l, cast_uchar ";1");        \
 			l = add_chr_to_str(&a, l, 'm');                        \
 		}                                                              \
 		if (c >= ' ' && c != 127 && c != 155) {                        \
@@ -658,7 +660,7 @@ static unsigned char frame_vt100[49] =
 					l = add_chr_to_str(&a, l, 8);          \
 				else                                           \
 					SETPOS(cx, y);                         \
-				add_to_str(&a, &l, encode_utf_8(c));           \
+				l = add_to_str(&a, l, encode_utf_8(c));        \
 				SETPOS(cx + 1, y);                             \
 				print_next = 1;                                \
 			}                                                      \
@@ -730,27 +732,27 @@ pc:
 			}
 		}
 		if (print_next && term->left_margin + term->x < term->real_x) {
-			add_to_str(&a, &l, cast_uchar "\033[0m ");
+			l = add_to_str(&a, l, cast_uchar "\033[0m ");
 			attrib = -1;
 			print_next = 0;
 		}
 	}
 	if (l) {
 		if (s->col)
-			add_to_str(&a, &l, cast_uchar "\033[37;40m");
-		add_to_str(&a, &l, cast_uchar "\033[0m");
+			l = add_to_str(&a, l, cast_uchar "\033[37;40m");
+		l = add_to_str(&a, l, cast_uchar "\033[0m");
 		if (s->mode == TERM_VT100)
-			add_to_str(&a, &l, cast_uchar "\017");
+			l = add_to_str(&a, l, cast_uchar "\017");
 	}
 	term->lcx = cx;
 	term->lcy = cy;
 	if (term->cx != term->lcx || term->cy != term->lcy) {
 		term->lcx = term->cx;
 		term->lcy = term->cy;
-		add_to_str(&a, &l, cast_uchar "\033[");
-		add_num_to_str(&a, &l, term->cy + 1 + term->top_margin);
+		l = add_to_str(&a, l, cast_uchar "\033[");
+		l = add_num_to_str(&a, l, term->cy + 1 + term->top_margin);
 		l = add_chr_to_str(&a, l, ';');
-		add_num_to_str(&a, &l, term->cx + 1 + term->left_margin);
+		l = add_num_to_str(&a, l, term->cx + 1 + term->left_margin);
 		l = add_chr_to_str(&a, l, 'H');
 	}
 	hard_write(term->fdout, a, l);
@@ -1040,7 +1042,7 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 		} else {
 			int blockh;
 			unsigned char *param;
-			int paraml;
+			size_t paraml;
 			if (is_blocked() && fg) {
 				if (*delet)
 					EINTRLOOP(
@@ -1049,9 +1051,9 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 			}
 			param = NULL;
 			paraml = add_chr_to_str(&param, 0, fg);
-			add_to_str(&param, &paraml, path);
+			paraml = add_to_str(&param, paraml, path);
 			paraml = add_chr_to_str(&param, paraml, 0);
-			add_to_str(&param, &paraml, delet);
+			paraml = add_to_str(&param, paraml, delet);
 			if (fg == 1)
 				block_itrm(term->fdin);
 			if ((blockh = start_thread(exec_thread, param,
@@ -1075,13 +1077,13 @@ exec_on_terminal(struct terminal *term, unsigned char *path,
 		}
 	} else {
 		unsigned char *data;
-		int datal;
+		size_t datal;
 		data = NULL;
 		datal = add_chr_to_str(&data, 0, 0);
 		datal = add_chr_to_str(&data, datal, fg);
-		add_to_str(&data, &datal, path);
+		datal = add_to_str(&data, datal, path);
 		datal = add_chr_to_str(&data, datal, 0);
-		add_to_str(&data, &datal, delet);
+		datal = add_to_str(&data, datal, delet);
 		hard_write(term->fdout, data, datal + 1);
 		free(data);
 	}
@@ -1092,10 +1094,10 @@ do_terminal_function(struct terminal *term, unsigned char code,
                      unsigned char *data)
 {
 	unsigned char *x_data;
-	int x_datal;
+	size_t x_datal;
 	x_data = NULL;
 	x_datal = add_chr_to_str(&x_data, 0, code);
-	add_to_str(&x_data, &x_datal, data);
+	x_datal = add_to_str(&x_data, x_datal, data);
 	exec_on_terminal(term, NULL, x_data, 0);
 	free(x_data);
 }

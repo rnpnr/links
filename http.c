@@ -25,26 +25,24 @@ struct http_connection_info {
 static void http_send_header(struct connection *c);
 static void http_get_header(struct connection *c);
 static void test_restart(struct connection *c);
-static void add_user_agent(unsigned char **hdr, int *l, const char *url);
-static void add_referer(unsigned char **hdr, int *l, unsigned char *url,
-                        unsigned char *prev_url);
-static void add_accept(unsigned char **hdr, int *l);
-static void add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
-                                struct connection *c);
-static void add_accept_charset(unsigned char **hdr, int *l,
-                               struct http_connection_info *info);
-static void add_connection(unsigned char **hdr, int *l, int http10, int proxy,
-                           int post);
-static void add_upgrade(unsigned char **hdr, int *l);
-static void add_if_modified(unsigned char **hdr, int *l, struct connection *c);
-static void add_range(unsigned char **hdr, int *l, unsigned char *url,
-                      struct connection *c);
-static void add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache);
-static void add_proxy_auth_string(unsigned char **hdr, int *l,
-                                  unsigned char *url);
-static void add_auth_string(unsigned char **hdr, int *l, unsigned char *url);
-static void add_post_header(unsigned char **hdr, int *l, unsigned char **post);
-static void add_extra_options(unsigned char **hdr, int *l);
+static size_t add_user_agent(unsigned char **, size_t, const char *);
+static size_t add_referer(unsigned char **, size_t, unsigned char *,
+                          unsigned char *);
+static size_t add_accept(unsigned char **, size_t);
+static size_t add_accept_encoding(unsigned char **, size_t, unsigned char *,
+                                  struct connection *);
+static size_t add_accept_charset(unsigned char **, size_t,
+                                 struct http_connection_info *);
+static size_t add_connection(unsigned char **, size_t, int, int, int);
+static size_t add_upgrade(unsigned char **, size_t);
+static size_t add_if_modified(unsigned char **, size_t, struct connection *);
+static size_t add_range(unsigned char **, size_t, unsigned char *,
+                        struct connection *);
+static size_t add_pragma_no_cache(unsigned char **, size_t, int);
+static size_t add_proxy_auth_string(unsigned char **, size_t, unsigned char *);
+static size_t add_auth_string(unsigned char **, size_t, unsigned char *);
+static size_t add_post_header(unsigned char **, size_t, unsigned char **);
+static size_t add_extra_options(unsigned char **, size_t);
 
 /* Returns a string pointer with value of the item.
  * The string must be destroyed after usage with mem_free.
@@ -223,18 +221,19 @@ proxy_func(struct connection *c)
 	http_func(c);
 }
 
-static void
-add_url_to_str(unsigned char **str, int *l, unsigned char *url)
+static size_t
+add_url_to_str(unsigned char **str, size_t l, unsigned char *url)
 {
 	unsigned char *sp;
 	for (sp = url; *sp && *sp != POST_CHAR; sp++) {
 		if (*sp <= ' ' || *sp >= 127) {
 			unsigned char esc[4];
 			sprintf((char *)esc, "%%%02X", (int)*sp);
-			add_to_str(str, l, esc);
+			l = add_to_str(str, l, esc);
 		} else
-			*l = add_chr_to_str(str, *l, *sp);
+			l = add_chr_to_str(str, l, *sp);
 	}
+	return l;
 }
 
 static void
@@ -246,7 +245,7 @@ http_send_header(struct connection *c)
 	unsigned char *hdr;
 	unsigned char *h, *u;
 	unsigned char *u2;
-	int l = 0;
+	size_t l = 0;
 	unsigned char *post = NULL;
 	unsigned char *host;
 
@@ -284,23 +283,23 @@ http_bad_url:
 	}
 	info->send_close = info->https_forward || http10;
 	if (info->https_forward) {
-		add_to_str(&hdr, &l, cast_uchar "CONNECT ");
+		l = add_to_str(&hdr, l, cast_uchar "CONNECT ");
 		h = get_host_name(host);
 		if (!h)
 			goto http_bad_url;
-		add_to_str(&hdr, &l, h);
+		l = add_to_str(&hdr, l, h);
 		free(h);
 		h = get_port_str(host);
 		if (!h)
 			h = stracpy(cast_uchar "443");
 		l = add_chr_to_str(&hdr, l, ':');
-		add_to_str(&hdr, &l, h);
+		l = add_to_str(&hdr, l, h);
 		free(h);
 		goto added_connect;
 	} else if (!post)
-		add_to_str(&hdr, &l, cast_uchar "GET ");
+		l = add_to_str(&hdr, l, cast_uchar "GET ");
 	else {
-		add_to_str(&hdr, &l, cast_uchar "POST ");
+		l = add_to_str(&hdr, l, cast_uchar "POST ");
 		c->unrestartable = 2;
 	}
 	if (!proxy) {
@@ -323,19 +322,19 @@ http_bad_url:
 		u2 = NULL;
 		u2_len =
 		    add_bytes_to_str(&u2, u2_len, u, u_host + u_host_len - u);
-		add_to_str(&u2, &u2_len, proxies.dns_append);
-		add_to_str(&u2, &u2_len, u_host + u_host_len);
+		u2_len = add_to_str(&u2, u2_len, proxies.dns_append);
+		u2_len = add_to_str(&u2, u2_len, u_host + u_host_len);
 	}
-	add_url_to_str(&hdr, &l, u2);
+	l = add_url_to_str(&hdr, l, u2);
 	if (u2 != u)
 		free(u2);
 added_connect:
 	if (!http10)
-		add_to_str(&hdr, &l, cast_uchar " HTTP/1.1\r\n");
+		l = add_to_str(&hdr, l, cast_uchar " HTTP/1.1\r\n");
 	else
-		add_to_str(&hdr, &l, cast_uchar " HTTP/1.0\r\n");
+		l = add_to_str(&hdr, l, cast_uchar " HTTP/1.0\r\n");
 	if (!info->https_forward && (h = get_host_name(host))) {
-		add_to_str(&hdr, &l, cast_uchar "Host: ");
+		l = add_to_str(&hdr, l, cast_uchar "Host: ");
 		if (*h && h[strlen((char *)h) - 1] == '.') {
 			h[strlen((char *)h) - 1] = 0;
 		}
@@ -346,37 +345,38 @@ added_connect:
 				pc[1] = 0;
 			}
 		}
-		add_to_str(&hdr, &l, h);
+		l = add_to_str(&hdr, l, h);
 		free(h);
 		if ((h = get_port_str(host))) {
 			if (strcmp(cast_char h, c->ssl ? "443" : "80")) {
 				l = add_chr_to_str(&hdr, l, ':');
-				add_to_str(&hdr, &l, h);
+				l = add_to_str(&hdr, l, h);
 			}
 			free(h);
 		}
-		add_to_str(&hdr, &l, cast_uchar "\r\n");
+		l = add_to_str(&hdr, l, cast_uchar "\r\n");
 	}
-	add_user_agent(&hdr, &l, info->https_forward ? NULL : cast_char host);
+	l = add_user_agent(&hdr, l,
+	                   info->https_forward ? NULL : cast_char host);
 	if (proxy)
-		add_proxy_auth_string(&hdr, &l, c->url);
+		l = add_proxy_auth_string(&hdr, l, c->url);
 	if (!info->https_forward) {
 		test_restart(c);
-		add_referer(&hdr, &l, host, c->prev_url);
-		add_accept(&hdr, &l);
-		add_accept_encoding(&hdr, &l, host, c);
-		add_accept_charset(&hdr, &l, info);
-		add_connection(&hdr, &l, http10, proxy, !info->send_close);
-		add_upgrade(&hdr, &l);
-		add_if_modified(&hdr, &l, c);
-		add_range(&hdr, &l, host, c);
-		add_pragma_no_cache(&hdr, &l, c->no_cache);
-		add_auth_string(&hdr, &l, host);
-		add_post_header(&hdr, &l, &post);
-		add_cookies(&hdr, &l, host);
-		add_extra_options(&hdr, &l);
+		l = add_referer(&hdr, l, host, c->prev_url);
+		l = add_accept(&hdr, l);
+		l = add_accept_encoding(&hdr, l, host, c);
+		l = add_accept_charset(&hdr, l, info);
+		l = add_connection(&hdr, l, http10, proxy, !info->send_close);
+		l = add_upgrade(&hdr, l);
+		l = add_if_modified(&hdr, l, c);
+		l = add_range(&hdr, l, host, c);
+		l = add_pragma_no_cache(&hdr, l, c->no_cache);
+		l = add_auth_string(&hdr, l, host);
+		l = add_post_header(&hdr, l, &post);
+		l = add_cookies(&hdr, l, host);
+		l = add_extra_options(&hdr, l);
 	}
-	add_to_str(&hdr, &l, cast_uchar "\r\n");
+	l = add_to_str(&hdr, l, cast_uchar "\r\n");
 	if (post) {
 		while (post[0] && post[1]) {
 			int h1, h2;
@@ -424,14 +424,15 @@ test_restart(struct connection *c)
 	}
 }
 
-static void
-add_user_agent(unsigned char **hdr, int *l, const char *url)
+static size_t
+add_user_agent(unsigned char **hdr, size_t l, const char *url)
 {
-	add_to_str(hdr, l, cast_uchar "User-Agent: ");
+	l = add_to_str(hdr, l, cast_uchar "User-Agent: ");
 	if (SCRUB_HEADERS)
-		add_to_str(hdr, l,
-		           cast_uchar "Mozilla/5.0 (Windows NT 6.1; rv:60.0) "
-		                      "Gecko/20100101 Firefox/60.0\r\n");
+		l = add_to_str(hdr, l,
+		               cast_uchar
+		               "Mozilla/5.0 (Windows NT 6.1; rv:60.0) "
+		               "Gecko/20100101 Firefox/60.0\r\n");
 	else if (!(*http_options.header.fake_useragent)) {
 		/*
 		 * Google started to return css-styled page for searches.
@@ -443,44 +444,44 @@ add_user_agent(unsigned char **hdr, int *l, const char *url)
 		    && strstr(url, "/search?")
 		    && (strstr(url, "?q=") || strstr(url, "&q="))
 		    && !strstr(url, "?tbm=isch") && !strstr(url, "&tbm=isch"))
-			add_to_str(hdr, l, cast_uchar("Lynx/"));
+			l = add_to_str(hdr, l, cast_uchar("Lynx/"));
 
-		add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
-		add_to_str(hdr, l, system_name);
-		add_to_str(hdr, l, cast_uchar "; ");
+		l = add_to_str(hdr, l, cast_uchar("Links (" VERSION "; "));
+		l = add_to_str(hdr, l, system_name);
+		l = add_to_str(hdr, l, cast_uchar "; ");
 		if (!list_empty(terminals)) {
 			unsigned char *t = cast_uchar "text";
-			add_to_str(hdr, l, t);
+			l = add_to_str(hdr, l, t);
 		} else {
-			add_to_str(hdr, l, cast_uchar "dump");
+			l = add_to_str(hdr, l, cast_uchar "dump");
 		}
-		add_to_str(hdr, l, cast_uchar ")\r\n");
+		l = add_to_str(hdr, l, cast_uchar ")\r\n");
 	} else {
-		add_to_str(hdr, l, http_options.header.fake_useragent);
-		add_to_str(hdr, l, cast_uchar "\r\n");
+		l = add_to_str(hdr, l, http_options.header.fake_useragent);
+		l = add_to_str(hdr, l, cast_uchar "\r\n");
 	}
+	return l;
 }
 
-static void
-add_referer(unsigned char **hdr, int *l, unsigned char *url,
+static size_t
+add_referer(unsigned char **hdr, size_t l, unsigned char *url,
             unsigned char *prev_url)
 {
-	add_to_str(hdr, l, cast_uchar "Referer: ");
-	add_url_to_str(hdr, l, url);
-	add_to_str(hdr, l, cast_uchar "\r\n");
+	l = add_to_str(hdr, l, cast_uchar "Referer: ");
+	l = add_url_to_str(hdr, l, url);
+	return add_to_str(hdr, l, cast_uchar "\r\n");
 }
 
-static void
-add_accept(unsigned char **hdr, int *l)
+static size_t
+add_accept(unsigned char **hdr, size_t l)
 {
 	if (SCRUB_HEADERS)
-		add_to_str(hdr, l,
-		           cast_uchar
-		           "Accept: "
-		           "text/html,application/xhtml+xml,application/"
-		           "xml;q=0.9,*/*;q=0.8\r\n");
-	else
-		add_to_str(hdr, l, cast_uchar "Accept: */*\r\n");
+		return add_to_str(hdr, l,
+		                  cast_uchar
+		                  "Accept: "
+		                  "text/html,application/xhtml+xml,application/"
+		                  "xml;q=0.9,*/*;q=0.8\r\n");
+	return add_to_str(hdr, l, cast_uchar "Accept: */*\r\n");
 }
 
 static int
@@ -503,88 +504,91 @@ advertise_compression(unsigned char *url, struct connection *c)
 	return 1;
 }
 
-static void
-add_accept_encoding(unsigned char **hdr, int *l, unsigned char *url,
+static size_t
+add_accept_encoding(unsigned char **hdr, size_t l, unsigned char *url,
                     struct connection *c)
 {
 	if (advertise_compression(url, c)) {
-		int orig_l = *l;
-		int l1;
-		add_to_str(hdr, l, cast_uchar "Accept-Encoding: ");
-		l1 = *l;
-		if (*l != l1)
-			add_to_str(hdr, l, cast_uchar ", ");
-		add_to_str(hdr, l, cast_uchar "gzip, deflate");
-		if (*l != l1)
-			add_to_str(hdr, l, cast_uchar "\r\n");
+		size_t orig_l = l;
+		size_t l1;
+		l = add_to_str(hdr, l, cast_uchar "Accept-Encoding: ");
+		l1 = l;
+		l = add_to_str(hdr, l, cast_uchar "gzip, deflate");
+		if (l != l1)
+			l = add_to_str(hdr, l, cast_uchar "\r\n");
 		else
-			*l = orig_l;
+			l = orig_l;
 	}
+
+	return l;
 }
 
-static void
-add_accept_charset(unsigned char **hdr, int *l,
+static size_t
+add_accept_charset(unsigned char **hdr, size_t l,
                    struct http_connection_info *info)
 {
 	static unsigned char *accept_charset = NULL;
 
 	if (SCRUB_HEADERS || info->bl_flags & BL_NO_CHARSET
 	    || http_options.no_accept_charset)
-		return;
+		return l;
 
 	if (!accept_charset) {
 		unsigned char *cs, *ac;
-		int aclen = 0;
+		size_t aclen = 0;
 		ac = NULL;
 		cs = get_cp_mime_name(0);
 		if (aclen)
 			aclen = add_chr_to_str(&ac, aclen, ',');
 		else
-			add_to_str(&ac, &aclen, cast_uchar "Accept-Charset: ");
-		add_to_str(&ac, &aclen, cs);
+			aclen = add_to_str(&ac, aclen,
+			                   cast_uchar "Accept-Charset: ");
+		aclen = add_to_str(&ac, aclen, cs);
 		if (aclen)
-			add_to_str(&ac, &aclen, cast_uchar "\r\n");
+			aclen = add_to_str(&ac, aclen, cast_uchar "\r\n");
 		if (!(accept_charset = cast_uchar strdup((char *)ac))) {
-			add_to_str(hdr, l, ac);
+			l = add_to_str(hdr, l, ac);
 			free(ac);
-			return;
+			return l;
 		}
 		free(ac);
 	}
-	add_to_str(hdr, l, accept_charset);
+	return add_to_str(hdr, l, accept_charset);
 }
 
-static void
-add_connection(unsigned char **hdr, int *l, int http10, int proxy, int alive)
+static size_t
+add_connection(unsigned char **hdr, size_t l, int http10, int proxy, int alive)
 {
 	if (!http10) {
 		if (!proxy)
-			add_to_str(hdr, l, cast_uchar "Connection: ");
+			l = add_to_str(hdr, l, cast_uchar "Connection: ");
 		else
-			add_to_str(hdr, l, cast_uchar "Proxy-Connection: ");
+			l = add_to_str(hdr, l, cast_uchar "Proxy-Connection: ");
 		if (alive)
-			add_to_str(hdr, l, cast_uchar "keep-alive\r\n");
+			l = add_to_str(hdr, l, cast_uchar "keep-alive\r\n");
 		else
-			add_to_str(hdr, l, cast_uchar "close\r\n");
+			l = add_to_str(hdr, l, cast_uchar "close\r\n");
 	}
+	return l;
 }
 
-static void
-add_upgrade(unsigned char **hdr, int *l)
+static size_t
+add_upgrade(unsigned char **hdr, size_t l)
 {
 	if (proxies.only_proxies)
-		add_to_str(hdr, l,
-		           cast_uchar "Upgrade-Insecure-Requests: 1\r\n");
+		return add_to_str(
+		    hdr, l, cast_uchar "Upgrade-Insecure-Requests: 1\r\n");
+	return l;
 }
 
-static void
-add_if_modified(unsigned char **hdr, int *l, struct connection *c)
+static size_t
+add_if_modified(unsigned char **hdr, size_t l, struct connection *c)
 {
 	struct cache_entry *e;
 	if ((e = c->cache)) {
 		int code = 0;
 		if (get_http_code(e->head, &code, NULL) || code >= 400)
-			return;
+			return l;
 		if (!e->incomplete && e->head && c->no_cache <= NC_IF_MOD) {
 			unsigned char *m;
 			if (e->last_modified)
@@ -596,81 +600,91 @@ add_if_modified(unsigned char **hdr, int *l, struct connection *c)
 				      e->head, cast_uchar "Expires", NULL)))
 				;
 			else
-				return;
-			add_to_str(hdr, l, cast_uchar "If-Modified-Since: ");
-			add_to_str(hdr, l, m);
-			add_to_str(hdr, l, cast_uchar "\r\n");
+				return l;
+			l = add_to_str(hdr, l,
+			               cast_uchar "If-Modified-Since: ");
+			l = add_to_str(hdr, l, m);
+			l = add_to_str(hdr, l, cast_uchar "\r\n");
 			free(m);
 		}
 	}
+
+	return l;
 }
 
-static void
-add_range(unsigned char **hdr, int *l, unsigned char *url, struct connection *c)
+static size_t
+add_range(unsigned char **hdr, size_t l, unsigned char *url,
+          struct connection *c)
 {
 	struct cache_entry *e;
 	struct http_connection_info *info = c->info;
 	if ((e = c->cache)) {
 		int code = 0;
 		if (!get_http_code(e->head, &code, NULL) && code >= 300)
-			return;
+			return l;
 	}
 	if (c->from && c->no_cache < NC_IF_MOD
 	    && !(info->bl_flags & BL_NO_RANGE)) {
-		add_to_str(hdr, l, cast_uchar "Range: bytes=");
-		add_num_to_str(hdr, l, c->from);
-		add_to_str(hdr, l, cast_uchar "-\r\n");
+		l = add_to_str(hdr, l, cast_uchar "Range: bytes=");
+		l = add_num_to_str(hdr, l, c->from);
+		l = add_to_str(hdr, l, cast_uchar "-\r\n");
 	}
+	return l;
 }
 
-static void
-add_pragma_no_cache(unsigned char **hdr, int *l, int no_cache)
+static size_t
+add_pragma_no_cache(unsigned char **hdr, size_t l, int no_cache)
 {
 	if (no_cache >= NC_PR_NO_CACHE)
-		add_to_str(hdr, l,
-		           cast_uchar
-		           "Pragma: no-cache\r\nCache-Control: no-cache\r\n");
+		return add_to_str(
+		    hdr, l,
+		    cast_uchar
+		    "Pragma: no-cache\r\nCache-Control: no-cache\r\n");
+	return l;
 }
 
-static void
-add_proxy_auth_string(unsigned char **hdr, int *l, unsigned char *url)
+static size_t
+add_proxy_auth_string(unsigned char **hdr, size_t l, unsigned char *url)
 {
 	unsigned char *h;
 	if ((h = get_auth_string(url, 1))) {
-		add_to_str(hdr, l, h);
+		l = add_to_str(hdr, l, h);
 		free(h);
 	}
+	return l;
 }
 
-static void
-add_auth_string(unsigned char **hdr, int *l, unsigned char *url)
+static size_t
+add_auth_string(unsigned char **hdr, size_t l, unsigned char *url)
 {
 	unsigned char *h;
 	if ((h = get_auth_string(url, 0))) {
-		add_to_str(hdr, l, h);
+		l = add_to_str(hdr, l, h);
 		free(h);
 	}
+	return l;
 }
 
-static void
-add_post_header(unsigned char **hdr, int *l, unsigned char **post)
+static size_t
+add_post_header(unsigned char **hdr, size_t l, unsigned char **post)
 {
-	if (*post) {
-		unsigned char *pd = cast_uchar strchr((char *)*post, '\n');
-		if (pd) {
-			add_to_str(hdr, l, cast_uchar "Content-Type: ");
-			*l = add_bytes_to_str(hdr, *l, *post, pd - *post);
-			add_to_str(hdr, l, cast_uchar "\r\n");
-			*post = pd + 1;
-		}
-		add_to_str(hdr, l, cast_uchar "Content-Length: ");
-		add_num_to_str(hdr, l, strlen((char *)*post) / 2);
-		add_to_str(hdr, l, cast_uchar "\r\n");
+	if (!*post)
+		return l;
+
+	unsigned char *pd = cast_uchar strchr((char *)*post, '\n');
+	if (pd) {
+		l = add_to_str(hdr, l, cast_uchar "Content-Type: ");
+		l = add_bytes_to_str(hdr, l, *post, pd - *post);
+		l = add_to_str(hdr, l, cast_uchar "\r\n");
+		*post = pd + 1;
 	}
+	l = add_to_str(hdr, l, cast_uchar "Content-Length: ");
+	l = add_num_to_str(hdr, l, strlen((char *)*post) / 2);
+	return add_to_str(hdr, l, cast_uchar "\r\n");
 }
 
-static void
-add_extra_options(unsigned char **hdr, int *l)
+static size_t
+add_extra_options(unsigned char **hdr, size_t l)
 {
 	unsigned char *p = http_options.header.extra_header;
 	while (1) {
@@ -687,26 +701,25 @@ add_extra_options(unsigned char **hdr, int *l)
 				free(cc);
 				if (x) {
 					unsigned char *new_hdr;
-					int new_l;
+					size_t new_l;
 					free(x);
 					new_hdr = NULL;
-					new_l = 0;
 					new_l = add_bytes_to_str(
-					    &new_hdr, new_l, *hdr, v - *hdr);
+					    &new_hdr, 0, *hdr, v - *hdr);
 					while (*++c == ' ')
 						;
-					add_to_str(&new_hdr, &new_l, c);
-					add_to_str(
-					    &new_hdr, &new_l,
+					new_l = add_to_str(&new_hdr, new_l, c);
+					new_l = add_to_str(
+					    &new_hdr, new_l,
 					    v + strcspn((char *)v, "\r\n"));
 					free(*hdr);
 					*hdr = new_hdr;
-					*l = new_l;
+					l = new_l;
 					goto already_added;
 				}
 			}
-			add_to_str(hdr, l, s);
-			add_to_str(hdr, l, cast_uchar "\r\n");
+			l = add_to_str(hdr, l, s);
+			l = add_to_str(hdr, l, cast_uchar "\r\n");
 already_added:
 			free(s);
 		}
@@ -714,6 +727,8 @@ already_added:
 			break;
 		p = q + 1;
 	}
+
+	return l;
 }
 
 static int

@@ -113,10 +113,10 @@ add_bytes_to_str(unsigned char **s, size_t sl, unsigned char *a, size_t al)
 	return sl;
 }
 
-void
-add_to_str(unsigned char **s, int *l, unsigned char *a)
+size_t
+add_to_str(unsigned char **s, size_t l, unsigned char *a)
 {
-	*l = add_bytes_to_str(s, *l, a, strlen(cast_const_char a));
+	return add_bytes_to_str(s, l, a, strlen(cast_const_char a));
 }
 
 size_t
@@ -130,11 +130,11 @@ add_unsigned_long_num_to_str(unsigned char **s, int *l, unsigned long n)
 {
 	unsigned char a[64];
 	snprint(a, 64, n);
-	add_to_str(s, l, a);
+	*l = add_to_str(s, *l, a);
 }
 
-void
-add_num_to_str(unsigned char **s, int *l, off_t n)
+size_t
+add_num_to_str(unsigned char **s, size_t l, off_t n)
 {
 	unsigned char a[64];
 	if (n >= 0 && n < 1000) {
@@ -151,15 +151,17 @@ d10:
 			sn %= 10;
 		}
 		*p++ = '0' + sn;
-		*l = add_bytes_to_str(s, *l, a, p - a);
+		l = add_bytes_to_str(s, l, a, p - a);
 	} else {
 		snzprint(a, 64, n);
-		add_to_str(s, l, a);
+		l = add_to_str(s, l, a);
 	}
+
+	return l;
 }
 
-void
-add_knum_to_str(unsigned char **s, int *l, off_t n)
+size_t
+add_knum_to_str(unsigned char **s, size_t l, off_t n)
 {
 	unsigned char a[13];
 	if (n && n / (1024 * 1024) * (1024 * 1024) == n) {
@@ -172,7 +174,7 @@ add_knum_to_str(unsigned char **s, int *l, off_t n)
 		a[strlen(cast_const_char a)] = 'k';
 	} else
 		snzprint(a, 13, n);
-	add_to_str(s, l, a);
+	return add_to_str(s, l, a);
 }
 
 long

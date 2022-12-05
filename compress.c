@@ -409,13 +409,14 @@ free_decompressed_data(struct cache_entry *e)
 	}
 }
 
-void
-add_compress_methods(unsigned char **s, int *l)
+size_t
+add_compress_methods(unsigned char **s, size_t sl)
 {
-	add_to_str(s, l, cast_uchar "ZLIB");
+	sl = add_to_str(s, sl, cast_uchar "ZLIB");
 #ifdef zlib_version
-	add_to_str(s, l, cast_uchar " (");
-	add_to_str(s, l, (unsigned char *)zlib_version);
-	*l = add_chr_to_str(s, *l, ')');
+	sl = add_to_str(s, sl, cast_uchar " (");
+	sl = add_to_str(s, sl, (unsigned char *)zlib_version);
+	sl = add_chr_to_str(s, sl, ')');
 #endif
+	return sl;
 }

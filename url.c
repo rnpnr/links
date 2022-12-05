@@ -422,18 +422,18 @@ free_u_ret_up:
 		rl = add_chr_to_str(&r, rl, '&');
 	else
 		rl = add_chr_to_str(&r, rl, '?');
-	add_to_str(&r, &rl, cast_uchar "_escaped_fragment_=");
+	rl = add_to_str(&r, rl, cast_uchar "_escaped_fragment_=");
 	for (; *dp; dp++) {
 		unsigned char c = *dp;
 		if (c <= 0x20 || c == 0x23 || c == 0x25 || c == 0x26
 		    || c == 0x2b || c >= 0x7f) {
 			unsigned char h[4];
 			sprintf((char *)h, "%%%02X", c);
-			add_to_str(&r, &rl, h);
+			rl = add_to_str(&r, rl, h);
 		} else
 			rl = add_chr_to_str(&r, rl, c);
 	}
-	add_to_str(&r, &rl, post_seq);
+	rl = add_to_str(&r, rl, post_seq);
 	free(u);
 	free(p);
 	free(up);
@@ -446,7 +446,7 @@ rewrite_url_google_docs(unsigned char *n)
 	int i;
 	unsigned char *id, *id_end, *url_end;
 	unsigned char *res;
-	int l;
+	size_t l;
 	struct {
 		const char *beginning;
 		const char *result1;
@@ -487,10 +487,9 @@ match:
 			id--;
 	}
 	res = NULL;
-	l = 0;
-	add_to_str(&res, &l, cast_uchar patterns[i].result1);
+	l = add_to_str(&res, 0, cast_uchar patterns[i].result1);
 	l = add_bytes_to_str(&res, l, id, id_end - id);
-	add_to_str(&res, &l, cast_uchar patterns[i].result2);
+	l = add_to_str(&res, l, cast_uchar patterns[i].result2);
 	free(n);
 	return res;
 }
@@ -565,7 +564,7 @@ insert_wd(unsigned char **up, unsigned char *cwd)
 	unsigned char *cw;
 	unsigned char *url;
 	char *host;
-	int url_l;
+	size_t url_l;
 	int i;
 	if (!u || !cwd || !*cwd)
 		return;
@@ -587,13 +586,13 @@ insert_wd(unsigned char **up, unsigned char *cwd)
 		if (c < ' ' || c == '%' || c >= 127) {
 			unsigned char h[4];
 			sprintf((char *)h, "%%%02X", (unsigned)c & 0xff);
-			add_to_str(&url, &url_l, h);
+			url_l = add_to_str(&url, url_l, h);
 		} else
 			url_l = add_chr_to_str(&url, url_l, c);
 	}
 	if (!dir_sep(cwd[strlen((char *)cwd) - 1]))
 		url_l = add_chr_to_str(&url, url_l, '/');
-	add_to_str(&url, &url_l, u + 7);
+	url_l = add_to_str(&url, url_l, u + 7);
 	free(u);
 	*up = url;
 }
@@ -875,8 +874,8 @@ url_not_saveable(unsigned char *url)
  *  1 raw to percent
  */
 
-void
-add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll,
+size_t
+add_conv_str(unsigned char **s, size_t l, unsigned char *b, int ll,
              int encode_special)
 {
 	for (; ll > 0; ll--, b++) {
@@ -886,7 +885,7 @@ add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll,
 		if (special_char(chr) && encode_special == 1) {
 			unsigned char h[4];
 			sprintf((char *)h, "%%%02X", (unsigned)chr & 0xff);
-			add_to_str(s, l, h);
+			l = add_to_str(s, l, h);
 			continue;
 		}
 		if (chr == '%' && encode_special <= -1 && ll > 2
@@ -912,17 +911,18 @@ add_conv_str(unsigned char **s, int *l, unsigned char *b, int ll,
 				continue;
 		}
 		if (chr == ' ' && (!encode_special || encode_special == -1))
-			add_to_str(s, l, cast_uchar "&nbsp;");
+			l = add_to_str(s, l, cast_uchar "&nbsp;");
 		else if (accept_char(chr) || encode_special == -2)
-			*l = add_chr_to_str(s, *l, chr);
+			l = add_chr_to_str(s, l, chr);
 		else if (chr == 10 || chr == 13) {
 			continue;
 		} else {
-			add_to_str(s, l, cast_uchar "&#");
-			add_num_to_str(s, l, (int)chr);
-			*l = add_chr_to_str(s, *l, ';');
+			l = add_to_str(s, l, cast_uchar "&#");
+			l = add_num_to_str(s, l, (int)chr);
+			l = add_chr_to_str(s, l, ';');
 		}
 	}
+	return l;
 }
 
 void
@@ -1016,7 +1016,7 @@ puny_encode(unsigned char *s, int len)
 	unsigned *uni;
 	unsigned uni_l;
 	unsigned char *res;
-	int res_l;
+	size_t res_l;
 	unsigned i;
 	unsigned ni, cchar, skip;
 	struct puny_state st;
@@ -1039,8 +1039,7 @@ puny_encode(unsigned char *s, int len)
 		goto err_free_uni;
 
 	res = NULL;
-	res_l = 0;
-	add_to_str(&res, &res_l, cast_uchar xn);
+	res_l = add_to_str(&res, 0, cast_uchar xn);
 
 	ni = 0;
 	for (i = 0; i < uni_l; i++)
@@ -1128,7 +1127,7 @@ puny_decode(unsigned char *s, int len)
 	unsigned *uni;
 	unsigned uni_l;
 	unsigned char *res;
-	int res_l;
+	size_t res_l;
 	unsigned i;
 	unsigned cchar, pos;
 	struct puny_state st;
@@ -1214,7 +1213,7 @@ puny_decode(unsigned char *s, int len)
 
 	for (i = 0; i < uni_l; i++) {
 		unsigned char *us = encode_utf_8(uni[i]);
-		add_to_str(&res, &res_l, us);
+		res_l = add_to_str(&res, res_l, us);
 	}
 
 	free(uni);
@@ -1232,7 +1231,8 @@ idn_encode_host(unsigned char *host, int len, unsigned char *separator,
                 int decode)
 {
 	unsigned char *p, *s;
-	int pl, l, i;
+	int l, i;
+	size_t pl;
 	p = NULL;
 	pl = 0;
 
@@ -1250,14 +1250,14 @@ next_host_elem:
 				unsigned char *enc = puny_encode(host, l);
 				if (!enc)
 					goto err;
-				add_to_str(&p, &pl, enc);
+				pl = add_to_str(&p, pl, enc);
 				free(enc);
 				goto advance_host;
 			}
 	} else {
 		unsigned char *dec = puny_decode(host, l);
 		if (dec) {
-			add_to_str(&p, &pl, dec);
+			pl = add_to_str(&p, pl, dec);
 			free(dec);
 			goto advance_host;
 		}
@@ -1283,7 +1283,8 @@ unsigned char *
 idn_encode_url(unsigned char *url, int decode)
 {
 	unsigned char *host, *p, *h;
-	int holen, pl;
+	int holen;
+	size_t pl;
 	if (parse_url(url, NULL, NULL, NULL, NULL, NULL, &host, &holen, NULL,
 	              NULL, NULL, NULL, NULL)
 	    || !host) {
@@ -1297,8 +1298,8 @@ idn_encode_url(unsigned char *url, int decode)
 
 	p = NULL;
 	pl = add_bytes_to_str(&p, 0, url, host - url);
-	add_to_str(&p, &pl, h);
-	add_to_str(&p, &pl, host + holen);
+	pl = add_to_str(&p, pl, h);
+	pl = add_to_str(&p, pl, host + holen);
 	free(h);
 	return p;
 }

@@ -145,11 +145,11 @@ get_connection_cache_entry(struct connection *c)
 	    && c->last_lookup_state.addr.n) {
 		unsigned char *a;
 		unsigned char *s = NULL;
-		int l = 0;
+		size_t l = 0;
 		a = print_address(&c->last_lookup_state.addr
 		                       .a[c->last_lookup_state.addr_index]);
 		if (a)
-			add_to_str(&s, &l, a);
+			l = add_to_str(&s, l, a);
 		if (c->last_lookup_state.addr.n > 1) {
 			int i, d = 0;
 			if (l)
@@ -162,9 +162,9 @@ get_connection_cache_entry(struct connection *c)
 				    &c->last_lookup_state.addr.a[i]);
 				if (a) {
 					if (d)
-						add_to_str(&s, &l,
-						           cast_uchar ", ");
-					add_to_str(&s, &l, a);
+						l = add_to_str(&s, l,
+						               cast_uchar ", ");
+					l = add_to_str(&s, l, a);
 					d = 1;
 				}
 			}

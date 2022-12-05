@@ -45,8 +45,8 @@ setst(unsigned m, unsigned char *p)
 #endif
 }
 
-static void
-stat_mode(unsigned char **p, int *l, struct stat *stp)
+static size_t
+stat_mode(unsigned char **p, size_t l, struct stat *stp)
 {
 	unsigned char c = '?';
 	unsigned char rwx[10] = "---------";
@@ -82,7 +82,7 @@ stat_mode(unsigned char **p, int *l, struct stat *stp)
 			c = 'n';
 #endif
 	}
-	*l = add_chr_to_str(p, *l, c);
+	l = add_chr_to_str(p, l, c);
 	if (stp) {
 		unsigned mode = stp->st_mode;
 		setrwx(mode << 0, &rwx[0]);
@@ -90,20 +90,19 @@ stat_mode(unsigned char **p, int *l, struct stat *stp)
 		setrwx(mode << 6, &rwx[6]);
 		setst(mode, rwx);
 	}
-	add_to_str(p, l, rwx);
-	*l = add_chr_to_str(p, *l, ' ');
+	l = add_to_str(p, l, rwx);
+	return add_chr_to_str(p, l, ' ');
 }
 
-static void
-stat_links(unsigned char **p, int *l, struct stat *stp)
+static size_t
+stat_links(unsigned char **p, size_t l, struct stat *stp)
 {
 	unsigned char lnk[64];
 	if (!stp)
-		add_to_str(p, l, cast_uchar "    ");
-	else {
-		sprintf(cast_char lnk, "%3ld ", (unsigned long)stp->st_nlink);
-		add_to_str(p, l, lnk);
-	}
+		return add_to_str(p, l, cast_uchar "    ");
+
+	sprintf(cast_char lnk, "%3ld ", (unsigned long)stp->st_nlink);
+	return add_to_str(p, l, lnk);
 }
 
 static int last_uid = -1;
@@ -112,18 +111,16 @@ static unsigned char last_user[64];
 static int last_gid = -1;
 static unsigned char last_group[64];
 
-static void
-stat_user(unsigned char **p, int *l, struct stat *stp, int g)
+static size_t
+stat_user(unsigned char **p, size_t l, struct stat *stp, int g)
 {
 	struct passwd *pwd;
 	struct group *grp;
 	int id;
 	unsigned char *pp;
 	size_t i;
-	if (!stp) {
-		add_to_str(p, l, cast_uchar "         ");
-		return;
-	}
+	if (!stp)
+		return add_to_str(p, l, cast_uchar "         ");
 	id = !g ? stp->st_uid : stp->st_gid;
 	pp = !g ? last_user : last_group;
 	if (!g && id == last_uid && last_uid != -1)
@@ -146,14 +143,14 @@ stat_user(unsigned char **p, int *l, struct stat *stp, int g)
 		last_gid = id;
 	}
 a:
-	add_to_str(p, l, pp);
+	l = add_to_str(p, l, pp);
 	for (i = strlen(cast_const_char pp); i < 8; i++)
-		*l = add_chr_to_str(p, *l, ' ');
-	*l = add_chr_to_str(p, *l, ' ');
+		l = add_chr_to_str(p, l, ' ');
+	return add_chr_to_str(p, l, ' ');
 }
 
-static void
-stat_size(unsigned char **p, int *l, struct stat *stp)
+static size_t
+stat_size(unsigned char **p, size_t l, struct stat *stp)
 {
 	unsigned char num[64];
 	const int digits = 8;
@@ -163,13 +160,13 @@ stat_size(unsigned char **p, int *l, struct stat *stp)
 	else
 		snzprint(num, sizeof num, stp->st_size);
 	for (i = strlen(cast_const_char num); i < digits; i++)
-		*l = add_chr_to_str(p, *l, ' ');
-	add_to_str(p, l, num);
-	*l = add_chr_to_str(p, *l, ' ');
+		l = add_chr_to_str(p, l, ' ');
+	l = add_to_str(p, l, num);
+	return add_chr_to_str(p, l, ' ');
 }
 
-static void
-stat_date(unsigned char **p, int *l, struct stat *stp)
+static size_t
+stat_date(unsigned char **p, size_t l, struct stat *stp)
 {
 	time_t current_time;
 	time_t when;
@@ -203,20 +200,18 @@ set_empty:
 	while (wr < 12)
 		str[wr++] = ' ';
 	str[12] = 0;
-	add_to_str(p, l, str);
-	*l = add_chr_to_str(p, *l, ' ');
+	l = add_to_str(p, l, str);
+	return add_chr_to_str(p, l, ' ');
 }
 
 static unsigned char *
 get_filename(unsigned char *url)
 {
 	unsigned char *p, *m;
-	int ml;
 	for (p = url + 7; *p && *p != POST_CHAR; p++)
 		;
 	m = NULL;
-	ml = 0;
-	add_conv_str(&m, &ml, url + 7, (int)(p - url - 7), -2);
+	add_conv_str(&m, 0, url + 7, (int)(p - url - 7), -2);
 	return m;
 }
 
@@ -326,19 +321,19 @@ dir:
 		last_uid = -1;
 		last_gid = -1;
 		file = NULL;
-		fl = 0;
-		add_to_str(&file, &fl, cast_uchar "<html><head><title>");
+		fl = add_to_str(&file, fl, cast_uchar "<html><head><title>");
 		flo = fl;
-		add_conv_str(&file, &fl, name,
-		             (int)strlen(cast_const_char name), -1);
+		fl = add_conv_str(&file, fl, name,
+		                  (int)strlen(cast_const_char name), -1);
 		convert_file_charset(&file, &fl, flo);
-		add_to_str(&file, &fl,
-		           cast_uchar "</title></head><body><h2>Directory ");
+		fl = add_to_str(&file, fl,
+		                cast_uchar
+		                "</title></head><body><h2>Directory ");
 		flo = fl;
-		add_conv_str(&file, &fl, name,
-		             (int)strlen(cast_const_char name), -1);
+		fl = add_conv_str(&file, fl, name,
+		                  (int)strlen(cast_const_char name), -1);
 		convert_file_charset(&file, &fl, flo);
-		add_to_str(&file, &fl, cast_uchar "</h2>\n<pre>");
+		fl = add_to_str(&file, fl, cast_uchar "</h2>\n<pre>");
 		while (1) {
 			struct stat stt, *stp;
 			unsigned char **p;
@@ -370,12 +365,12 @@ dir:
 			else
 				stp = &stt;
 			free(n);
-			stat_mode(p, &l, stp);
-			stat_links(p, &l, stp);
-			stat_user(p, &l, stp, 0);
-			stat_user(p, &l, stp, 1);
-			stat_size(p, &l, stp);
-			stat_date(p, &l, stp);
+			l = stat_mode(p, l, stp);
+			l = stat_links(p, l, stp);
+			l = stat_user(p, l, stp, 0);
+			l = stat_user(p, l, stp, 1);
+			l = stat_size(p, l, stp);
+			l = stat_date(p, l, stp);
 		}
 		closedir(d);
 		if (dirl)
@@ -407,10 +402,11 @@ yyy:
 xxx:
 				free(n);
 			}
-			add_to_str(&file, &fl, dir[i].s);
-			add_to_str(&file, &fl, cast_uchar "<a href=\"./");
-			add_conv_str(&file, &fl, dir[i].f,
-			             (int)strlen(cast_const_char dir[i].f), 1);
+			fl = add_to_str(&file, fl, dir[i].s);
+			fl = add_to_str(&file, fl, cast_uchar "<a href=\"./");
+			fl = add_conv_str(&file, fl, dir[i].f,
+			                  (int)strlen(cast_const_char dir[i].f),
+			                  1);
 			if (dir[i].s[0] == 'd')
 				fl = add_chr_to_str(&file, fl, '/');
 			else if (lnk) {
@@ -422,18 +418,19 @@ xxx:
 					fl = add_chr_to_str(&file, fl, '/');
 				free(n);
 			}
-			add_to_str(&file, &fl, cast_uchar "\">");
+			fl = add_to_str(&file, fl, cast_uchar "\">");
 			flo = fl;
-			add_conv_str(&file, &fl, dir[i].f,
-			             (int)strlen(cast_const_char dir[i].f), 0);
+			fl = add_conv_str(&file, fl, dir[i].f,
+			                  (int)strlen(cast_const_char dir[i].f),
+			                  0);
 			convert_file_charset(&file, &fl, flo);
-			add_to_str(&file, &fl, cast_uchar "</a>");
+			fl = add_to_str(&file, fl, cast_uchar "</a>");
 			if (lnk) {
-				add_to_str(&file, &fl, cast_uchar " -> ");
-				add_to_str(&file, &fl, cast_uchar lnk);
+				fl = add_to_str(&file, fl, cast_uchar " -> ");
+				fl = add_to_str(&file, fl, cast_uchar lnk);
 				free(lnk);
 			}
-			add_to_str(&file, &fl, cast_uchar "\n");
+			fl = add_to_str(&file, fl, cast_uchar "\n");
 		}
 		free(name);
 		for (i = 0; i < dirl; i++) {
@@ -441,7 +438,7 @@ xxx:
 			free(dir[i].f);
 		}
 		free(dir);
-		add_to_str(&file, &fl, cast_uchar "</pre></body></html>\n");
+		fl = add_to_str(&file, fl, cast_uchar "</pre></body></html>\n");
 		head = stracpy(cast_uchar "\r\nContent-Type: text/html\r\n");
 	} else {
 		free(name);

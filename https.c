@@ -181,7 +181,7 @@ verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 			int i;
 			char *last_ca = NULL;
 			unsigned char *cas = NULL;
-			int casl = 0;
+			size_t casl = 0;
 			for (i = num - 1; i >= 0; i--) {
 				char space[3072];
 				char *n;
@@ -194,11 +194,11 @@ verify_ssl_certificate(links_ssl *ssl, unsigned char *host)
 					char *ca = extract_ca(n);
 					if (!last_ca || strcmp(ca, last_ca)) {
 						if (casl)
-							add_to_str(
-							    &cas, &casl,
+							casl = add_to_str(
+							    &cas, casl,
 							    CERT_RIGHT_ARROW);
-						add_to_str(&cas, &casl,
-						           cast_uchar ca);
+						casl = add_to_str(
+						    &cas, casl, cast_uchar ca);
 						free(last_ca);
 						last_ca = ca;
 					} else {
@@ -250,18 +250,18 @@ get_cipher_string(links_ssl *ssl)
 {
 	const char *version, *cipher;
 	unsigned char *s = NULL;
-	int l = 0;
+	size_t l;
 
-	add_num_to_str(&s, &l, SSL_get_cipher_bits(ssl->ssl, NULL));
-	add_to_str(&s, &l, (unsigned char *)"-bit");
+	l = add_num_to_str(&s, 0, SSL_get_cipher_bits(ssl->ssl, NULL));
+	l = add_to_str(&s, l, (unsigned char *)"-bit");
 
 	if ((version = SSL_get_version(ssl->ssl))) {
 		l = add_chr_to_str(&s, l, ' ');
-		add_to_str(&s, &l, (unsigned char *)version);
+		l = add_to_str(&s, l, (unsigned char *)version);
 	}
 	if ((cipher = SSL_get_cipher_name(ssl->ssl))) {
 		l = add_chr_to_str(&s, l, ' ');
-		add_to_str(&s, &l, (unsigned char *)cipher);
+		l = add_to_str(&s, l, (unsigned char *)cipher);
 	}
 	return s;
 }

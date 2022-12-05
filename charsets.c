@@ -433,13 +433,13 @@ unicode_upcase_string(unsigned char *ch)
 {
 	unsigned char *r = NULL;
 	unsigned int c;
-	int rl = 0;
+	size_t rl = 0;
 	for (;;) {
 		GET_UTF_8(ch, c);
 		if (!c)
 			break;
 		c = towupper(c);
-		add_to_str(&r, &rl, encode_utf_8(c));
+		rl = add_to_str(&r, rl, encode_utf_8(c));
 	}
 	return r;
 }

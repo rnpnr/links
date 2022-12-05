@@ -1045,7 +1045,8 @@ get_content_type_by_extension(unsigned char *url)
 	struct list *l = NULL;
 	struct list_head *ll;
 	unsigned char *ct, *eod, *ext, *exxt;
-	int extl, el;
+	int extl;
+	size_t el;
 	ext = NULL;
 	extl = 0;
 	if (!(ct = get_url_data(url)))
@@ -1108,8 +1109,7 @@ get_content_type_by_extension(unsigned char *url)
 	    || (extl == 4 && !casecmp(ext, cast_uchar "tiff", 4)))
 		return stracpy(cast_uchar "image/tiff");
 	exxt = NULL;
-	el = 0;
-	add_to_str(&exxt, &el, cast_uchar "application/x-");
+	el = add_to_str(&exxt, 0, cast_uchar "application/x-");
 	el = add_bytes_to_str(&exxt, el, ext, extl);
 	foreach (struct list, l, ll, assoc.list_entry) {
 		struct assoc *a = get_struct(l, struct assoc, head);
@@ -1394,7 +1394,6 @@ get_filename_from_header(unsigned char *head)
 {
 	int extended = 0;
 	unsigned char *ct, *x, *y, *codepage;
-	int ly;
 	if ((ct = parse_http_header(head, cast_uchar "Content-Disposition",
 	                            NULL))) {
 		x = parse_header_param(ct, cast_uchar "filename*", 1);
@@ -1441,8 +1440,7 @@ ret_x:
 
 no_extended:
 	y = NULL;
-	ly = 0;
-	add_conv_str(&y, &ly, x, (int)strlen(cast_const_char x), -2);
+	add_conv_str(&y, 0, x, (int)strlen(cast_const_char x), -2);
 	free(x);
 	free(codepage);
 
@@ -1455,7 +1453,6 @@ no_extended:
 unsigned char *
 get_filename_from_url(unsigned char *url, unsigned char *head, int tmp)
 {
-	int ll = 0;
 	unsigned char *u, *s, *e, *f, *x, *ww;
 	unsigned char *ct, *want_ext;
 	if (!casecmp(url, cast_uchar "data:", 5))
@@ -1469,9 +1466,8 @@ get_filename_from_url(unsigned char *url, unsigned char *head, int tmp)
 	for (e = s = u; *e && !end_of_dir(url, *e); e++)
 		if (dir_sep(*e))
 			s = e + 1;
-	ll = 0;
 	f = NULL;
-	add_conv_str(&f, &ll, s, (int)(e - s), -2);
+	add_conv_str(&f, 0, s, (int)(e - s), -2);
 	if (!(ct = parse_http_header(head, cast_uchar "Content-Type", NULL)))
 		goto no_ct;
 	free(ct);

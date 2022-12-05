@@ -630,12 +630,10 @@ html_tag(struct f_data *f, unsigned char *t, int x, int y)
 	struct tag *tag;
 	size_t sl;
 	unsigned char *tt;
-	int ll;
 	if (!f)
 		return;
 	tt = NULL;
-	ll = 0;
-	add_conv_str(&tt, &ll, t, (int)strlen(cast_const_char t), -2);
+	add_conv_str(&tt, 0, t, (int)strlen(cast_const_char t), -2);
 	sl = strlen(cast_const_char tt);
 	if (sl > INT_MAX - sizeof(struct tag))
 		overalloc();
@@ -1387,7 +1385,7 @@ really_format_html(struct cache_entry *ce, unsigned char *start,
 {
 	unsigned char *url = ce->url;
 	unsigned char *head, *t;
-	int hdl;
+	size_t hdl;
 	int i;
 	unsigned char *bg = NULL, *bgcolor = NULL;
 	int implicit_pre_wrap;
@@ -1402,10 +1400,11 @@ really_format_html(struct cache_entry *ce, unsigned char *start,
 	head = NULL;
 	hdl = 0;
 	if (ce->head)
-		add_to_str(&head, &hdl, ce->head);
-	scan_http_equiv(start, end, &head, &hdl, &t, d_opt->plain ? NULL : &bg,
-	                d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor,
-	                &implicit_pre_wrap);
+		hdl = add_to_str(&head, hdl, ce->head);
+	hdl = scan_http_equiv(start, end, &head, hdl, &t,
+	                      d_opt->plain ? NULL : &bg,
+	                      d_opt->plain || d_opt->col < 2 ? NULL : &bgcolor,
+	                      &implicit_pre_wrap);
 	if (d_opt->break_long_lines)
 		implicit_pre_wrap = 1;
 	if (d_opt->plain)
