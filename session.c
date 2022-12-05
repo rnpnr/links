@@ -668,7 +668,7 @@ download_window_function(struct dialog_data *dlg)
 			l = add_xnum_to_str(&m, l, stat->prg->size);
 			l = add_chr_to_str(&m, l, ' ');
 		}
-		l = add_to_str(&m, l, cast_uchar "\n");
+		l = add_chr_to_str(&m, l, '\n');
 		if (stat->prg->elapsed >= CURRENT_SPD_AFTER * SPD_DISP_TIME)
 			l = add_to_str(
 			    &m, l,
@@ -693,7 +693,7 @@ download_window_function(struct dialog_data *dlg)
 				/ (CURRENT_SPD_SEC * SPD_DISP_TIME / 1000));
 			l = add_to_str(&m, l, cast_uchar "/s");
 		}
-		l = add_to_str(&m, l, cast_uchar "\n");
+		l = add_chr_to_str(&m, l, '\n');
 		l = add_to_str(
 		    &m, l, get_text_translation(TEXT_(T_ELAPSED_TIME), term));
 		l = add_chr_to_str(&m, l, ' ');

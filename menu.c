@@ -60,11 +60,11 @@ menu_version(void *term_)
 
 	l = add_and_pad(&s, 0, term, *text_ptr++, maxlen);
 	l = add_to_str(&s, l, cast_uchar VERSION);
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	l = add_to_str(&s, l, system_name);
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	l = add_to_str(&s, l, get_text_translation(TEXT_(T_MEMORY), term));
@@ -75,11 +75,11 @@ menu_version(void *term_)
 	l = add_chr_to_str(&s, l, ' ');
 	l = add_num_to_str(&s, l, sizeof(off_t) * 8 /*- ((off_t)-1 < 0)*/);
 	l = add_to_str(&s, l, cast_uchar "-bit");
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	l = add_event_string(&s, l, term);
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	if (!support_ipv6)
@@ -92,11 +92,11 @@ menu_version(void *term_)
 		    get_text_translation(TEXT_(T_LOCAL_NETWORK_ONLY), term));
 	else
 		l = add_to_str(&s, l, get_text_translation(TEXT_(T_YES), term));
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	l = add_compress_methods(&s, l);
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 #ifdef OPENSSL_VERSION
@@ -105,14 +105,14 @@ menu_version(void *term_)
 #else
 	l = add_to_str(&s, l, (unsigned char *)SSLeay_version(SSLEAY_VERSION));
 #endif
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	l = add_to_str(&s, l, get_text_translation(TEXT_(T_YES), term));
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	l = add_to_str(&s, l, get_text_translation(TEXT_(T_NO), term));
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	l = add_and_pad(&s, l, term, *text_ptr++, maxlen);
 	if (links_home) {
@@ -123,7 +123,7 @@ menu_version(void *term_)
 	} else
 		l = add_to_str(&s, l,
 		               get_text_translation(TEXT_(T_NONE), term));
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 
 	if (*text_ptr)
 		internal("menu_version: text mismatched");

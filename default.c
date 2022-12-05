@@ -220,7 +220,7 @@ create_config_string(struct option *options)
 		if (options[i].wr_cfg)
 			l = options[i].wr_cfg(&options[i], &s, l);
 	}
-	l = add_to_str(&s, l, cast_uchar "\n");
+	l = add_chr_to_str(&s, l, '\n');
 	return s;
 }
 
@@ -510,7 +510,7 @@ static size_t
 add_nm(struct option *o, unsigned char **s, size_t l)
 {
 	if (l)
-		l = add_to_str(s, l, cast_uchar "\n");
+		l = add_chr_to_str(s, l, '\n');
 	l = add_to_str(s, l, cast_uchar o->cfg_name);
 	return add_chr_to_str(s, l, ' ');
 }
@@ -716,7 +716,7 @@ type_wr(struct option *o, unsigned char **s, size_t l)
 		l = add_quoted_to_str(s, l, as->label);
 		l = add_chr_to_str(s, l, ' ');
 		l = add_quoted_to_str(s, l, as->ct);
-		l = add_to_str(s, l, cast_uchar " ");
+		l = add_chr_to_str(s, l, ' ');
 		l = add_quoted_to_str(s, l, as->prog);
 		l = add_chr_to_str(s, l, ' ');
 		l = add_num_to_str(
@@ -1504,7 +1504,7 @@ save_url_history(void)
 			continue;
 		if (!url_not_saveable(hi->str)) {
 			hsl = add_to_str(&hs, hsl, hi->str);
-			hsl = add_to_str(&hs, hsl, cast_uchar "\n");
+			hsl = add_chr_to_str(&hs, hsl, '\n');
 		}
 	}
 	write_to_config_file(history_file, hs, 0);

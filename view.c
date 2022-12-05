@@ -1375,7 +1375,7 @@ dump_to_file(struct f_data *fd, int h)
 				}
 			}
 unknown:
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			if ((retval = hard_write(h, s, l)) != l) {
 				free(s);
 				goto fail;
@@ -1913,13 +1913,13 @@ bnd:
 		                 cast_uchar
 		                 "\r\nContent-Disposition: form-data; name=\"");
 		len = add_to_str(data, len, sv->name);
-		len = add_to_str(data, len, cast_uchar "\"");
+		len = add_chr_to_str(data, len, '"');
 		if (sv->type == FC_FILE_UPLOAD) {
 			len = add_to_str(data, len, cast_uchar "; filename=\"");
 			len = add_to_str(data, len, strip_file_name(sv->value));
 			/* It sends bad data if the file name contains ", but
 			   Netscape does the same */
-			len = add_to_str(data, len, cast_uchar "\"");
+			len = add_chr_to_str(data, len, '"');
 			if (*sv->value)
 				if ((ct = get_content_type(NULL, sv->value))) {
 					len = add_to_str(data, len,
@@ -2113,7 +2113,7 @@ get_form_url(struct session *ses, struct f_data_c *f, struct form_control *form,
 			               cast_uchar
 			               "multipart/form-data; boundary=");
 			l = add_bytes_to_str(&go, l, bound, BL);
-			l = add_to_str(&go, l, cast_uchar "\n");
+			l = add_chr_to_str(&go, l, '\n');
 		}
 		for (i = 0; i < len; i++) {
 			unsigned char p[3];
@@ -4410,7 +4410,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		}
 		spc = stracpy((unsigned char *)"");
 		if (spc && *spc) {
-			ll = add_to_str(&m, ll, cast_uchar "\n");
+			ll = add_chr_to_str(&m, ll, '\n');
 			ll = add_to_str(
 			    &m, ll,
 			    get_text_translation(TEXT_(T_JAVASCRIPT), term));
@@ -4419,7 +4419,7 @@ print_current_linkx_plus(struct f_data_c *fd, struct terminal *term)
 		}
 		free(spc);
 		if (l->where_img) {
-			ll = add_to_str(&m, ll, cast_uchar "\n");
+			ll = add_chr_to_str(&m, ll, '\n');
 			ll = add_to_str(
 			    &m, ll, get_text_translation(TEXT_(T_IMAGE), term));
 			ll = add_to_str(&m, ll, cast_uchar ": src='");
@@ -4589,7 +4589,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		unsigned char *start;
 		size_t len;
 		if (ce->ip_address) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			if (!strchr(cast_const_char ce->ip_address, ' '))
 				l = add_to_str(&s, l,
 				               get_text_translation(
@@ -4602,7 +4602,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			l = add_to_str(&s, l, cast_uchar ": ");
 			l = add_to_str(&s, l, ce->ip_address);
 		}
-		l = add_to_str(&s, l, cast_uchar "\n");
+		l = add_chr_to_str(&s, l, '\n');
 		l = add_to_str(&s, l,
 		               get_text_translation(TEXT_(T_SIZE), term));
 		l = add_to_str(&s, l, cast_uchar ": ");
@@ -4635,7 +4635,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			l = add_chr_to_str(&s, l, ')');
 		}
 		if (frame->f_data->ass >= 0) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			l = add_to_str(
 			    &s, l,
 			    get_text_translation(TEXT_(T_CODEPAGE), term));
@@ -4661,7 +4661,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		if (ce->head && ce->head[0] != '\n' && ce->head[0] != '\r'
 		    && (a = parse_http_header(
 			    ce->head, cast_uchar "Content-Type", NULL))) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			l = add_to_str(
 			    &s, l,
 			    get_text_translation(TEXT_(T_CONTENT_TYPE), term));
@@ -4671,7 +4671,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		}
 		if ((a = parse_http_header(ce->head, cast_uchar "Server",
 		                           NULL))) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			l = add_to_str(
 			    &s, l, get_text_translation(TEXT_(T_SERVER), term));
 			l = add_to_str(&s, l, cast_uchar ": ");
@@ -4680,7 +4680,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		}
 		if ((a = parse_http_header(ce->head, cast_uchar "Date",
 		                           NULL))) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			l = add_to_str(
 			    &s, l, get_text_translation(TEXT_(T_DATE), term));
 			l = add_to_str(&s, l, cast_uchar ": ");
@@ -4689,7 +4689,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 		}
 		if ((a = parse_http_header(ce->head, cast_uchar "Last-Modified",
 		                           NULL))) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			l = add_to_str(
 			    &s, l,
 			    get_text_translation(TEXT_(T_LAST_MODIFIED), term));
@@ -4698,7 +4698,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			free(a);
 		}
 		if (ce->ssl_info) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			l = add_to_str(
 			    &s, l,
 			    get_text_translation(TEXT_(T_SSL_CIPHER), term));
@@ -4706,7 +4706,7 @@ loc_msg(struct terminal *term, struct location *lo, struct f_data_c *frame)
 			l = add_to_str(&s, l, ce->ssl_info);
 		}
 		if (ce->ssl_authority) {
-			l = add_to_str(&s, l, cast_uchar "\n");
+			l = add_chr_to_str(&s, l, '\n');
 			if (strstr(cast_const_char ce->ssl_authority,
 			           cast_const_char CERT_RIGHT_ARROW))
 				l = add_to_str(
