@@ -355,10 +355,10 @@ get_home(void)
 	if (stat(".", &st))
 		die("stat: %s: %s\n", ".", strerror(errno));
 
-	config_dir = stracpy(cast_uchar getenv("CONFIG_DIR"));
-
 	first_use = 1;
 	home = stracpy(cast_uchar getenv("HOME"));
+	config_dir = cast_uchar getenv("XDG_CONFIG_HOME");
+
 	if (!home) {
 		int i;
 		home = (unsigned char *)argv0;
@@ -370,35 +370,23 @@ get_home(void)
 		home[0] = 0;
 br:;
 	}
+	/* clears any '/' from the end of home */
 	while (home[0] && home[1]
 	       && dir_sep(home[strlen(cast_const_char home) - 1]))
 		home[strlen(cast_const_char home) - 1] = 0;
 	if (home[0])
 		add_to_strn(&home, cast_uchar "/");
-	home_links = stracpy(home);
-	if (config_dir) {
-		add_to_strn(&home_links, config_dir);
+	if (config_dir == NULL || config_dir[0] == 0) {
+		home_links = stracpy(home);
+		add_to_strn(&home_links, cast_uchar ".config");
+	} else {
+		home_links = stracpy(config_dir);
 		while (home_links[0]
 		       && dir_sep(
 			   home_links[strlen(cast_const_char home_links) - 1]))
 			home_links[strlen(cast_const_char home_links) - 1] = 0;
-		EINTRLOOP(rs, stat(cast_const_char home_links, &st));
-		if (!rs && S_ISDIR(st.st_mode)) {
-			add_to_strn(&home_links, cast_uchar "/links");
-		} else {
-			fprintf(stderr,
-			        "CONFIG_DIR set to %s. But directory %s "
-			        "doesn't exist.\n\007",
-			        config_dir, home_links);
-			portable_sleep(3000);
-			free(home_links);
-			home_links = stracpy(home);
-			goto add_dot_links;
-		}
-	} else {
-add_dot_links:
-		add_to_strn(&home_links, cast_uchar ".links");
 	}
+	add_to_strn(&home_links, cast_uchar "/links");
 	EINTRLOOP(rs, stat(cast_const_char home_links, &st));
 	if (rs) {
 		EINTRLOOP(rs, mkdir(cast_const_char home_links, 0700));
@@ -435,7 +423,6 @@ first_failed:
 failed:
 	free(home_links);
 	free(home);
-	free(config_dir);
 	return NULL;
 
 home_ok:
@@ -446,7 +433,6 @@ home_creat:
 	}
 	add_to_strn(&home_links, cast_uchar "/");
 	free(home);
-	free(config_dir);
 	return home_links;
 }
 
