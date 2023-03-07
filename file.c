@@ -321,7 +321,7 @@ dir:
 		last_uid = -1;
 		last_gid = -1;
 		file = NULL;
-		fl = add_to_str(&file, fl, cast_uchar "<html><head><title>");
+		fl = add_to_str(&file, 0, cast_uchar "<html><head><title>");
 		flo = fl;
 		fl = add_conv_str(&file, fl, name,
 		                  (int)strlen(cast_const_char name), -1);
