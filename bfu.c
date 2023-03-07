@@ -367,7 +367,6 @@ xxx:
 
 		if (ev->x < menu->x || ev->x >= menu->x + menu->xw
 		    || ev->y < menu->y || ev->y >= menu->y + menu->yw) {
-			int f = 1;
 			struct window *w1 = NULL;
 			struct list_head *w1l;
 			foreachfrom (struct window, w1, w1l, win->term->windows,
@@ -385,7 +384,6 @@ xxx:
 				    && ev->y > m1->y
 				    && ev->y < m1->y + m1->yw - 1)
 					goto del;
-				f--;
 			}
 			if ((ev->b & BM_ACT) == B_DOWN)
 				goto del;

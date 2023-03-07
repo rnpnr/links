@@ -597,7 +597,6 @@ static unsigned char frame_vt100[49] =
 		l = add_chr_to_str(&a, l, ';');                                \
 		l = add_num_to_str(&a, l, (x) + 1 + term->left_margin);        \
 		l = add_chr_to_str(&a, l, 'H');                                \
-		n_chars = 0;                                                   \
 	}
 
 #define PRINT_CHAR(p)                                                          \
@@ -669,7 +668,6 @@ static unsigned char frame_vt100[49] =
 		else                                                           \
 			l = add_chr_to_str(&a, l, '.');                        \
 		cx++;                                                          \
-		n_chars++;                                                     \
 	}
 
 static void
@@ -677,7 +675,6 @@ redraw_screen(struct terminal *term)
 {
 	int x, y, p = 0;
 	int cx = term->lcx, cy = term->lcy;
-	unsigned n_chars = INT_MAX / 2;
 	unsigned char *a;
 	int attrib = -1;
 	int mode = -1;
