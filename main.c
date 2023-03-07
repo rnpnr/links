@@ -396,7 +396,6 @@ terminate_all_subsystems(void)
 	free_term_specs();
 	free_types();
 	finalize_bookmarks();
-	free_conv_table();
 	free_blacklist();
 	free_cookies();
 	free_auth();

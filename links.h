@@ -2068,7 +2068,6 @@ unsigned char *convert(int from, int to, unsigned char *c,
                        struct document_options *dopt);
 unsigned char *get_cp_name(int);
 unsigned char *get_cp_mime_name(int);
-void free_conv_table(void);
 unsigned char *encode_utf_8(int);
 unsigned char *u2cp(int u);
 

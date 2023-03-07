@@ -110,48 +110,19 @@ encode_utf_8(int u)
 	return utf_buffer;
 }
 
-static struct conv_table utf_table[256];
-static int utf_table_init = 1;
-
-static void
-free_utf_table(void)
-{
-	int i;
-	for (i = 128; i < 256; i += 4) {
-		free(utf_table[i].u.str);
-		free(utf_table[i + 1].u.str);
-		free(utf_table[i + 2].u.str);
-		free(utf_table[i + 3].u.str);
-	}
-}
-
 static struct conv_table *
 get_translation_table_to_utf_8(int from)
 {
+	static struct conv_table utf_table[256];
+	static int init = 0, lfr = -1;
 	int i;
-	static int lfr = -1;
 	if (from == lfr)
 		return utf_table;
 	lfr = from;
-	if (utf_table_init) {
-		memset(utf_table, 0, sizeof(struct conv_table) * 256);
-		for (i = 0; i < 128; i += 4) {
+	if (!init) {
+		for (i = 0; i < 256; i++)
 			utf_table[i].u.str = (unsigned char *)strings[i];
-			utf_table[i + 1].u.str =
-			    (unsigned char *)strings[i + 1];
-			utf_table[i + 2].u.str =
-			    (unsigned char *)strings[i + 2];
-			utf_table[i + 3].u.str =
-			    (unsigned char *)strings[i + 3];
-		}
-		utf_table_init = 0;
-	} else
-		free_utf_table();
-	for (i = 128; i < 256; i += 4) {
-		utf_table[i].u.str = stracpy(strings[i]);
-		utf_table[i + 1].u.str = stracpy(strings[i + 1]);
-		utf_table[i + 2].u.str = stracpy(strings[i + 2]);
-		utf_table[i + 3].u.str = stracpy(strings[i + 3]);
+		init = 1;
 	}
 	return utf_table;
 }
@@ -197,13 +168,6 @@ get_utf_8(unsigned char **s)
 	if (v > 0x10FFFF)
 		return 0;
 	return v;
-}
-
-void
-free_conv_table(void)
-{
-	if (!utf_table_init)
-		free_utf_table();
 }
 
 struct conv_table *
